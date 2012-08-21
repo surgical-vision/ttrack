@@ -1,0 +1,23 @@
+Tool Tracking Project
+
+About:
+
+This project is a surgical tool tracking system which detects and
+localises minimally invasive video in video images. The system
+incorporates a Random Forest classifier and a level-set based
+segmentation system to determine pose in 3D dimenesions.
+
+Dependencies:
+
+OpenCV v2.3.1 or higher
+TooN
+
+Install Guide:
+
+Linux - Grab the makefile from the build directory and copy to the
+root directory. Build as usual.   
+
+Windows - Copy the VS2010 solution to the root directory and build.
+
+OS-X - Code does not support OS-X
+

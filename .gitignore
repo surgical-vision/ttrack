@@ -1,0 +1,11 @@
+*.avi
+*.o
+#*#
+results
+results/*
+data_sets
+data_sets/*
+*.png
+*.jpg
+*.sdf
+./Makefile

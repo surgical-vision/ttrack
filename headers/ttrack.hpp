@@ -7,9 +7,11 @@
  * Information about the project...
  */
 
-#include "headers.h"
-#include "classifier.h"
-#include "tracker.h"
+#include "headers.hpp"
+#include "classifier.hpp"
+#include "tracker.hpp"
+#include "detect.hpp"
+
 /**
  * @namespace ttrk
  * This is the namespace for the tool tracking project.
@@ -56,29 +58,33 @@ namespace ttrk{
     void RunImages(const std::string in_images="./data/", const std::string out_images="./data/results/",
                    const std::string out_posefile="./results/pose.csv");
 
-
      
     /**
-     * A method for saving the current frame in the specified directory. The filename will be image_X.png 
+     * A method for saving the current frame in debug directory. The filename will be image_X.png 
      * where X is the current frame number
      * @param url The directory for the filename.
      */
-    void SaveFrame(const std::string &url) const;
+    void SaveFrame(const std::string url="./debug/frames/") const;
 
     /**
-     * Set verbose mode on or off. This will save lots of output images in the 
+     * Set verbose mode on or off. This will save lots of output images in the debug directory.
+     * @param toggle set either on (true) or off (false)
+     */
+    void ToggleVerbose(const bool toggle);
 
   protected:
     
     Tracker tracker_; /**< The class responsible for finding the instrument in the image. */
-    Classifier classifier_; /**< The class responsible for classifying the pixels in the image. */
+    Detect detector_; /**< The class responsible for classifying the pixels in the image. */
     cv::Mat *current_frame_; /**< A pointer to the current classified frame that will be passed from the classifier to the tracker. */
+
   private:
 
     TTrack();
     TTrack(const TTrack &);
     TTrack &operator=(const TTrack &);
-
+    static bool constructed_;
+    static TTrack *instance_;
 
   };
 

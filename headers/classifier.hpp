@@ -1,4 +1,4 @@
-#indef _CLASSIFIER_H_
+#ifndef _CLASSIFIER_H_
 #define _CLASSIFIER_H_
 
 namespace ttrk{
@@ -13,10 +13,11 @@ namespace ttrk{
   
   class Classifier{
 
-  pubic:
-    
+  public:
+    Classifier();
+    ~Classifier();
 
-  }
+  };
 
 
 }

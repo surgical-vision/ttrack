@@ -9,3 +9,5 @@ data_sets/*
 *.jpg
 *.sdf
 ./Makefile
+
+TAGS

@@ -11,7 +11,8 @@ LINKFLAGS = -L /usr/lib/ -lboost_thread -lboost_system -lboost_filesystem `pkg-c
 OBJECTS=main.o \
 	ttrack.o \
 	detect.o \
-	tracker.o
+	tracker.o \
+	handler.o
 
 all:$(OBJ)$(TARGET)
 

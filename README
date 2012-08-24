@@ -1,23 +1,25 @@
-Tool Tracking Project
+Tracking Project
 
 About:
 
-This project is a surgical tool tracking system which detects and
-localises minimally invasive video in video images. The system
+This project is a monocular/stereo tracking system which detects and
+localises 3D objects in video images. The system
 incorporates a Random Forest classifier and a level-set based
-segmentation system to determine pose in 3D dimenesions.
+segmentation system to determine pose in 3D dimenesions. The system is
+currently being developed to tracking MIS instruments but can easily
+be extended to track any rigid object.
 
 Dependencies:
 
-OpenCV v2.3.1 or higher
-TooN
+OpenCV v2.3.1 or higher 
+Boost v1.48.0 but will probably work on other versions of boost too.
 
 Install Guide:
 
 Linux - Grab the makefile from the build directory and copy to the
-root directory. Build as usual.   
+root directory. Build with Make.   
 
-Windows - Copy the VS2010 solution to the root directory and build.
+Windows - Support not currently available. Will add a VS2010 solution shortly.
 
-OS-X - Code does not support OS-X
+OS-X - Code does not support OS-X. No plans to add support in the future.
 

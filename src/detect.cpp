@@ -3,25 +3,32 @@
 
 using namespace ttrk;
 
-Detect::Detect():c_frame_(new cv::Mat){};
+Detect::Detect():v2c_frame_(new cv::Mat){};
 
 Detect::~Detect(){};
 
-
 void Detect::operator()(boost::shared_ptr<cv::Mat> image){
+  
+  if(image.get() == 0) {
+    found_ = false;
+    return;
+  }
 
-  *c_frame_ = image->clone();
+  found_ = true;
+  v2c_frame_ = image;
   
 }
 
 boost::shared_ptr<cv::Mat> Detect::GetPtrToClassified() const {
-
-  return c_frame_;
+  
+  boost::shared_ptr<cv::Mat> m(new cv::Mat);
+  *m = v2c_frame_->clone();
+  return m;
 
 }
 
 bool Detect::Found() const {
 
-  return true;
+  return found_;
 
 }

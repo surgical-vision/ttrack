@@ -20,7 +20,7 @@ namespace ttrk{
 
     Detect();
     ~Detect();
-    
+
     /**
      * The operator overload for the boost thread call. This function wraps the calls to the detection methods.
      * @param[in] image The image pulled from the video file or image file.
@@ -30,8 +30,8 @@ namespace ttrk{
 
 
     /**
-     * The operator returns a shared pointer to the classified frame. 
-     * @return a shared pointer to the classified frame.
+     * The operator returns a unique pointer to the classified frame. 
+     * @return a unique pointer to the classified frame.
      */
     boost::shared_ptr<cv::Mat> GetPtrToClassified() const;
 
@@ -41,11 +41,10 @@ namespace ttrk{
      */
     bool Found() const;
 
-
   protected:
 
-    boost::shared_ptr<cv::Mat> c_frame_;
-
+    boost::shared_ptr<cv::Mat> v2c_frame_;
+    bool found_;
   
   };
 

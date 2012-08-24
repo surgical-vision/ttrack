@@ -92,7 +92,7 @@ namespace ttrk{
     Detect detector_; /**< The class responsible for classifying the pixels in the image. */
     Handler *handler_; /**< Pointer to either an ImageHandler or a VideoHandler which handles getting and saving frames with a simple interface */
     
-    boost::shared_ptr<cv::Mat> c_frame_; /**< A shared pointer to the current classified frame that will be passed from the classifier to the tracker. */
+    boost::shared_ptr<cv::Mat> c_frame_; /**< A unique pointer to the current classified frame that will be passed from the classifier to the tracker. */
     boost::shared_ptr<cv::Mat> v_frame_; /**< A newly grabbed video image that is due to be processed by the classifier. */
     
     

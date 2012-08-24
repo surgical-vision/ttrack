@@ -5,7 +5,7 @@ SRC=./src/
 OBJ=./bin/
 TARGET=ttrack
 
-COMPILEFLAGS= -I /usr/include/boost/  `pkg-config --cflags opencv` -g -Wall -DDEBUG
+COMPILEFLAGS= -I /usr/include/boost/  `pkg-config --cflags opencv` -g -Wall -DDEBUG 
 LINKFLAGS = -L /usr/lib/ -lboost_thread -lboost_system -lboost_filesystem `pkg-config --libs opencv`
 
 OBJECTS=main.o \

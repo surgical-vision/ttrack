@@ -12,7 +12,7 @@ Handler::~Handler(){}
 VideoHandler::VideoHandler(const std::string &input_url, const std::string &output_url):
   Handler(input_url,output_url),
   in_videofile_(input_url + "/" + "video.avi"),
-  out_videofile_(output_url + "/" + "video.avi")
+  out_videofile_(output_url + "/output/" + "video.avi")
   {
 
   cap_.open(in_videofile_);
@@ -34,16 +34,18 @@ ImageHandler::ImageHandler(const std::string &input_url, const std::string &outp
   Handler(input_url,output_url),
   in_images_(input_url + "/training_images/"),
   masks_(input_url + "/masks/"),
-  out_images_(output_url + "/images/"){
+  out_images_(output_url + "/output/images/"){
 
   using namespace boost::filesystem;
   
   // create a directory object
-  path in_dir(in_images_);
+  path in_dir(in_images_),out_dir(out_images_);
   if(!is_directory(in_dir)){
     std::runtime_error("Error, " + in_images_ + " is not a valid directory.\n");
   }
   
+  if(!is_directory(out_dir)) create_directory(out_dir);
+
   // create a vector to save the filenames in the directory
   std::vector<path> images;
   copy(directory_iterator(in_dir),directory_iterator(),back_inserter(images));
@@ -68,9 +70,8 @@ cv::Mat *ImageHandler::GetPtrToFrame(){
   //load next image in the list and return it
   cv::Mat *m = new cv::Mat;
   *m = cv::imread(in_images_ + "/" + *open_iter_);
-  
+  std::cout << "opening image : " << *open_iter_ << std::endl;
   open_iter_++;
-
   return m;
 
 }
@@ -87,7 +88,8 @@ void ImageHandler::SavePtrToFrame(const cv::Mat *image){
 
   if(save_iter_ == paths_.end()) throw std::runtime_error("Error, attempt to save image with no file path available.\n");
   
-  cv::imwrite(*save_iter_,*image);
+  if(!cv::imwrite(out_images_ + "/" + *save_iter_,*image)) throw std::runtime_error("Error, failed to write to path: " + out_images_ + "/" + *save_iter_ );
+  std::cout << "saving image : " << *save_iter_ << std::endl;
   save_iter_++;
 
 }

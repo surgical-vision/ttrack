@@ -7,7 +7,7 @@ int main(int argc, char **argv){
   try{
     t.RunImages("./data/data_2/");
   }catch(std::runtime_error &e){
-    std::cerr << e.what();
+    std::cerr << e.what() << "\n";
   }
   ttrk::TTrack::Destroy();
   return 0;

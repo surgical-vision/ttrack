@@ -28,7 +28,6 @@ namespace ttrk{
 
     void operator()(boost::shared_ptr<cv::Mat> image); 
 
-
     /**
      * The operator returns a unique pointer to the classified frame. 
      * @return a unique pointer to the classified frame.
@@ -39,12 +38,20 @@ namespace ttrk{
      * Has the detector found a candidate for the object in the frame.
      * @return true if yes, false if no
      */
-    bool Found() const;
+    bool Found() const;  
+
+    /**
+     * Setup the classifier 
+     */
+    void Setup(const std::string &root_dir);
+
 
   protected:
-
-    boost::shared_ptr<cv::Mat> v2c_frame_;
+    
+    boost::shared_ptr<cv::Mat> c_frame_;
+    boost::shared_ptr<cv::Mat> v_frame_;
     bool found_;
+    Classifier classifier_;
   
   };
 

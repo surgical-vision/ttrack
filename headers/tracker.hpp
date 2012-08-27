@@ -34,7 +34,6 @@ namespace ttrk{
 
     void Init(boost::shared_ptr<const cv::Mat> image);
 
-    
 
   };
 

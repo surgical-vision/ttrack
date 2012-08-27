@@ -1,44 +1,34 @@
 #include "../headers/ttrack.hpp"
 #include "../headers/helpers.hpp"
+#include <boost/ref.hpp>
 #include <vector>
 #include <cassert>
-
+#include <string>
 using namespace ttrk;
 
 void TTrack::Run(){
 
   // grab the first frame either from video or from image file
+  //ptr owned solely by ttrack
   v_frame_ = GetPtrToFrame();
-  //std::cout << "1 v_frame -> " << v_frame_ << std::endl;
+
   // clone it and classify collecting the result in c_frame_
   detector_(v_frame_);
   c_frame_ = detector_.GetPtrToClassified();
-  //std::cout << "1 c_frame -> " << c_frame_ << std::endl;
-  //std::cout << "1 c_frame -> " << detector_.c_frame_ << std::endl;
+
   // do pose initialisation
   tracker_.Init(c_frame_);
-
 
   while(detector_.Found()){
 
     // start processing the classified frame
-    boost::thread TrackThread(tracker_,c_frame_);
-    //std::cout << "2 c_frame -> " << c_frame_ << std::endl;
-    //std::cout << "2 c_frame -> " << detector_.c_frame_ << std::endl;    
+    boost::thread TrackThread(boost::ref(tracker_),c_frame_);
+
     //grab a pointer to the next frame and run rf detection on it
     //NOTE - if (v_frame_ == NULL) found=false so loop will end 
-    //std::cout << "2 v_frame -> " << v_frame_ << std::endl;
-    //std::cout << (long long)v_frame_.get()->data << std::endl;
-    //std::cout << (long long)c_frame_.get()->data << std::endl;
-    
     v_frame_ = GetPtrToFrame();
-    //std::cout << (long long)v_frame_.get()->data << std::endl;
-    //std::cout << (long long)c_frame_.get()->data << std::endl;
-    //std::cout << "3 v_frame -> " << v_frame_ << std::endl;    
-    //std::cout << "3 c_frame -> " << c_frame_ << std::endl;
-    //std::cout << "3 c_frame -> " << detector_.c_frame_ << std::endl;
-    boost::thread DetectThread(detector_,v_frame_);
-
+    boost::thread DetectThread(boost::ref(detector_),v_frame_);
+    
     //synchronise the threads to avoid overwriting the classified image
     TrackThread.join();
     DetectThread.join();
@@ -47,25 +37,23 @@ void TTrack::Run(){
 #ifdef DEBUG
     SaveDebug();
 #endif
-
+    
     //save the output images/video (this->c_frame_) with the drawn pose on top.
-    //std::cout << "4 v_frame -> " << v_frame_ << std::endl;
-    //std::cout << "4 c_frame -> " << c_frame_ << std::endl;
-    //std::cout << "4 c_frame -> " << detector_.c_frame_ << std::endl;
     SaveFrame();
-    //std::cout << "5 v_frame -> " << v_frame_ << std::endl;
-    //std::cout << "5 c_frame -> " << c_frame_ << std::endl;
-    //std::cout << "5 c_frame -> " << detector_.c_frame_ << std::endl;
+
     //get a pointer to processed frame from detect
-    c_frame_ = detector_.GetPtrToClassified(); 
-    break;
+    c_frame_ = detector_.GetPtrToClassified();
+
   }
+
 
 }
 
 void TTrack::RunVideo(const std::string &root_dir){
   
   handler_ = new VideoHandler(root_dir + "/data/",root_dir);
+
+  detector_.Setup(root_dir + "/classifiers/");
 
   Run();
 
@@ -75,6 +63,8 @@ void TTrack::RunVideo(const std::string &root_dir){
 void TTrack::RunImages(const std::string &root_dir){
 
   handler_ = new ImageHandler(root_dir + "/data/",root_dir);
+
+  detector_.Setup(root_dir + "/classifiers/");
  
   Run();
 
@@ -100,7 +90,6 @@ boost::shared_ptr<cv::Mat> TTrack::GetPtrToFrame(){
   if(m!=0)
     return boost::shared_ptr<cv::Mat>(m);
   else{
-    std::cout << "returned nulL!" << std::endl;
     return boost::shared_ptr<cv::Mat>();
   }
 }
@@ -120,7 +109,7 @@ void TTrack::SaveDebug() const {
 bool TTrack::constructed_ = false;
 TTrack *TTrack::instance_ = 0;
 
-TTrack::TTrack():handler_(0),c_frame_(new cv::Mat),v_frame_(new cv::Mat){}
+TTrack::TTrack():handler_(0){}
 TTrack::~TTrack(){
   delete handler_;
 }

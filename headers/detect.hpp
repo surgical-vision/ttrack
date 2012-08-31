@@ -2,6 +2,7 @@
 #define _DETECT_H_
 
 #include "headers.hpp"
+#include "classifier.hpp"
 
 namespace ttrk{
 
@@ -48,6 +49,8 @@ namespace ttrk{
 
   protected:
     
+    std::string root_dir_; /**< A string containing the root directory where classifier, data etc is stored. */
+
     boost::shared_ptr<cv::Mat> c_frame_;
     boost::shared_ptr<cv::Mat> v_frame_;
     bool found_;

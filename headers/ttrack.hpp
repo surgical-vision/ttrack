@@ -47,15 +47,14 @@ namespace ttrk{
     /**
      * A method to start running the main method of the class. Loops getting a new frame from the video file, classifying it and then detecting the 
      * instruments in it. Per-frame pose is saved in out_posefile file and video in the out_videofile file.
-     * @param[in] root_dir The directory where the files are stored. The directory structure should be consistent across all data sets.
+     * 
      */
-    void RunVideo(const std::string &root_dir);
+    void RunVideo();
     
     /**
      * A method to start running the main method of the class. Same features as RunVideo but it inputs still frames from a directory
-     * @param[in] root_dir The directory where the files are stored. The directory structure should be consistent across all data sets.
      */
-    void RunImages(const std::string &root_dir);
+    void RunImages();
     
     /**
      * The main method of the class. Loops calling the methods of the Tracker and the Detector.
@@ -79,6 +78,13 @@ namespace ttrk{
      */
     void DrawModel();
 
+    /**
+     * Setup the directory tree structure containing the root directory of the data sets
+     * as well as the directory where output files are to be saved
+     * @param root_dir The root training data directory.
+     */
+    void SetUpDirectoryTree(const std::string &root_dir);
+    
    
 
   protected:
@@ -95,6 +101,7 @@ namespace ttrk{
     boost::shared_ptr<cv::Mat> c_frame_; /**< A unique pointer to the current classified frame that will be passed from the classifier to the tracker. */
     boost::shared_ptr<cv::Mat> v_frame_; /**< A newly grabbed video image that is due to be processed by the classifier. */
     
+    std::string root_dir_; /**< A string containing the root directory for the data in use. */
     
 
   private:

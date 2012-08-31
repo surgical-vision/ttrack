@@ -46,26 +46,44 @@ void TTrack::Run(){
 
   }
 
-
 }
 
-void TTrack::RunVideo(const std::string &root_dir){
+/*
+void TTrack::Run(){
+
+  detector_(GetPtrToFrame()); // { 
+
+  tracker_.Init(frame);
+
+  while(detector_.Found()){
+    
+    boost::thread TrackThread(boost::ref(tracker_),GetPtrToClassified());
+    boost::thread DetectThread(boost::ref(detector_),GetPtrToFrame());
+    
+
+    TrackThread.join();
+    DetectThread.join();
   
-  handler_ = new VideoHandler(root_dir + "/data/",root_dir);
+    SaveFrame();
+    
+    CleanUp();
 
-  detector_.Setup(root_dir + "/classifiers/");
+    }
+*/
+  
 
+
+void TTrack::RunVideo(){
+  
+  handler_ = new VideoHandler(root_dir_ + "/data/",root_dir_);
   Run();
 
 }
 
 
-void TTrack::RunImages(const std::string &root_dir){
+void TTrack::RunImages(){
 
-  handler_ = new ImageHandler(root_dir + "/data/",root_dir);
-
-  detector_.Setup(root_dir + "/classifiers/");
- 
+  handler_ = new ImageHandler(root_dir_ + "/data/",root_dir_);
   Run();
 
 }
@@ -85,13 +103,14 @@ void TTrack::DrawModel(){
 }
 
 boost::shared_ptr<cv::Mat> TTrack::GetPtrToFrame(){
-  //return boost::shared_ptr<cv::Mat>(handler_->GetPtrToFrame());
+
   cv::Mat *m = handler_->GetPtrToFrame();
   if(m!=0)
     return boost::shared_ptr<cv::Mat>(m);
   else{
     return boost::shared_ptr<cv::Mat>();
   }
+
 }
 
 
@@ -141,14 +160,17 @@ TTrack &TTrack::operator=(const TTrack &that){
 }
 
 TTrack &TTrack::Instance(){
-
   if(!constructed_){
     instance_ = new TTrack();
     constructed_ = true;
   }
-
   return *instance_;
-
 }
 
+void TTrack::SetUpDirectoryTree(const std::string &root_dir){
 
+  root_dir_ = root_dir; //the directory where data is
+  
+  detector_.Setup(root_dir);
+
+}

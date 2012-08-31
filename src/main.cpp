@@ -5,10 +5,10 @@ int main(int argc, char **argv){
   
   ttrk::TTrack &t = ttrk::TTrack::Instance();
   
-  std::string dataset("./data/data_2/");
+  t.SetUpDirectoryTree("./data/data_2");
 
   try{
-    t.RunImages("./data/data_2/");
+    t.RunImages();
   }catch(std::runtime_error &e){
     std::cerr << e.what() << "\n";
   }

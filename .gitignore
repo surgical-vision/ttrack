@@ -11,3 +11,13 @@ data_sets/*
 ./Makefile
 
 TAGS
+bin/*
+bin
+./Makefile
+config
+config/*
+data
+data/*
+./ttrack
+Makefile
+ttrack

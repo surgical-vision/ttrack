@@ -5,7 +5,7 @@ int main(int argc, char **argv){
   
   ttrk::TTrack &t = ttrk::TTrack::Instance();
   
-  t.SetUpDirectoryTree("./data/data_2");
+  t.SetUpDirectoryTree("./data/data_3");
 
   try{
     t.RunImages();

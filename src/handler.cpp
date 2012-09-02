@@ -41,7 +41,7 @@ ImageHandler::ImageHandler(const std::string &input_url, const std::string &outp
   // create a directory object
   path in_dir(in_images_),out_dir(out_images_);
   if(!is_directory(in_dir)){
-    std::runtime_error("Error, " + in_images_ + " is not a valid directory.\n");
+    throw std::runtime_error("Error, " + in_images_ + " is not a valid directory.\n");
   }
   
   if(!is_directory(out_dir)) create_directory(out_dir);
@@ -52,7 +52,6 @@ ImageHandler::ImageHandler(const std::string &input_url, const std::string &outp
   
   if(images.size() == 0){
     throw std::runtime_error("Error, no image files found in directory: " + in_images_ + "\nPlease enter a new filename.\n");
-    return;
   }
 
   //push the actual filenames into the paths_ vector

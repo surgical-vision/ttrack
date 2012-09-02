@@ -66,7 +66,7 @@ void Detect::LoadTrainingData(){
   GetImageURLAndSize(positive_mask_dir,positive_masks,cols,rows);
   
   //preallocate training data storage
-  training_data_ = cv::Mat(cv::Size(rows*cols,nd_image->channels()),CV_32FC1);
+  training_data_ = cv::Mat(cv::Size(rows*cols,NDImage::channels_),CV_32FC1);
   training_labels_ = cv::Mat(cv::Size(rows,1),CV_32SC1);
 
   //load the data
@@ -79,7 +79,7 @@ void Detect::LoadTrainingData(){
 void Detect::LoadPositive(const std::vector<std::string> &image_urls, const std::vector<std::string> &mask_urls){
 
   for(size_t im=0;im<image_urls.size();im++){
-    
+    std::cout << image_urls[im] << std::endl;
     cv::Mat image = cv::imread(image_urls[im]);
     cv::Mat mask = cv::imread(mask_urls[im]);
     
@@ -105,7 +105,7 @@ void Detect::LoadNegative(const std::vector<std::string> &image_urls){
   //for each image LoadPixels
   
   for(size_t im=0;im<image_urls.size();im++){
-    
+    std::cout << image_urls[im] << std::endl;
     cv::Mat image = cv::imread(image_urls[im]);
     cv::Mat mask = cv::Mat::zeros(image.size(),image.type());
     
@@ -144,7 +144,9 @@ void Detect::LoadPixels(const NDImage *nd_image, const cv::Mat &mask){
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
       
+      training_data_(cv::Range(r,r),cv::Range::all()) = nd_image->GetPixelData(r,c);
       const int index = (r * cols) + c;
+      
       
       // if( mask_ptr[index] 
     }

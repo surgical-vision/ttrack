@@ -89,7 +89,10 @@ namespace ttrk{
      */
     void SetUpDirectoryTree(const std::string &root_dir);
     
-   
+    /**
+     * Train the detector associated with the ttrack system.
+     */
+    void Train();
 
   protected:
     

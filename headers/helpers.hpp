@@ -7,7 +7,7 @@ inline bool IS_IMAGE(const std::string &extension){
   return (extension == ".png" || extension == ".jpg");
 }
 
-void GetImageURLAndSize(const std::string &dir, std::vector<std::string> &urls,
+void GetImageURLAndSize(const std::string &root_url, std::vector<std::string> &urls,
                         size_t &cols, size_t &rows);
                         
 

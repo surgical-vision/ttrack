@@ -29,6 +29,10 @@ void TTrack::Run(){
   
 }  
 
+void TTrack::Train(){
+  detector_.Train();
+}
+
 
 void TTrack::RunVideo(){
   

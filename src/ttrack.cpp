@@ -6,75 +6,34 @@
 #include <string>
 using namespace ttrk;
 
+
 void TTrack::Run(){
 
-  // grab the first frame either from video or from image file
-  //ptr owned solely by ttrack
-  v_frame_ = GetPtrToFrame();
-
-  // clone it and classify collecting the result in c_frame_
-  detector_(v_frame_);
-  c_frame_ = detector_.GetPtrToClassified();
-
-  // do pose initialisation
-  tracker_.Init(c_frame_);
+  detector_( GetPtrToNewFrame() ); 
 
   while(detector_.Found()){
-
-    // start processing the classified frame
-    boost::thread TrackThread(boost::ref(tracker_),c_frame_);
-
-    //grab a pointer to the next frame and run rf detection on it
-    //NOTE - if (v_frame_ == NULL) found=false so loop will end 
-    v_frame_ = GetPtrToFrame();
-    boost::thread DetectThread(boost::ref(detector_),v_frame_);
     
-    //synchronise the threads to avoid overwriting the classified image
+    boost::thread TrackThread(boost::ref(tracker_), GetPtrToClassifiedFrame() );
+    boost::thread DetectThread(boost::ref(detector_), GetPtrToNewFrame() );
+    
     TrackThread.join();
     DetectThread.join();
 
-    //save the images currently held by the classifier and the tracker.
 #ifdef DEBUG
-    SaveDebug();
+    SaveFrame();
 #endif
-    
-    //save the output images/video (this->c_frame_) with the drawn pose on top.
-    SaveFrame();
 
-    //get a pointer to processed frame from detect
-    c_frame_ = detector_.GetPtrToClassified();
-
-  }
-
-}
-
-/*
-void TTrack::Run(){
-
-  detector_(GetPtrToFrame()); // { 
-
-  tracker_.Init(frame);
-
-  while(detector_.Found()){
-    
-    boost::thread TrackThread(boost::ref(tracker_),GetPtrToClassified());
-    boost::thread DetectThread(boost::ref(detector_),GetPtrToFrame());
-    
-
-    TrackThread.join();
-    DetectThread.join();
-  
-    SaveFrame();
-    
     CleanUp();
 
-    }
-*/
+  }
   
+}  
 
 
 void TTrack::RunVideo(){
   
+  
+  tracker_.Tracking(true);
   handler_ = new VideoHandler(root_dir_ + "/data/",root_dir_);
   Run();
 
@@ -83,36 +42,48 @@ void TTrack::RunVideo(){
 
 void TTrack::RunImages(){
 
+  tracker_.Tracking(false);
   handler_ = new ImageHandler(root_dir_ + "/data/",root_dir_);
   Run();
+
+}
+
+void TTrack::CleanUp(){
+
+  delete tracker_.GetPtrToFinishedFrame();
 
 }
 
 void TTrack::SaveFrame(){
 
   //draws the model at the current pose on c_frame_
-  DrawModel();
+  cv::Mat *frame = tracker_.GetPtrToFinishedFrame();
+
+  DrawModel(frame);
   
-  handler_->SavePtrToFrame(c_frame_.get());
+  handler_->SavePtrToFrame(frame);
 
 }
 
 
-void TTrack::DrawModel(){
+void TTrack::DrawModel(cv::Mat *frame){
 
 }
 
-boost::shared_ptr<cv::Mat> TTrack::GetPtrToFrame(){
-
-  cv::Mat *m = handler_->GetPtrToFrame();
-  if(m!=0)
-    return boost::shared_ptr<cv::Mat>(m);
-  else{
-    return boost::shared_ptr<cv::Mat>();
-  }
+cv::Mat *TTrack::GetPtrToNewFrame(){
+  
+  frame_ = handler_->GetPtrToNewFrame(); //now point at new frame, discarding old
+  return frame_;
 
 }
 
+
+cv::Mat *TTrack::GetPtrToClassifiedFrame(){
+
+  frame_ = detector_.GetPtrToClassifiedFrame();
+  return frame_;
+
+}
 
 void TTrack::SaveDebug() const {
   
@@ -152,8 +123,7 @@ TTrack &TTrack::operator=(const TTrack &that){
   if(this == &that) return *this;
   tracker_ = that.tracker_;
   detector_ = that.detector_;
-  c_frame_ = that.c_frame_;
-  v_frame_ = that.v_frame_;
+  frame_ = that.frame_;
 
   return *this;
 

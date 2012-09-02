@@ -63,20 +63,20 @@ ImageHandler::ImageHandler(const std::string &input_url, const std::string &outp
 
 }
 
-cv::Mat *ImageHandler::GetPtrToFrame(){
+cv::Mat *ImageHandler::GetPtrToNewFrame(){
 
   if(open_iter_ == paths_.end()) return 0;
   
   //load next image in the list and return it
   cv::Mat *m = new cv::Mat;
   *m = cv::imread(in_images_ + "/" + *open_iter_);
-  //std::cout << "opening image : " << *open_iter_ << std::endl;
+
   open_iter_++;
   return m;
 
 }
 
-cv::Mat *VideoHandler::GetPtrToFrame(){
+cv::Mat *VideoHandler::GetPtrToNewFrame(){
 
   cv::Mat *m = new cv::Mat;
   cap_ >> *m;

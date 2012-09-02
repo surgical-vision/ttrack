@@ -13,7 +13,8 @@ OBJECTS=main.o \
 	detect.o \
 	tracker.o \
 	handler.o \
-	classifier.o
+	helpers.o \
+	nd_image.o
 
 all:$(OBJ)$(TARGET)
 
@@ -24,4 +25,4 @@ $(OBJ)%.o:$(SRC)%.cpp
 	$(CC) $< -o $@ -c $(COMPILEFLAGS)
 
 clean:
-	rm -f $(OBJ)*.o $(OBJ)$(TARGET)
+	rm -f $(OBJ)*.o 

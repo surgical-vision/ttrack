@@ -24,20 +24,36 @@ namespace ttrk{
      * Overload for boost thread call. This functio wraps the calls to the model fitting methods
      * @param image The image pulled from the video file or image file.
      */
+    void operator()(cv::Mat *image);
 
-    void operator()(boost::shared_ptr<const cv::Mat> image);
+  
+    /**
+     * Get a ptr to the frame now that the detector has finished classifying it
+     * @return cv::Mat * The frame.
+     */
+    cv::Mat *GetPtrToFinishedFrame();
 
     /**
-     * Initialise the tracker to get a first estimate of the position. At the moment use the MOI tensor method.
-     * @param image The classified image from the detection class.
+     * Toggle tracking on or not. If it's off, init is called on each new frame .
+     * @param toggle Set True for on, False for off.
      */
+    void Tracking(const bool toggle);
 
-    void Init(boost::shared_ptr<const cv::Mat> image);
+  protected:
+    
+    /**
+     * Initialise the tracker to get a first estimate of the position. At the moment use the MOI tensor method.
+     */
+    void Init();
+    
 
+
+    bool tracking_; /**< The variable for toggling tracking on or off.  */
+    cv::Mat *frame_; /**< The frame that the tracker is currently working on. */
 
   };
 
-
+  
 
 
 }

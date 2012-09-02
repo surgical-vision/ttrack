@@ -8,7 +8,6 @@
  */
 
 #include "headers.hpp"
-#include "classifier.hpp"
 #include "tracker.hpp"
 #include "detect.hpp"
 #include "handler.hpp"
@@ -63,10 +62,15 @@ namespace ttrk{
 
 
      /**
-     * Grab a shared_ptr to a new frame. This is the interface to use if reading from images or reading from a videofile.
-     * @return The shared_ptr to the frame.
+     * Grab a ptr to a new frame. This is the interface to use if reading from images or reading from a videofile.
+     * @return The ptr to the frame.
      */
-    boost::shared_ptr<cv::Mat> GetPtrToFrame();
+    cv::Mat *GetPtrToNewFrame();
+
+    /**
+     *
+     */
+    cv::Mat *GetPtrToClassifiedFrame();
 
     /**
      * A method for saving the current frame in output directory. 
@@ -76,7 +80,7 @@ namespace ttrk{
     /**
      * Draw the model at the current pose onto the classified image ready for it to be saved
      */
-    void DrawModel();
+    void DrawModel(cv::Mat *image);
 
     /**
      * Setup the directory tree structure containing the root directory of the data sets
@@ -98,8 +102,7 @@ namespace ttrk{
     Detect detector_; /**< The class responsible for classifying the pixels in the image. */
     Handler *handler_; /**< Pointer to either an ImageHandler or a VideoHandler which handles getting and saving frames with a simple interface */
     
-    boost::shared_ptr<cv::Mat> c_frame_; /**< A unique pointer to the current classified frame that will be passed from the classifier to the tracker. */
-    boost::shared_ptr<cv::Mat> v_frame_; /**< A newly grabbed video image that is due to be processed by the classifier. */
+    cv::Mat *frame_; /**< A pointer to the current frame that will be passed from the classifier to the tracker. */
     
     std::string root_dir_; /**< A string containing the root directory for the data in use. */
     

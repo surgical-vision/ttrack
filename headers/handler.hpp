@@ -17,7 +17,7 @@ namespace ttrk{
 
     typedef std::pair<cv::Mat *,std::string> ImAndName;
 
-    virtual cv::Mat *GetPtrToFrame() = 0;
+    virtual cv::Mat *GetPtrToNewFrame() = 0;
     virtual void SavePtrToFrame(const cv::Mat *image) = 0;
     virtual void SetInputFileName(const std::string &url) = 0;
     virtual void SetOutputFileName(const std::string &url) = 0;   
@@ -36,7 +36,7 @@ namespace ttrk{
   public:
 
     VideoHandler(const std::string &input_url, const std::string &output_url);
-    virtual cv::Mat *GetPtrToFrame();
+    virtual cv::Mat *GetPtrToNewFrame();
     virtual void SavePtrToFrame(const cv::Mat *image);
     virtual void SetInputFileName(const std::string &url);
     virtual void SetOutputFileName(const std::string &url);   
@@ -57,7 +57,7 @@ namespace ttrk{
   public:
 
     ImageHandler(const std::string &input_url, const std::string &output_url);
-    virtual cv::Mat *GetPtrToFrame();
+    virtual cv::Mat *GetPtrToNewFrame();
     virtual void SavePtrToFrame(const cv::Mat *image);
     virtual void SetInputFileName(const std::string &url);
     virtual void SetOutputFileName(const std::string &url);

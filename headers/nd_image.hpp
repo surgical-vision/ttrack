@@ -8,6 +8,14 @@ namespace ttrk{
 
   class NDImage{
 
+    /**
+     * @class NDImage
+     * @brief This is a wrapper class for the multidimensional images. 
+     *
+     * This takes a single BGR image as input and generates a selection of images in different colour spaces or with strctural descriptors. My indexing a pixel of this 'image', one can receive a cv::Mat of 1xN (where N is the number of features).
+     *
+     */
+
   public:
 
     typedef std::pair<std::string,cv::Mat> NamedImage;
@@ -49,16 +57,21 @@ namespace ttrk{
 
   protected:
 
+    void ConvertBGR2HS(const cv::Mat &in,cv::Mat &hue,cv::Mat &sat);
+    void ConvertBGR2O2(const cv::Mat &in,cv::Mat &out);
+    void ConvertBGR2O3(const cv::Mat &in,cv::Mat &out);
+
     /**
      * Parse the current rgb image and generate the rich feature space from this.
+     * @param image A BGR image.
      */
-    void SetUpImages();
+    void SetUpImages(const cv::Mat &image);
   
     int rows_;
     int cols_;
     bool bad_;
  
-    std::map<std::string,cv::Mat> images;
+    std::map<std::string,cv::Mat> images_;
 
   };
 

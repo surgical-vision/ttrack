@@ -2,7 +2,7 @@
 #include <iostream>
 
 int main(int argc, char **argv){
-  
+
   ttrk::TTrack &t = ttrk::TTrack::Instance();
   
   t.SetUpDirectoryTree("./data/data_11");
@@ -10,6 +10,7 @@ int main(int argc, char **argv){
   try{
     //t.RunImages();
     t.Train();
+
   }catch(std::runtime_error &e){
     std::cerr << e.what() << "\n";
   }

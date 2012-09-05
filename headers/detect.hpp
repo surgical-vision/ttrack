@@ -74,9 +74,9 @@ namespace ttrk{
     /**
      * Loads the pixels from the image and mask.
      */
-    void LoadPixels(const NDImage *nd_image, const cv::Mat &mask);
+    void LoadPixels(const NDImage *nd_image, const cv::Mat &mask, const bool positive);
 
-    
+    void AnalyseTrainData();
 
 
     std::string root_dir_; /**< A string containing the root directory where classifier, data etc is stored. */
@@ -86,7 +86,7 @@ namespace ttrk{
     CvRTrees classifier_; /**< The OpenCV Random Forest classifier. */
     cv::Mat training_data_; /**< Matrix to store the training data. Always of type CV_32FC1. */
     cv::Mat training_labels_; /**< Vector to store the labels for the training data. Always of type CV_32SC1. */  
-    NDImage *nd_image; /**< Data structure to store the multidimensional image with the new features space generated from RGB. */ 
+    NDImage *nd_image_; /**< Data structure to store the multidimensional image with the new features space generated from RGB. */ 
 
   };
 

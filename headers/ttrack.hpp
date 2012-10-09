@@ -86,13 +86,15 @@ namespace ttrk{
      * Setup the directory tree structure containing the root directory of the data sets
      * as well as the directory where output files are to be saved
      * @param root_dir The root training data directory.
+     * @param load_classifier Load the classifier as well.
      */
-    void SetUpDirectoryTree(const std::string &root_dir);
+    void SetUpDirectoryTree(const std::string &root_dir, const bool load_classifier);
     
     /**
      * Train the detector associated with the ttrack system.
      */
     void Train();
+    void TestDetector(const std::string &infile, const std::string &outfile);
 
   protected:
     

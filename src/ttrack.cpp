@@ -34,6 +34,13 @@ void TTrack::Train(){
 }
 
 
+void TTrack::TestDetector(const std::string &infile, const std::string &outfile){
+  
+  if(!detector_.Loaded())
+    detector_.Setup(root_dir_,true);
+  detector_.DebugTest(infile,outfile);
+}
+
 void TTrack::RunVideo(){
   
   
@@ -141,10 +148,10 @@ TTrack &TTrack::Instance(){
   return *instance_;
 }
 
-void TTrack::SetUpDirectoryTree(const std::string &root_dir){
+void TTrack::SetUpDirectoryTree(const std::string &root_dir,const bool load_classifier){
 
   root_dir_ = root_dir; //the directory where data is
   
-  detector_.Setup(root_dir);
+  detector_.Setup(root_dir,load_classifier);
 
 }

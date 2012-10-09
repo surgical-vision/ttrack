@@ -2,7 +2,7 @@
 
 using namespace ttrk;
 
-int NDImage::channels_ = _BGR_ + _HS_ + _O2_ + _O3_ ;
+int NDImage::channels_ = _BGR_ + _HS_ + _O2_ + _O3_ + _XYZ_;
 
 NDImage::NDImage(const cv::Mat &image){
 

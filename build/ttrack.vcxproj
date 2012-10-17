@@ -62,6 +62,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="headers\detect.hpp" />
+    <ClInclude Include="headers\frame.hpp" />
+    <ClInclude Include="headers\handler.hpp" />
+    <ClInclude Include="headers\headers.hpp" />
+    <ClInclude Include="headers\helpers.hpp" />
+    <ClInclude Include="headers\nd_image.hpp" />
+    <ClInclude Include="headers\tracker.hpp" />
+    <ClInclude Include="headers\ttrack.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\detect.cpp" />
+    <ClCompile Include="src\handler.cpp" />
+    <ClCompile Include="src\helpers.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\nd_image.cpp" />
+    <ClCompile Include="src\tracker.cpp" />
+    <ClCompile Include="src\ttrack.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

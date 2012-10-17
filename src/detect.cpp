@@ -7,9 +7,28 @@
 
 using namespace ttrk;
 
-Detect::Detect(){};
+Detect::Detect(const std::string &root_dir, TrainType train_type, ClassifierType classifier_type):root_dir_(root_dir),classifier_dir_(root_dir + "/classifier/"){
 
-Detect::~Detect(){};
+  if(train_type == X_VALIDATE)
+    TrainCrossValidate(classifier_type);
+  
+  else if(train_type == SEPARATE)
+    TrainSeparate(classifier_type);
+  
+  else
+    throw(std::runtime_error(
+
+}
+
+
+Detect::Detect(const std::string &root_dir, ClassifierType classifier_type):root_dir_(root_dir),classifier_dir_(root_dir + "/classifier/"){
+
+  LoadClassifier(classifier_type);
+   
+}
+
+
+Detect::~Detect(){}
 
 void Detect::operator()(cv::Mat *image){
   
@@ -30,24 +49,47 @@ void Detect::operator()(cv::Mat *image){
   
 }
 
+void Detect::LoadClassifier(const ClassifierType type){
+  
+  std::string classifier_name;
 
-void Detect::Setup(const std::string &root_dir,const bool load_classifier){
+  switch(type){
+    
+  case RF: classifier_name = "forest.xml"; break;
+  case SVM: classifier_name = "svm.xml"; break;
+  case NBAYES: classifier_name = "nbayes.xml"; break;
+  default: classifier_name = "forest.xml"; break;
+
+  }
+  
+
+  // use the specified classifier type to load the desired classifier
+  try{
+    
+    classifier_.load( (classifier_dir_ + classifier_name).c_str() );
+
+  }catch(cv::Exception &e){
+
+    std::cerr << e.what() << "\n";
+    exit(1);
+
+  }
+
+}
+
+
+void Detect::Setup(const std::string &root_dir){
 
   root_dir_ = root_dir;
   classifier_dir_ = root_dir + "/classifier/";
 
-  if(load_classifier){
-    try{
-      classifier_.load((classifier_dir_ + "forest.xml").c_str());
-    }catch(cv::Exception &e){
-      std::cerr << e.what() << "\n";
-      exit(1);
-    }
-  }  
 }
 
 void Detect::TrainSeparate(){
   
+
+  //get the urls
+ 
   train_ = new TrainSeparate();
 
   // load training images images

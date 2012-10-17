@@ -17,7 +17,7 @@ config
 config/*
 data
 data/*
-./ttrack
+ttrack
 *.sdf
 *.exe
 ./ttrack.sln

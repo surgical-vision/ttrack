@@ -9,6 +9,7 @@ using namespace ttrk;
 
 Detect::Detect(const std::string &root_dir, TrainType train_type, ClassifierType classifier_type):root_dir_(root_dir),classifier_dir_(root_dir + "/classifier/"){
 
+  //will train the classifier and save
   if(train_type == X_VALIDATE)
     TrainCrossValidate(classifier_type);
   
@@ -16,7 +17,10 @@ Detect::Detect(const std::string &root_dir, TrainType train_type, ClassifierType
     TrainSeparate(classifier_type);
   
   else
-    throw(std::runtime_error(
+    throw(std::runtime_error("Unhandled train_type value. Fix this!"));
+
+  //load the trained classifier
+  LoadClassifier(classifier_type);
 
 }
 

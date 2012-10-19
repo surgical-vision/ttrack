@@ -28,7 +28,7 @@ namespace ttrk{
 
     /**
      * The operator overload for the boost thread call. This function wraps the calls to the detection methods.
-     * @param[in] image The image pulled from the video file or image file.
+     * @param[in] image The image pulled from the camera, video file or image file.
      */
 
     void operator()(cv::Mat *image); 
@@ -56,8 +56,6 @@ namespace ttrk{
      */
     void Setup(const std::string &root_dir);    
 
-
-
     /**
      * Has the detector found a candidate for the object in the frame.
      * @return true if yes, false if no
@@ -69,8 +67,6 @@ namespace ttrk{
      * @return True if loaded, false if not.
      */
     bool Loaded() const;
-
-    
     
     /**
      * The operator returns a unique pointer to the classified frame. 
@@ -86,9 +82,9 @@ namespace ttrk{
     cv::Mat *frame_; /**< A pointer to the current frame, this is passed to the detector then passed to the tracker. */
     bool found_; /** Indicated whether the target object has been found in the image. */
     
-    BaseClassifier classifier_; /**< The OpenCV Random Forest classifier. */
+    BaseClassifier *classifier_; /**< The OpenCV Random Forest classifier. */
 
-    NDImage *nd_image_; /**< Data structure to store the multidimensional image with the new features space generated from RGB. */ 
+   
 
   };
 

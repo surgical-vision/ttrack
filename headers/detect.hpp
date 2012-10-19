@@ -2,13 +2,14 @@
 #define _DETECT_HPP_
 
 #include "headers.hpp"
-#include "nd_image.hpp"
+#include "baseclassifier.hpp"
+#include "train.hpp"
 #include <opencv2/ml/ml.hpp>
 
 namespace ttrk{
 
   enum ClassifierType {RF,SVM,NBAYES};
-  enum TrainType {X_VALIDATE,SEPARATE};
+  enum TrainType {X_VALIDATE,SEPARATE,NA};
 
 /**
  * @class Detect
@@ -23,7 +24,21 @@ namespace ttrk{
     
   public:
 
-    Detect();
+    /**
+     * Construct a detection system and train it.
+     * @param[in] root_dir The detection system's root directory. Here it will save/load data.
+     * @param[in] train_type The type of training system to use. For example: cross validation or training/testing on distinct data.
+     * @param[in] classifier_type The type of classifier to load/create.
+     */
+    Detect(const std::string &root_dir, TrainType train_type, ClassifierType classifier_type);
+
+    /**
+     * Construct a detection system without specifying a training type. This could be because the classifier is already trained and you just want to load it. 
+     * @param[in] root_dir The detection system's root directory. Here it will save/load data.
+     * @param[in] classifier_type The type of classifier to load/create.
+     */
+    Detect(const std::string &root_dir, ClassifierType classifier_type);
+    
     ~Detect();
 
     /**
@@ -35,19 +50,24 @@ namespace ttrk{
 
     /**
      * Train the classifier using cross validation. Requires a directory of positive images and a directory of negative images.
-     * @param[in] type The type of classifier the user wishes to train.
+     * @param[in] nfolds The number of folds to use.
      */
-    void TrainCrossValidate(const ClassifierType type);
+    void TrainCrossValidate(const int nfolds);
 
     /**
      * Train the classifier using separate data. Requires a directory of positive images and a directory of negative images.
-     * @param[in] type The type of classifier the user wishes to train.
      */
-    void TrainSeparate(const ClassifierType type);
+    void TrainSeparate();
+
+    /**
+     * Construct the classifier of choice.
+     * @param[in] type The desired type of classification algorithm.
+     */
+    void SetupClassifier(const ClassifierType type);
 
     /**
      * Load the classifier
-     * @param[in] type The type of classifier the user wishes to load. Either one of this, TrainSeparate or TrainCrossValidate should be called after the constructor
+     * @param[in] type The type of classifier the user wishes to load. 
      */
     void LoadClassifier(const ClassifierType type);
 
@@ -82,8 +102,11 @@ namespace ttrk{
     cv::Mat *frame_; /**< A pointer to the current frame, this is passed to the detector then passed to the tracker. */
     bool found_; /** Indicated whether the target object has been found in the image. */
     
-    BaseClassifier *classifier_; /**< The OpenCV Random Forest classifier. */
+    BaseClassifier *classifier_; /**< The classifier. */
+    Train *train_; /**< The class for training the classifier. */
 
+  private:
+    Detect();
    
 
   };

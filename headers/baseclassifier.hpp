@@ -1,43 +1,36 @@
 #ifndef _BASE_CLASSIFIER_HPP_
 #define _BASE_CLASSIFIER_HPP_
 
+#include "headers.hpp"
+
 namespace ttrk{
+  
+  /**
+   * An enum to allow different colourspaces to be switched on and off within the classifier.
+   */
+  enum Colour{
+    BLUE = 0x1,
+    GREEN = 0x2,
+    RED = 0x4,
+    HUE = 0x8,
+    SAT = 0x10,
+    VALUE = 0x20,
+    X = 0x40,
+    Y = 0x80,
+    Z = 0x100,
+    NR = 0x200,
+    NG = 0x400,
+    OPP2 = 0x800,
+    OPP3 = 0x1000,
+    INVALID_FLAG = 0x2000
+  };
 
   /**
-   * @struct ColourSpace
-   * @brief A struct for handling the settings for a classifier which uses a colourspace representation of features.
+   * @class BaseClassifier
+   * @brief An abstract class for classification algorithms.
    *
-   * The classifier class contains a series of structs each of which represents a different feature type: colour, texture etc. The struct can be used to switch on and off each colourspace without cluttering the classifiying class.
-   *
+   * The interface that must be provided by any classification algorithm to perform prediction, save and load the parameters of a trained system.
    */
-  
-  struct ColourSpace{
-
-    void ToggleAll(const bool toggle){
-      if(toggle)
-        var_mask_ = BLUE | GREEN | RED | HUE | SAT | VALUE | X | Y | Z | NR | NG | OPP2 | OPP3;
-      else 
-        var_mask_ = 0;
-    }
-
-    enum Color{
-      BLUE = 0x1,
-      GREEN = 0x2,
-      RED = 0x4,
-      HUE = 0x8,
-      SAT = 0x10,
-      VALUE = 0x20,
-      X = 0x40,
-      Y = 0x80,
-      Z = 0x100,
-      NR = 0x200,
-      NG = 0x400,
-      OPP2 = 0x800,
-      OPP3 = 0x1000,
-      INVALID_FLAG = 0x2000
-    };
-
-  };
 
   class BaseClassifier {
 
@@ -58,14 +51,20 @@ namespace ttrk{
      */
     virtual float PredictProb(const cv::Vec3b &pixel, const size_t class_index) const = 0;
     
+    /**
+     * Wrapper function for loading the classifier from an xml file.
+     * @param[in] url The address of the file.
+     */
+    virtual void Load(const std::string &url) = 0;
+    
+    BaseClassifier();
     virtual ~BaseClassifier();
 
   protected:
 
+    Colour colourspace_; /**< Colourspace settings for the classifier. */
 
-    ColourSpace cspace_; /**< Colourspace settings for the classifier. */
-
-    uint64_t var_mask_; /**< Bitmask for specifying which Colorspaces/features to use. */
+    size_t var_mask_; /**< Bitmask for specifying which Colorspaces/features to use. */
   
 
   };

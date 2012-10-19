@@ -1,5 +1,7 @@
 #include "../headers/detect.hpp"
 #include "../headers/helpers.hpp"
+#include "../headers/randomforest.hpp"
+#include "../headers/SVM.hpp"
 #include <boost/filesystem.hpp>
 #include <iostream>
 #include <stdlib.h>
@@ -9,19 +11,19 @@ using namespace ttrk;
 
 Detect::Detect(const std::string &root_dir, TrainType train_type, ClassifierType classifier_type):root_dir_(root_dir),classifier_dir_(root_dir + "/classifier/"){
 
+  SetupClassifier(classifier_type);
+
+
   //will train the classifier and save
   if(train_type == X_VALIDATE)
-    TrainCrossValidate(classifier_type);
+    TrainCrossValidate(10);
   
   else if(train_type == SEPARATE)
-    TrainSeparate(classifier_type);
+    TrainSeparate();
   
   else
     throw(std::runtime_error("Unhandled train_type value. Fix this!"));
-
-  //load the trained classifier
-  LoadClassifier(classifier_type);
-
+  
 }
 
 
@@ -53,6 +55,31 @@ void Detect::operator()(cv::Mat *image){
   
 }
 
+void Detect::SetupClassifier(const ClassifierType type){
+  
+  classifier_ = 0x0;
+
+  try{
+
+    switch(type){
+
+    case RF: classifier_ = new RandomForest; break;
+    case SVM: classifier_ = new SupportVectorMachine; break;    
+    case NBAYES: throw("NBAYES not supported"); //NOT YET IMPLEMENTED!
+    default: classifier_ = new RandomForest; break;
+      
+    }
+
+  }catch(std::bad_alloc &e){
+    std::cerr << "Error, could not create classifier: " << e.what();
+    exit(1);
+  }
+
+  assert(classifier_); //check it actually points to something now
+
+
+}
+
 void Detect::LoadClassifier(const ClassifierType type){
   
   std::string classifier_name;
@@ -70,9 +97,9 @@ void Detect::LoadClassifier(const ClassifierType type){
   // use the specified classifier type to load the desired classifier
   try{
     
-    classifier_.load( (classifier_dir_ + classifier_name).c_str() );
+    classifier_->Load( classifier_dir_ + classifier_name );
 
-  }catch(cv::Exception &e){
+  }catch(cv::Exception &e){ //fix this to use a different exception class
 
     std::cerr << e.what() << "\n";
     exit(1);
@@ -91,7 +118,7 @@ void Detect::Setup(const std::string &root_dir){
 
 void Detect::TrainSeparate(){
   
-
+  /*
   //get the urls
  
   train_ = new TrainSeparate();
@@ -101,11 +128,11 @@ void Detect::TrainSeparate(){
 
   //train the classifier
   train_->TrainClassifier();
-
+  */
 }
 
-void Detect::CrossValidate(const bool train, const int folds){
-  
+void Detect::TrainCrossValidate(const int folds){
+  /*
   train_ = new TrainCrossValidate();
 
   train->LoadCrossValidationData(folds);
@@ -113,12 +140,12 @@ void Detect::CrossValidate(const bool train, const int folds){
   train_->TrainClassifier();
 
   TestCrossValidationData(folds);
-  
+  */
 
 }
 
 
-void Detect::DebugTest(const std::string &infile, const std::string &outfile){
+/*void Detect::DebugTest(const std::string &infile, const std::string &outfile){
   
   cv::Mat in = cv::imread(infile),out;
   DebugTest(in,out);
@@ -126,9 +153,9 @@ void Detect::DebugTest(const std::string &infile, const std::string &outfile){
   boost::filesystem::create_directory(boost::filesystem::path(save_dir));
   cv::imwrite(save_dir + outfile,out);
 
-}
+  }*/
 
-
+/*
 void Detect::DebugTest(const cv::Mat &in_, cv::Mat &out){
   
   NDImage in(in_);
@@ -143,19 +170,13 @@ void Detect::DebugTest(const cv::Mat &in_, cv::Mat &out){
   
   
 }
-
-
+*/
+/*
 void Detect::LoadCrossValidationData(const int folds){
 
   const float training_fraction = 1 - 1.0/folds;
 
-  
-  
-
-
-
-
-
 
 
 }
+*/

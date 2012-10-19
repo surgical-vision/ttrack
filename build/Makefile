@@ -14,7 +14,10 @@ OBJECTS=main.o \
 	tracker.o \
 	handler.o \
 	helpers.o \
-	nd_image.o
+	randomforest.o \
+	supportvectormachine.o \
+	baseclassifier.o
+
 
 all:$(OBJ)$(TARGET)
 

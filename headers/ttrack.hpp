@@ -7,7 +7,6 @@
  * Information about the project...
  */
 
-#include "headers.hpp"
 #include "tracker.hpp"
 #include "detect.hpp"
 #include "handler.hpp"
@@ -84,16 +83,17 @@ namespace ttrk{
 
     /**
      * Setup the directory tree structure containing the root directory of the data sets
-     * as well as the directory where output files are to be saved
+     * as well as the directory where output files are to be saved. Also construct the detector
+     * and tracker
      * @param root_dir The root training data directory.
-     * @param load_classifier Load the classifier as well.
+     * @param classifier_type Specify the type of classifier.
+     * @param train_type. Optional argument to specify the type of training to do. Default assumes you want to load one instead of training. 
      */
-    void SetUpDirectoryTree(const std::string &root_dir, const bool load_classifier);
+    void SetUp(const std::string &root_dir, const ClassifierType classifier_type, const TrainType train_type=NA);
     
     /**
-     * Train the detector associated with the ttrack system.
+     * Test the detector associated with the ttrack system.
      */
-    void Train();
     void TestDetector(const std::string &infile, const std::string &outfile);
 
   protected:
@@ -103,8 +103,8 @@ namespace ttrk{
      */
     void SaveDebug() const;
 
-    Tracker tracker_; /**< The class responsible for finding the instrument in the image. */
-    Detect detector_; /**< The class responsible for classifying the pixels in the image. */
+    Tracker *tracker_; /**< The class responsible for finding the instrument in the image. */
+    Detect *detector_; /**< The class responsible for classifying the pixels in the image. */
     Handler *handler_; /**< Pointer to either an ImageHandler or a VideoHandler which handles getting and saving frames with a simple interface */
     
     cv::Mat *frame_; /**< A pointer to the current frame that will be passed from the classifier to the tracker. */

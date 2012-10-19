@@ -87,7 +87,10 @@ void ImageHandler::SavePtrToFrame(const cv::Mat *image){
 
   if(save_iter_ == paths_.end()) throw std::runtime_error("Error, attempt to save image with no file path available.\n");
   
-  if(!cv::imwrite(out_images_ + "/" + *save_iter_,*image)) throw std::runtime_error("Error, failed to write to path: " + out_images_ + "/" + *save_iter_ );
+  std::cout << *save_iter_ << std::endl;;
+
+  if(!cv::imwrite(out_images_ + "/" + *save_iter_,*image)) 
+    throw std::runtime_error("Error, failed to write to path: " + out_images_ + "/" + *save_iter_ );
 
   save_iter_++;
 

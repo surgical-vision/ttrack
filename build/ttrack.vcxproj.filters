@@ -15,6 +15,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="headers\baseclassifier.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\constants.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="headers\detect.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -34,6 +40,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\tracker.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\train.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\ttrack.hpp">
@@ -57,6 +66,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\tracker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\train.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\ttrack.cpp">

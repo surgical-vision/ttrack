@@ -15,63 +15,78 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="headers\baseclassifier.hpp">
+    <ClInclude Include="..\headers\baseclassifier.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\constants.hpp">
+    <ClInclude Include="..\headers\constants.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\detect.hpp">
+    <ClInclude Include="..\headers\detect.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\frame.hpp">
+    <ClInclude Include="..\headers\frame.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\handler.hpp">
+    <ClInclude Include="..\headers\handler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\headers.hpp">
+    <ClInclude Include="..\headers\headers.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\helpers.hpp">
+    <ClInclude Include="..\headers\helpers.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\nd_image.hpp">
+    <ClInclude Include="..\headers\nd_image.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\tracker.hpp">
+    <ClInclude Include="..\headers\randomforest.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\train.hpp">
+    <ClInclude Include="..\headers\supportvectormachine.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\ttrack.hpp">
+    <ClInclude Include="..\headers\tracker.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\train.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\ttrack.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\detect.cpp">
+    <ClCompile Include="..\src\baseclassifier.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\handler.cpp">
+    <ClCompile Include="..\src\detect.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\helpers.cpp">
+    <ClCompile Include="..\src\handler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\main.cpp">
+    <ClCompile Include="..\src\helpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\nd_image.cpp">
+    <ClCompile Include="..\src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\tracker.cpp">
+    <ClCompile Include="..\src\nd_image.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\train.cpp">
+    <ClCompile Include="..\src\randomforest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\ttrack.cpp">
+    <ClCompile Include="..\src\supportvectormachine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tracker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\train.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ttrack.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

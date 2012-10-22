@@ -2,6 +2,7 @@
 #define _TRAIN_HPP_
 
 #include "headers.hpp"
+#include "nd_image.hpp"
 #include <opencv2/ml/ml.hpp>
 
 namespace ttrk{
@@ -44,7 +45,7 @@ namespace ttrk{
      * @param[in] mask The mask specifying which class the pixels belong to.
      * @param[in] type The load type, positive, negative or both.
      */
-    void LoadPixels(const cv::Mat nd_image, const cv::Mat &mask, const LoadType type);
+    void LoadPixels(const NDImage *nd_image, const cv::Mat &mask, const LoadType type);
 
     void AnalyseTrainData();
 

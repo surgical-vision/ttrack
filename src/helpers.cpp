@@ -13,7 +13,7 @@ void GetImageURL(const std::string &root_url, std::vector<std::string> &urls){
   //null directory_iterator constructor returns an "end" iterator
   for(directory_iterator itr(root_dir); itr!=directory_iterator(); itr++){ 
     //is the path for an image?
-    if(!IS_IMAGE(itr->path().extension())) continue;
+	  if(!IS_IMAGE(itr->path().extension().string())) continue;
     //add the full file path to the vector
     urls.push_back(itr->path().relative_path().string());
   }

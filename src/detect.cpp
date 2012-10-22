@@ -1,7 +1,7 @@
 #include "../headers/detect.hpp"
 #include "../headers/helpers.hpp"
 #include "../headers/randomforest.hpp"
-#include "../headers/SVM.hpp"
+#include "../headers/supportvectormachine.hpp"
 #include <boost/filesystem.hpp>
 #include <iostream>
 #include <stdlib.h>

@@ -3,6 +3,7 @@
 
 #include "headers.hpp"
 #include "baseclassifier.hpp"
+#include "nd_image.hpp"
 #include "train.hpp"
 #include <opencv2/ml/ml.hpp>
 
@@ -100,8 +101,8 @@ namespace ttrk{
     std::string root_dir_; /**< A string containing the root directory where classifier, data etc is stored. */
     std::string classifier_dir_; /**< A string containing the root directory where the classifier is stored. */
     cv::Mat *frame_; /**< A pointer to the current frame, this is passed to the detector then passed to the tracker. */
-    bool found_; /** Indicated whether the target object has been found in the image. */
-    
+    bool found_; /**< Indicated whether the target object has been found in the image. */
+    NDImage *nd_image_; /**< The N-D image which is being tracked. */
     BaseClassifier *classifier_; /**< The classifier. */
     Train *train_; /**< The class for training the classifier. */
 

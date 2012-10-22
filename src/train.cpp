@@ -1,8 +1,8 @@
 #include "../headers/train.hpp"
+#include "../headers/helpers.hpp"
+#include <boost/filesystem.hpp>
 
 using namespace ttrk;
-
-
 
 
 void Train::LoadImages(const std::vector<std::string> &image_urls, const std::vector<std::string> &mask_urls, const LoadType type){
@@ -12,13 +12,15 @@ void Train::LoadImages(const std::vector<std::string> &image_urls, const std::ve
 
     //load the image and the mask
     cv::Mat image = cv::imread(image_urls[im]);
+	cv::Mat mask;
     if(type == POSITIVE || type == BOTH)
-      cv::Mat mask = cv::imread(mask_urls[im]);
+      mask = cv::imread(mask_urls[im]);
     else //type == NEGATIVE
-      cv::Mat mask = cv::Mat::zeros(image.size(),image.type());
+      mask = cv::Mat::zeros(image.size(),image.type());
 
-    //create the ndimage and load its pixels to the training data mask
-    try{
+	//create the ndimage and load its pixels to the training data mask
+    NDImage *nd_image_;
+	try{
 
       nd_image_ = new NDImage(image);
       LoadPixels(nd_image_,mask,type);

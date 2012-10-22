@@ -16,7 +16,13 @@ namespace ttrk {
 
   public:
     
-    
+    /**
+     * A function for training the classifier of choice. Will accept data in the form returned by the TrainData class.
+     * @param[in] training_data The training data to be used for training.
+     * @param[in] labels The class labels for each training sample.
+     */
+
+    virtual void TrainClassifier(const cv::Mat &training_data,const cv::Mat &labels, const std::string &root_dir);
     /**
      * A discrete prediction on the class a pixel belongs to.
      * @param[in] pixel The BGR pixel direct from the image source.

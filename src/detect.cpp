@@ -11,9 +11,9 @@ using namespace ttrk;
 
 Detect::Detect(const std::string &root_dir, TrainType train_type, ClassifierType classifier_type):root_dir_(root_dir),classifier_dir_(root_dir + "/classifier/"){
 
+  //create a new classifier
   SetupClassifier(classifier_type);
-
-
+  
   //will train the classifier and save
   if(train_type == X_VALIDATE)
     TrainCrossValidate(10);
@@ -26,13 +26,11 @@ Detect::Detect(const std::string &root_dir, TrainType train_type, ClassifierType
   
 }
 
-
 Detect::Detect(const std::string &root_dir, ClassifierType classifier_type):root_dir_(root_dir),classifier_dir_(root_dir + "/classifier/"){
 
   LoadClassifier(classifier_type);
    
 }
-
 
 Detect::~Detect(){}
 
@@ -59,6 +57,7 @@ void Detect::SetupClassifier(const ClassifierType type){
   
   classifier_ = 0x0;
 
+  //construct the classifier from scratch
   try{
 
     switch(type){
@@ -76,8 +75,7 @@ void Detect::SetupClassifier(const ClassifierType type){
   }
 
   assert(classifier_); //check it actually points to something now
-
-
+  
 }
 
 void Detect::LoadClassifier(const ClassifierType type){
@@ -108,7 +106,6 @@ void Detect::LoadClassifier(const ClassifierType type){
 
 }
 
-
 void Detect::Setup(const std::string &root_dir){
 
   root_dir_ = root_dir;
@@ -118,20 +115,33 @@ void Detect::Setup(const std::string &root_dir){
 
 void Detect::TrainSeparate(){
   
-  /*
+  
   //get the urls
  
-  train_ = new TrainSeparate();
+  //train_ = new TrainSeparate();
 
   // load training images images
-  train_->LoadTrainingData();
+  //train_->LoadTrainingData();
 
   //train the classifier
-  train_->TrainClassifier();
-  */
+  //train_->TrainClassifier();
+  
 }
 
 void Detect::TrainCrossValidate(const int folds){
+  
+  train_ = new TrainData;
+
+  for(int n=0;n<folds;n++){
+
+    //get the filenames
+
+
+
+
+  }
+  
+  delete train_;
   /*
   train_ = new TrainCrossValidate();
 
@@ -143,7 +153,6 @@ void Detect::TrainCrossValidate(const int folds){
   */
 
 }
-
 
 /*void Detect::DebugTest(const std::string &infile, const std::string &outfile){
   

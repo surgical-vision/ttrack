@@ -16,6 +16,13 @@ namespace ttrk{
 
   public: 
     
+    /**
+     * A function for training the classifier of choice. Will accept data in the form returned by the TrainData class.
+     * @param[in] training_data The training data to be used for training.
+     * @param[in] labels The class labels for each training sample.
+     * @param[in] root_dir The root directory with the location where the classifier should be saved.
+     */
+    virtual void TrainClassifier(const cv::Mat &training_data,const cv::Mat &labels, const std::string &root_dir);
 
     /**
      * A discrete prediction on the class a pixel belongs to.
@@ -38,6 +45,10 @@ namespace ttrk{
      */
     virtual void Load(const std::string &url);
 
+
+  protected:
+
+    CvRTrees forest_;
 
   };
    

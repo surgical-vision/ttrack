@@ -4,15 +4,15 @@
 
 using namespace ttrk;
 
-
-void Train::LoadImages(const std::vector<std::string> &image_urls, const std::vector<std::string> &mask_urls, const LoadType type){
+void TrainData::LoadImages(const std::vector<std::string> &image_urls, const std::vector<std::string> &mask_urls, const LoadType type){
 
   //for each image
   for(size_t im=0;im<image_urls.size();im++){
 
     //load the image and the mask
     cv::Mat image = cv::imread(image_urls[im]);
-	cv::Mat mask;
+	  cv::Mat mask;
+
     if(type == POSITIVE || type == BOTH)
       mask = cv::imread(mask_urls[im]);
     else //type == NEGATIVE
@@ -39,10 +39,7 @@ void Train::LoadImages(const std::vector<std::string> &image_urls, const std::ve
 
 }
 
-
-
-
-void Train::LoadPixels(const NDImage *nd_image_, const cv::Mat &mask, const LoadType type){
+void TrainData::LoadPixels(const NDImage *nd_image_, const cv::Mat &mask, const LoadType type){
 
   //check data
   if(nd_image_->bad())
@@ -104,61 +101,7 @@ void Train::LoadPixels(const NDImage *nd_image_, const cv::Mat &mask, const Load
 
 }
 
-void Train::TrainClassifier(){
-
-  // train
-  const float priors[2] = {3.0,1.0};
-
-  CvRTParams params(10, //max depth of trees
-                    500, //minimum sample count at each leaf for a split
-                    0.0, //minimum regression accuracy (ignored)
-                    false, //use surrogates
-                    10, //maximum number of categories to cluster - ignored in 2 class case
-                    priors, //priors
-                    true, //calculate the variable importance
-                    0, //size of random subsets (0 = sqrt(N))
-                    50, //max number of trees
-                    0.01, //accuracy
-                    CV_TERMCRIT_ITER | CV_TERMCRIT_EPS); //halting criteria
-
-
-  CvMat *var_type = cvCreateMat(training_data_.cols+1,1,CV_8U);
-  cvSet(var_type,cvScalarAll(CV_VAR_ORDERED)); //data is ordered (can be compared)
-  cvSetReal1D(var_type,training_data_.cols,CV_VAR_CATEGORICAL); //labels are categorical
-  cv::Mat var_type_(var_type,true);
-
-#ifdef DEBUG
-  std::cout << "Training...";
-  std::cout.flush();
-#endif
-
-  classifier_.train(training_data_,
-                    CV_ROW_SAMPLE, //samples are in row form
-                    training_labels_,
-                    cv::Mat(),//variable index, used to mask certain features from the training
-                    cv::Mat(),//sample index, used to mask certain samples entirely
-                    var_type,//variable type (regression or classifiaction)
-                    cv::Mat(),//missing data mask
-                    params);
-               
-   
-#ifdef DEBUG
-  std::cout << " Done" << std::endl;
-#endif
-  
-  std::string classifier_save_path = root_dir_ + "/classifier/";
-
-  boost::filesystem::create_directory(boost::filesystem::path(classifier_save_path));
-
-  classifier_.save( (classifier_save_path + "forest.xml").c_str());
- 
-  cvReleaseMat(&var_type);
-
-}
-
-
-
-void Train::LoadTrainingData(){
+void TrainData::LoadTrainingData(){
 
   // set up directories
   const std::string positive_im_dir(root_dir_ + "/data/positive_data/training_images/");

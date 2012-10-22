@@ -104,9 +104,10 @@ namespace ttrk{
     bool found_; /**< Indicated whether the target object has been found in the image. */
     NDImage *nd_image_; /**< The N-D image which is being tracked. */
     BaseClassifier *classifier_; /**< The classifier. */
-    Train *train_; /**< The class for training the classifier. */
+    TrainData *train_; /**< The class for training the classifier. */
 
   private:
+    
     Detect();
    
 

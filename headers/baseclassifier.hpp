@@ -2,6 +2,8 @@
 #define _BASE_CLASSIFIER_HPP_
 
 #include "headers.hpp"
+#include <opencv2/ml/ml.hpp>
+#include <boost/filesystem.hpp>
 
 namespace ttrk{
   
@@ -35,6 +37,13 @@ namespace ttrk{
   class BaseClassifier {
 
   public:
+
+    /**
+     * A function for training the classifier of choice. Will accept data in the form returned by the TrainData class.
+     * @param[in] training_data The training data to be used for training.
+     * @param[in] labels The class labels for each training sample.
+     */
+    virtual void TrainClassifier(const cv::Mat &training_data,const cv::Mat &labels, const std::string &root_dir) = 0;
 
     /**
      * A discrete prediction on the class a pixel belongs to.

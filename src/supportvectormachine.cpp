@@ -20,3 +20,10 @@ void SupportVectorMachine::Load(const std::string &url){
 
 
 }
+
+void SupportVectorMachine::TrainClassifier(const cv::Mat &training_data,const cv::Mat &labels, const std::string &root_dir){
+
+
+
+
+}

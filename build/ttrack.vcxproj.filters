@@ -39,9 +39,6 @@
     <ClInclude Include="..\headers\nd_image.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\headers\randomforest.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\headers\supportvectormachine.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -52,6 +49,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\headers\ttrack.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\randomforest.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

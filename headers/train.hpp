@@ -14,9 +14,8 @@ namespace ttrk{
 
   /**
    * @class TrainData
-   * @brief Class of Training system. Is owned by the detection system and loads training data into
-   * a form which can be used by a classifier. It can also perform some basic validation on the 
-   * classified data.
+   * @brief Class of Training system. Is owned by the detection system and loads training data 
+   * into a form which can be used by the classifier for training.
    */
 
   class TrainData{
@@ -26,14 +25,37 @@ namespace ttrk{
     TrainData(std::string &root_dir);
     ~TrainData();
 
+    /**
+     * Loops through the training data directories and loads the image names, preallocates the 
+     * matrices and loads the pixels as part of a cross validation training system.
+     * Expects a directory data/images and data/masks containing images and masks respectively.
+     * Each image-mask pair should have the same filename.
+     */
     void LoadCrossValidationData();
 
     /**
      * This loops through the image directories getting the filenames and also getting the 
      * image sizes to preallocate the training data matrices. This calls LoadImages
      * after allocating the memory for each training matrix.
+     * Expects a directory data/positive_data/training_images, data/negative_data/ and data/positive_data/masks containing images and masks respectively.
+     * Each image-mask pair should have the same filename. Obviously this doesn't apply for 
+     * negative images which do not have an assoicated mask.
      */
-    void LoadTrainingData(bool cross_validate);
+    void LoadTrainingData();
+
+    /**
+     * Getter for the training data.
+     * @return A pointer to the allocated training matrix.
+     */
+    cv::Mat *training_data();
+
+    /**
+     * Getter for the training labels.
+     * @return A pointer to the allocated training labels.
+     */
+    cv::Mat *training_labels();
+
+  protected:
 
     /**
      * Load the training examples. Iterates through the image urls in the vector and
@@ -55,12 +77,8 @@ namespace ttrk{
      * @param[in] type The load type, positive, negative or both.
      */
     void LoadPixels(const NDImage *nd_image, const cv::Mat &mask, const LoadType type);
-
-    cv::Mat *training_data();
-    cv::Mat *training_labels();
-
-  protected:
     
+
     std::string *root_dir_; /**< The root directory of the training data suite. */
     cv::Mat *training_data_; /**< Matrix to store the training data. Always of type CV_32FC1. */
     cv::Mat *training_labels_; /**< Vector to store the labels for the training data. Always of type CV_32SC1. */        

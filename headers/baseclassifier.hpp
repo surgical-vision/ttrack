@@ -65,6 +65,13 @@ namespace ttrk{
      * @param[in] url The address of the file.
      */
     virtual void Load(const std::string &url) = 0;
+
+    /**
+     * Convenience function for classifying a whole image at once.
+     * @param im The image to classify.
+     */
+    void PredictClass(const cv::Mat &im) const;
+    void PredictProb(const cv::Mat &im, const size_t class_index) const;
     
     BaseClassifier();
     virtual ~BaseClassifier();

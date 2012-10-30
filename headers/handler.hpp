@@ -64,9 +64,6 @@ namespace ttrk{
 
   private:
 
-    std::string in_images_;
-    std::string masks_;
-    std::string out_images_;
     std::vector<std::string> paths_;
     std::vector<std::string>::const_iterator open_iter_;
     std::vector<std::string>::const_iterator save_iter_;

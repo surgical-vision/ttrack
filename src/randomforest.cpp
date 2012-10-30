@@ -30,7 +30,7 @@ float RandomForest::PredictProb(const cv::Vec3b &pixel, const size_t class_index
 
 void RandomForest::Load(const std::string &url){
     
-  	forest_.load(url.c_str());  
+  forest_.load(url.c_str());  
 
 }
 
@@ -62,7 +62,7 @@ void RandomForest::TrainClassifier(const cv::Mat &training_data, const cv::Mat &
   std::cout << "Training...";
   std::cout.flush();
 #endif
-
+  /*
   forest_.train(training_data,
                     CV_ROW_SAMPLE, //samples are in row form
                     labels,
@@ -72,7 +72,7 @@ void RandomForest::TrainClassifier(const cv::Mat &training_data, const cv::Mat &
                     cv::Mat(),//missing data mask
                     params);
                
-   
+  
 #ifdef DEBUG
   std::cout << " Done" << std::endl;
 #endif
@@ -82,7 +82,7 @@ void RandomForest::TrainClassifier(const cv::Mat &training_data, const cv::Mat &
   boost::filesystem::create_directory(boost::filesystem::path(classifier_save_path));
 
   forest_.save( (classifier_save_path + "forest.xml").c_str());
- 
+  */
   cvReleaseMat(&var_type);
 
 }

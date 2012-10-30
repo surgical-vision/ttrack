@@ -27,7 +27,7 @@ namespace ttrk{
 
     /**
      * Construct a detection system and train it.
-     * @param[in] root_dir The detection system's root directory. Here it will save/load data.
+     * @param[in] root_dir The detection system's root directory. Here it will save/load data. This is shared with the owner ttrack class which can modify the root directory if required. 
      * @param[in] train_type The type of training system to use. For example: cross validation or training/testing on distinct data.
      * @param[in] classifier_type The type of classifier to load/create.
      */
@@ -35,7 +35,7 @@ namespace ttrk{
 
     /**
      * Construct a detection system without specifying a training type. This could be because the classifier is already trained and you just want to load it. 
-     * @param[in] root_dir The detection system's root directory. Here it will save/load data.
+     * @param[in] root_dir The detection system's root directory. Here it will save/load data.  This is shared with the owner ttrack class which can modify the root directory if required. 
      * @param[in] classifier_type The type of classifier to load/create.
      */
     Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifier_type);
@@ -68,6 +68,11 @@ namespace ttrk{
 
   protected:
 
+    /**
+     * Dynamically compute the directory being used for saving/loading the classifier. Uses the
+     * shared_ptr root directory and appends /classifier/.
+     * @return The directory url.
+     */
     std::string classifier_dir();
 
     /**
@@ -98,7 +103,6 @@ namespace ttrk{
 
 
     boost::shared_ptr<std::string> root_dir_; /**< A string containing the root directory where classifier, data etc is stored. */
-    //std::string classifier_dir_; /**< A string containing the root directory where the classifier is stored. */
     cv::Mat *frame_; /**< A pointer to the current frame, this is passed to the detector then passed to the tracker. */
     bool found_; /**< Indicated whether the target object has been found in the image. */
     NDImage *nd_image_; /**< The N-D image which is being tracked. */
@@ -127,9 +131,6 @@ namespace ttrk{
   inline std::string Detect::classifier_dir(){
     return *root_dir_ + "/classifier/";
   }
-
-
-
 
 }
 

@@ -32,7 +32,10 @@ Detect::Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifie
    
 }
 
-Detect::~Detect(){}
+Detect::~Detect(){
+  delete classifier_;
+  classifier_ = 0x0;
+}
 
 void Detect::operator()(cv::Mat *image){
   
@@ -84,10 +87,10 @@ void Detect::LoadClassifier(const ClassifierType type){
 
   switch(type){
     
-  case RF: classifier_name = "forest.xml"; break;
-  case SVM: classifier_name = "svm.xml"; break;
-  case NBAYES: classifier_name = "nbayes.xml"; break;
-  default: classifier_name = "forest.xml"; break;
+  case RF: classifier_name = "forest.xml"; classifier_ = new RandomForest; break;
+  case SVM: classifier_name = "svm.xml"; classifier_ = new SupportVectorMachine; break;
+  case NBAYES: classifier_name = "nbayes.xml"; assert(0); break;
+  default: classifier_name = "forest.xml"; classifier_ = new RandomForest; break;
 
   }
   
@@ -107,10 +110,10 @@ void Detect::LoadClassifier(const ClassifierType type){
 }
 
 void Detect::TrainSeparate(){
-  
+
+  //construct training system and load the training data
   train_ = new TrainData(*root_dir_);
-  // load training images images
-  train_->LoadTrainingData(false);
+  train_->LoadTrainingData();
     
   //train the classifier
   classifier_->TrainClassifier(*(train_->training_data()),*(train_->training_labels()),*root_dir_);
@@ -120,9 +123,11 @@ void Detect::TrainSeparate(){
 
 void Detect::TrainCrossValidate(const int folds){
   
+  //construct training system and load the training data
   train_ = new TrainData(*root_dir_);
-  train_->LoadTrainingData(true);
-
+  train_->LoadCrossValidationData();
+  
+  //iterate over the folds
   for(int n=0;n<folds;n++){
 
     // load each part of the training data matrix into a submatrix
@@ -139,39 +144,3 @@ void Detect::TrainCrossValidate(const int folds){
   delete train_;
  
 }
-
-/*void Detect::DebugTest(const std::string &infile, const std::string &outfile){
-  
-  cv::Mat in = cv::imread(infile),out;
-  DebugTest(in,out);
-  const std::string save_dir(root_dir_ + "/output/");
-  boost::filesystem::create_directory(boost::filesystem::path(save_dir));
-  cv::imwrite(save_dir + outfile,out);
-
-  }*/
-
-/*
-void Detect::DebugTest(const cv::Mat &in_, cv::Mat &out){
-  
-  NDImage in(in_);
-
-  out = cv::Mat(in_.size(),CV_8UC3);
-  const int rows = in_.rows;
-  const int cols = in_.cols;
-
-  for(int r=0;r<rows;r++)
-    for(int c=0;c<cols;c++)
-      out.at<cv::Vec3b>(r,c) = cv::Vec3b(255*classifier_.predict_prob(in.GetPixelData(r,c)),0,0);
-  
-  
-}
-*/
-/*
-void Detect::LoadCrossValidationData(const int folds){
-
-  const float training_fraction = 1 - 1.0/folds;
-
-
-
-}
-*/

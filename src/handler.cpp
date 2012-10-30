@@ -11,8 +11,8 @@ Handler::~Handler(){}
 
 VideoHandler::VideoHandler(const std::string &input_url, const std::string &output_url):
   Handler(input_url,output_url),
-  in_videofile_(input_url + "/" + "video.avi"),
-  out_videofile_(output_url + "/output/" + "video.avi")
+  in_videofile_(input_url + "/video.avi"),
+  out_videofile_(output_url + "/video.avi")
   {
 
   cap_.open(in_videofile_);
@@ -32,14 +32,11 @@ VideoHandler::VideoHandler(const std::string &input_url, const std::string &outp
 
 ImageHandler::ImageHandler(const std::string &input_url, const std::string &output_url):
   Handler(input_url,output_url),
-  in_images_(input_url + "/training_images/"),
-  masks_(input_url + "/masks/"),
-  out_images_(output_url + "/output/images/"){
 
   using namespace boost::filesystem;
   
   // create a directory object
-  path in_dir(in_images_),out_dir(out_images_);
+  path in_dir(input_url_),out_dir(output_url_);
   if(!is_directory(in_dir)){
     throw std::runtime_error("Error, " + in_images_ + " is not a valid directory.\n");
   }

@@ -25,12 +25,12 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
     tracker_ = new Tracker;
 
   }catch(std::bad_alloc &e){
-    std::cerr << "Error, memory error. Could not construct detector/tracker. " << e.what();
-    std::cerr << "Exiting...";
+    std::cerr << "Error, memory error. Could not construct detector/tracker.\n" << e.what();
+    std::cerr << "Exiting...\n";
     exit(1);
   }catch(std::exception &e){
-    std::cerr << "Error, exception. " <<  e.what();
-    std::cerr << "Exiting...";
+    std::cerr << "Error, caught exception.\n" <<  e.what();
+    std::cerr << "Exiting...\n";
     exit(1);
   }
 
@@ -130,10 +130,14 @@ TTrack *TTrack::instance_ = 0;
 TTrack::TTrack():tracker_(0),detector_(0),handler_(0),frame_(0){}
 
 TTrack::~TTrack(){
-  if(handler_) delete handler_;
-  if(detector_) delete detector_;
-  if(tracker_) delete tracker_;
-  if(frame_) delete frame_;
+  delete handler_;
+  handler_ = 0x0;
+  delete detector_;
+  detector_ = 0x0;
+  delete tracker_;
+  tracker_ = 0x0;
+  delete frame_;
+  frame_ = 0x0;
 }
 
 void TTrack::Destroy(){

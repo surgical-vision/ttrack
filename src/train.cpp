@@ -46,7 +46,7 @@ void TrainData::LoadCrossValidationData(){
 
   if(!boost::filesystem::exists(boost::filesystem::path(im_dir)) ||
      !boost::filesystem::exists(boost::filesystem::path(mask_dir)) )
-    throw(std::runtime_error("Error, incorrect directory structure. To use cross validation create data/images and data/masks directories in the root directory of the dataset."));
+    throw(std::runtime_error("Error, incorrect directory structure. To use cross validation create data/images and data/masks directories in the root directory of the dataset.\n"));
 
   
   //vectors to store the urls
@@ -59,12 +59,12 @@ void TrainData::LoadCrossValidationData(){
     GetImageURL(im_dir,ims);
     GetImageURL(mask_dir,masks);
   }catch(std::runtime_error &e){
-    cerr << "Error, failed to load image urls from directory.\n" << e.what() << "\nExiting...\n";
+    std::cerr << "Error, failed to load image urls from directory.\n" << e.what() << "\nExiting...\n";
     exit(1);
   }
   
-  //get the training sizes, true means just count the positive pixels false means count whole image
-  GetTrainingSize(masks,num_pix,true);
+  //get the training sizes, false means count whole image
+  GetTrainingSize(masks,num_pix,false);
   
   //preallocate training data storage
   training_data_ = new cv::Mat(cv::Size(NDImage::channels_,num_pix),CV_32FC1);
@@ -138,7 +138,7 @@ void TrainData::LoadPixels(const NDImage *nd_image_, const cv::Mat &mask, const 
 
 }
 
-void TrainData::LoadTrainingData(bool cross_validate){
+void TrainData::LoadTrainingData(){
 
   // set up directories
   const std::string positive_im_dir(*root_dir_ + "/data/positive_data/training_images/");
@@ -164,14 +164,9 @@ void TrainData::LoadTrainingData(bool cross_validate){
   training_data_ = new cv::Mat(cv::Size(NDImage::channels_,num_pix),CV_32FC1);
   training_labels_ = new cv::Mat(cv::Size(1,num_pix),CV_32SC1);
 
-  if(cross_validate){
-    //load the foreground/background images
-    LoadImages(positive_ims,positive_masks,BOTH);
-  }else{
-    //load the separate training data
-    LoadImages(positive_ims, positive_masks, POSITIVE );
-    LoadImages(negative_ims, std::vector<std::string>(), NEGATIVE );
-  }
+  //load the separate training data
+  LoadImages(positive_ims, positive_masks, POSITIVE );
+  LoadImages(negative_ims, std::vector<std::string>(), NEGATIVE );
 
 }
 

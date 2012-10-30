@@ -26,6 +26,8 @@ namespace ttrk{
     TrainData(std::string &root_dir);
     ~TrainData();
 
+    void LoadCrossValidationData();
+
     /**
      * This loops through the image directories getting the filenames and also getting the 
      * image sizes to preallocate the training data matrices. This calls LoadImages

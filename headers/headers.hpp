@@ -4,7 +4,7 @@
 #include <cv.h>
 #include <cxcore.h>
 #include <highgui.h>
-#ifdef _WIN32 | _WIN64
+#if defined(_WIN32) || defined(_WIN64)
   #define _CRTDBG_MAP_ALLOC
   #include <stdlib.h>
   #include <crtdbg.h>

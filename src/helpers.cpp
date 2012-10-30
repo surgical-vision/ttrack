@@ -18,6 +18,8 @@ void GetImageURL(const std::string &root_url, std::vector<std::string> &urls){
     urls.push_back(itr->path().relative_path().string());
   }
 
+  if(urls.size() == 0) throw(std::runtime_error(root_url + " does not contain images in either png or jpg format. Please add some.\n");
+
 }
 
 void GetTrainingSize(const std::vector<std::string> &urls, int &num_pix, const bool positive){

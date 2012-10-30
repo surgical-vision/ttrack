@@ -11,7 +11,7 @@ void TrainData::LoadImages(const std::vector<std::string> &image_urls, const std
 
     //load the image and the mask
     cv::Mat image = cv::imread(image_urls[im]);
-	  cv::Mat mask;
+    cv::Mat mask;
 
     if(type == POSITIVE || type == BOTH)
       mask = cv::imread(mask_urls[im]);
@@ -20,7 +20,7 @@ void TrainData::LoadImages(const std::vector<std::string> &image_urls, const std
 
 	//create the ndimage and load its pixels to the training data mask
     NDImage *nd_image_;
-	  try{
+    try{
 
       nd_image_ = new NDImage(image);
       LoadPixels(nd_image_,mask,type);
@@ -38,6 +38,43 @@ void TrainData::LoadImages(const std::vector<std::string> &image_urls, const std
   }
 
 }
+
+void TrainData::LoadCrossValidationData(){
+
+  const std::string im_dir(*root_dir_ + "/data/images/");
+  const std::string mask_dir(*root_dir_ + "/data/masks/");
+
+  if(!boost::filesystem::exists(boost::filesystem::path(im_dir)) ||
+     !boost::filesystem::exists(boost::filesystem::path(mask_dir)) )
+    throw(std::runtime_error("Error, incorrect directory structure. To use cross validation create data/images and data/masks directories in the root directory of the dataset."));
+
+  
+  //vectors to store the urls
+  std::vector<std::string> ims;
+  std::vector<std::string> masks;
+  int num_pix=0;
+  
+  //get the file urls 
+  try{
+    GetImageURL(im_dir,ims);
+    GetImageURL(mask_dir,masks);
+  }catch(std::runtime_error &e){
+    cerr << "Error, failed to load image urls from directory.\n" << e.what() << "\nExiting...\n";
+    exit(1);
+  }
+  
+  //get the training sizes, true means just count the positive pixels false means count whole image
+  GetTrainingSize(masks,num_pix,true);
+  
+  //preallocate training data storage
+  training_data_ = new cv::Mat(cv::Size(NDImage::channels_,num_pix),CV_32FC1);
+  training_labels_ = new cv::Mat(cv::Size(1,num_pix),CV_32SC1);
+
+  //load the foreground/background images
+  LoadImages(ims,masks,BOTH);
+
+}
+
 
 void TrainData::LoadPixels(const NDImage *nd_image_, const cv::Mat &mask, const LoadType type){
 
@@ -66,7 +103,7 @@ void TrainData::LoadPixels(const NDImage *nd_image_, const cv::Mat &mask, const 
       const int index = (r * cols) + c;
       unsigned char mask_val = mask_ptr[index*chans];
       const cv::Mat &tmp = nd_image_->GetPixelData(r,c);
-      
+
       //if positive image, just copy the positive pixels to the training data
       if(type == POSITIVE){
         if(mask_val > 127){
@@ -85,7 +122,7 @@ void TrainData::LoadPixels(const NDImage *nd_image_, const cv::Mat &mask, const 
       }
 
       if(type == BOTH){
-        for(int i=0;i<training_data_->cols;i++)
+        for(int i=0;i<training_data_->cols;i++)          
           training_data_->at<float>(count,i) = tmp.at<float>(0,i);
         training_labels_->at<size_t>(count,0) = mask_val > 127;
         count++;
@@ -95,8 +132,8 @@ void TrainData::LoadPixels(const NDImage *nd_image_, const cv::Mat &mask, const 
     }
   }
 
-#ifdef DEBUG
-  assert(count <= training_labels_.rows && count <= training_data_.rows);
+#if defined(DEBUG) || defined(_DEBUG)
+  assert(count <= training_labels_->rows && count <= training_data_->rows);
 #endif
 
 }

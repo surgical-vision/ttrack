@@ -16,7 +16,7 @@ int main(int argc, char **argv){
   }
 
   ttrk::TTrack::Destroy();
-#ifdef _WIN32 | _WIN64
+#if defined(_WIN32) || defined(_WIN64)
   _CrtDumpMemoryLeaks();
 #endif
   return 0;

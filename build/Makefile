@@ -5,8 +5,8 @@ SRC=./src/
 OBJ=./bin/
 TARGET=ttrack
 
-COMPILEFLAGS= -I /usr/include/boost/  `pkg-config --cflags opencv` -g -Wall -DDEBUG -std=c++0x
-LINKFLAGS = -L /usr/lib/ -lboost_thread -lboost_system -lboost_filesystem `pkg-config --libs opencv`
+COMPILEFLAGS= -I /usr/local/include/boost/  `pkg-config --cflags opencv` -g -Wall -DDEBUG -std=c++0x
+LINKFLAGS = -L /usr/local/lib/ -lboost_thread -lboost_system -lboost_filesystem `pkg-config --libs opencv`
 
 OBJECTS=main.o \
 	ttrack.o \
@@ -16,7 +16,9 @@ OBJECTS=main.o \
 	helpers.o \
 	randomforest.o \
 	supportvectormachine.o \
-	baseclassifier.o
+	baseclassifier.o \
+	train.o \
+	nd_image.o
 
 
 all:$(OBJ)$(TARGET)

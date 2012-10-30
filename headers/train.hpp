@@ -21,12 +21,17 @@ namespace ttrk{
 
   class TrainData{
 
+  public:
+
+    TrainData(std::string &root_dir);
+    ~TrainData();
+
     /**
      * This loops through the image directories getting the filenames and also getting the 
      * image sizes to preallocate the training data matrices. This calls LoadImages
      * after allocating the memory for each training matrix.
      */
-    void LoadTrainingData();
+    void LoadTrainingData(bool cross_validate);
 
     /**
      * Load the training examples. Iterates through the image urls in the vector and
@@ -49,20 +54,30 @@ namespace ttrk{
      */
     void LoadPixels(const NDImage *nd_image, const cv::Mat &mask, const LoadType type);
 
-    void AnalyseTrainData();
-
-
-    void DebugTest(const std::string &infile, const std::string &outfile);
-    void DebugTest(const cv::Mat &in, cv::Mat &out);
-
+    cv::Mat *training_data();
+    cv::Mat *training_labels();
 
   protected:
     
-    cv::Mat training_data_; /**< Matrix to store the training data. Always of type CV_32FC1. */
-    cv::Mat training_labels_; /**< Vector to store the labels for the training data. Always of type CV_32SC1. */        
-    std::string root_dir_; /**< The root directory of the training data suite. */
+    std::string *root_dir_; /**< The root directory of the training data suite. */
+    cv::Mat *training_data_; /**< Matrix to store the training data. Always of type CV_32FC1. */
+    cv::Mat *training_labels_; /**< Vector to store the labels for the training data. Always of type CV_32SC1. */        
     
+  private:
+     
+    TrainData();
+
+
   };
+
+  inline cv::Mat *TrainData::training_data(){
+    return training_data_;
+  }
+
+  inline cv::Mat *TrainData::training_labels(){
+    return training_labels_;
+  }
+
 }
 
 #endif

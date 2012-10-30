@@ -9,7 +9,7 @@
 
 using namespace ttrk;
 
-Detect::Detect(const std::string &root_dir, TrainType train_type, ClassifierType classifier_type):root_dir_(root_dir),classifier_dir_(root_dir + "/classifier/"){
+Detect::Detect(boost::shared_ptr<std::string> root_dir, TrainType train_type, ClassifierType classifier_type):root_dir_(root_dir){
 
   //create a new classifier
   SetupClassifier(classifier_type);
@@ -26,7 +26,7 @@ Detect::Detect(const std::string &root_dir, TrainType train_type, ClassifierType
   
 }
 
-Detect::Detect(const std::string &root_dir, ClassifierType classifier_type):root_dir_(root_dir),classifier_dir_(root_dir + "/classifier/"){
+Detect::Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifier_type):root_dir_(root_dir){
 
   LoadClassifier(classifier_type);
    
@@ -95,7 +95,7 @@ void Detect::LoadClassifier(const ClassifierType type){
   // use the specified classifier type to load the desired classifier
   try{
     
-    classifier_->Load( classifier_dir_ + classifier_name );
+    classifier_->Load( classifier_dir() + classifier_name );
 
   }catch(cv::Exception &e){ //fix this to use a different exception class
 
@@ -106,52 +106,38 @@ void Detect::LoadClassifier(const ClassifierType type){
 
 }
 
-void Detect::Setup(const std::string &root_dir){
-
-  root_dir_ = root_dir;
-  classifier_dir_ = root_dir + "/classifier/";
-
-}
-
 void Detect::TrainSeparate(){
   
-  
-  //get the urls
- 
-  //train_ = new TrainSeparate();
-
+  train_ = new TrainData(*root_dir_);
   // load training images images
-  //train_->LoadTrainingData();
-
+  train_->LoadTrainingData(false);
+    
   //train the classifier
-  //train_->TrainClassifier();
-  
+  classifier_->TrainClassifier(*(train_->training_data()),*(train_->training_labels()),*root_dir_);
+
+  delete train_;
 }
 
 void Detect::TrainCrossValidate(const int folds){
   
-  train_ = new TrainData;
+  train_ = new TrainData(*root_dir_);
+  train_->LoadTrainingData(true);
 
   for(int n=0;n<folds;n++){
 
-    //get the filenames
+    // load each part of the training data matrix into a submatrix
+    cv::Mat train_fmat;
+    cv::Mat label_fmat;
 
+    classifier_->TrainClassifier(train_fmat,label_fmat,*root_dir_);
 
+    // get error values
 
 
   }
   
   delete train_;
-  /*
-  train_ = new TrainCrossValidate();
-
-  train->LoadCrossValidationData(folds);
-
-  train_->TrainClassifier();
-
-  TestCrossValidationData(folds);
-  */
-
+ 
 }
 
 /*void Detect::DebugTest(const std::string &infile, const std::string &outfile){

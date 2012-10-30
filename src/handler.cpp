@@ -22,8 +22,8 @@ VideoHandler::VideoHandler(const std::string &input_url, const std::string &outp
 
   // open the writer to create the processed video
   writer_.open(out_videofile_,CV_FOURCC('M','J','P','G'), 25, 
-               cv::Size(cap_.get(CV_CAP_PROP_FRAME_HEIGHT),
-                        cap_.get(CV_CAP_PROP_FRAME_WIDTH)));
+               cv::Size((int)cap_.get(CV_CAP_PROP_FRAME_HEIGHT),
+                        (int)cap_.get(CV_CAP_PROP_FRAME_WIDTH)));
   if(!writer_.isOpened()){
     throw std::runtime_error("Unable to open videofile: " + out_videofile_ + " for saving.\nPlease enter a new filename.\n");
   }

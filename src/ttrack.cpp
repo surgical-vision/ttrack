@@ -4,8 +4,38 @@
 #include <vector>
 #include <cassert>
 #include <string>
+
 using namespace ttrk;
 
+
+void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, const TrainType type){
+  
+  if(!boost::filesystem::exists(boost::filesystem::path(root_dir)))
+    throw std::runtime_error("Error, directory " + root_dir + " does not exist.\n");
+
+  *root_dir_ = root_dir; //the directory where data is
+  
+  try{
+    
+    if(type==NA) //don't train
+      detector_ = new Detect(root_dir_,classifier_type);
+    else //train
+      detector_ = new Detect(root_dir_,type,classifier_type);
+    
+    tracker_ = new Tracker;
+
+  }catch(std::bad_alloc &e){
+    std::cerr << "Error, memory error. Could not construct detector/tracker. " << e.what();
+    std::cerr << "Exiting...";
+    exit(1);
+  }catch(std::exception &e){
+    std::cerr << "Error, exception. " <<  e.what();
+    std::cerr << "Exiting...";
+    exit(1);
+  }
+
+  
+}
 
 void TTrack::Run(){
 
@@ -30,32 +60,25 @@ void TTrack::Run(){
 }  
 
 void TTrack::TestDetector(const std::string &infile, const std::string &outfile){
-  
-  if(!detector_->Loaded())
-    detector_->Setup(root_dir_);
+
+  assert(0);
+
 }
 
 void TTrack::RunVideo(){
   
-  
   tracker_->Tracking(true);
-  handler_ = new VideoHandler(root_dir_ + "/data/",root_dir_);
+  handler_ = new VideoHandler(*root_dir_ + "/data/", *root_dir_);
   Run();
-
+  delete handler_;
 }
-
 
 void TTrack::RunImages(){
 
   tracker_->Tracking(false);
-  handler_ = new ImageHandler(root_dir_ + "/data/",root_dir_);
+  handler_ = new ImageHandler(*root_dir_ + "/data/", *root_dir_);
   Run();
-
-}
-
-void TTrack::CleanUp(){
-
-  delete tracker_->GetPtrToFinishedFrame();
+  delete handler_;
 
 }
 
@@ -71,6 +94,15 @@ void TTrack::SaveFrame(){
 }
 
 
+
+void TTrack::SaveDebug() const {
+  
+  //iterate through all images, push to vector
+  //send to iamge handler
+
+}
+
+
 void TTrack::DrawModel(cv::Mat *frame){
 
 }
@@ -82,7 +114,6 @@ cv::Mat *TTrack::GetPtrToNewFrame(){
 
 }
 
-
 cv::Mat *TTrack::GetPtrToClassifiedFrame(){
 
   frame_ = detector_->GetPtrToClassifiedFrame();
@@ -90,21 +121,14 @@ cv::Mat *TTrack::GetPtrToClassifiedFrame(){
 
 }
 
-void TTrack::SaveDebug() const {
-  
-  //iterate through all images, push to vector
-  //send to iamge handler
-
-}
-
-
 /******** SETUP CODE ***********/
 
-
 bool TTrack::constructed_ = false;
+
 TTrack *TTrack::instance_ = 0;
 
 TTrack::TTrack():tracker_(0),detector_(0),handler_(0),frame_(0){}
+
 TTrack::~TTrack(){
   if(handler_) delete handler_;
   if(detector_) delete detector_;
@@ -119,7 +143,6 @@ void TTrack::Destroy(){
   constructed_ = false;
 
 }
-
 
 TTrack::TTrack(const TTrack &that){
   *this = that;
@@ -145,29 +168,9 @@ TTrack &TTrack::Instance(){
   return *instance_;
 }
 
-void TTrack::SetUp(const std::string &root_dir, const ClassifierType classifier_type, const TrainType type){
-  
-  try{
-    
-    if(type==NA)
-      detector_ = new Detect(root_dir,classifier_type);
-    else
-      detector_ = new Detect(root_dir,type,classifier_type);
-    
-    tracker_ = new Tracker;
+void TTrack::CleanUp(){
 
-  }catch(std::bad_alloc &e){
-    std::cerr << "Error, memory error. Could not construct detector. " << e.what();
-    std::cerr << "Exiting...";
-    exit(1);
-  }catch(std::exception &e){
-    std::cerr << "Error, exception. " <<  e.what();
-    std::cerr << "Exiting...";
-    exit(1);
-  }
-
-  root_dir_ = root_dir; //the directory where data is
-  
-  detector_->Setup(root_dir);
+  delete tracker_->GetPtrToFinishedFrame();
 
 }
+

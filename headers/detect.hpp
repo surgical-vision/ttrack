@@ -17,7 +17,7 @@ namespace ttrk{
  * @brief Detection system. Wraps the classification of images and interface with the TTrack
  * class.
  *
- * This is the class that is used to initiate training of a classifier
+ * This is the class that is used to initiate training of a classifier and classify new images.
  */
 
   
@@ -31,14 +31,14 @@ namespace ttrk{
      * @param[in] train_type The type of training system to use. For example: cross validation or training/testing on distinct data.
      * @param[in] classifier_type The type of classifier to load/create.
      */
-    Detect(const std::string &root_dir, TrainType train_type, ClassifierType classifier_type);
+    Detect(boost::shared_ptr<std::string> root_dir, TrainType train_type, ClassifierType classifier_type);
 
     /**
      * Construct a detection system without specifying a training type. This could be because the classifier is already trained and you just want to load it. 
      * @param[in] root_dir The detection system's root directory. Here it will save/load data.
      * @param[in] classifier_type The type of classifier to load/create.
      */
-    Detect(const std::string &root_dir, ClassifierType classifier_type);
+    Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifier_type);
     
     ~Detect();
 
@@ -46,36 +46,7 @@ namespace ttrk{
      * The operator overload for the boost thread call. This function wraps the calls to the detection methods.
      * @param[in] image The image pulled from the camera, video file or image file.
      */
-
     void operator()(cv::Mat *image); 
-
-    /**
-     * Train the classifier using cross validation. Requires a directory of positive images and a directory of negative images.
-     * @param[in] nfolds The number of folds to use.
-     */
-    void TrainCrossValidate(const int nfolds);
-
-    /**
-     * Train the classifier using separate data. Requires a directory of positive images and a directory of negative images.
-     */
-    void TrainSeparate();
-
-    /**
-     * Construct the classifier of choice.
-     * @param[in] type The desired type of classification algorithm.
-     */
-    void SetupClassifier(const ClassifierType type);
-
-    /**
-     * Load the classifier
-     * @param[in] type The type of classifier the user wishes to load. 
-     */
-    void LoadClassifier(const ClassifierType type);
-
-    /**
-     * Setup the classifier root directory. This is where it will find a classifier to load/save and directories to save output images.
-     */
-    void Setup(const std::string &root_dir);    
 
     /**
      * Has the detector found a candidate for the object in the frame.
@@ -97,9 +68,37 @@ namespace ttrk{
 
   protected:
 
+    std::string classifier_dir();
 
-    std::string root_dir_; /**< A string containing the root directory where classifier, data etc is stored. */
-    std::string classifier_dir_; /**< A string containing the root directory where the classifier is stored. */
+    /**
+     * Construct the classifier of choice.
+     * @param[in] type The desired type of classification algorithm.
+     */
+    void SetupClassifier(const ClassifierType type);
+
+    /**
+     * Load the classifier
+     * @param[in] type The type of classifier the user wishes to load. 
+     */
+    void LoadClassifier(const ClassifierType type);
+
+
+    /**
+     * Train the classifier using cross validation. Requires a directory of positive images and a directory of negative images.
+     * @param[in] nfolds The number of folds to use.
+     */
+    void TrainCrossValidate(const int nfolds);
+
+    /**
+     * Train the classifier using separate data. Requires a directory of positive images and a directory of negative images.
+     */
+    void TrainSeparate();
+
+
+
+
+    boost::shared_ptr<std::string> root_dir_; /**< A string containing the root directory where classifier, data etc is stored. */
+    //std::string classifier_dir_; /**< A string containing the root directory where the classifier is stored. */
     cv::Mat *frame_; /**< A pointer to the current frame, this is passed to the detector then passed to the tracker. */
     bool found_; /**< Indicated whether the target object has been found in the image. */
     NDImage *nd_image_; /**< The N-D image which is being tracked. */
@@ -123,6 +122,10 @@ namespace ttrk{
 
   inline bool Detect::Loaded() const {
     return true;
+  }
+
+  inline std::string Detect::classifier_dir(){
+    return *root_dir_ + "/classifier/";
   }
 
 

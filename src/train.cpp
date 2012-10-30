@@ -20,7 +20,7 @@ void TrainData::LoadImages(const std::vector<std::string> &image_urls, const std
 
 	//create the ndimage and load its pixels to the training data mask
     NDImage *nd_image_;
-	try{
+	  try{
 
       nd_image_ = new NDImage(image);
       LoadPixels(nd_image_,mask,type);
@@ -70,24 +70,24 @@ void TrainData::LoadPixels(const NDImage *nd_image_, const cv::Mat &mask, const 
       //if positive image, just copy the positive pixels to the training data
       if(type == POSITIVE){
         if(mask_val > 127){
-          training_labels_.at<size_t>(count,0) = 1;
-          for(int i=0;i<training_data_.cols;i++)
-            training_data_.at<float>(count,i) = tmp.at<float>(0,i);
+          training_labels_->at<size_t>(count,0) = 1;
+          for(int i=0;i<training_data_->cols;i++)
+            training_data_->at<float>(count,i) = tmp.at<float>(0,i);
           count++;
         }
       }
       
       if(type == NEGATIVE){
-        for(int i=0;i<training_data_.cols;i++)
-          training_data_.at<float>(count,i) = tmp.at<float>(0,i);
-        training_labels_.at<size_t>(count,0) = 0;      
+        for(int i=0;i<training_data_->cols;i++)
+          training_data_->at<float>(count,i) = tmp.at<float>(0,i);
+        training_labels_->at<size_t>(count,0) = 0;      
         count++;
       }
 
       if(type == BOTH){
-        for(int i=0;i<training_data_.cols;i++)
-          training_data_.at<float>(count,i) = tmp.at<float>(0,i);
-        training_labels_.at<size_t>(count,0) = mask_val > 127;
+        for(int i=0;i<training_data_->cols;i++)
+          training_data_->at<float>(count,i) = tmp.at<float>(0,i);
+        training_labels_->at<size_t>(count,0) = mask_val > 127;
         count++;
       }
   
@@ -101,35 +101,53 @@ void TrainData::LoadPixels(const NDImage *nd_image_, const cv::Mat &mask, const 
 
 }
 
-void TrainData::LoadTrainingData(){
+void TrainData::LoadTrainingData(bool cross_validate){
 
   // set up directories
-  const std::string positive_im_dir(root_dir_ + "/data/positive_data/training_images/");
-  const std::string positive_mask_dir(root_dir_ + "/data/positive_data/masks/");
-  const std::string negative_im_dir(root_dir_ + "/data/negative_data/");
+  const std::string positive_im_dir(*root_dir_ + "/data/positive_data/training_images/");
+  const std::string positive_mask_dir(*root_dir_ + "/data/positive_data/masks/");
+  const std::string negative_im_dir(*root_dir_ + "/data/negative_data/");
   
   //vectors to store the urls
   std::vector<std::string> positive_ims;
   std::vector<std::string> negative_ims;
   std::vector<std::string> positive_masks;
-  size_t num_pix=0;
+  int num_pix=0;
   
   //get the file urls 
   GetImageURL(positive_im_dir,positive_ims);
   GetImageURL(negative_im_dir,negative_ims);
   GetImageURL(positive_mask_dir,positive_masks);
-
+  
   //get the training sizes, true means just count the positive pixels false means count whole image
   GetTrainingSize(positive_masks,num_pix,true);
   GetTrainingSize(negative_ims,num_pix,false);
   
   //preallocate training data storage
-  training_data_ = cv::Mat(cv::Size(NDImage::channels_,num_pix),CV_32FC1);
-  training_labels_ = cv::Mat(cv::Size(1,num_pix),CV_32SC1);
+  training_data_ = new cv::Mat(cv::Size(NDImage::channels_,num_pix),CV_32FC1);
+  training_labels_ = new cv::Mat(cv::Size(1,num_pix),CV_32SC1);
 
-  //load the data
-  LoadImages(positive_ims, positive_masks, POSITIVE );
-  LoadImages(negative_ims, std::vector<std::string>(), NEGATIVE );
+  if(cross_validate){
+    //load the foreground/background images
+    LoadImages(positive_ims,positive_masks,BOTH);
+  }else{
+    //load the separate training data
+    LoadImages(positive_ims, positive_masks, POSITIVE );
+    LoadImages(negative_ims, std::vector<std::string>(), NEGATIVE );
+  }
 
 }
 
+TrainData::TrainData(std::string &root_dir):root_dir_(&root_dir),training_data_(0x0),training_labels_(0x0){}
+
+TrainData::TrainData():root_dir_(0x0),training_data_(0x0),training_labels_(0x0){}
+
+TrainData::~TrainData(){
+   
+  delete training_data_;
+  training_data_ = 0x0;
+   
+  delete training_labels_;
+  training_labels_ = 0x0;
+
+}

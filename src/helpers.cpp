@@ -20,7 +20,7 @@ void GetImageURL(const std::string &root_url, std::vector<std::string> &urls){
 
 }
 
-void GetTrainingSize(const std::vector<std::string> &urls, size_t &num_pix, const bool positive){
+void GetTrainingSize(const std::vector<std::string> &urls, int &num_pix, const bool positive){
   
   std::vector<std::string>::const_iterator url_it;
   for(url_it = urls.begin();url_it!=urls.end();url_it++){

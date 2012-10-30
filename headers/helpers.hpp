@@ -22,7 +22,7 @@ void GetImageURL(const std::string &root_url, std::vector<std::string> &urls);
  * @param positive If the image is a positive training example. If it is, the only add the pixels which correspond to positives in the mask. If it is not then add the entire image as negative images contain no positive pixels.
  */
 
-void GetTrainingSize(const std::vector<std::string> &urls, size_t &num_pix, const bool positive);
+void GetTrainingSize(const std::vector<std::string> &urls, int &num_pix, const bool positive);
 
 int CountNonZero(cv::Mat &im);
 

@@ -7,8 +7,7 @@
 
 using namespace ttrk;
 
-
-void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, const TrainType type){
+void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, const TrainType train_type){
   
   if(!boost::filesystem::exists(boost::filesystem::path(root_dir)))
     throw std::runtime_error("Error, directory " + root_dir + " does not exist.\n");
@@ -17,11 +16,8 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
   
   try{
     
-    if(type==NA) //don't train
-      detector_ = new Detect(root_dir_,classifier_type);
-    else //train
-      detector_ = new Detect(root_dir_,type,classifier_type);
-    
+    //if train type is NA, training is skipped
+    detector_ = new Detect(root_dir_,classifier_type,train_type);
     tracker_ = new Tracker;
 
   }catch(std::bad_alloc &e){
@@ -65,18 +61,18 @@ void TTrack::TestDetector(const std::string &infile, const std::string &outfile)
 
 }
 
-void TTrack::RunVideo(){
+void TTrack::RunVideo(const std::string &video_url){
   
   tracker_->Tracking(true);
-  handler_ = new VideoHandler(*root_dir_ + "/data/", *root_dir_);
+  handler_ = new VideoHandler(*root_dir_ + video_url, *root_dir_);
   Run();
   delete handler_;
 }
 
-void TTrack::RunImages(){
+void TTrack::RunImages(const std::string &image_url){
 
   tracker_->Tracking(false);
-  handler_ = new ImageHandler(*root_dir_ + "/data/", *root_dir_);
+  handler_ = new ImageHandler(*root_dir_ + image_url, *root_dir_);
   Run();
   delete handler_;
 
@@ -93,15 +89,12 @@ void TTrack::SaveFrame(){
 
 }
 
-
-
 void TTrack::SaveDebug() const {
   
   //iterate through all images, push to vector
   //send to iamge handler
 
 }
-
 
 void TTrack::DrawModel(cv::Mat *frame){
 

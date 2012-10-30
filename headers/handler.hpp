@@ -42,9 +42,6 @@ namespace ttrk{
     virtual void SetOutputFileName(const std::string &url);   
 
   private:
-    
-    std::string in_videofile_;
-    std::string out_videofile_;
 
     cv::VideoCapture cap_;
     cv::VideoWriter writer_;

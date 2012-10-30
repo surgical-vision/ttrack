@@ -9,27 +9,18 @@
 
 using namespace ttrk;
 
-Detect::Detect(boost::shared_ptr<std::string> root_dir, TrainType train_type, ClassifierType classifier_type):root_dir_(root_dir){
+Detect::Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifier_type, TrainType train_type):root_dir_(root_dir){
 
   //create a new classifier
   SetupClassifier(classifier_type);
   
   //will train the classifier and save
-  if(train_type == X_VALIDATE)
-    TrainCrossValidate(10);
-  
-  else if(train_type == SEPARATE)
-    TrainSeparate();
-  
-  else
-    throw(std::runtime_error("Unhandled train_type value. Fix this!"));
-  
-}
-
-Detect::Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifier_type):root_dir_(root_dir){
-
-  LoadClassifier(classifier_type);
-   
+  switch(train_type){
+    case X_VALIDATE: TrainCrossValidate(10); break;
+    case SEPARATE: TrainSeparate(); break;
+    case NA: break;
+    default: throw(std::runtime_error("Unhandled train_type value. Fix this!"));
+  }
 }
 
 Detect::~Detect(){
@@ -79,34 +70,6 @@ void Detect::SetupClassifier(const ClassifierType type){
 
   assert(classifier_); //check it actually points to something now
   
-}
-
-void Detect::LoadClassifier(const ClassifierType type){
-  
-  std::string classifier_name;
-
-  switch(type){
-    
-  case RF: classifier_name = "forest.xml"; classifier_ = new RandomForest; break;
-  case SVM: classifier_name = "svm.xml"; classifier_ = new SupportVectorMachine; break;
-  case NBAYES: classifier_name = "nbayes.xml"; assert(0); break;
-  default: classifier_name = "forest.xml"; classifier_ = new RandomForest; break;
-
-  }
-  
-
-  // use the specified classifier type to load the desired classifier
-  try{
-    
-    classifier_->Load( classifier_dir() + classifier_name );
-
-  }catch(cv::Exception &e){ //fix this to use a different exception class
-
-    std::cerr << e.what() << "\n";
-    exit(1);
-
-  }
-
 }
 
 void Detect::TrainSeparate(){

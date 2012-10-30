@@ -46,14 +46,15 @@ namespace ttrk{
     /**
      * A method to start running the main method of the class. Loops getting a new frame from the video file, classifying it and then detecting the 
      * instruments in it. Per-frame pose is saved in out_posefile file and video in the out_videofile file.
-     * 
+     * @param[in] video_url The url of the video file. Give this relative to root directory.
      */
-    void RunVideo();
+    void RunVideo(const std::string &video_url);
     
     /**
      * A method to start running the main method of the class. Same features as RunVideo but it inputs still frames from a directory
+     * @param[in] image_url The url of the directory where the images are stored. Give this relative to root directory.
      */
-    void RunImages();
+    void RunImages(const std::string &image_url);
     
     /**
      * A method for saving the current frame in output directory. 

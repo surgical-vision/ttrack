@@ -28,18 +28,12 @@ namespace ttrk{
     /**
      * Construct a detection system and train it.
      * @param[in] root_dir The detection system's root directory. Here it will save/load data. This is shared with the owner ttrack class which can modify the root directory if required. 
+     * @param[in] classifier_type The type of classifier to load/create.
      * @param[in] train_type The type of training system to use. For example: cross validation or training/testing on distinct data.
-     * @param[in] classifier_type The type of classifier to load/create.
      */
-    Detect(boost::shared_ptr<std::string> root_dir, TrainType train_type, ClassifierType classifier_type);
+    Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifier_type, TrainType train_type=NA);
 
-    /**
-     * Construct a detection system without specifying a training type. This could be because the classifier is already trained and you just want to load it. 
-     * @param[in] root_dir The detection system's root directory. Here it will save/load data.  This is shared with the owner ttrack class which can modify the root directory if required. 
-     * @param[in] classifier_type The type of classifier to load/create.
-     */
-    Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifier_type);
-    
+       
     ~Detect();
 
     /**
@@ -98,9 +92,6 @@ namespace ttrk{
      * Train the classifier using separate data. Requires a directory of positive images and a directory of negative images.
      */
     void TrainSeparate();
-
-
-
 
     boost::shared_ptr<std::string> root_dir_; /**< A string containing the root directory where classifier, data etc is stored. */
     cv::Mat *frame_; /**< A pointer to the current frame, this is passed to the detector then passed to the tracker. */

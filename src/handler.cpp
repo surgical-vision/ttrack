@@ -10,35 +10,33 @@ Handler::Handler(const std::string &input_url, const std::string &output_url):
 Handler::~Handler(){}
 
 VideoHandler::VideoHandler(const std::string &input_url, const std::string &output_url):
-  Handler(input_url,output_url),
-  in_videofile_(input_url + "/video.avi"),
-  out_videofile_(output_url + "/video.avi")
+  Handler(input_url,output_url)
   {
 
-  cap_.open(in_videofile_);
+  cap_.open(input_url);
   if(!cap_.isOpened()){
-    throw std::runtime_error("Unable to open videofile: " + in_videofile_ + "\nPlease enter a new filename.\n");
+    throw std::runtime_error("Unable to open videofile: " + input_url_ + "\nPlease enter a new filename.\n");
   }
 
   // open the writer to create the processed video
-  writer_.open(out_videofile_,CV_FOURCC('M','J','P','G'), 25, 
+  writer_.open(output_url_,CV_FOURCC('M','J','P','G'), 25, 
                cv::Size((int)cap_.get(CV_CAP_PROP_FRAME_HEIGHT),
                         (int)cap_.get(CV_CAP_PROP_FRAME_WIDTH)));
   if(!writer_.isOpened()){
-    throw std::runtime_error("Unable to open videofile: " + out_videofile_ + " for saving.\nPlease enter a new filename.\n");
+    throw std::runtime_error("Unable to open videofile: " + output_url_ + " for saving.\nPlease enter a new filename.\n");
   }
 
 }
 
 ImageHandler::ImageHandler(const std::string &input_url, const std::string &output_url):
-  Handler(input_url,output_url),
+  Handler(input_url,output_url){
 
   using namespace boost::filesystem;
   
   // create a directory object
   path in_dir(input_url_),out_dir(output_url_);
   if(!is_directory(in_dir)){
-    throw std::runtime_error("Error, " + in_images_ + " is not a valid directory.\n");
+    throw std::runtime_error("Error, " + input_url_ + " is not a valid directory.\nTo perform detection on images construct a directory called images in the data directory.");
   }
   
   if(!is_directory(out_dir)) create_directory(out_dir);
@@ -48,7 +46,7 @@ ImageHandler::ImageHandler(const std::string &input_url, const std::string &outp
   copy(directory_iterator(in_dir),directory_iterator(),back_inserter(images));
   
   if(images.size() == 0){
-    throw std::runtime_error("Error, no image files found in directory: " + in_images_ + "\nPlease enter a new filename.\n");
+    throw std::runtime_error("Error, no image files found in directory: " + input_url_ + "\nPlease enter a new filename.\n");
   }
 
   //push the actual filenames into the paths_ vector
@@ -66,7 +64,7 @@ cv::Mat *ImageHandler::GetPtrToNewFrame(){
   
   //load next image in the list and return it
   cv::Mat *m = new cv::Mat;
-  *m = cv::imread(in_images_ + "/" + *open_iter_);
+  *m = cv::imread(input_url_ + "/" + *open_iter_);
 
   open_iter_++;
   return m;
@@ -87,8 +85,8 @@ void ImageHandler::SavePtrToFrame(const cv::Mat *image){
   
   std::cout << *save_iter_ << std::endl;;
 
-  if(!cv::imwrite(out_images_ + "/" + *save_iter_,*image)) 
-    throw std::runtime_error("Error, failed to write to path: " + out_images_ + "/" + *save_iter_ );
+  if(!cv::imwrite(output_url_ + "/" + *save_iter_,*image)) 
+    throw std::runtime_error("Error, failed to write to path: " + output_url_ + "/" + *save_iter_ );
 
   save_iter_++;
 

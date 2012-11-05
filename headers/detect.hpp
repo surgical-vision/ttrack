@@ -29,7 +29,7 @@ namespace ttrk{
      * Construct a detection system and train it.
      * @param[in] root_dir The detection system's root directory. Here it will save/load data. This is shared with the owner ttrack class which can modify the root directory if required. 
      * @param[in] classifier_type The type of classifier to load/create.
-     * @param[in] train_type The type of training system to use. For example: cross validation or training/testing on distinct data.
+     * @param[in] train_type The type of training system to use. For example: cross validation or training/testing on distinct data. Use NA or leave blank if you don't wish to train a classifier.
      */
     Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifier_type, TrainType train_type=NA);
 
@@ -76,10 +76,10 @@ namespace ttrk{
     void SetupClassifier(const ClassifierType type);
 
     /**
-     * Load the classifier
-     * @param[in] type The type of classifier the user wishes to load. 
+     * Load the classifier from the classifier directory.
+     * Call this function after creating an empty classifier with SetupClassifier(type).
      */
-    void LoadClassifier(const ClassifierType type);
+    void LoadClassifier();
 
 
     /**

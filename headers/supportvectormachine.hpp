@@ -22,7 +22,7 @@ namespace ttrk {
      * @param[in] labels The class labels for each training sample.
      */
 
-    virtual void TrainClassifier(const cv::Mat &training_data,const cv::Mat &labels, const std::string &root_dir);
+    virtual void TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boost::shared_ptr<cv::Mat> labels, const std::string &root_dir);
     /**
      * A discrete prediction on the class a pixel belongs to.
      * @param[in] pixel The BGR pixel direct from the image source.
@@ -44,7 +44,12 @@ namespace ttrk {
      */
     virtual void Load(const std::string &url);
     
-
+    /**
+     * Return the string "support_vector_machine" which can be useful for saving or loading
+     * the classifier from a directory.
+     * @return The name of the classifier type as a string.
+     */
+    virtual std::string NameAsString() const;
 
   };
 

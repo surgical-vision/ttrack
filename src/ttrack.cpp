@@ -12,7 +12,8 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
   if(!boost::filesystem::exists(boost::filesystem::path(root_dir)))
     throw std::runtime_error("Error, directory " + root_dir + " does not exist.\n");
 
-  root_dir_.reset(new std::string(root_dir)); //the directory where data is
+  //set the shared_ptr containing the directory where data is
+  root_dir_.reset(new std::string(root_dir)); 
   
   try{
     

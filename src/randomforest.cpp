@@ -35,7 +35,7 @@ void RandomForest::Load(const std::string &url){
 }
 
 
-void RandomForest::TrainClassifier(const cv::Mat &training_data, const cv::Mat &labels, const std::string &root_dir){
+void RandomForest::TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boost::shared_ptr<cv::Mat> labels, const std::string &root_dir){
 
   // train
   const float priors[2] = {3.0,1.0};
@@ -53,9 +53,9 @@ void RandomForest::TrainClassifier(const cv::Mat &training_data, const cv::Mat &
                     CV_TERMCRIT_ITER | CV_TERMCRIT_EPS); //halting criteria
 
 
-  CvMat *var_type = cvCreateMat(training_data.cols+1,1,CV_8U);
+  CvMat *var_type = cvCreateMat(training_data->cols+1,1,CV_8U);
   cvSet(var_type,cvScalarAll(CV_VAR_ORDERED)); //data is ordered (can be compared)
-  cvSetReal1D(var_type,training_data.cols,CV_VAR_CATEGORICAL); //labels are categorical
+  cvSetReal1D(var_type,training_data->cols,CV_VAR_CATEGORICAL); //labels are categorical
   cv::Mat var_type_(var_type,true);
 
 #ifdef DEBUG
@@ -63,9 +63,9 @@ void RandomForest::TrainClassifier(const cv::Mat &training_data, const cv::Mat &
   std::cout.flush();
 #endif
   /*
-  forest_.train(training_data,
+  forest_.train(*training_data,
                     CV_ROW_SAMPLE, //samples are in row form
-                    labels,
+                    *labels,
                     cv::Mat(),//variable index, used to mask certain features from the training
                     cv::Mat(),//sample index, used to mask certain samples entirely
                     var_type,//variable type (regression or classifiaction)
@@ -85,6 +85,10 @@ void RandomForest::TrainClassifier(const cv::Mat &training_data, const cv::Mat &
   */
   cvReleaseMat(&var_type);
 
+}
+
+std::string RandomForest::NameAsString() const {
+  return "random_forest";
 }
 
 

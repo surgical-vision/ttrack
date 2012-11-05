@@ -67,14 +67,13 @@ void TrainData::LoadCrossValidationData(){
   GetTrainingSize(masks,num_pix,false);
   
   //preallocate training data storage
-  training_data_ = new cv::Mat(cv::Size(NDImage::channels_,num_pix),CV_32FC1);
-  training_labels_ = new cv::Mat(cv::Size(1,num_pix),CV_32SC1);
+  training_data_ = boost::shared_ptr<cv::Mat>(new cv::Mat(cv::Size(NDImage::channels_,num_pix),CV_32FC1));
+  training_labels_ = boost::shared_ptr<cv::Mat>(new cv::Mat(cv::Size(1,num_pix),CV_32SC1));
 
   //load the foreground/background images
   LoadImages(ims,masks,BOTH);
 
 }
-
 
 void TrainData::LoadPixels(const NDImage *nd_image_, const cv::Mat &mask, const LoadType type){
 
@@ -138,7 +137,7 @@ void TrainData::LoadPixels(const NDImage *nd_image_, const cv::Mat &mask, const 
 
 }
 
-void TrainData::LoadTrainingData(){
+void TrainData::LoadSeparateTrainingData(){
 
   // set up directories
   const std::string positive_im_dir(*root_dir_ + "/data/positive_data/training_images/");
@@ -161,8 +160,8 @@ void TrainData::LoadTrainingData(){
   GetTrainingSize(negative_ims,num_pix,false);
   
   //preallocate training data storage
-  training_data_ = new cv::Mat(cv::Size(NDImage::channels_,num_pix),CV_32FC1);
-  training_labels_ = new cv::Mat(cv::Size(1,num_pix),CV_32SC1);
+  training_data_ = boost::shared_ptr<cv::Mat>(new cv::Mat(cv::Size(NDImage::channels_,num_pix),CV_32FC1));
+  training_labels_ = boost::shared_ptr<cv::Mat>(new cv::Mat(cv::Size(1,num_pix),CV_32SC1));
 
   //load the separate training data
   LoadImages(positive_ims, positive_masks, POSITIVE );
@@ -170,16 +169,32 @@ void TrainData::LoadTrainingData(){
 
 }
 
-TrainData::TrainData(std::string &root_dir):root_dir_(&root_dir),training_data_(0x0),training_labels_(0x0){}
+void TrainData::GetFoldMatrices(boost::shared_ptr<cv::Mat> train, boost::shared_ptr<cv::Mat> label, boost::shared_ptr<cv::Mat> test, boost::shared_ptr<cv::Mat> truth, const int fold, const int num_folds){
+  
+  //loop over all rows of the training matrix. copy with push back. 
+  const int fold_size = training_data_->rows/num_folds;
+  
+  for(int r=0;r<training_data_->rows;r++){
 
-TrainData::TrainData():root_dir_(0x0),training_data_(0x0),training_labels_(0x0){}
+    if(r <= fold*fold_size || r > (fold+1)*fold_size){
+     //push row from train and label to nth fold test matrix
+      test->push_back(training_data_->rowRange(r,r+1));
+      truth->push_back(training_labels_->rowRange(r,r+1));
+
+    }else{
+      //push row from train and label to nth fold training matrix
+      train->push_back(training_data_->rowRange(r,r+1));
+      label->push_back(training_labels_->rowRange(r,r+1));
+    
+    }
+  }
+}
+
+TrainData::TrainData(std::string &root_dir):root_dir_(&root_dir){}
+
+TrainData::TrainData():root_dir_(0x0){}
 
 TrainData::~TrainData(){
    
-  delete training_data_;
-  training_data_ = 0x0;
-   
-  delete training_labels_;
-  training_labels_ = 0x0;
-
 }
+

@@ -3,6 +3,7 @@
 
 #include "headers.hpp"
 #include "nd_image.hpp"
+#include <boost/shared_ptr.hpp>
 #include <opencv2/ml/ml.hpp>
 
 namespace ttrk{
@@ -41,19 +42,27 @@ namespace ttrk{
      * Each image-mask pair should have the same filename. Obviously this doesn't apply for 
      * negative images which do not have an assoicated mask.
      */
-    void LoadTrainingData();
+    void LoadSeparateTrainingData();
 
     /**
      * Getter for the training data.
-     * @return A pointer to the allocated training matrix.
+     * @return A shared pointer to the allocated training matrix.
      */
-    cv::Mat *training_data();
+    boost::shared_ptr<cv::Mat> training_data();
 
     /**
      * Getter for the training labels.
-     * @return A pointer to the allocated training labels.
+     * @return A shared pointer to the allocated training labels.
      */
-    cv::Mat *training_labels();
+    boost::shared_ptr<cv::Mat> training_labels();
+
+    /**
+     * Get the nth training set from an N fold cross validation.
+     * @param[in] n The fold. Counts from 0.
+     * @return A pointer to a training matrix containing the training data.
+     */
+    void GetFoldMatrices(boost::shared_ptr<cv::Mat> train, boost::shared_ptr<cv::Mat> label,
+                         boost::shared_ptr<cv::Mat> test, boost::shared_ptr<cv::Mat> truth, const int fold, const int num_folds);
 
   protected:
 
@@ -80,8 +89,8 @@ namespace ttrk{
     
 
     std::string *root_dir_; /**< The root directory of the training data suite. */
-    cv::Mat *training_data_; /**< Matrix to store the training data. Always of type CV_32FC1. */
-    cv::Mat *training_labels_; /**< Vector to store the labels for the training data. Always of type CV_32SC1. */        
+    boost::shared_ptr<cv::Mat> training_data_; /**< Matrix to store the training data. Always of type CV_32FC1. */
+    boost::shared_ptr<cv::Mat> training_labels_; /**< Vector to store the labels for the training data. Always of type CV_32SC1. */        
     
   private:
      
@@ -90,11 +99,11 @@ namespace ttrk{
 
   };
 
-  inline cv::Mat *TrainData::training_data(){
+  inline boost::shared_ptr<cv::Mat> TrainData::training_data(){
     return training_data_;
   }
 
-  inline cv::Mat *TrainData::training_labels(){
+  inline boost::shared_ptr<cv::Mat> TrainData::training_labels(){
     return training_labels_;
   }
 

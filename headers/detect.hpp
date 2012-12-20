@@ -81,24 +81,12 @@ namespace ttrk{
      */
     void LoadClassifier();
 
-
-    /**
-     * Train the classifier using cross validation. Requires a directory of positive images and a directory of negative images.
-     * @param[in] nfolds The number of folds to use.
-     */
-    void TrainCrossValidate(const int nfolds);
-
-    /**
-     * Train the classifier using separate data. Requires a directory of positive images and a directory of negative images.
-     */
-    void TrainSeparate();
-
     boost::shared_ptr<std::string> root_dir_; /**< A string containing the root directory where classifier, data etc is stored. */
     cv::Mat *frame_; /**< A pointer to the current frame, this is passed to the detector then passed to the tracker. */
     bool found_; /**< Indicated whether the target object has been found in the image. */
     NDImage *nd_image_; /**< The N-D image which is being tracked. */
     BaseClassifier *classifier_; /**< The classifier. */
-    TrainData *train_; /**< The class for training the classifier. */
+    
 
   private:
     

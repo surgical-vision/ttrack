@@ -43,7 +43,7 @@ namespace ttrk{
      * @param[in] training_data The training data to be used for training.
      * @param[in] labels The class labels for each training sample.
      */
-    virtual void TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boost::shared_ptr<cv::Mat> labels, const std::string &root_dir) = 0;
+    virtual void TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boost::shared_ptr<cv::Mat> labels, boost::shared_ptr<std::string> root_dir) = 0;
 
     /**
      * A discrete prediction on the class a pixel belongs to.
@@ -67,6 +67,12 @@ namespace ttrk{
     virtual void Load(const std::string &url) = 0;
 
     /**
+     *
+     *
+     */
+     virtual void Save(const std::string &url) const = 0;
+
+    /**
      * Get the name of the classifier type as a string. This can be useful
      * for saving or loading the classifier with a sensible name.
      * @return The classifier name as a string.
@@ -78,8 +84,8 @@ namespace ttrk{
      * Convenience function for classifying a whole image at once.
      * @param im The image to classify. This image is modified to 
      */
-    void PredictClass(cv::Mat &im) const;
-    void PredictProb(cv::Mat &im, const size_t class_index) const;
+    //void PredictClass(cv::Mat &im) const;
+    //void PredictProb(cv::Mat &im, const size_t class_index) const;
     
     BaseClassifier();
     virtual ~BaseClassifier();
@@ -90,6 +96,8 @@ namespace ttrk{
 
     size_t var_mask_; /**< Bitmask for specifying which Colorspaces/features to use. */
     
+    
+
   };
 
 }

@@ -4,7 +4,7 @@ using namespace ttrk;
 
 size_t RandomForest::PredictClass(const cv::Vec3b &pixel) const {
 
-  return forest_.predict(cv::Mat(pixel));
+  return (size_t)forest_.predict(cv::Mat(pixel));
 
 }
 
@@ -23,7 +23,7 @@ float RandomForest::PredictProb(const cv::Vec3b &pixel, const size_t class_index
   }
 
   //return fraction of matching trees
-  return sum/forest_.get_tree_count();
+  return (float)sum/forest_.get_tree_count();
 
 }
 
@@ -35,7 +35,7 @@ void RandomForest::Load(const std::string &url){
 }
 
 
-void RandomForest::TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boost::shared_ptr<cv::Mat> labels, const std::string &root_dir){
+void RandomForest::TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boost::shared_ptr<cv::Mat> labels, boost::shared_ptr<std::string> root_dir){
 
   // train
   const float priors[2] = {3.0,1.0};
@@ -77,7 +77,7 @@ void RandomForest::TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boo
   std::cout << " Done" << std::endl;
 #endif
   
-  std::string classifier_save_path = root_dir + "/classifier/";
+  std::string classifier_save_path = *root_dir + "/classifier/";
 
   boost::filesystem::create_directory(boost::filesystem::path(classifier_save_path));
 
@@ -92,4 +92,10 @@ std::string RandomForest::NameAsString() const {
 }
 
 
+void RandomForest::Save(const std::string &url) const {
+  
+  boost::filesystem::create_directory(boost::filesystem::path(url));
 
+  forest_.save( (url + "/" + NameAsString()).c_str());
+
+}

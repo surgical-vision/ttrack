@@ -2,6 +2,8 @@
 #include "../headers/helpers.hpp"
 #include "../headers/randomforest.hpp"
 #include "../headers/supportvectormachine.hpp"
+#include "../headers/cross_validate.hpp"
+#include "../headers/train_separate.hpp"
 #include <boost/filesystem.hpp>
 #include <iostream>
 #include <stdlib.h>
@@ -13,14 +15,29 @@ Detect::Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifie
 
   //create a new classifier
   SetupClassifier(classifier_type);
-  
+
+  //switch(train_type){
+  //  case X_VALIDATE: CrossValidate c(root_dir,*classifier_,10); break;
+  //  case SEPARATE: TrainSeparate s(root_dir,*classifier_); break;
+  //}
+
+  if(train_type == X_VALIDATE)
+    CrossValidate c(root_dir,*classifier_,10);
+  else if(train_type == SEPARATE)
+    TrainSeparate s(root_dir,*classifier_);
+  else if(train_type == NA)
+    LoadClassifier();
+  else
+    assert(0);
+
   //will train the classifier and save if required. If not then load. 
-  switch(train_type){
-    case X_VALIDATE: TrainCrossValidate(10); break;
-    case SEPARATE: TrainSeparate(); break;
-    case NA: LoadClassifier(); break;
-    default: throw(std::runtime_error("Unhandled train_type value. Fix this!"));
-  }
+  //switch(train_type){
+    //case X_VALIDATE: CrossValidate *cv = new CrossValidate(root_dir,*classifier_,10); delete cv; break;
+    //case SEPARATE: TrainSeparate *s = new TrainSeparate(root_dir,*classifier_); delete s; break;
+  //case X_VALIDATE: CrossValidate cv(root_dir,*classifier_,10); break; 
+    //case NA: LoadClassifier(); break;
+    //default: throw(std::runtime_error("Unhandled train_type value. Fix this!"));
+  //}
 
   if(!Loaded()) throw(std::runtime_error("Error, could not construct classifier.\n"));
 
@@ -78,39 +95,4 @@ void Detect::SetupClassifier(const ClassifierType type){
 
 void Detect::LoadClassifier(){
   classifier_->Load( classifier_dir() + "/" + classifier_->NameAsString() + ".xml");
-}
-
-void Detect::TrainSeparate(){
-
-  //construct training system and load the training data
-  train_ = new TrainData(*root_dir_);
-  train_->LoadSeparateTrainingData();
-    
-  //train the classifier
-  classifier_->TrainClassifier(train_->training_data(),train_->training_labels(),*root_dir_);
-
-  delete train_;
-}
-
-void Detect::TrainCrossValidate(const int folds){
-  
-  //construct training system and load the training data
-  train_ = new TrainData(*root_dir_);
-  train_->LoadCrossValidationData();
-  
-  //iterate over the folds
-  for(int n=0;n<folds;n++){
-
-    // load each part of the training data matrix into a submatrix
-    boost::shared_ptr<cv::Mat> train_fmat,label_fmat,test_fmat,truth_fmat;
-    train_->GetFoldMatrices(train_fmat,label_fmat,test_fmat,truth_fmat,n,folds);
-    classifier_->TrainClassifier(train_fmat,label_fmat,*root_dir_);
-
-    // get error values
-    
-
-  }
-  
-  delete train_;
- 
 }

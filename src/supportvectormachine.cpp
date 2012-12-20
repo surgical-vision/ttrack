@@ -21,10 +21,15 @@ void SupportVectorMachine::Load(const std::string &url){
 
 }
 
-void SupportVectorMachine::TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boost::shared_ptr<cv::Mat> labels, const std::string &root_dir){
+void SupportVectorMachine::TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boost::shared_ptr<cv::Mat> labels, boost::shared_ptr<std::string> root_dir){
 
 }
 
 std::string SupportVectorMachine::NameAsString() const {
   return "support_vector_machine";
+}
+
+void SupportVectorMachine::Save(const std::string &url) const {
+
+
 }

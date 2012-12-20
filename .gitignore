@@ -20,7 +20,3 @@ data/*
 ttrack
 *.sdf
 *.exe
-_ttrack.sln
-_ttrack.v11.suo
-_ttrack.vcxproj
-_ttrack.vcxproj.filters

@@ -22,7 +22,7 @@ namespace ttrk{
      * @param[in] labels The class labels for each training sample.
      * @param[in] root_dir The root directory with the location where the classifier should be saved.
      */
-    virtual void TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boost::shared_ptr<cv::Mat> labels, const std::string &root_dir);
+    virtual void TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boost::shared_ptr<cv::Mat> labels, boost::shared_ptr<std::string> root_dir);
 
     /**
      * A discrete prediction on the class a pixel belongs to.
@@ -44,6 +44,8 @@ namespace ttrk{
      * @param[in] url The file url.
      */
     virtual void Load(const std::string &url);
+
+    virtual void Save(const std::string &url) const;
 
     /**
      * Get the name of the random forest as a string: "random_forest".

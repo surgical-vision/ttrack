@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="..\headers\baseclassifier.hpp" />
     <ClInclude Include="..\headers\constants.hpp" />
+    <ClInclude Include="..\headers\cross_validate.hpp" />
     <ClInclude Include="..\headers\detect.hpp" />
     <ClInclude Include="..\headers\frame.hpp" />
     <ClInclude Include="..\headers\handler.hpp" />
@@ -31,10 +32,12 @@
     <ClInclude Include="..\headers\supportvectormachine.hpp" />
     <ClInclude Include="..\headers\tracker.hpp" />
     <ClInclude Include="..\headers\train.hpp" />
+    <ClInclude Include="..\headers\train_separate.hpp" />
     <ClInclude Include="..\headers\ttrack.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\baseclassifier.cpp" />
+    <ClCompile Include="..\src\cross_validate.cpp" />
     <ClCompile Include="..\src\detect.cpp" />
     <ClCompile Include="..\src\handler.cpp" />
     <ClCompile Include="..\src\helpers.cpp" />
@@ -44,6 +47,7 @@
     <ClCompile Include="..\src\supportvectormachine.cpp" />
     <ClCompile Include="..\src\tracker.cpp" />
     <ClCompile Include="..\src\train.cpp" />
+    <ClCompile Include="..\src\train_separate.cpp" />
     <ClCompile Include="..\src\ttrack.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

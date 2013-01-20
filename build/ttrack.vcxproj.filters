@@ -60,6 +60,12 @@
     <ClInclude Include="..\headers\train_separate.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\headers\exceptions.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\im_mask_set.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\baseclassifier.cpp">
@@ -99,6 +105,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\train_separate.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\im_mask_set.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

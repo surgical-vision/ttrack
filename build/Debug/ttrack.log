@@ -1,0 +1,49 @@
+﻿Build started 22/10/2012 09:17:52.
+     1>Project "C:\Users\max\Documents\GitHub\ttrack\build\ttrack.vcxproj" on node 2 (rebuild target(s)).
+     1>_PrepareForClean:
+         Deleting file "Debug\ttrack.lastbuildstate".
+       InitializeBuildStatus:
+         Touching "Debug\ttrack.unsuccessfulbuild".
+       ClCompile:
+         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt ..\src\baseclassifier.cpp ..\src\detect.cpp ..\src\handler.cpp ..\src\helpers.cpp ..\src\main.cpp ..\src\nd_image.cpp ..\src\randomforest.cpp ..\src\supportvectormachine.cpp ..\src\tracker.cpp ..\src\train.cpp ..\src\ttrack.cpp
+         ttrack.cpp
+     1>c:\program files\opencv\build\install\include\opencv2\flann\logger.h(66): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+         train.cpp
+     1>c:\users\max\documents\github\ttrack\src\train.cpp(122): warning C4305: 'argument' : truncation from 'double' to 'float'
+         tracker.cpp
+     1>c:\program files\opencv\build\install\include\opencv2\flann\logger.h(66): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+         supportvectormachine.cpp
+         randomforest.cpp
+         nd_image.cpp
+     1>c:\users\max\documents\github\ttrack\src\nd_image.cpp(126): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>c:\users\max\documents\github\ttrack\src\nd_image.cpp(141): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+         main.cpp
+     1>c:\program files\opencv\build\install\include\opencv2\flann\logger.h(66): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : see declaration of 'fopen'
+         helpers.cpp
+         handler.cpp
+     1>c:\users\max\documents\github\ttrack\src\handler.cpp(26): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>c:\users\max\documents\github\ttrack\src\handler.cpp(26): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+         detect.cpp
+         baseclassifier.cpp
+         Generating Code...
+       Link:
+         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\max\Documents\GitHub\ttrack\build\Debug\ttrack.exe" /NOLOGO opencv_highgui249.lib opencv_ml249.lib opencv_imgproc249.lib opencv_core249.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\ttrack.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"C:\Users\max\Documents\GitHub\ttrack\build\Debug\ttrack.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\max\Documents\GitHub\ttrack\build\Debug\ttrack.lib" /MACHINE:X64 Debug\baseclassifier.obj
+         Debug\detect.obj
+         Debug\handler.obj
+         Debug\helpers.obj
+         Debug\main.obj
+         Debug\nd_image.obj
+         Debug\randomforest.obj
+         Debug\supportvectormachine.obj
+         Debug\tracker.obj
+         Debug\train.obj
+         Debug\ttrack.obj
+     1>Debug\baseclassifier.obj : fatal error LNK1112: module machine type 'X86' conflicts with target machine type 'x64'
+     1>Done Building Project "C:\Users\max\Documents\GitHub\ttrack\build\ttrack.vcxproj" (rebuild target(s)) -- FAILED.
+
+Build FAILED.
+
+Time Elapsed 00:00:31.04

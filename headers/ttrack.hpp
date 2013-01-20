@@ -13,6 +13,7 @@
 #include <boost/thread.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/scoped_ptr.hpp>
 
 /**
  * @namespace ttrk
@@ -81,18 +82,18 @@ namespace ttrk{
     /**
      * Draw the model at the current pose onto the classified image ready for it to be saved
      */
-    void DrawModel(cv::Mat *image);
+    void DrawModel(boost::shared_ptr<cv::Mat> image);
 
     /**
      * Grab a ptr to a new frame. This is the interface to use if reading from images or reading from a videofile.
      * @return The ptr to the frame.
      */
-    cv::Mat *GetPtrToNewFrame();
+    boost::shared_ptr<cv::Mat> GetPtrToNewFrame();
 
     /**
      * Get a pointer to the classifier frame from the detection system.
      */
-    cv::Mat *GetPtrToClassifiedFrame();
+    boost::shared_ptr<cv::Mat> GetPtrToClassifiedFrame();
     
     /**
      * The main method of the class. Called by RunImages or RunVideo which do the
@@ -105,10 +106,10 @@ namespace ttrk{
      */
     void SaveDebug() const;
 
-    Tracker *tracker_; /**< The class responsible for finding the instrument in the image. */
-    Detect *detector_; /**< The class responsible for classifying the pixels in the image. */
-    Handler *handler_; /**< Pointer to either an ImageHandler or a VideoHandler which handles getting and saving frames with a simple interface */
-    cv::Mat *frame_; /**< A pointer to the current frame that will be passed from the classifier to the tracker. */
+    boost::scoped_ptr<Tracker> tracker_; /**< The class responsible for finding the instrument in the image. */
+    boost::scoped_ptr<Detect> detector_; /**< The class responsible for classifying the pixels in the image. */
+    boost::scoped_ptr<Handler> handler_; /**< Pointer to either an ImageHandler or a VideoHandler which handles getting and saving frames with a simple interface */
+    boost::shared_ptr<cv::Mat> frame_; /**< A pointer to the current frame that will be passed from the classifier to the tracker. */
     
     boost::shared_ptr<std::string> root_dir_; /**< A string containing the root directory for the data in use. */
     
@@ -119,7 +120,7 @@ namespace ttrk{
     TTrack(const TTrack &);
     TTrack &operator=(const TTrack &);
     static bool constructed_;
-    static TTrack *instance_;
+    static boost::scoped_ptr<TTrack> instance_;
 
   };
 

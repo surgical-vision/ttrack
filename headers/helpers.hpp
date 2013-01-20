@@ -2,28 +2,33 @@
 #define _HELPERS_HPP_
 #include <string>
 #include <vector>
+#include "headers.hpp"
+#include <unordered_map>
+
+inline void SAFE_EXIT(){
+#ifdef __linux__
+  exit(1);
+#elif defined (_WIN32) || (_WIN64)
+  system("pause");
+  exit(1);
+#else
+  exit(1);
+#endif
+  
+}
 
 inline bool IS_IMAGE(const std::string &extension){
   return (extension == ".png" || extension == ".jpg");
 }
 
-/**
- * GetImageURL searches through a root directory pushing any file with the extension .png or .jpg into the urls vector. The urls vector contains the full pathname.
- * @param root_url The root directory.
- * @param urls The vector containing the full pathname of each image.
- */
+cv::Mat &ConvertMatSingleToTriple(cv::Mat &im);
 
-void GetImageURL(const std::string &root_url, std::vector<std::string> &urls);
-                        
-/**
- * This function returns the size of the contribution to the training vector.
- * @param urls A vector of urls for the the files.
- * @param num_pix The number of pixels to add.
- * @param positive If the image is a positive training example. If it is, the only add the pixels which correspond to positives in the mask. If it is not then add the entire image as negative images contain no positive pixels.
- */
+struct hash_Vec{
+  size_t operator()(const cv::Vec3b &b) const{
+    return std::hash<int>()((int)b[0]) ^ std::hash<int>()((int)b[1]) ^ std::hash<int>()((int)b[2]);
+  }
+};
 
-void GetTrainingSize(const std::vector<std::string> &urls, int &num_pix, const bool positive);
 
-int CountNonZero(cv::Mat &im);
 
 #endif

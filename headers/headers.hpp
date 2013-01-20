@@ -12,4 +12,8 @@
 #include <boost/shared_ptr.hpp>
 #include <iostream>
 
+#ifndef DEBUG
+  #define DEBUG
+#endif
+
 #endif //_HEADERS_H_

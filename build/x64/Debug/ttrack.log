@@ -1,0 +1,33 @@
+﻿Build started 24/12/2012 21:27:20.
+     1>Project "C:\Users\max\Documents\GitHub\ttrack\build\ttrack.vcxproj" on node 2 (build target(s)).
+     1>InitializeBuildStatus:
+         Touching "x64\Debug\ttrack.unsuccessfulbuild".
+       ClCompile:
+         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\CL.exe /c /Zi /nologo /W3 /WX- /Od /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Debug\\" /Fd"x64\Debug\vc100.pdb" /Gd /TP /errorReport:prompt ..\src\train.cpp
+         train.cpp
+       Link:
+         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\max\Documents\GitHub\ttrack\build\x64\Debug\ttrack.exe" /NOLOGO opencv_highgui249.lib opencv_ml249.lib opencv_imgproc249.lib opencv_core249.lib "boost_filesystem-vc100-mt-gd-1_51.lib" "boost_thread-vc100-mt-gd-1_51.lib" "boost_system-vc100-mt-gd-1_51.lib" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"x64\Debug\ttrack.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"C:\Users\max\Documents\GitHub\ttrack\build\x64\Debug\ttrack.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\max\Documents\GitHub\ttrack\build\x64\Debug\ttrack.lib" /MACHINE:X64 x64\Debug\baseclassifier.obj
+         x64\Debug\cross_validate.obj
+         x64\Debug\detect.obj
+         x64\Debug\handler.obj
+         x64\Debug\helpers.obj
+         x64\Debug\main.obj
+         x64\Debug\nd_image.obj
+         x64\Debug\randomforest.obj
+         x64\Debug\supportvectormachine.obj
+         x64\Debug\tracker.obj
+         x64\Debug\train.obj
+         x64\Debug\train_separate.obj
+         x64\Debug\ttrack.obj
+         LINK : C:\Users\max\Documents\GitHub\ttrack\build\x64\Debug\ttrack.exe not found or not built by the last incremental link; performing full link
+         ttrack.vcxproj -> C:\Users\max\Documents\GitHub\ttrack\build\x64\Debug\ttrack.exe
+       Manifest:
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"C:\Users\max\Documents\GitHub\ttrack\build\x64\Debug\ttrack.exe;#1" /manifest x64\Debug\ttrack.exe.intermediate.manifest
+       FinalizeBuildStatus:
+         Deleting file "x64\Debug\ttrack.unsuccessfulbuild".
+         Touching "x64\Debug\ttrack.lastbuildstate".
+     1>Done Building Project "C:\Users\max\Documents\GitHub\ttrack\build\ttrack.vcxproj" (build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:03.15

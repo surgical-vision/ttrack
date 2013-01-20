@@ -53,33 +53,35 @@ ImageHandler::ImageHandler(const std::string &input_url, const std::string &outp
   for(size_t i=0;i<images.size();i++)
     paths_.push_back( images[i].filename().string() );
 
-
   open_iter_ = save_iter_ = paths_.begin();
 
 }
 
-cv::Mat *ImageHandler::GetPtrToNewFrame(){
+boost::shared_ptr<cv::Mat> ImageHandler::GetPtrToNewFrame(){
 
-  if(open_iter_ == paths_.end()) return 0;
+  std::cout << "Loading first image..." << std::endl;
+  if(open_iter_ == paths_.end()) return boost::shared_ptr<cv::Mat>(); //return an empty shared ptr
   
   //load next image in the list and return it
-  cv::Mat *m = new cv::Mat;
+  boost::shared_ptr<cv::Mat> m(new cv::Mat);
   *m = cv::imread(input_url_ + "/" + *open_iter_);
 
+  std::cout << "Loaded " << input_url_ + "/" + *open_iter_ << std::endl;
   open_iter_++;
+  if(m->data == 0x0) std::cout << "Error, no data" << std::endl;
   return m;
 
 }
 
-cv::Mat *VideoHandler::GetPtrToNewFrame(){
+boost::shared_ptr<cv::Mat> VideoHandler::GetPtrToNewFrame(){
 
-  cv::Mat *m = new cv::Mat;
+  boost::shared_ptr<cv::Mat> m(new cv::Mat);
   cap_ >> *m;
   return m;
 
 }
 
-void ImageHandler::SavePtrToFrame(const cv::Mat *image){
+void ImageHandler::SavePtrToFrame(const boost::shared_ptr<cv::Mat> image){
 
   if(save_iter_ == paths_.end()) throw std::runtime_error("Error, attempt to save image with no file path available.\n");
   
@@ -92,7 +94,7 @@ void ImageHandler::SavePtrToFrame(const cv::Mat *image){
 
 }
 
-void VideoHandler::SavePtrToFrame(const cv::Mat *image){
+void VideoHandler::SavePtrToFrame(const boost::shared_ptr<cv::Mat> image){
   
   if(!writer_.isOpened()) throw std::runtime_error("Error, attempt to save frame without available video writer.\n");
   

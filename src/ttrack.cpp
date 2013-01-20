@@ -11,24 +11,24 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
   
   if(!boost::filesystem::exists(boost::filesystem::path(root_dir)))
     throw std::runtime_error("Error, directory " + root_dir + " does not exist.\n");
-
-  //set the shared_ptr containing the directory where data is
-  root_dir_.reset(new std::string(root_dir)); 
   
   try{
-    
+  
+    //set the shared_ptr containing the directory where data is
+    root_dir_.reset(new std::string(root_dir)); 
+
     //if train type is NA, training is skipped
-    detector_ = new Detect(root_dir_,classifier_type,train_type);
-    tracker_ = new Tracker;
+    detector_.reset(new Detect(root_dir_,classifier_type,train_type));
+    tracker_.reset(new Tracker);
 
   }catch(std::bad_alloc &e){
     std::cerr << "Error, memory error. Could not construct detector/tracker.\n" << e.what();
     std::cerr << "Exiting...\n";
-    exit(1);
+    SAFE_EXIT();
   }catch(std::exception &e){
     std::cerr << "Error, caught exception.\n" <<  e.what();
     std::cerr << "Exiting...\n";
-    exit(1);
+    SAFE_EXIT();
   }
 
   
@@ -36,12 +36,12 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
 
 void TTrack::Run(){
 
-  (*detector_)( GetPtrToNewFrame() ); 
+  (*detector_)( GetPtrToNewFrame().get() ); 
 
   while(detector_->Found()){
     
-    boost::thread TrackThread(boost::ref(*tracker_), GetPtrToClassifiedFrame() );
-    boost::thread DetectThread(boost::ref(*detector_), GetPtrToNewFrame() );
+    boost::thread TrackThread(boost::ref(*(tracker_.get())), GetPtrToClassifiedFrame().get() );
+    boost::thread DetectThread(boost::ref(*(detector_.get())), GetPtrToNewFrame().get() );
     
     TrackThread.join();
     DetectThread.join();
@@ -65,24 +65,23 @@ void TTrack::TestDetector(const std::string &infile, const std::string &outfile)
 void TTrack::RunVideo(const std::string &video_url){
   
   tracker_->Tracking(true);
-  handler_ = new VideoHandler(*root_dir_ + video_url, *root_dir_);
+  handler_.reset(new VideoHandler(*root_dir_ + video_url, *root_dir_));
   Run();
-  delete handler_;
+ 
 }
 
 void TTrack::RunImages(const std::string &image_url){
 
   tracker_->Tracking(false);
-  handler_ = new ImageHandler(*root_dir_ + image_url, *root_dir_);
+  handler_.reset(new ImageHandler(*root_dir_ + image_url, *root_dir_));
   Run();
-  delete handler_;
 
 }
 
 void TTrack::SaveFrame(){
 
   //draws the model at the current pose on c_frame_
-  cv::Mat *frame = tracker_->GetPtrToFinishedFrame();
+  boost::shared_ptr<cv::Mat> frame = tracker_->GetPtrToFinishedFrame();
 
   DrawModel(frame);
   
@@ -97,18 +96,18 @@ void TTrack::SaveDebug() const {
 
 }
 
-void TTrack::DrawModel(cv::Mat *frame){
+void TTrack::DrawModel(boost::shared_ptr<cv::Mat> frame){
 
 }
 
-cv::Mat *TTrack::GetPtrToNewFrame(){
+boost::shared_ptr<cv::Mat> TTrack::GetPtrToNewFrame(){
   
   frame_ = handler_->GetPtrToNewFrame(); //now point at new frame, discarding old
   return frame_;
 
 }
 
-cv::Mat *TTrack::GetPtrToClassifiedFrame(){
+boost::shared_ptr<cv::Mat> TTrack::GetPtrToClassifiedFrame(){
 
   frame_ = detector_->GetPtrToClassifiedFrame();
   return frame_;
@@ -119,56 +118,55 @@ cv::Mat *TTrack::GetPtrToClassifiedFrame(){
 
 bool TTrack::constructed_ = false;
 
-TTrack *TTrack::instance_ = 0;
+boost::scoped_ptr<TTrack> TTrack::instance_(new TTrack);
 
-TTrack::TTrack():tracker_(0),detector_(0),handler_(0),frame_(0){}
+TTrack::TTrack(){}//:tracker_(0),detector_(0),handler_(0),frame_(0){}
 
 TTrack::~TTrack(){
-  delete handler_;
+  /*delete handler_;
   handler_ = 0x0;
   delete detector_;
   detector_ = 0x0;
   delete tracker_;
   tracker_ = 0x0;
   delete frame_;
-  frame_ = 0x0;
+  frame_ = 0x0;*/
 }
 
 void TTrack::Destroy(){
 
-  delete instance_;
-  instance_ = 0;
+  //delete instance_;
+  instance_.reset();// = 0;
   constructed_ = false;
 
 }
 
 TTrack::TTrack(const TTrack &that){
-  *this = that;
+  assert(0);
 }
 
 TTrack &TTrack::operator=(const TTrack &that){
 
   // check for self-assignment
   if(this == &that) return *this;
-  tracker_ = that.tracker_;
-  detector_ = that.detector_;
-  frame_ = that.frame_;
-
+ 
+  //if we aren't self-assigning then something is wrong.
+  throw(std::runtime_error("Error, attempting to construct a new TTrack.\n"));
   return *this;
 
 }
 
 TTrack &TTrack::Instance(){
   if(!constructed_){
-    instance_ = new TTrack();
+    instance_.reset(new TTrack());
     constructed_ = true;
   }
-  return *instance_;
+  return *(instance_.get());
 }
 
 void TTrack::CleanUp(){
 
-  delete tracker_->GetPtrToFinishedFrame();
+  //delete tracker_->GetPtrToFinishedFrame();
 
 }
 

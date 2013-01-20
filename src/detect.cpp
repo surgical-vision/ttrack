@@ -16,11 +16,6 @@ Detect::Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifie
   //create a new classifier
   SetupClassifier(classifier_type);
 
-  //switch(train_type){
-  //  case X_VALIDATE: CrossValidate c(root_dir,*classifier_,10); break;
-  //  case SEPARATE: TrainSeparate s(root_dir,*classifier_); break;
-  //}
-
   if(train_type == X_VALIDATE)
     CrossValidate c(root_dir,*classifier_,10);
   else if(train_type == SEPARATE)
@@ -51,12 +46,12 @@ Detect::~Detect(){
 void Detect::operator()(cv::Mat *image){
   
 
-  if(image == 0) { //if the image is null then we must be at the last frame
+  if(image == 0x0 || image->data == 0x0) { //if the image is null then we must be at the last frame
     found_ = false; 
     return;
   }
 
-  frame_ = image;
+  frame_.reset(image);
   
   circle(*frame_,cv::Point(100,100),20,cv::Scalar(200,182,233),-1);
   
@@ -85,7 +80,7 @@ void Detect::SetupClassifier(const ClassifierType type){
 
   }catch(std::bad_alloc &e){
     std::cerr << "Error, could not create classifier: " << e.what();
-    exit(1);
+    SAFE_EXIT();
   }
 
 #if defined (DEBUG) || defined(_DEBUG_)

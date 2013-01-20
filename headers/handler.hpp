@@ -15,10 +15,10 @@ namespace ttrk{
     Handler(const std::string &input_url, const std::string &output_url);
     virtual ~Handler();
 
-    typedef std::pair<cv::Mat *,std::string> ImAndName;
+    typedef std::pair<boost::shared_ptr<cv::Mat>,std::string> ImAndName;
 
-    virtual cv::Mat *GetPtrToNewFrame() = 0;
-    virtual void SavePtrToFrame(const cv::Mat *image) = 0;
+    virtual boost::shared_ptr<cv::Mat> GetPtrToNewFrame() = 0;
+    virtual void SavePtrToFrame(const boost::shared_ptr<cv::Mat> image) = 0;
     virtual void SetInputFileName(const std::string &url) = 0;
     virtual void SetOutputFileName(const std::string &url) = 0;   
     void SaveDebug(const std::vector< ImAndName > &to_save) const;
@@ -36,8 +36,8 @@ namespace ttrk{
   public:
 
     VideoHandler(const std::string &input_url, const std::string &output_url);
-    virtual cv::Mat *GetPtrToNewFrame();
-    virtual void SavePtrToFrame(const cv::Mat *image);
+    virtual boost::shared_ptr<cv::Mat> GetPtrToNewFrame();
+    virtual void SavePtrToFrame(const boost::shared_ptr<cv::Mat> image);
     virtual void SetInputFileName(const std::string &url);
     virtual void SetOutputFileName(const std::string &url);   
 
@@ -54,8 +54,8 @@ namespace ttrk{
   public:
 
     ImageHandler(const std::string &input_url, const std::string &output_url);
-    virtual cv::Mat *GetPtrToNewFrame();
-    virtual void SavePtrToFrame(const cv::Mat *image);
+    virtual boost::shared_ptr<cv::Mat> GetPtrToNewFrame();
+    virtual void SavePtrToFrame(const boost::shared_ptr<cv::Mat> image);
     virtual void SetInputFileName(const std::string &url);
     virtual void SetOutputFileName(const std::string &url);
 

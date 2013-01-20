@@ -31,7 +31,7 @@ namespace ttrk{
      * Get a ptr to the frame now that the detector has finished classifying it
      * @return cv::Mat * The frame.
      */
-    cv::Mat *GetPtrToFinishedFrame();
+    boost::shared_ptr<cv::Mat> GetPtrToFinishedFrame();
 
     /**
      * Toggle tracking on or not. If it's off, init is called on each new frame .
@@ -49,7 +49,7 @@ namespace ttrk{
 
 
     bool tracking_; /**< The variable for toggling tracking on or off.  */
-    cv::Mat *frame_; /**< The frame that the tracker is currently working on. */
+    boost::shared_ptr<cv::Mat> frame_; /**< The frame that the tracker is currently working on. */
 
   };
 

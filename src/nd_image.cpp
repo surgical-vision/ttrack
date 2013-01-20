@@ -123,7 +123,7 @@ void NDImage::ConvertBGR2O2(const cv::Mat &in,cv::Mat &out){
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
       const cv::Vec3b &bgr = in.at<cv::Vec3b>(r,c);
-      out.at<float>(r,c) = 0.5 * (bgr[2] - bgr[1]);
+      out.at<float>(r,c) = 0.5f * (bgr[2] - bgr[1]);
      }
   }
 
@@ -138,7 +138,7 @@ void NDImage::ConvertBGR2O3(const cv::Mat &in,cv::Mat &out){
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
       const cv::Vec3b &bgr = in.at<cv::Vec3b>(r,c);
-      out.at<float>(r,c) = (0.5*bgr[0]) - (0.25*(bgr[2]+bgr[1]));
+      out.at<float>(r,c) = (0.5f*bgr[0]) - (0.25f*(bgr[2]+bgr[1]));
     }
   }
 

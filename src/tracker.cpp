@@ -8,7 +8,7 @@ Tracker::~Tracker(){}
 
 void Tracker::operator()(cv::Mat *image){
   
-  frame_ = image;
+  frame_.reset(image);
   
   if(!tracking_) 
     Init();
@@ -21,7 +21,7 @@ void Tracker::Init(){
   //pose init
 }
 
-cv::Mat *Tracker::GetPtrToFinishedFrame(){
+boost::shared_ptr<cv::Mat> Tracker::GetPtrToFinishedFrame(){
   return frame_;
 }
 

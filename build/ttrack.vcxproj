@@ -17,16 +17,26 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Test|Win32">
+      <Configuration>Test</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Test|x64">
+      <Configuration>Test</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\headers\baseclassifier.hpp" />
     <ClInclude Include="..\headers\constants.hpp" />
     <ClInclude Include="..\headers\cross_validate.hpp" />
     <ClInclude Include="..\headers\detect.hpp" />
+    <ClInclude Include="..\headers\exceptions.hpp" />
     <ClInclude Include="..\headers\frame.hpp" />
     <ClInclude Include="..\headers\handler.hpp" />
     <ClInclude Include="..\headers\headers.hpp" />
     <ClInclude Include="..\headers\helpers.hpp" />
+    <ClInclude Include="..\headers\im_mask_set.hpp" />
     <ClInclude Include="..\headers\nd_image.hpp" />
     <ClInclude Include="..\headers\randomforest.hpp" />
     <ClInclude Include="..\headers\supportvectormachine.hpp" />
@@ -41,6 +51,7 @@
     <ClCompile Include="..\src\detect.cpp" />
     <ClCompile Include="..\src\handler.cpp" />
     <ClCompile Include="..\src\helpers.cpp" />
+    <ClCompile Include="..\src\im_mask_set.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\nd_image.cpp" />
     <ClCompile Include="..\src\randomforest.cpp" />
@@ -60,7 +71,17 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
@@ -83,7 +104,13 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Test|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -96,14 +123,30 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>C:\Program Files\boost\boost_1_51\;C:\Program Files\opencv\build\install\include\opencv\;C:\Program Files\opencv\build\install\include\opencv2\;C:\Program Files\opencv\build\install\include\;$(IncludePath)</IncludePath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|Win32'">
+    <IncludePath>C:\Program Files\boost\boost_1_51\;C:\Program Files\opencv\build\install\include\opencv\;C:\Program Files\opencv\build\install\include\opencv2\;C:\Program Files\opencv\build\install\include\;$(IncludePath)</IncludePath>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>C:\Program Files\boost\boost_1_51\;C:\Program Files\opencv\build\install\include\opencv\;C:\Program Files\opencv\build\install\include\opencv2\;C:\Program Files\opencv\build\install\include\;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'">
     <IncludePath>C:\Program Files\boost\boost_1_51\;C:\Program Files\opencv\build\install\include\opencv\;C:\Program Files\opencv\build\install\include\opencv2\;C:\Program Files\opencv\build\install\include\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LibraryPath>C:\Program Files\opencv\build\install\lib\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|Win32'">
+    <LibraryPath>C:\Program Files\opencv\build\install\lib\;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LibraryPath>C:\Program Files\boost\boost_1_51\lib;C:\Program Files\opencv\build\install\lib\;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'">
+    <LibraryPath>C:\Program Files\boost\boost_1_51\lib;C:\Program Files\opencv\build\install\lib\;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LibraryPath>C:\Program Files\boost\boost_1_51\lib;c:\Program Files\opencv\build\install\lib\;$(LibraryPath)</LibraryPath>
+    <IncludePath>c:\Program Files\boost\boost_1_51\;c:\Program Files\opencv\build\install\include\opencv\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -116,7 +159,28 @@
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Test|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>opencv_highgui249.lib;opencv_ml249.lib;opencv_imgproc249.lib;opencv_core249.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>opencv_highgui249.lib;opencv_ml249.lib;opencv_imgproc249.lib;opencv_core249.lib;boost_filesystem-vc100-mt-gd-1_51.lib;boost_thread-vc100-mt-gd-1_51.lib;boost_system-vc100-mt-gd-1_51.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
@@ -145,11 +209,13 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>C:\Program Files\opencv\build\install\include;C:\Program Files\boost\boost_1_51\boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>opencv_calib3d249.lib;opencv_contrib249.lib;opencv_core249.lib;opencv_highgui249.lib;opencv_imgproc249.lib;opencv_ml249.lib;boost_filesystem-vc100-mt-1_51.lib;boost_thread-vc100-mt-1_51.lib;boost_system-vc100-mt-1_51.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

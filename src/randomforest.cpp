@@ -62,7 +62,7 @@ void RandomForest::TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boo
   std::cout << "Training...";
   std::cout.flush();
 #endif
-  /*
+  
   forest_.train(*training_data,
                     CV_ROW_SAMPLE, //samples are in row form
                     *labels,
@@ -82,7 +82,7 @@ void RandomForest::TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boo
   boost::filesystem::create_directory(boost::filesystem::path(classifier_save_path));
 
   forest_.save( (classifier_save_path + "forest.xml").c_str());
-  */
+  
   cvReleaseMat(&var_type);
 
 }

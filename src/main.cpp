@@ -1,14 +1,22 @@
 #include "../headers/ttrack.hpp"
+#include <boost/program_options/option.hpp>
+#if defined _WIN32 || _WIN64
+  #include<direct.h>
+#elif defined __linux__
+#endif
 
 int main(int argc, char **argv){
 
   ttrk::TTrack &t = ttrk::TTrack::Instance();
-  
+
   try{
     
-    //construct the helper classes and train the classifier
-    t.SetUp("./data/data_11/",ttrk::RF,ttrk::SEPARATE);
-    t.RunImages("data/images/");
+#if defined(_WIN32) || defined(_WIN64)
+     _chdir("../");
+#endif
+     //construct the helper classes and train the classifier
+    t.SetUp("./data/test/",ttrk::RF,ttrk::SEPARATE);
+    t.RunImages("/validation/");
 
   }catch(std::runtime_error &e){
 
@@ -28,3 +36,6 @@ int main(int argc, char **argv){
   return 0;
 
 }
+
+
+

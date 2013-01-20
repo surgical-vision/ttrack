@@ -1,0 +1,36 @@
+﻿Build started 13/01/2013 19:05:49.
+     1>Project "C:\Users\max\Documents\GitHub\ttrack\build\ttrack.vcxproj" on node 2 (build target(s)).
+     1>InitializeBuildStatus:
+         Creating "x64\Release\ttrack.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       ClCompile:
+         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\CL.exe /c /I"C:\Program Files\opencv\build\install\include" /I"C:\Program Files\boost\boost_1_51\boost" /Zi /nologo /W3 /WX- /O2 /Oi /GL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Release\\" /Fd"x64\Release\vc100.pdb" /Gd /TP /errorReport:prompt ..\src\detect.cpp ..\src\handler.cpp
+         detect.cpp
+         handler.cpp
+       Link:
+         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\max\Documents\GitHub\ttrack\build\x64\Release\ttrack.exe" /NOLOGO opencv_calib3d249.lib opencv_contrib249.lib opencv_core249.lib opencv_highgui249.lib opencv_imgproc249.lib opencv_ml249.lib "boost_filesystem-vc100-mt-1_51.lib" "boost_thread-vc100-mt-1_51.lib" "boost_system-vc100-mt-1_51.lib" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"x64\Release\ttrack.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"C:\Users\max\Documents\GitHub\ttrack\build\x64\Release\ttrack.pdb" /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\max\Documents\GitHub\ttrack\build\x64\Release\ttrack.lib" /MACHINE:X64 x64\Release\baseclassifier.obj
+         x64\Release\cross_validate.obj
+         x64\Release\detect.obj
+         x64\Release\handler.obj
+         x64\Release\helpers.obj
+         x64\Release\im_mask_set.obj
+         x64\Release\main.obj
+         x64\Release\nd_image.obj
+         x64\Release\randomforest.obj
+         x64\Release\supportvectormachine.obj
+         x64\Release\tracker.obj
+         x64\Release\train.obj
+         x64\Release\train_separate.obj
+         x64\Release\ttrack.obj
+         Generating code
+         Finished generating code
+         ttrack.vcxproj -> C:\Users\max\Documents\GitHub\ttrack\build\x64\Release\ttrack.exe
+       Manifest:
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"C:\Users\max\Documents\GitHub\ttrack\build\x64\Release\ttrack.exe;#1" /manifest x64\Release\ttrack.exe.intermediate.manifest
+       FinalizeBuildStatus:
+         Deleting file "x64\Release\ttrack.unsuccessfulbuild".
+         Touching "x64\Release\ttrack.lastbuildstate".
+     1>Done Building Project "C:\Users\max\Documents\GitHub\ttrack\build\ttrack.vcxproj" (build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:11.08

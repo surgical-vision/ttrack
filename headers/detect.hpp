@@ -10,6 +10,7 @@
 namespace ttrk{
 
   enum ClassifierType {RF,SVM,NBAYES};
+  
   enum TrainType {X_VALIDATE,SEPARATE,NA};
 
 /**
@@ -58,7 +59,7 @@ namespace ttrk{
      * The operator returns a unique pointer to the classified frame. 
      * @return a unique pointer to the classified frame.
      */
-    cv::Mat *GetPtrToClassifiedFrame() const;
+    boost::shared_ptr<cv::Mat> GetPtrToClassifiedFrame() const;
 
   protected:
 
@@ -82,9 +83,9 @@ namespace ttrk{
     void LoadClassifier();
 
     boost::shared_ptr<std::string> root_dir_; /**< A string containing the root directory where classifier, data etc is stored. */
-    cv::Mat *frame_; /**< A pointer to the current frame, this is passed to the detector then passed to the tracker. */
+    boost::shared_ptr<cv::Mat> frame_; /**< A pointer to the current frame, this is passed to the detector then passed to the tracker. */
     bool found_; /**< Indicated whether the target object has been found in the image. */
-    NDImage *nd_image_; /**< The N-D image which is being tracked. */
+    boost::shared_ptr<NDImage> nd_image_; /**< The N-D image which is being tracked. */
     BaseClassifier *classifier_; /**< The classifier. */
     
 
@@ -95,7 +96,7 @@ namespace ttrk{
 
   };
 
-  inline cv::Mat *Detect::GetPtrToClassifiedFrame() const {
+  inline boost::shared_ptr<cv::Mat> Detect::GetPtrToClassifiedFrame() const {
     return frame_;
   }
 

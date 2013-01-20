@@ -20,6 +20,11 @@ namespace ttrk{
 
     typedef std::pair<std::string,cv::Mat> NamedImage;
 
+    /**
+     * Constructor for the class. A single BGR cv::Mat is passed in and then transformed into the desired colourspaces.
+     * @param[in] image The input image.
+     */
+
     NDImage(const cv::Mat &image);
   
     /**

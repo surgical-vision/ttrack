@@ -24,7 +24,7 @@ namespace ttrk{
      * Overload for boost thread call. This functio wraps the calls to the model fitting methods
      * @param image The image pulled from the video file or image file.
      */
-    void operator()(cv::Mat *image);
+    void operator()(boost::shared_ptr<cv::Mat> image);
 
   
     /**

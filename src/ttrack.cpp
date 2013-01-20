@@ -36,12 +36,12 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
 
 void TTrack::Run(){
 
-  (*detector_)( GetPtrToNewFrame().get() ); 
+  (*detector_)( GetPtrToNewFrame() ); 
 
   while(detector_->Found()){
     
-    boost::thread TrackThread(boost::ref(*(tracker_.get())), GetPtrToClassifiedFrame().get() );
-    boost::thread DetectThread(boost::ref(*(detector_.get())), GetPtrToNewFrame().get() );
+    boost::thread TrackThread(boost::ref(*(tracker_.get())), GetPtrToClassifiedFrame() );
+    boost::thread DetectThread(boost::ref(*(detector_.get())), GetPtrToNewFrame() );
     
     TrackThread.join();
     DetectThread.join();

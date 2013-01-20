@@ -43,23 +43,41 @@ Detect::~Detect(){
   classifier_ = 0x0;
 }
 
-void Detect::operator()(cv::Mat *image){
+void Detect::operator()(boost::shared_ptr<cv::Mat> image){
   
+  SetHandleToFrame(image);
+ 
+  
+  //do classification
 
-  if(image == 0x0 || image->data == 0x0) { //if the image is null then we must be at the last frame
+  circle(*frame_,cv::Point(100,100),20,cv::Scalar(200,182,233),-1);
+  found_ = true;
+  
+  ResetHandleToFrame();
+
+  *frame_ = cv::Mat(500,500,CV_8UC3);
+  circle(*frame_,cv::Point(400,400),20,cv::Scalar(200,182,233),-1);
+  
+  
+}
+
+void Detect::SetHandleToFrame(boost::shared_ptr<cv::Mat> image){
+
+  //if the image is null then we must be at the last frame
+  if(image == 0x0 || image->data == 0x0) { 
     found_ = false; 
     return;
   }
 
-  frame_.reset(image);
-  
-  circle(*frame_,cv::Point(100,100),20,cv::Scalar(200,182,233),-1);
-  
-  //do classification
-  
+  //assign the detector's frame pointer to this image
+  frame_ = image;
 
-  found_ = true;
-  
+}
+
+void Detect::ResetHandleToFrame(){  
+
+  frame_.reset();
+
 }
 
 void Detect::SetupClassifier(const ClassifierType type){

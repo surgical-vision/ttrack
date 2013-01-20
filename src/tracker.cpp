@@ -6,9 +6,9 @@ Tracker::Tracker(){}
 
 Tracker::~Tracker(){}
 
-void Tracker::operator()(cv::Mat *image){
+void Tracker::operator()(boost::shared_ptr<cv::Mat> image){
   
-  frame_.reset(image);
+  frame_ = image;
   
   if(!tracking_) 
     Init();

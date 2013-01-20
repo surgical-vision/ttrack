@@ -41,7 +41,7 @@ namespace ttrk{
      * The operator overload for the boost thread call. This function wraps the calls to the detection methods.
      * @param[in] image The image pulled from the camera, video file or image file.
      */
-    void operator()(cv::Mat *image); 
+    void operator()(boost::shared_ptr<cv::Mat> image); 
 
     /**
      * Has the detector found a candidate for the object in the frame.
@@ -63,6 +63,10 @@ namespace ttrk{
 
   protected:
 
+    void SetHandleToFrame(boost::shared_ptr<cv::Mat> image);
+
+    void ResetHandleToFrame();
+    
     /**
      * Dynamically compute the directory being used for saving/loading the classifier. Uses the
      * shared_ptr root directory and appends /classifier/.

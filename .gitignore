@@ -20,3 +20,6 @@ data/*
 ttrack
 *.sdf
 *.exe
+build/ipch
+build/Debug
+build/x64

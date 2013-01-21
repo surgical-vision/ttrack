@@ -25,36 +25,47 @@ Detect::Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifie
   else
     assert(0);
 
-  //will train the classifier and save if required. If not then load. 
-  //switch(train_type){
-    //case X_VALIDATE: CrossValidate *cv = new CrossValidate(root_dir,*classifier_,10); delete cv; break;
-    //case SEPARATE: TrainSeparate *s = new TrainSeparate(root_dir,*classifier_); delete s; break;
-  //case X_VALIDATE: CrossValidate cv(root_dir,*classifier_,10); break; 
-    //case NA: LoadClassifier(); break;
-    //default: throw(std::runtime_error("Unhandled train_type value. Fix this!"));
-  //}
-
   if(!Loaded()) throw(std::runtime_error("Error, could not construct classifier.\n"));
 
 }
 
-Detect::~Detect(){
-  delete classifier_;
-  classifier_ = 0x0;
-}
+Detect::~Detect(){}
 
 void Detect::operator()(boost::shared_ptr<cv::Mat> image){
   
   SetHandleToFrame(image);
-  //do classification
   ClassifyFrame();
-  //circle(*frame_,cv::Point(100,100),20,cv::Scalar(200,182,233),-1);
-  found_ = true;
   
 }
 
 void Detect::ClassifyFrame(){
 
+#ifdef DEBUG 
+  assert(Loaded());
+  assert(frame_->type() == CV_8UC3);
+#endif
+
+  NDImage nd_image(*frame_);
+  const int rows = frame_->rows;
+  const int cols = frame_->cols;
+
+  size_t DEBUG_COUNT = 0;
+  
+  for(int r=0;r<rows;r++){
+    for(int c=0;c<cols;c++){
+
+      cv::Mat pix = nd_image.GetPixelData(r,c);
+      
+      size_t prediction = 255*(classifier_->PredictClass(nd_image.GetPixelData(r,c)));
+      frame_->at<cv::Vec3b>(r,c) = cv::Vec3b((unsigned char)prediction,(unsigned char)prediction,(unsigned char)prediction);
+
+      if(prediction > 0) DEBUG_COUNT++;
+
+    }
+  }
+
+  if(DEBUG_COUNT>300) found_ = true;
+  else found_ = false;
 
 }
 
@@ -79,18 +90,18 @@ void Detect::ResetHandleToFrame(){
 }
 
 void Detect::SetupClassifier(const ClassifierType type){
-  
-  classifier_ = 0x0;
+ 
+  classifier_.reset();
 
   //construct the classifier from scratch
   try{
 
     switch(type){
 
-      case RF: classifier_ = new RandomForest; break;
-      case SVM: classifier_ = new SupportVectorMachine; break;    
+      case RF: classifier_ = boost::static_pointer_cast<BaseClassifier, RandomForest>(boost::shared_ptr<RandomForest>(new RandomForest)); break;
+      case SVM: classifier_ = boost::static_pointer_cast<BaseClassifier, SupportVectorMachine>(boost::shared_ptr<SupportVectorMachine>(new SupportVectorMachine )); break;    
       case NBAYES: throw("NBAYES not supported"); //NOT YET IMPLEMENTED!
-      default: classifier_ = new RandomForest; break;
+      default: classifier_ = boost::static_pointer_cast<BaseClassifier, RandomForest>(boost::shared_ptr<RandomForest>(new RandomForest)); break;
       
     }
 
@@ -100,7 +111,7 @@ void Detect::SetupClassifier(const ClassifierType type){
   }
 
 #if defined (DEBUG) || defined(_DEBUG_)
-  assert(classifier_); //check it actually points to something now
+  assert(classifier_.get()); //check it actually points to something now
 #endif
 } 
 

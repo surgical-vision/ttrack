@@ -2,13 +2,13 @@
 
 using namespace ttrk;
 
-size_t SupportVectorMachine::PredictClass(const cv::Vec3b &pixel) const {
+size_t SupportVectorMachine::PredictClass(const cv::Mat &pixel) const {
 
   return 1;
 
 }
 
-float SupportVectorMachine::PredictProb(const cv::Vec3b &pixel, const size_t class_index) const {
+float SupportVectorMachine::PredictProb(const cv::Mat &pixel, const size_t class_index) const {
 
   return 1.0f;
 

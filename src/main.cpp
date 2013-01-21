@@ -15,7 +15,7 @@ int main(int argc, char **argv){
      _chdir("../");
 #endif
      //construct the helper classes and train the classifier
-    t.SetUp("./data/test/",ttrk::RF);//,ttrk::SEPARATE);
+    t.SetUp("./data/test/",ttrk::RF,ttrk::SEPARATE);
     t.RunImages("/validation/");
 
   }catch(std::runtime_error &e){

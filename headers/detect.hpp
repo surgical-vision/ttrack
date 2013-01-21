@@ -92,7 +92,7 @@ namespace ttrk{
     boost::shared_ptr<cv::Mat> frame_; /**< A pointer to the current frame, this is passed to the detector then passed to the tracker. */
     bool found_; /**< Indicated whether the target object has been found in the image. */
     boost::shared_ptr<NDImage> nd_image_; /**< The N-D image which is being tracked. */
-    BaseClassifier *classifier_; /**< The classifier. */
+    boost::shared_ptr<BaseClassifier> classifier_; /**< The classifier. */
     
 
   private:
@@ -111,7 +111,7 @@ namespace ttrk{
   }
 
   inline bool Detect::Loaded() const {
-    return true;
+    return classifier_.use_count() > 0;
   }
 
   inline std::string Detect::classifier_dir(){

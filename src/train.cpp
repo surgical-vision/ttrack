@@ -69,16 +69,17 @@ void Train::LoadPixels(const NDImage &nd_image, const cv::Mat &mask, const Image
 
   const int rows = nd_image.rows(); 
   const int cols = nd_image.cols();
+
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
 
       //if the image-mask pair is for a positive image we want to ignore the background pixels
       if(type == ImageMaskSet::POSITIVE && mask.at<cv::Vec3b>(r,c) == cv::Vec3b(0,0,0)) continue;
 
-      cv::Mat &pix = nd_image.GetPixelData(r,c);
+      const cv::Mat &pix = nd_image.GetPixelData(r,c);
       for(int i=0;i<pix.cols;i++)
         training_data_->at<float>((int)index,i) = pix.at<float>(0,i);
-
+    
       training_labels_->at<uint32_t>((int)index,0) = (uint32_t)class_index_to_mask_[mask.at<cv::Vec3b>(r,c)];
       index++;  
     }

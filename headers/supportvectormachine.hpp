@@ -25,18 +25,18 @@ namespace ttrk {
     virtual void TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boost::shared_ptr<cv::Mat> labels, boost::shared_ptr<std::string> root_dir);
     /**
      * A discrete prediction on the class a pixel belongs to.
-     * @param[in] pixel The BGR pixel direct from the image source.
+     * @param[in] pixel The pixel from the NDImage.
      * @return The class label.
      */
-    virtual size_t PredictClass(const cv::Vec3b &pixel) const;
+    virtual size_t PredictClass(const cv::Mat &pixel) const;
 
     /**
      * A probabilistic prediction on the class a pixel belongs to. Obviously these are just x and (1-x) for an SVM.
-     * @param[in] pixel The BGR pixel direct from the image source.
+     * @param[in] pixel The pixel from the NDImage.
      * @param[in] class_index The index of the class to find the probability of.
      * @return The probability of that class vs the other.
      */
-    virtual float PredictProb(const cv::Vec3b &pixel, const size_t class_index) const;
+    virtual float PredictProb(const cv::Mat &pixel, const size_t class_index) const;
 
     /**
      * A load function for loading the SVM from an xml file.

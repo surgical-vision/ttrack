@@ -2,14 +2,17 @@
 
 using namespace ttrk;
 
-size_t RandomForest::PredictClass(const cv::Vec3b &pixel) const {
+size_t RandomForest::PredictClass(const cv::Mat &pixel) const {
 
-  return (size_t)forest_.predict(cv::Mat(pixel));
+  float pred = forest_.predict(pixel);
+  size_t pred_ = (size_t)forest_.predict(pixel);
+
+  return (size_t)forest_.predict(pixel);
 
 }
 
 
-float RandomForest::PredictProb(const cv::Vec3b &pixel, const size_t class_index) const {
+float RandomForest::PredictProb(const cv::Mat &pixel, const size_t class_index) const {
 
   //sum of trees that match prediction class_index
   int sum=0;
@@ -18,7 +21,7 @@ float RandomForest::PredictProb(const cv::Vec3b &pixel, const size_t class_index
   for(int n=0;n<forest_.get_tree_count();n++){
 
     CvForestTree *tree = forest_.get_tree(n);
-    sum += (tree->predict(cv::Mat(pixel))->value == class_index); //returns target class?
+    sum += (tree->predict(pixel)->value == class_index); //returns target class?
     
   }
 
@@ -63,6 +66,16 @@ void RandomForest::TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boo
   std::cout.flush();
 #endif
   
+  const int num = training_data->rows;
+  for(int r=0;r<num;r++){
+
+    
+    uint32_t val = labels->at<uint32_t>(r,0) ;
+    assert(val == 0 || val == 1);
+
+
+  }
+
   forest_.train(*training_data,
                     CV_ROW_SAMPLE, //samples are in row form
                     *labels,

@@ -47,18 +47,18 @@ namespace ttrk{
 
     /**
      * A discrete prediction on the class a pixel belongs to.
-     * @param[in] pixel The BGR pixel direct from the image source.
+     * @param[in] pixel The pixel from the NDImage class.
      * @return The class label.
      */
-    virtual size_t PredictClass(const cv::Vec3b &pixel) const = 0;
+    virtual size_t PredictClass(const cv::Mat &pixel) const = 0;
 
     /**
      * A probabilistic prediction on the class a pixel belongs to.
-     * @param[in] pixel The BGR pixel direct from the image source.
+     * @param[in] pixel The pixel from the NDImage class.
      * @param[in] class_index The index of the class to find the probability of.
      * @return The probability of that class vs all others.
      */
-    virtual float PredictProb(const cv::Vec3b &pixel, const size_t class_index) const = 0;
+    virtual float PredictProb(const cv::Mat &pixel, const size_t class_index) const = 0;
     
     /**
      * Wrapper function for loading the classifier from an xml file.

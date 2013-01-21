@@ -26,18 +26,18 @@ namespace ttrk{
 
     /**
      * A discrete prediction on the class a pixel belongs to.
-     * @param[in] pixel The BGR pixel direct from the image source.
+     * @param[in] pixel The pixel from the NDImage.
      * @return The class label.
      */
-    virtual size_t PredictClass(const cv::Vec3b &pixel) const;
+    virtual size_t PredictClass(const cv::Mat &pixel) const;
 
     /**
      * A probabilistic prediction on the class a pixel belongs to.
-     * @param[in] pixel The BGR pixel direct from the image source.
+     * @param[in] pixel The pixel from the NDImage.
      * @param[in] class_index The index of the class to find the probability of.
      * @return The probability of that class vs all others.
      */
-    virtual float PredictProb(const cv::Vec3b &pixel, const size_t class_index) const;
+    virtual float PredictProb(const cv::Mat &pixel, const size_t class_index) const;
 
     /**
      * A load function for loading the Random Forest from an xml file.

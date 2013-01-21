@@ -42,10 +42,10 @@ void TTrack::Run(){
     
     boost::thread TrackThread(boost::ref(*(tracker_.get())), GetPtrToClassifiedFrame() );
     boost::thread DetectThread(boost::ref(*(detector_.get())), GetPtrToNewFrame() );
-    
+
     TrackThread.join();
     DetectThread.join();
-
+    
 #ifdef DEBUG
     SaveFrame();
 #endif
@@ -83,7 +83,7 @@ void TTrack::SaveFrame(){
   //draws the model at the current pose on c_frame_
   boost::shared_ptr<cv::Mat> frame = tracker_->GetPtrToFinishedFrame();
 
-  DrawModel(frame);
+  //DrawModel(frame_);
   
   handler_->SavePtrToFrame(frame);
 

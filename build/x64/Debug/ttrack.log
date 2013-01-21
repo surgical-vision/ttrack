@@ -1,16 +1,42 @@
-﻿Build started 24/12/2012 21:27:20.
+﻿Build started 20/01/2013 18:51:29.
      1>Project "C:\Users\max\Documents\GitHub\ttrack\build\ttrack.vcxproj" on node 2 (build target(s)).
      1>InitializeBuildStatus:
-         Touching "x64\Debug\ttrack.unsuccessfulbuild".
+         Creating "x64\Debug\ttrack.unsuccessfulbuild" because "AlwaysCreate" was specified.
        ClCompile:
-         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\CL.exe /c /Zi /nologo /W3 /WX- /Od /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Debug\\" /Fd"x64\Debug\vc100.pdb" /Gd /TP /errorReport:prompt ..\src\train.cpp
+         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\CL.exe /c /Zi /nologo /W3 /WX- /Od /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Debug\\" /Fd"x64\Debug\vc100.pdb" /Gd /TP /errorReport:prompt ..\src\baseclassifier.cpp ..\src\cross_validate.cpp ..\src\detect.cpp ..\src\handler.cpp ..\src\helpers.cpp ..\src\im_mask_set.cpp ..\src\main.cpp ..\src\nd_image.cpp ..\src\randomforest.cpp ..\src\supportvectormachine.cpp ..\src\tracker.cpp ..\src\train.cpp ..\src\train_separate.cpp ..\src\ttrack.cpp
+         ttrack.cpp
+     1>c:\program files\opencv\build\install\include\opencv2\flann\logger.h(66): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(234) : see declaration of 'fopen'
+         train_separate.cpp
          train.cpp
+         tracker.cpp
+     1>c:\program files\opencv\build\install\include\opencv2\flann\logger.h(66): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(234) : see declaration of 'fopen'
+         randomforest.cpp
+     1>..\src\randomforest.cpp(53): warning C4305: 'argument' : truncation from 'double' to 'float'
+         nd_image.cpp
+         main.cpp
+     1>c:\program files\opencv\build\install\include\opencv2\flann\logger.h(66): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(234) : see declaration of 'fopen'
+         im_mask_set.cpp
+     1>c:\program files\opencv\build\install\include\opencv2\flann\logger.h(66): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(234) : see declaration of 'fopen'
+         helpers.cpp
+         handler.cpp
+         detect.cpp
+         cross_validate.cpp
+         Generating Code...
+         Compiling...
+         supportvectormachine.cpp
+         baseclassifier.cpp
+         Generating Code...
        Link:
          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\max\Documents\GitHub\ttrack\build\x64\Debug\ttrack.exe" /NOLOGO opencv_highgui249.lib opencv_ml249.lib opencv_imgproc249.lib opencv_core249.lib "boost_filesystem-vc100-mt-gd-1_51.lib" "boost_thread-vc100-mt-gd-1_51.lib" "boost_system-vc100-mt-gd-1_51.lib" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"x64\Debug\ttrack.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"C:\Users\max\Documents\GitHub\ttrack\build\x64\Debug\ttrack.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\max\Documents\GitHub\ttrack\build\x64\Debug\ttrack.lib" /MACHINE:X64 x64\Debug\baseclassifier.obj
          x64\Debug\cross_validate.obj
          x64\Debug\detect.obj
          x64\Debug\handler.obj
          x64\Debug\helpers.obj
+         x64\Debug\im_mask_set.obj
          x64\Debug\main.obj
          x64\Debug\nd_image.obj
          x64\Debug\randomforest.obj
@@ -30,4 +56,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:03.15
+Time Elapsed 00:00:43.47

@@ -46,19 +46,16 @@ Detect::~Detect(){
 void Detect::operator()(boost::shared_ptr<cv::Mat> image){
   
   SetHandleToFrame(image);
- 
-  
   //do classification
-
-  circle(*frame_,cv::Point(100,100),20,cv::Scalar(200,182,233),-1);
+  ClassifyFrame();
+  //circle(*frame_,cv::Point(100,100),20,cv::Scalar(200,182,233),-1);
   found_ = true;
   
-  ResetHandleToFrame();
+}
 
-  *frame_ = cv::Mat(500,500,CV_8UC3);
-  circle(*frame_,cv::Point(400,400),20,cv::Scalar(200,182,233),-1);
-  
-  
+void Detect::ClassifyFrame(){
+
+
 }
 
 void Detect::SetHandleToFrame(boost::shared_ptr<cv::Mat> image){
@@ -69,6 +66,7 @@ void Detect::SetHandleToFrame(boost::shared_ptr<cv::Mat> image){
     return;
   }
 
+  frame_.reset();
   //assign the detector's frame pointer to this image
   frame_ = image;
 

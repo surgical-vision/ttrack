@@ -81,7 +81,7 @@ boost::shared_ptr<cv::Mat> VideoHandler::GetPtrToNewFrame(){
 
 }
 
-void ImageHandler::SavePtrToFrame(const boost::shared_ptr<cv::Mat> image){
+void ImageHandler::SavePtrToFrame(boost::shared_ptr<cv::Mat> image){
 
   if(save_iter_ == paths_.end()) throw std::runtime_error("Error, attempt to save image with no file path available.\n");
   

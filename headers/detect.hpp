@@ -63,6 +63,8 @@ namespace ttrk{
 
   protected:
 
+    void ClassifyFrame();
+
     void SetHandleToFrame(boost::shared_ptr<cv::Mat> image);
 
     void ResetHandleToFrame();

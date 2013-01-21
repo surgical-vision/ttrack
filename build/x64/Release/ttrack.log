@@ -1,14 +1,11 @@
-﻿Build started 20/01/2013 17:16:19.
+﻿Build started 20/01/2013 19:05:34.
      1>Project "C:\Users\max\Documents\GitHub\ttrack\build\ttrack.vcxproj" on node 2 (build target(s)).
      1>InitializeBuildStatus:
          Creating "x64\Release\ttrack.unsuccessfulbuild" because "AlwaysCreate" was specified.
        ClCompile:
-         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\CL.exe /c /I"C:\Program Files\opencv\build\install\include" /I"C:\Program Files\boost\boost_1_51\boost" /Zi /nologo /W3 /WX- /O2 /Oi /GL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Release\\" /Fd"x64\Release\vc100.pdb" /Gd /TP /errorReport:prompt ..\src\detect.cpp ..\src\main.cpp ..\src\tracker.cpp ..\src\ttrack.cpp
+         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\CL.exe /c /I"C:\Program Files\opencv\build\install\include" /I"C:\Program Files\boost\boost_1_51\boost" /Zi /nologo /W3 /WX- /O2 /Oi /GL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Release\\" /Fd"x64\Release\vc100.pdb" /Gd /TP /errorReport:prompt ..\src\detect.cpp ..\src\main.cpp ..\src\ttrack.cpp
          detect.cpp
          main.cpp
-     1>c:\program files\opencv\build\install\include\opencv2\flann\logger.h(66): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-                 c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(234) : see declaration of 'fopen'
-         tracker.cpp
      1>c:\program files\opencv\build\install\include\opencv2\flann\logger.h(66): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
                  c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(234) : see declaration of 'fopen'
          ttrack.cpp
@@ -41,4 +38,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:20.04
+Time Elapsed 00:00:17.65

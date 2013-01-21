@@ -29,7 +29,7 @@ namespace ttrk{
   
     /**
      * Get a ptr to the frame now that the detector has finished classifying it
-     * @return cv::Mat * The frame.
+     * @return The frame after use.
      */
     boost::shared_ptr<cv::Mat> GetPtrToFinishedFrame();
 
@@ -41,6 +41,12 @@ namespace ttrk{
 
   protected:
     
+    void SetHandleToFrame(boost::shared_ptr<cv::Mat> image);
+
+    
+
+    void ResetHandleToFrame();
+
     /**
      * Initialise the tracker to get a first estimate of the position. At the moment use the MOI tensor method.
      */

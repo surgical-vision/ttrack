@@ -43,14 +43,14 @@ namespace ttrk{
     
     void SetHandleToFrame(boost::shared_ptr<cv::Mat> image);
 
-    
-
-    void ResetHandleToFrame();
-
     /**
      * Initialise the tracker to get a first estimate of the position. At the moment use the MOI tensor method.
      */
-    void Init();
+    virtual bool Init() = 0;
+    
+    virtual const cv::Mat ProjectShapeToSDF() const = 0;
+
+    const cv::Mat PerformUpdateStep(const cv::Mat &Prediction);
     
 
 

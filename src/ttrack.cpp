@@ -4,6 +4,7 @@
 #include <vector>
 #include <cassert>
 #include <string>
+#include "../headers/surgical_tool_tracker.hpp"
 
 using namespace ttrk;
 
@@ -19,7 +20,7 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
 
     //if train type is NA, training is skipped
     detector_.reset(new Detect(root_dir_,classifier_type,train_type));
-    tracker_.reset(new Tracker);
+    tracker_.reset(new SurgicalToolTracker(10,10));
 
   }catch(std::bad_alloc &e){
     std::cerr << "Error, memory error. Could not construct detector/tracker.\n" << e.what();

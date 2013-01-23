@@ -12,7 +12,7 @@ namespace ttrk{
     
     SurgicalToolTracker(const int width, const int height):width_(width),height_(height){}
 
-    ~SurgicalToolTracker();
+    ~SurgicalToolTracker(){};
 
     virtual bool Init();
     
@@ -24,9 +24,9 @@ namespace ttrk{
     virtual const cv::Mat ProjectShapeToSDF() const;
 
 
-    bool FindConnectedRegions();
-    void InitPoseFromMOITensor();
-
+    bool FindConnectedRegions(std::vector<std::vector<cv::Vec2i> >&connected_regions);
+    void Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> &connected_region);
+    const cv::Vec2i SurgicalToolTracker::FindCenterOfMass(const std::vector<cv::Vec2i> &connected_region) const;
     
 
   };

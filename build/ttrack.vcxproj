@@ -28,6 +28,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\headers\baseclassifier.hpp" />
+    <ClInclude Include="..\headers\camera.hpp" />
     <ClInclude Include="..\headers\constants.hpp" />
     <ClInclude Include="..\headers\cross_validate.hpp" />
     <ClInclude Include="..\headers\detect.hpp" />
@@ -40,6 +41,7 @@
     <ClInclude Include="..\headers\nd_image.hpp" />
     <ClInclude Include="..\headers\randomforest.hpp" />
     <ClInclude Include="..\headers\supportvectormachine.hpp" />
+    <ClInclude Include="..\headers\surgical_tool_tracker.hpp" />
     <ClInclude Include="..\headers\tracker.hpp" />
     <ClInclude Include="..\headers\train.hpp" />
     <ClInclude Include="..\headers\train_separate.hpp" />

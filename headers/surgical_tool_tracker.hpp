@@ -11,7 +11,7 @@ namespace ttrk{
 
   public:
     
-    SurgicalToolTracker(const int width, const int height):width_(width),height_(height){}
+    SurgicalToolTracker(const int width, const int height, const std::string &calibration_filename):width_(width),height_(height),camera_(calibration_filename){}
 
     ~SurgicalToolTracker(){};
 

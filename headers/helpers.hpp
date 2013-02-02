@@ -5,30 +5,41 @@
 #include "headers.hpp"
 #include <unordered_map>
 
-inline void SAFE_EXIT(){
-#ifdef __linux__
-  exit(1);
-#elif defined (_WIN32) || (_WIN64)
-  system("pause");
-  exit(1);
-#else
-  exit(1);
-#endif
-  
-}
+namespace ttrk{
 
-inline bool IS_IMAGE(const std::string &extension){
-  return (extension == ".png" || extension == ".jpg");
-}
+  inline int round(double r){
 
-cv::Mat &ConvertMatSingleToTriple(cv::Mat &im);
+    return (r > 0.0) ? (int)floor(r + 0.5) : (int)ceil(r - 0.5);
 
-struct hash_Vec{
-  size_t operator()(const cv::Vec3b &b) const{
-    return std::hash<int>()((int)b[0]) ^ std::hash<int>()((int)b[1]) ^ std::hash<int>()((int)b[2]);
   }
-};
 
+
+
+  inline void SAFE_EXIT(){
+  #ifdef __linux__
+    exit(1);
+  #elif defined (_WIN32) || (_WIN64)
+    system("pause");
+    exit(1);
+  #else
+    exit(1);
+  #endif
+  
+  }
+
+  inline bool IS_IMAGE(const std::string &extension){
+    return (extension == ".png" || extension == ".jpg");
+  }
+
+  cv::Mat &ConvertMatSingleToTriple(cv::Mat &im);
+
+  struct hash_Vec{
+    size_t operator()(const cv::Vec3b &b) const{
+      return std::hash<int>()((int)b[0]) ^ std::hash<int>()((int)b[1]) ^ std::hash<int>()((int)b[2]);
+    }
+  };
+
+}
 
 
 #endif

@@ -3,7 +3,10 @@
 
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/io.hpp>
+#include <boost/scoped_ptr.hpp>
 #include "headers.hpp"
+#include "camera.hpp"
+#include "model.hpp"
 
 namespace ttrk{
 
@@ -41,6 +44,8 @@ namespace ttrk{
 
   protected:
     
+    bool InitKalmanFilter();
+
     void SetHandleToFrame(boost::shared_ptr<cv::Mat> image);
 
     /**
@@ -48,15 +53,19 @@ namespace ttrk{
      */
     virtual bool Init() = 0;
     
-    virtual const cv::Mat ProjectShapeToSDF() const = 0;
+    const cv::Mat ProjectShapeToSDF(const int image_width, const int image_height) const;
 
     const cv::Mat PerformUpdateStep(const cv::Mat &Prediction);
     
 
 
+    boost::scoped_ptr<StereoCamera> camera_;
+    std::vector<Model<cv::Vec3f> *> tracked_models_; /**< a vector of tracked models. TODO: switch this out for point cloud mesh or some better data structure. */
+    std::vector<Model<cv::Vec3f> *>::iterator current_model_;
+    
     bool tracking_; /**< The variable for toggling tracking on or off.  */
     boost::shared_ptr<cv::Mat> frame_; /**< The frame that the tracker is currently working on. */
-
+  
   };
 
   

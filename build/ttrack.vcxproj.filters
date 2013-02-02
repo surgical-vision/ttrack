@@ -72,6 +72,9 @@
     <ClInclude Include="..\headers\surgical_tool_tracker.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\headers\model.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\baseclassifier.cpp">
@@ -116,7 +119,10 @@
     <ClCompile Include="..\src\im_mask_set.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="surgical_tool_tracker.cpp">
+    <ClCompile Include="..\src\surgical_tool_tracker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

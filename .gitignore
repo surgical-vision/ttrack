@@ -26,3 +26,4 @@ build/x64
 ipch
 ./ipch/*
 build/ttrack.opensdf
+build/ttrack.suo

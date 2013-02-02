@@ -4,7 +4,7 @@
 #include "../headers/exceptions.hpp"
 
 
-cv::Mat &ConvertMatSingleToTriple(cv::Mat &im){
+cv::Mat &ttrk::ConvertMatSingleToTriple(cv::Mat &im){
 
   //must return im!
 

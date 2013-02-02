@@ -38,6 +38,7 @@
     <ClInclude Include="..\headers\headers.hpp" />
     <ClInclude Include="..\headers\helpers.hpp" />
     <ClInclude Include="..\headers\im_mask_set.hpp" />
+    <ClInclude Include="..\headers\model.hpp" />
     <ClInclude Include="..\headers\nd_image.hpp" />
     <ClInclude Include="..\headers\randomforest.hpp" />
     <ClInclude Include="..\headers\supportvectormachine.hpp" />
@@ -49,6 +50,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\baseclassifier.cpp" />
+    <ClCompile Include="..\src\camera.cpp" />
     <ClCompile Include="..\src\cross_validate.cpp" />
     <ClCompile Include="..\src\detect.cpp" />
     <ClCompile Include="..\src\handler.cpp" />
@@ -58,11 +60,11 @@
     <ClCompile Include="..\src\nd_image.cpp" />
     <ClCompile Include="..\src\randomforest.cpp" />
     <ClCompile Include="..\src\supportvectormachine.cpp" />
+    <ClCompile Include="..\src\surgical_tool_tracker.cpp" />
     <ClCompile Include="..\src\tracker.cpp" />
     <ClCompile Include="..\src\train.cpp" />
     <ClCompile Include="..\src\train_separate.cpp" />
     <ClCompile Include="..\src\ttrack.cpp" />
-    <ClCompile Include="surgical_tool_tracker.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{0B42D26C-2E7F-49CA-850F-369C1072DA49}</ProjectGuid>

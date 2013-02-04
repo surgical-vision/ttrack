@@ -3,7 +3,7 @@
 using namespace ttrk;
 
 
-SurgicalToolTracker::SurgicalToolTracker(const int width, const int height, const std::string &calibration_filename):Tracker(calibration_filename),width_(width),height_(height){
+SurgicalToolTracker::SurgicalToolTracker(const int radius, const int height, const std::string &calibration_filename):Tracker(calibration_filename),radius_(radius),height_(height){
 
 }
 
@@ -16,7 +16,7 @@ bool SurgicalToolTracker::Init(){
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
        
     KalmanTracker new_tracker;
-    new_tracker.model_.reset( new MISTool(width_,height_) );
+    new_tracker.model_.reset( new MISTool(radius_,height_) );
    
     tracked_models_.push_back( new_tracker ); 
 

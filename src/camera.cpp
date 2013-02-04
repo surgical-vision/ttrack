@@ -31,12 +31,24 @@ cv::Point2i MonocularCamera::ProjectPointToPixel(const cv::Point3f &point) const
 }
 
 
+cv::Point3f MonocularCamera::UnProjectPoint(const cv::Point2i &point) const {
+
+  cv::Point3f unprojected;
+  //cv::undistortPoints(cv::Mat(point,false),cv::Mat(unprojected,false), intrinsic_matrix_, distortion_params_); 
+  cv::undistortPoints((cv::Mat)point, (cv::Mat)unprojected, intrinsic_matrix_, distortion_params_); 
+ 
+  return unprojected;
+
+}
+
 cv::Point2f MonocularCamera::ProjectPoint(const cv::Point3f &point) const {
 
-  cv::Point2f projected_point;
+  std::vector<cv::Point2f> projected_point;
+  
+  cv::projectPoints(std::vector<cv::Point3f>(1,point),cv::Mat::zeros(3,1,CV_64FC1),cv::Mat::zeros(3,1,CV_64FC1),intrinsic_matrix_,distortion_params_,projected_point);
+  if(projected_point.size() != 1) throw(std::runtime_error("Error, projected points size != 1.\n"));
 
-
-  return projected_point;
+  return projected_point.front();
 
 }
 

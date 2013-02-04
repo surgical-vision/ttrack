@@ -15,6 +15,8 @@ namespace ttrk{
     
     cv::Point2f ProjectPoint(const cv::Point3f &point) const;
     cv::Point2i ProjectPointToPixel(const cv::Point3f &point) const;
+
+    cv::Point3f UnProjectPoint(const cv::Point2i &point) const;
     //project to image plane
     //unproject to z = 1
     //unproject to ray

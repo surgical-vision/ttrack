@@ -2,13 +2,24 @@
 
 using namespace ttrk;
 
+
+SurgicalToolTracker::SurgicalToolTracker(const int width, const int height, const std::string &calibration_filename):Tracker(calibration_filename),width_(width),height_(height){
+
+}
+
+
 bool SurgicalToolTracker::Init(){
 
   std::vector<std::vector<cv::Vec2i> >connected_regions;
   if(!FindConnectedRegions(connected_regions)) return false;
 
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
-        
+       
+    KalmanTracker new_tracker;
+    new_tracker.model_.reset( new MISTool(width_,height_) );
+   
+    tracked_models_.push_back( new_tracker ); 
+
     Init2DPoseFromMOITensor(*connected_region);
   
   }
@@ -39,11 +50,4 @@ const cv::Vec2i SurgicalToolTracker::FindCenterOfMass(const std::vector<cv::Vec2
 
 }
 
-const cv::Mat SurgicalToolTracker::ProjectShapeToSDF() const {
 
-  cv::Mat sdf_image(frame_->size(),CV_32FC1);
-
-  return sdf_image;
-
-
-}

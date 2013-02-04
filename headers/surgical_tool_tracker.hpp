@@ -11,7 +11,7 @@ namespace ttrk{
 
   public:
     
-    SurgicalToolTracker(const int width, const int height, const std::string &calibration_filename):width_(width),height_(height),camera_(calibration_filename){}
+    SurgicalToolTracker(const int width, const int height, const std::string &calibration_filename);
 
     ~SurgicalToolTracker(){};
 
@@ -21,19 +21,11 @@ namespace ttrk{
 
     const int width_;
     const int height_;
-    cv::Vec3f center_;
-    cv::Mat pose_; /*< 3x4 R|t pose matrix. */
-    StereoCamera camera_;
-
-    virtual const cv::Mat ProjectShapeToSDF() const;
-
 
     bool FindConnectedRegions(std::vector<std::vector<cv::Vec2i> >&connected_regions);
     void Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> &connected_region);
     const cv::Vec2i SurgicalToolTracker::FindCenterOfMass(const std::vector<cv::Vec2i> &connected_region) const;
     
-    //std::vector<cv::Vec3f> points_; /*< The points which make up the shape */
-
   };
 
 

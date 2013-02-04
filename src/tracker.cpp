@@ -64,7 +64,7 @@ cv::Mat Tracker::TrackTargetInFrame(){
 
   }
 
-  return GetPoseUpdateEstimate();
+  return current_model_->model_->Pose();
 
 }
 
@@ -72,19 +72,6 @@ void Tracker::ApplyGradientDescentStep(const cv::Mat &jacobian){
 
   //update the temporary update pose
 
-
-
-}
-
-cv::Mat Tracker::GetPoseUpdateEstimate() {
-  
-  cv::Mat original_pose = current_model_->model_->Pose();
-  cv::Mat new_pose = current_model_->temporary_update_pose;
-  cv::Mat difference;
-
-  //GET TEH DIFFERENCE
-
-  return difference;
 
 }
 
@@ -216,7 +203,7 @@ const cv::Mat Tracker::ProjectShapeToSDF() {
   cv::convexHull(projected_points,convex_hull);
   cv::Mat convex_hull_(convex_hull);
 
-  FindROI(convex_hull);
+  FindROI(convex_hull); //POTENTIAL OPTIMISATION: find a ROI around the target object to not run tracking over whole image. Not yet implemented.
 
   //alternatively use cv::distanceTransform?
   cv::Mat sdf_image(ROI.size(),CV_32FC1);

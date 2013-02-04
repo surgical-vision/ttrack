@@ -8,7 +8,7 @@
 namespace ttrk{
   
   /**
-   * An enum to allow different colourspaces to be switched on and off within the classifier.
+   * An enum to allow different colourspaces to be switched on and off within the classifier using a bitwise OR.
    */
   enum Colour{
     BLUE = 0x1,

@@ -75,7 +75,7 @@ namespace ttrk{
     double prob_err_; /**< The probability of error of the classifier. */
 
 
-    std::unordered_map<cv::Vec3b,size_t,hash_Vec> class_index_to_mask_; /**< Provies a mapping from the RGB pixel colour in the mask to the integer used to represent the class in the training system. */
+    std::unordered_map<cv::Vec3b,size_t,hashVec> class_index_to_mask_; /**< Provies a mapping from the RGB pixel colour in the mask to the integer used to represent the class in the training system. */
 
 
   private:

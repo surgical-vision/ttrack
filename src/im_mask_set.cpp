@@ -3,6 +3,7 @@
 #include <boost/filesystem.hpp>
 #include "../headers/exceptions.hpp"
 #include "../headers/helpers.hpp"
+#include <boost/algorithm/string.hpp>
 
 using namespace ttrk;
 
@@ -33,7 +34,7 @@ ImageMaskSet::ImageMaskSet(LoadType type,const std::string &root_dir):type_(type
         char cont; std::cin >> cont;
         if(cont == 'n'){        
           std::cerr << "Exiting...\n"; 
-          SAFE_EXIT(); 
+          SAFE_EXIT(); 6
         }
       }else{
         std::cerr << "Error reading images from " + e.name + ": ";
@@ -51,7 +52,7 @@ ImageMaskSet::ImageMaskSet(LoadType type,const std::string &root_dir):type_(type
   }
    
   num_pix_ = 0;
-  if(POSITIVE)
+  if(type == POSITIVE)
     num_pix_ += GetTrainingSize(image_urls_,true);
   else
     num_pix_ += GetTrainingSize(mask_urls_,false);
@@ -88,7 +89,9 @@ int ImageMaskSet::GetTrainingSize(const std::vector<std::string> &urls, const bo
   std::vector<std::string>::const_iterator url_it;
 
   for(url_it = urls.begin();url_it!=urls.end();url_it++){
-    cv::Mat tmp = cv::imread(*url_it);    
+
+    cv::Mat tmp = cv::imread(*url_it);
+
     // if the image is a positive image, just count the number of positives in the mask
     if(count_only_positive){
       int sum = CountNonZero(tmp);

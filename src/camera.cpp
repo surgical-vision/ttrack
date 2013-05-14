@@ -33,11 +33,12 @@ cv::Point2i MonocularCamera::ProjectPointToPixel(const cv::Point3f &point) const
 
 cv::Point3f MonocularCamera::UnProjectPoint(const cv::Point2i &point) const {
 
-  cv::Point3f unprojected;
+  //cv::Point3f unprojected;
+  cv::Mat unprojected;
   //cv::undistortPoints(cv::Mat(point,false),cv::Mat(unprojected,false), intrinsic_matrix_, distortion_params_); 
-  cv::undistortPoints((cv::Mat)point, (cv::Mat)unprojected, intrinsic_matrix_, distortion_params_); 
- 
-  return unprojected;
+  cv::undistortPoints((cv::Mat)point, unprojected, intrinsic_matrix_, distortion_params_); 
+  
+  return (cv::Point3f)unprojected;
 
 }
 

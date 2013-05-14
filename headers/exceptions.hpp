@@ -26,6 +26,9 @@ namespace ttrk{
     * @param[in] type_ The type of error.
     */
     FileSysErr(const std::string &name_, Type type_) { name = name_; type = type_; } 
+#ifdef __linux__
+    ~FileSysErr() throw() {};
+#endif
 
     std::string name; /**< The name of the directory causing the problem. */
     Type type; /**< The type of problem the directory encountered. */

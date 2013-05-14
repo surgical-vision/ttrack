@@ -25,17 +25,26 @@ void Train::LoadImages(const std::vector<std::string> &image_urls, const std::ve
 
     //load the image and the mask
     cv::Mat image = cv::imread(image_urls[im]);
-    cv::Mat mask;
+    cv::Mat mask = cv::imread(mask_urls[im]);
 
     //only load a mask if there actually is one (positive data or normal data)
     if(type == ImageMaskSet::POSITIVE || type == ImageMaskSet::BOTH)
-      mask = ConvertMatSingleToTriple(cv::imread(mask_urls[im]));
+      mask = ConvertMatSingleToTriple(mask);
     else //type == NEGATIVE
       mask = cv::Mat::zeros(image.size(),CV_8UC3);
 
+    std::cerr << "just read " << image_urls[im] << std::endl;
+    if(image.data && mask.data)
+      std::cerr << "reading was successful.\n";
+    else
+      std::cerr << "it was not successful.\n";
+
+
      if(image.data == 0x0 || mask.data == 0x0){
-      std::cerr << "Error reading " << image_urls[im] << ". Continuing...\n";
+      std::cerr << "Error reading " << image_urls[im] << ". Continuing...\n" << std::endl;
       continue;
+     }else{
+       std::cerr << "something fishy is going on here";
      }
 
 	  
@@ -100,6 +109,8 @@ Train::Train(boost::shared_ptr<std::string> root_dir, const std::string &class_f
     read_xml(class_file,pt); //read the class config values from the xml file
   
   }catch(boost::exception &){
+
+    std::cerr << class_file << std::endl;
 
     std::cerr << "Error, no config file found or it is corrupt.\nRun training_setup.py in the scripts file.\n";
     SAFE_EXIT();

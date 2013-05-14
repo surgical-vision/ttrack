@@ -23,7 +23,7 @@ Detect::Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifie
   else if(train_type == NA)
     LoadClassifier();
   else
-    assert(0);
+    throw(std::runtime_error("Error, must specify a load type or training type.\n"));
 
   if(!Loaded()) throw(std::runtime_error("Error, could not construct classifier.\n"));
 

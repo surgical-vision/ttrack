@@ -18,8 +18,13 @@ OBJECTS=main.o \
 	supportvectormachine.o \
 	baseclassifier.o \
 	train.o \
-	nd_image.o
-
+	nd_image.o \
+	im_mask_set.o \
+	surgical_tool_tracker.o \
+	train_separate.o \
+	camera.o \
+	cross_validate.o \
+	model.o
 
 all:$(OBJ)$(TARGET)
 

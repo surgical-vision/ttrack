@@ -58,7 +58,7 @@ namespace ttrk{
     * @param[in] A cluster of pixels coordindates.
     * @param[out] The cluster center.
     */
-    const cv::Vec2i SurgicalToolTracker::FindCenterOfMass(const std::vector<cv::Vec2i> &connected_region) const;
+    const cv::Vec2i FindCenterOfMass(const std::vector<cv::Vec2i> &connected_region) const;
     
   };
 

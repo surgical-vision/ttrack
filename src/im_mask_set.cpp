@@ -34,7 +34,7 @@ ImageMaskSet::ImageMaskSet(LoadType type,const std::string &root_dir):type_(type
         char cont; std::cin >> cont;
         if(cont == 'n'){        
           std::cerr << "Exiting...\n"; 
-          SAFE_EXIT(); 6
+          SAFE_EXIT(); 
         }
       }else{
         std::cerr << "Error reading images from " + e.name + ": ";
@@ -77,6 +77,7 @@ void ImageMaskSet::GetImageURL(const std::string &root_url, std::vector<std::str
   }
 
   if(urls.size() == 0) 
+
     throw ttrk::FileSysErr(root_url,ttrk::FileSysErr::NoFiles);
 
 }
@@ -100,6 +101,7 @@ int ImageMaskSet::GetTrainingSize(const std::vector<std::string> &urls, const bo
       cv::Mat tmp = cv::imread(*url_it);
       pix_to_add += (tmp.rows * tmp.cols);
     }
+
   }
 
   return pix_to_add;
@@ -116,8 +118,12 @@ int ImageMaskSet::CountNonZero(cv::Mat &im) const{
   int ret = 0;
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
-      if(n[(r*cols + c)*chans] > (unsigned char)127)
-        ret++;
+      for(int chan=0;chan<chans;chan++){
+        if(n[((r*cols + c)*chans)+chan] > (unsigned char)127){
+          ret++;
+          break;
+        }
+      }
     }
   }
   return ret;  

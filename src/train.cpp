@@ -18,42 +18,35 @@ void Train::TestClassifier(BaseClassifier &to_train, boost::shared_ptr<cv::Mat> 
 void Train::LoadImages(const std::vector<std::string> &image_urls, const std::vector<std::string> &mask_urls, const ImageMaskSet::LoadType type){
 
   //set the index for the training matrix inserter.
-  size_t index = 0;
+  static size_t index = 0;
 
   //for each image
   for(size_t im=0;im<image_urls.size();im++){
 
     //load the image and the mask
     cv::Mat image = cv::imread(image_urls[im]);
-    cv::Mat mask = cv::imread(mask_urls[im]);
+    cv::Mat mask;
 
     //only load a mask if there actually is one (positive data or normal data)
-    if(type == ImageMaskSet::POSITIVE || type == ImageMaskSet::BOTH)
+    if(type == ImageMaskSet::POSITIVE || type == ImageMaskSet::BOTH){
+      mask = cv::imread(mask_urls[im]);
       mask = ConvertMatSingleToTriple(mask);
-    else //type == NEGATIVE
+    }else{ //type == NEGATIVE
       mask = cv::Mat::zeros(image.size(),CV_8UC3);
+    }
 
-    std::cerr << "just read " << image_urls[im] << std::endl;
-    if(image.data && mask.data)
-      std::cerr << "reading was successful.\n";
-    else
-      std::cerr << "it was not successful.\n";
-
-
-     if(image.data == 0x0 || mask.data == 0x0){
+    if(image.data == 0x0 || mask.data == 0x0){
       std::cerr << "Error reading " << image_urls[im] << ". Continuing...\n" << std::endl;
       continue;
-     }else{
-       std::cerr << "something fishy is going on here";
-     }
+    }
 
-	  
     try{
 
       //create the ndimage and load its pixels to the training data mask
       NDImage nd_image_(image);
       LoadPixels(nd_image_,mask,type,index);
       std::cout << "Loaded: " << image_urls[im] << std::endl;
+
     }catch(std::runtime_error &e){
       std::cerr << "Error, image " << image_urls[im] << " failed to load.\n" << e.what() << "\n";
       SAFE_EXIT(); //cannot continue as training matrix will be messed up
@@ -65,16 +58,16 @@ void Train::LoadImages(const std::vector<std::string> &image_urls, const std::ve
     //delete nd_image_;
   
   }
+  
+  std::cerr << index+1 << " == " << training_labels_->rows << "\n";
 
 }
 
 void Train::LoadPixels(const NDImage &nd_image, const cv::Mat &mask, const ImageMaskSet::LoadType type, size_t &index){
   
-#ifdef DEBUG
   assert(nd_image.rows() == mask.rows);
   assert(nd_image.cols() == mask.cols);
   assert(mask.type() == CV_8UC3);
-#endif
 
   const int rows = nd_image.rows(); 
   const int cols = nd_image.cols();
@@ -88,8 +81,9 @@ void Train::LoadPixels(const NDImage &nd_image, const cv::Mat &mask, const Image
       const cv::Mat &pix = nd_image.GetPixelData(r,c);
       for(int i=0;i<pix.cols;i++)
         training_data_->at<float>((int)index,i) = pix.at<float>(0,i);
-    
-      training_labels_->at<uint32_t>((int)index,0) = (uint32_t)class_index_to_mask_[mask.at<cv::Vec3b>(r,c)];
+      
+      const cv::Vec3b tmp = mask.at<cv::Vec3b>(r,c);
+      training_labels_->at<int32_t>((int)index,0) = (uint32_t)class_index_to_mask_[tmp];
       index++;  
     }
   }

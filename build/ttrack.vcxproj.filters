@@ -45,25 +45,13 @@
     <ClInclude Include="..\headers\tracker.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\headers\train.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\headers\ttrack.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\headers\randomforest.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\headers\cross_validate.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\train_separate.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\headers\exceptions.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\im_mask_set.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\headers\camera.hpp">
@@ -104,19 +92,7 @@
     <ClCompile Include="..\src\tracker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\train.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\ttrack.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\cross_validate.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\train_separate.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\im_mask_set.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\surgical_tool_tracker.cpp">

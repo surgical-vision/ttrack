@@ -2,8 +2,6 @@
 #include "../headers/helpers.hpp"
 #include "../headers/randomforest.hpp"
 #include "../headers/supportvectormachine.hpp"
-#include "../headers/cross_validate.hpp"
-#include "../headers/train_separate.hpp"
 #include <boost/filesystem.hpp>
 #include <iostream>
 #include <stdlib.h>
@@ -11,20 +9,14 @@
 
 using namespace ttrk;
 
-Detect::Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifier_type, TrainType train_type):root_dir_(root_dir){
+Detect::Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifier_type):root_dir_(root_dir){
 
   //create a new classifier
   SetupClassifier(classifier_type);
 
-  if(train_type == X_VALIDATE)
-    CrossValidate c(root_dir,*classifier_,10);
-  else if(train_type == SEPARATE)
-    TrainSeparate s(root_dir,*classifier_);
-  else if(train_type == NA)
-    LoadClassifier();
-  else
-    throw(std::runtime_error("Error, must specify a load type or training type.\n"));
+  LoadClassifier();
 
+  //currently i don't know a good way of checking if the opencv ML classifier has loaded
   if(!Loaded()) throw(std::runtime_error("Error, could not construct classifier.\n"));
 
 }
@@ -40,16 +32,15 @@ void Detect::operator()(boost::shared_ptr<cv::Mat> image){
 
 void Detect::ClassifyFrame(){
 
-#ifdef DEBUG 
   assert(Loaded());
   assert(frame_->type() == CV_8UC3);
-#endif
 
   NDImage nd_image(*frame_);
   const int rows = frame_->rows;
   const int cols = frame_->cols;
 
   size_t DEBUG_COUNT = 0;
+  *frame_ = cv::Mat(frame_->size(),CV_8UC1);
   
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
@@ -57,7 +48,8 @@ void Detect::ClassifyFrame(){
       cv::Mat pix = nd_image.GetPixelData(r,c);
       
       size_t prediction = 255*(classifier_->PredictClass(nd_image.GetPixelData(r,c)));
-      frame_->at<cv::Vec3b>(r,c) = cv::Vec3b((unsigned char)prediction,(unsigned char)prediction,(unsigned char)prediction);
+      //frame_->at<cv::Vec3b>(r,c) = cv::Vec3b((unsigned char)prediction,(unsigned char)prediction,(unsigned char)prediction);
+      frame_->at<unsigned char>(r,c) = (unsigned char)prediction;
 
       if(prediction > 0) DEBUG_COUNT++;
 
@@ -116,5 +108,7 @@ void Detect::SetupClassifier(const ClassifierType type){
 } 
 
 void Detect::LoadClassifier(){
-  classifier_->Load( classifier_dir() + "/" + classifier_->NameAsString() + ".xml");
+  const std::string filepath = classifier_dir() + "/" + classifier_->NameAsString() + ".xml";
+  if(!boost::filesystem::exists(filepath)) throw(std::runtime_error("Error, the classifier at: " + filepath + " does not exist. Exiting...\n"));
+  classifier_->Load(filepath);
 }

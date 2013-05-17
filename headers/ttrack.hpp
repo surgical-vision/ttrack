@@ -68,14 +68,9 @@ namespace ttrk{
      * and tracker
      * @param root_dir The root training data directory.
      * @param classifier_type Specify the type of classifier.
-     * @param train_type. Optional argument to specify the type of training to do. Default assumes you want to load one instead of training. 
      */
-    void SetUp(std::string root_dir, const ClassifierType classifier_type, const TrainType train_type=NA);
-    
-    /**
-     * Test the detector associated with the ttrack system.
-     */
-    void TestDetector(const std::string &infile, const std::string &outfile);
+    void SetUp(std::string root_dir, const ClassifierType classifier_type);
+   
 
   protected:
 

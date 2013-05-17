@@ -8,7 +8,7 @@
 
 using namespace ttrk;
 
-void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, const TrainType train_type){
+void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type){
   
   if(!boost::filesystem::exists(boost::filesystem::path(root_dir)))
     throw std::runtime_error("Error, directory " + root_dir + " does not exist.\n");
@@ -19,7 +19,7 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
     root_dir_.reset(new std::string(root_dir)); 
 
     //if train type is NA, training is skipped
-    detector_.reset(new Detect(root_dir_,classifier_type,train_type));
+    detector_.reset(new Detect(root_dir_,classifier_type));
     tracker_.reset(new SurgicalToolTracker(10,10,*root_dir_ + "/config/camera.xml"));
 
   }catch(std::bad_alloc &e){
@@ -56,12 +56,6 @@ void TTrack::Run(){
   }
   
 }  
-
-void TTrack::TestDetector(const std::string &infile, const std::string &outfile){
-
-  assert(0);
-
-}
 
 void TTrack::RunVideo(const std::string &video_url){
   

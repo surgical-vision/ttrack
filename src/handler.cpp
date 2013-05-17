@@ -36,7 +36,7 @@ ImageHandler::ImageHandler(const std::string &input_url, const std::string &outp
   // create a directory object
   path in_dir(input_url_),out_dir(output_url_);
   if(!is_directory(in_dir)){
-    throw std::runtime_error("Error, " + input_url_ + " is not a valid directory.\nTo perform detection on images construct a directory called images in the data directory.");
+    throw std::runtime_error("Error, " + input_url_ + " is not a valid directory.\nTracking cannot be performed.");
   }
   
   if(!is_directory(out_dir)) create_directory(out_dir);

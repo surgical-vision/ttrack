@@ -47,6 +47,9 @@ namespace ttrk{
     */
     bool FindConnectedRegions(std::vector<std::vector<cv::Vec2i> >&connected_regions);
     
+
+    cv::Point GetCenter(std::vector<cv::Point> &contour) const ;
+
     /**
     * Initialise the 2D pose of the instrument from the moments of the connected region.
     * @param[in] A connected region of pixels.

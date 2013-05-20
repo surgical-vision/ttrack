@@ -7,6 +7,7 @@ namespace ttrk {
   class Localizer {
 
   public:
+
     virtual cv::Mat TrackTargetInFrame(KalmanTracker &model) = 0;
 
   };

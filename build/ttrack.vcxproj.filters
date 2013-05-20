@@ -13,62 +13,38 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\detect">
+      <UniqueIdentifier>{4d11dd10-4896-4301-8488-fd3b154d7fee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\track">
+      <UniqueIdentifier>{dab269da-c375-478f-9a26-1b78e18a987f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\utils">
+      <UniqueIdentifier>{62ce9262-fa90-41eb-ae50-017bcf7ee6fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\track\pwp3d">
+      <UniqueIdentifier>{8edf9c96-1e8c-48a4-98e2-814a676731e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\track\stt">
+      <UniqueIdentifier>{aff3cc77-743e-4961-bbb7-08dfaddc8e2b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\detect">
+      <UniqueIdentifier>{2d44f1f9-c90f-4e4d-87e6-175ee9eace5a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\track">
+      <UniqueIdentifier>{acefe068-5c60-4bfa-a52b-555e193d265f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\utils">
+      <UniqueIdentifier>{1418385d-979c-4572-a972-16711b78c500}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\track\pwp3d">
+      <UniqueIdentifier>{08f49206-df64-4826-925e-36e7cb375134}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\track\stt">
+      <UniqueIdentifier>{6f313a2b-5ca3-45a7-a0a9-e42fd5fa3d8b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\headers\detect\baseclassifier.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\detect\detect.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\detect\randomforest.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\detect\supportvectormachine.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\track\kalman.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\track\localizer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\track\model.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\track\tracker.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\track\stt\monocular_tool_tracker.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\track\stt\stereo_tool_tracker.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\track\stt\surgical_tool_tracker.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\track\pwp3d\mono_pwp3d.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\track\pwp3d\pwp3d.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\utils\exceptions.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\utils\frame.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\utils\handler.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\utils\helpers.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\utils\nd_image.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\headers\constants.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -78,8 +54,68 @@
     <ClInclude Include="..\headers\ttrack.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\headers\detect\baseclassifier.hpp">
+      <Filter>Header Files\detect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\detect\detect.hpp">
+      <Filter>Header Files\detect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\detect\im_mask_set.hpp">
+      <Filter>Header Files\detect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\detect\randomforest.hpp">
+      <Filter>Header Files\detect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\detect\supportvectormachine.hpp">
+      <Filter>Header Files\detect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\kalman.hpp">
+      <Filter>Header Files\track</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\model.hpp">
+      <Filter>Header Files\track</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\localizer.hpp">
+      <Filter>Header Files\track</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\tracker.hpp">
+      <Filter>Header Files\track</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\pwp3d\mono_pwp3d.hpp">
+      <Filter>Header Files\track\pwp3d</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\pwp3d\pwp3d.hpp">
+      <Filter>Header Files\track\pwp3d</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\stt\monocular_tool_tracker.hpp">
+      <Filter>Header Files\track\stt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\stt\stereo_tool_tracker.hpp">
+      <Filter>Header Files\track\stt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\stt\surgical_tool_tracker.hpp">
+      <Filter>Header Files\track\stt</Filter>
+    </ClInclude>
     <ClInclude Include="..\headers\utils\camera.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\utils\exceptions.hpp">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\utils\frame.hpp">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\utils\handler.hpp">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\utils\helpers.hpp">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\utils\nd_image.hpp">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\pwp3d\stereo_pwp3d.hpp">
+      <Filter>Header Files\track\pwp3d</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -89,50 +125,56 @@
     <ClCompile Include="..\src\ttrack.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\utils\camera.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\utils\handler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\utils\model.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\utils\nd_image.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\detect\baseclassifier.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\detect\detect.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\detect\im_mask_set.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\detect</Filter>
     </ClCompile>
     <ClCompile Include="..\src\detect\randomforest.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\detect</Filter>
     </ClCompile>
     <ClCompile Include="..\src\detect\supportvectormachine.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\detect</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\track\tracker.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\src\detect\detect.cpp">
+      <Filter>Source Files\detect</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\track\pwp3d\pwp3d.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\src\utils\camera.cpp">
+      <Filter>Source Files\utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\track\stt\monocular_tool_tracker.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\track\stt\stereo_tool_tracker.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\track\stt\surgical_tool_tracker.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\src\utils\handler.cpp">
+      <Filter>Source Files\utils</Filter>
     </ClCompile>
     <ClCompile Include="..\src\utils\helpers.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\nd_image.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\track\tracker.cpp">
+      <Filter>Source Files\track</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\model.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\detect\im_mask_set.cpp">
+      <Filter>Source Files\detect</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\track\stt\surgical_tool_tracker.cpp">
+      <Filter>Source Files\track\stt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\track\stt\stereo_tool_tracker.cpp">
+      <Filter>Source Files\track\stt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\track\stt\monocular_tool_tracker.cpp">
+      <Filter>Source Files\track\stt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\track\pwp3d\pwp3d.cpp">
+      <Filter>Source Files\track\pwp3d</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\track\pwp3d\mono_pwp3d.cpp">
+      <Filter>Source Files\track\pwp3d</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\track\pwp3d\stereo_pwp3d.cpp">
+      <Filter>Source Files\track\pwp3d</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

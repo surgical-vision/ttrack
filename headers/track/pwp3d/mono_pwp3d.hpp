@@ -66,6 +66,7 @@ namespace ttrk {
 
     boost::shared_ptr<MonocularCamera> camera_;
     cv::Mat ROI; /**< Experimental feature. Instead of performing the level set tracking over the whole image, try to find a ROI around where the target of interest is located. */
+
   };
 
 

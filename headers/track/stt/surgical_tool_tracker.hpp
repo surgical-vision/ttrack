@@ -45,10 +45,10 @@ namespace ttrk{
     * @param[out] connected_regions All of the connected regions found in the image, sorted in descenting order by the number of pixels that make up the region.
     * @return The success of finding the blobs. 
     */
-    bool FindConnectedRegions(std::vector<std::vector<cv::Vec2i> >&connected_regions);
+    bool FindConnectedRegions(const cv::Mat &frame, std::vector<std::vector<cv::Vec2i> >&connected_regions);
     
-
-    cv::Point GetCenter(std::vector<cv::Point> &contour) const ;
+    template<typename T>
+    T GetCenter(const std::vector<T> &contour) const ;
 
     /**
     * Initialise the 2D pose of the instrument from the moments of the connected region.
@@ -66,7 +66,17 @@ namespace ttrk{
   };
 
 
-
+  
+  template<typename T>
+  T SurgicalToolTracker::GetCenter(const std::vector<T> &contour) const {
+    cv::Vec2i center(0,0);
+      for(size_t i=0;i<contour.size();i++){
+    center = center + (cv::Vec2i)contour[i];
+    }
+    center[0] = center[0]/(int)contour.size();
+    center[1] = center[1]/(int)contour.size();
+    return center;
+  }
 
 }
 

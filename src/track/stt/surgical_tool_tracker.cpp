@@ -9,18 +9,9 @@ SurgicalToolTracker::SurgicalToolTracker(const int radius, const int height):rad
 
 }
 
-cv::Point SurgicalToolTracker::GetCenter(std::vector<cv::Point> &contour) const {
-  cv::Point center(0,0);
-  for(size_t i=0;i<contour.size();i++){
-    center = center + contour[i];
-  }
-  center.x = center.x/(int)contour.size();
-  center.y = center.y/(int)contour.size();
-  return center;
-}
 
 
-bool SurgicalToolTracker::FindConnectedRegions(std::vector<std::vector<cv::Vec2i> >&connected_regions){
+bool SurgicalToolTracker::FindConnectedRegions(const cv::Mat &image,std::vector<std::vector<cv::Vec2i> >&connected_regions){
 
   std::vector<std::vector<cv::Point> >contours;
   cv::Mat thresholded;
@@ -30,7 +21,7 @@ bool SurgicalToolTracker::FindConnectedRegions(std::vector<std::vector<cv::Vec2i
   for(size_t i=0;i<contours.size();i++){
     std::vector<cv::Point> &contour = contours[i];
     if(contour.size() < 100) continue;
-    cv::Point center = GetCenter(contour);
+    cv::Point center = GetCenter<cv::Point>(contour);
     cv::Mat mask = cv::Mat::zeros(frame_->rows()+2,frame_->cols()+2,CV_8UC1);
     std::vector<std::vector<cv::Point> >t;
     t.push_back(contour);

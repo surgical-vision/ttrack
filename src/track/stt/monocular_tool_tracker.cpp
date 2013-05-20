@@ -10,7 +10,7 @@ MonocularToolTracker::MonocularToolTracker(const int radius, const int height, c
 bool MonocularToolTracker::Init(){
 
   std::vector<std::vector<cv::Vec2i> >connected_regions;
-  if(!FindConnectedRegions(connected_regions)) return false;
+  if(!FindConnectedRegions(*(frame_->Mat()),connected_regions)) return false;
 
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 

@@ -7,9 +7,9 @@
  * Information about the project...
  */
 
-#include "tracker.hpp"
-#include "detect.hpp"
-#include "handler.hpp"
+#include "track/tracker.hpp"
+#include "detect/detect.hpp"
+#include "utils/handler.hpp"
 #include <boost/thread.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/shared_ptr.hpp>

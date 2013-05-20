@@ -1,10 +1,10 @@
 #include "../headers/ttrack.hpp"
-#include "../headers/helpers.hpp"
+#include "../headers/utils/helpers.hpp"
 #include <boost/ref.hpp>
 #include <vector>
 #include <cassert>
 #include <string>
-#include "../headers/stereo_tool_tracker.hpp"
+#include "../headers/track/stt/stereo_tool_tracker.hpp"
 
 using namespace ttrk;
 

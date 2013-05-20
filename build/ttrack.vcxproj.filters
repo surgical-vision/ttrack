@@ -63,6 +63,21 @@
     <ClInclude Include="..\headers\model.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\headers\localizer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\kalman.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\pwp3d.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\stereo_tool_tracker.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\monocular_tool_tracker.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\baseclassifier.cpp">
@@ -102,6 +117,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\model.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\pwp3d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\stereo_tool_tracker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\monocular_tool_tracker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

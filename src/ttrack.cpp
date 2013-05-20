@@ -4,7 +4,7 @@
 #include <vector>
 #include <cassert>
 #include <string>
-#include "../headers/surgical_tool_tracker.hpp"
+#include "../headers/stereo_tool_tracker.hpp"
 
 using namespace ttrk;
 
@@ -20,7 +20,7 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type){
 
     //if train type is NA, training is skipped
     detector_.reset(new Detect(root_dir_,classifier_type));
-    tracker_.reset(new SurgicalToolTracker(10,10,*root_dir_ + "/config/camera.xml"));
+    tracker_.reset(new StereoToolTracker(10,10,*root_dir_ + "/config/camera.xml"));
 
   }catch(std::bad_alloc &e){
     std::cerr << "Error, memory error. Could not construct detector/tracker.\n" << e.what();

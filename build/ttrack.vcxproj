@@ -27,45 +27,47 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\headers\baseclassifier.hpp" />
-    <ClInclude Include="..\headers\camera.hpp" />
     <ClInclude Include="..\headers\constants.hpp" />
-    <ClInclude Include="..\headers\detect.hpp" />
-    <ClInclude Include="..\headers\exceptions.hpp" />
-    <ClInclude Include="..\headers\frame.hpp" />
-    <ClInclude Include="..\headers\handler.hpp" />
+    <ClInclude Include="..\headers\detect\baseclassifier.hpp" />
+    <ClInclude Include="..\headers\detect\detect.hpp" />
+    <ClInclude Include="..\headers\detect\randomforest.hpp" />
+    <ClInclude Include="..\headers\detect\supportvectormachine.hpp" />
     <ClInclude Include="..\headers\headers.hpp" />
-    <ClInclude Include="..\headers\helpers.hpp" />
-    <ClInclude Include="..\headers\kalman.hpp" />
-    <ClInclude Include="..\headers\localizer.hpp" />
-    <ClInclude Include="..\headers\model.hpp" />
-    <ClInclude Include="..\headers\monocular_tool_tracker.hpp" />
-    <ClInclude Include="..\headers\nd_image.hpp" />
-    <ClInclude Include="..\headers\pwp3d.hpp" />
-    <ClInclude Include="..\headers\randomforest.hpp" />
-    <ClInclude Include="..\headers\stereo_tool_tracker.hpp" />
-    <ClInclude Include="..\headers\supportvectormachine.hpp" />
-    <ClInclude Include="..\headers\surgical_tool_tracker.hpp" />
-    <ClInclude Include="..\headers\tracker.hpp" />
+    <ClInclude Include="..\headers\track\kalman.hpp" />
+    <ClInclude Include="..\headers\track\localizer.hpp" />
+    <ClInclude Include="..\headers\track\model.hpp" />
+    <ClInclude Include="..\headers\track\pwp3d\mono_pwp3d.hpp" />
+    <ClInclude Include="..\headers\track\pwp3d\pwp3d.hpp" />
+    <ClInclude Include="..\headers\track\stt\monocular_tool_tracker.hpp" />
+    <ClInclude Include="..\headers\track\stt\stereo_tool_tracker.hpp" />
+    <ClInclude Include="..\headers\track\stt\surgical_tool_tracker.hpp" />
+    <ClInclude Include="..\headers\track\tracker.hpp" />
     <ClInclude Include="..\headers\ttrack.hpp" />
+    <ClInclude Include="..\headers\utils\camera.hpp" />
+    <ClInclude Include="..\headers\utils\exceptions.hpp" />
+    <ClInclude Include="..\headers\utils\frame.hpp" />
+    <ClInclude Include="..\headers\utils\handler.hpp" />
+    <ClInclude Include="..\headers\utils\helpers.hpp" />
+    <ClInclude Include="..\headers\utils\nd_image.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\baseclassifier.cpp" />
-    <ClCompile Include="..\src\camera.cpp" />
-    <ClCompile Include="..\src\detect.cpp" />
-    <ClCompile Include="..\src\handler.cpp" />
-    <ClCompile Include="..\src\helpers.cpp" />
+    <ClCompile Include="..\src\detect\baseclassifier.cpp" />
+    <ClCompile Include="..\src\detect\detect.cpp" />
+    <ClCompile Include="..\src\detect\im_mask_set.cpp" />
+    <ClCompile Include="..\src\detect\randomforest.cpp" />
+    <ClCompile Include="..\src\detect\supportvectormachine.cpp" />
     <ClCompile Include="..\src\main.cpp" />
-    <ClCompile Include="..\src\model.cpp" />
-    <ClCompile Include="..\src\monocular_tool_tracker.cpp" />
-    <ClCompile Include="..\src\nd_image.cpp" />
-    <ClCompile Include="..\src\pwp3d.cpp" />
-    <ClCompile Include="..\src\randomforest.cpp" />
-    <ClCompile Include="..\src\stereo_tool_tracker.cpp" />
-    <ClCompile Include="..\src\supportvectormachine.cpp" />
-    <ClCompile Include="..\src\surgical_tool_tracker.cpp" />
-    <ClCompile Include="..\src\tracker.cpp" />
+    <ClCompile Include="..\src\track\pwp3d\pwp3d.cpp" />
+    <ClCompile Include="..\src\track\stt\monocular_tool_tracker.cpp" />
+    <ClCompile Include="..\src\track\stt\stereo_tool_tracker.cpp" />
+    <ClCompile Include="..\src\track\stt\surgical_tool_tracker.cpp" />
+    <ClCompile Include="..\src\track\tracker.cpp" />
     <ClCompile Include="..\src\ttrack.cpp" />
+    <ClCompile Include="..\src\utils\camera.cpp" />
+    <ClCompile Include="..\src\utils\handler.cpp" />
+    <ClCompile Include="..\src\utils\helpers.cpp" />
+    <ClCompile Include="..\src\utils\model.cpp" />
+    <ClCompile Include="..\src\utils\nd_image.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{0B42D26C-2E7F-49CA-850F-369C1072DA49}</ProjectGuid>

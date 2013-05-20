@@ -30,6 +30,7 @@
     <ClInclude Include="..\headers\constants.hpp" />
     <ClInclude Include="..\headers\detect\baseclassifier.hpp" />
     <ClInclude Include="..\headers\detect\detect.hpp" />
+    <ClInclude Include="..\headers\detect\im_mask_set.hpp" />
     <ClInclude Include="..\headers\detect\randomforest.hpp" />
     <ClInclude Include="..\headers\detect\supportvectormachine.hpp" />
     <ClInclude Include="..\headers\headers.hpp" />
@@ -38,6 +39,7 @@
     <ClInclude Include="..\headers\track\model.hpp" />
     <ClInclude Include="..\headers\track\pwp3d\mono_pwp3d.hpp" />
     <ClInclude Include="..\headers\track\pwp3d\pwp3d.hpp" />
+    <ClInclude Include="..\headers\track\pwp3d\stereo_pwp3d.hpp" />
     <ClInclude Include="..\headers\track\stt\monocular_tool_tracker.hpp" />
     <ClInclude Include="..\headers\track\stt\stereo_tool_tracker.hpp" />
     <ClInclude Include="..\headers\track\stt\surgical_tool_tracker.hpp" />
@@ -57,7 +59,9 @@
     <ClCompile Include="..\src\detect\randomforest.cpp" />
     <ClCompile Include="..\src\detect\supportvectormachine.cpp" />
     <ClCompile Include="..\src\main.cpp" />
+    <ClCompile Include="..\src\track\pwp3d\mono_pwp3d.cpp" />
     <ClCompile Include="..\src\track\pwp3d\pwp3d.cpp" />
+    <ClCompile Include="..\src\track\pwp3d\stereo_pwp3d.cpp" />
     <ClCompile Include="..\src\track\stt\monocular_tool_tracker.cpp" />
     <ClCompile Include="..\src\track\stt\stereo_tool_tracker.cpp" />
     <ClCompile Include="..\src\track\stt\surgical_tool_tracker.cpp" />

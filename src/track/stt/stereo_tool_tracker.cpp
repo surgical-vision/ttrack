@@ -1,5 +1,5 @@
 #include "../../../headers/track/stt/stereo_tool_tracker.hpp"
-#include "../../../headers/track/pwp3d/pwp3d.hpp"
+#include "../../../headers/track/pwp3d/stereo_pwp3d.hpp"
 
 using namespace ttrk;
 

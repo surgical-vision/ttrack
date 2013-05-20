@@ -175,10 +175,10 @@ bool Tracker::InitKalmanFilter(){
 
 void Tracker::FindROI(const std::vector<cv::Vec2i> &convex_hull) {
 
-  ROI = *frame_; //UNTIL I DO THIS FUNCTION
+  ROI = *frame_->Mat(); //UNTIL I DO THIS FUNCTION
 
-  for(int r=0;r<frame_->rows;r++){
-    for(int c=0;c<frame_->cols;c++){
+  for(int r=0;r<frame_->rows();r++){
+    for(int c=0;c<frame_->cols();c++){
 
 
 
@@ -223,13 +223,13 @@ const cv::Mat Tracker::ProjectShapeToSDF() {
 void Tracker::SetHandleToFrame(boost::shared_ptr<cv::Mat> image){
 
   frame_.reset();
-  frame_ = image;
+  frame_->Mat() = image;
 
 }
 
 
 boost::shared_ptr<cv::Mat> Tracker::GetPtrToFinishedFrame(){
-  return frame_;
+  return frame_->Mat();
 }
 
 void Tracker::Tracking(const bool toggle){

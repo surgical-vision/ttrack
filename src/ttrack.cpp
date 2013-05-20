@@ -59,7 +59,8 @@ void TTrack::Run(){
 
 void TTrack::RunVideo(const std::string &video_url){
   
-  tracker_->Tracking(true);
+  //tracker_->Tracking(true);
+  tracker_->Tracking(false); // SET this IN THE CONSTRUCTOR
   handler_.reset(new VideoHandler(*root_dir_ + video_url, *root_dir_));
   Run();
  

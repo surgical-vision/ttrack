@@ -1,4 +1,5 @@
 #include "../headers/surgical_tool_tracker.hpp"
+#include <image/image.hpp>
 
 using namespace ttrk;
 
@@ -6,7 +7,6 @@ using namespace ttrk;
 SurgicalToolTracker::SurgicalToolTracker(const int radius, const int height, const std::string &calibration_filename):Tracker(calibration_filename),radius_(radius),height_(height){
 
 }
-
 
 bool SurgicalToolTracker::Init(){
 
@@ -43,14 +43,14 @@ bool SurgicalToolTracker::FindConnectedRegions(std::vector<std::vector<cv::Vec2i
 
   std::vector<std::vector<cv::Point> >contours;
   cv::Mat thresholded;
-  threshold(*frame_,thresholded,127,255,cv::THRESH_BINARY);
+  threshold(*frame_->Mat(),thresholded,127,255,cv::THRESH_BINARY);
   findContours(thresholded,contours,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_SIMPLE);
 
   for(size_t i=0;i<contours.size();i++){
     std::vector<cv::Point> &contour = contours[i];
     if(contour.size() < 100) continue;
     cv::Point center = GetCenter(contour);
-    cv::Mat mask = cv::Mat::zeros(frame_->rows+2,frame_->cols+2,CV_8UC1);
+    cv::Mat mask = cv::Mat::zeros(frame_->rows()+2,frame_->cols()+2,CV_8UC1);
     std::vector<std::vector<cv::Point> >t;
     t.push_back(contour);
     drawContours(mask,t,-1,cv::Scalar(255),CV_FILLED,8);

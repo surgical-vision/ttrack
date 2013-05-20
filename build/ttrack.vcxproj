@@ -125,7 +125,7 @@
     <IncludePath>C:\Program Files\boost\boost_1_51\;C:\Program Files\opencv\build\install\include\opencv\;C:\Program Files\opencv\build\install\include\opencv2\;C:\Program Files\opencv\build\install\include\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\Program Files\boost\boost_1_51\;C:\Program Files\opencv\build\install\include\opencv\;C:\Program Files\opencv\build\install\include\opencv2\;C:\Program Files\opencv\build\install\include\;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Program Files\boost\boost_1_51\;C:\Program Files\opencv\build\install\include\opencv\;C:\Program Files\opencv\build\install\include\opencv2\;C:\Program Files\opencv\build\install\include\;c:\Users\max\projects\image\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'">
     <IncludePath>C:\Program Files\boost\boost_1_51\;C:\Program Files\opencv\build\install\include\opencv\;C:\Program Files\opencv\build\install\include\opencv2\;C:\Program Files\opencv\build\install\include\;$(IncludePath)</IncludePath>

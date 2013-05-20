@@ -3,10 +3,12 @@
 
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/io.hpp>
+#include <image/image.hpp>
 #include <boost/scoped_ptr.hpp>
 #include "headers.hpp"
 #include "camera.hpp"
 #include "model.hpp"
+
 
 namespace ttrk{
 
@@ -163,7 +165,8 @@ namespace ttrk{
     
     cv::Mat ROI; /**< Experimental feature. Instead of performing the level set tracking over the whole image, try to find a ROI around where the target of interest is located. */
     bool tracking_; /**< The variable for toggling tracking on or off.  */
-    boost::shared_ptr<cv::Mat> frame_; /**< The frame that the tracker is currently working on. */
+    //boost::shared_ptr<cv::Mat> frame_; /**< The frame that the tracker is currently working on. */
+    boost::shared_ptr<tcv::Image<unsigned char,3> > frame_; /**< The frame that the tracker is currently working on. */
 
   private:
 

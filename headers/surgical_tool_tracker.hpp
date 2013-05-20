@@ -21,19 +21,19 @@ namespace ttrk{
     * @param[in] height The tool height.
     * @param[in] calibration_filename The url of the camera calibration file.
     */
-    SurgicalToolTracker(const int radius, const int height, const std::string &calibration_filename);
+    SurgicalToolTracker(const int radius, const int height);
 
     /**
     * The destructor.
     */
-    ~SurgicalToolTracker(){};
+    virtual ~SurgicalToolTracker(){};
 
     /**
     * Custom initialisation for the surgical tool. Finds connected regions and then using the moments of these regions, initialises a 
     * an esimate of the 2D pose.
     * @return The success of the initialisation.
     */
-    virtual bool Init();
+    virtual bool Init() = 0;
     
   protected:
 
@@ -62,7 +62,7 @@ namespace ttrk{
     * @param[out] The cluster center.
     */
     const cv::Vec2i FindCenterOfMass(const std::vector<cv::Vec2i> &connected_region) const;
-    
+
   };
 
 

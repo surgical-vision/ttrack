@@ -36,9 +36,14 @@
     <ClInclude Include="..\headers\handler.hpp" />
     <ClInclude Include="..\headers\headers.hpp" />
     <ClInclude Include="..\headers\helpers.hpp" />
+    <ClInclude Include="..\headers\kalman.hpp" />
+    <ClInclude Include="..\headers\localizer.hpp" />
     <ClInclude Include="..\headers\model.hpp" />
+    <ClInclude Include="..\headers\monocular_tool_tracker.hpp" />
     <ClInclude Include="..\headers\nd_image.hpp" />
+    <ClInclude Include="..\headers\pwp3d.hpp" />
     <ClInclude Include="..\headers\randomforest.hpp" />
+    <ClInclude Include="..\headers\stereo_tool_tracker.hpp" />
     <ClInclude Include="..\headers\supportvectormachine.hpp" />
     <ClInclude Include="..\headers\surgical_tool_tracker.hpp" />
     <ClInclude Include="..\headers\tracker.hpp" />
@@ -52,8 +57,11 @@
     <ClCompile Include="..\src\helpers.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\model.cpp" />
+    <ClCompile Include="..\src\monocular_tool_tracker.cpp" />
     <ClCompile Include="..\src\nd_image.cpp" />
+    <ClCompile Include="..\src\pwp3d.cpp" />
     <ClCompile Include="..\src\randomforest.cpp" />
+    <ClCompile Include="..\src\stereo_tool_tracker.cpp" />
     <ClCompile Include="..\src\supportvectormachine.cpp" />
     <ClCompile Include="..\src\surgical_tool_tracker.cpp" />
     <ClCompile Include="..\src\tracker.cpp" />

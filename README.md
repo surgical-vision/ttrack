@@ -14,8 +14,9 @@ be extended to track any rigid object.
 Dependencies
 ------------
 
-* OpenCV v2.3.1 or higher 
-* Boost v1.48.0 but will probably work on other versions of boost too.
+* [OpenCV v2.3.1](http://opencv.org/downloads.html) or higher 
+* [Boost v1.48.0](http://www.boost.org/users/download/) but will probably work on older versions of boost too.
+* [Image](https://github.com/maximilianallan/image)
 
 Install Guide
 -------------

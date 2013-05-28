@@ -96,7 +96,7 @@ namespace ttrk{
 
   inline cv::Mat NDImage::GetPixelData(const int r, const int c) const {
 
-    float *data = (float *)images_new_.data + (r*cols_+c);
+    float *data = (float *)images_new_.data + (r*cols_+c)*channels_;
     cv::Mat return_pix(1,4,CV_32FC1,data);
 
     return return_pix;

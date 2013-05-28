@@ -16,7 +16,6 @@ namespace ttrk{
  * @brief Detection system. Wraps the classification of images and interface with the TTrack
  * class.
  *
- * This is the class that is used to initiate training of a classifier and classify new images.
  */
 
   

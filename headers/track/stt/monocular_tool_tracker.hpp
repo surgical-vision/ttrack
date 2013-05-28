@@ -6,6 +6,7 @@ namespace ttrk {
 
   class MonocularToolTracker : public SurgicalToolTracker {
 
+  public:
     MonocularToolTracker(const int radius, const int height, const std::string &calibration_filename);
     
     virtual ~MonocularToolTracker() {};

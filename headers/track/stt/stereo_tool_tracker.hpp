@@ -22,6 +22,8 @@ namespace ttrk {
     
   protected:
 
+    void CreateDisparityImage();
+
     void Init3DPoseFromDualMOITensor(const std::vector<cv::Vec2i> &region_left, const std::vector<cv::Vec2i> &region_right);
 
     void FindConnectedRegionsFromSeed(const cv::Mat &image, const cv::Vec2i &seed, std::vector<cv::Vec2i> &connected_region);

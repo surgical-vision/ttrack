@@ -57,6 +57,7 @@ namespace ttrk{
      * @return The 1 x N matrix.
      */
     cv::Mat GetPixelData(const int r, const int c) const;
+    cv::Mat GetPixelData__old(const int r, const int c) const;
      
     static int channels_;
 
@@ -70,6 +71,7 @@ namespace ttrk{
      * Parse the current rgb image and generate the rich feature space from this.
      * @param image A BGR image.
      */
+    void SetUpImages__old(const cv::Mat &image);
     void SetUpImages(const cv::Mat &image);
   
     int rows_;
@@ -77,7 +79,7 @@ namespace ttrk{
     bool bad_;
  
     std::map<std::string,cv::Mat> images_;
-
+    cv::Mat images_new_;
   };
 
   inline int NDImage::rows() const {
@@ -90,6 +92,15 @@ namespace ttrk{
 
   inline bool NDImage::bad() const {
     return bad_;
+  }
+
+  inline cv::Mat NDImage::GetPixelData(const int r, const int c) const {
+
+    float *data = (float *)images_new_.data + (r*cols_+c);
+    cv::Mat return_pix(1,4,CV_32FC1,data);
+
+    return return_pix;
+
   }
 
 }

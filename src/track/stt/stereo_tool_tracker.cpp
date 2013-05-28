@@ -9,25 +9,47 @@ StereoToolTracker::StereoToolTracker(const int radius, const int height, const s
   
 }
 
+void StereoToolTracker::CreateDisparityImage(){
+
+  boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
+  const cv::Mat &left_image = stereo_frame->LeftMat();
+  const cv::Mat &right_image = stereo_frame->RightMat();
+  cv::Mat out_disparity;
+
+  const int min_disp = 0;
+  const int max_disp = 32; //must be exactly divisible by 16
+  const int sad_win_size = 5;
+  const int smoothness = left_image.channels()*sad_win_size*sad_win_size;
+  cv::StereoSGBM sgbm(min_disp,max_disp,sad_win_size,8*smoothness,32*smoothness,-1,0,7,100,1,false);
+
+  sgbm(left_image,right_image,out_disparity);
+
+  //opencv sgbm multiplies each val by 16 so scale down to floating point array
+  out_disparity.convertTo(*(frame_->ClassifiedImage()),CV_32F,1.0/16);
+
+
+}
+
 bool StereoToolTracker::Init() {
 
-  boost::shared_ptr<tcv::StereoImage<unsigned char,3> > stereo_frame_ = boost::dynamic_pointer_cast<tcv::StereoImage<unsigned char,3> >(frame_);
+  boost::shared_ptr<sv::StereoImage<unsigned char,3> > stereo_frame_ = boost::dynamic_pointer_cast<sv::StereoImage<unsigned char,3> >(frame_);
 
+  //find the connected regions in the image
   std::vector<std::vector<cv::Vec2i> >connected_regions;
-  if(!FindConnectedRegions(*stereo_frame_->LeftMat(),connected_regions)) return false;
+  if(!FindConnectedRegions(stereo_frame_->LeftMat(),connected_regions)) return false;
 
+  
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
+    //for each connected region find the corresponding connected region in the other frame
     std::vector<cv::Vec2i> corresponding_connected_region;
     const cv::Vec2i center_of_region = GetCenter<cv::Vec2i>(*connected_region);
-
-    FindConnectedRegionsFromSeed(*stereo_frame_->RightMat(), center_of_region, corresponding_connected_region);
+    FindConnectedRegionsFromSeed(stereo_frame_->RightMat(), center_of_region, corresponding_connected_region);
     
+    //create the tracked model and initialize it from the shape of the connected region
     KalmanTracker new_tracker;
     new_tracker.model_.reset( new MISTool(radius_,height_) );
-
     tracked_models_.push_back( new_tracker ); 
-
     Init3DPoseFromDualMOITensor(*connected_region,corresponding_connected_region);
 
   }
@@ -46,7 +68,7 @@ void StereoToolTracker::FindConnectedRegionsFromSeed(const cv::Mat &image, const
   
   std::vector<std::vector<cv::Point> >contours;
   cv::Mat thresholded;
-  threshold(*frame_->Mat(),thresholded,127,255,cv::THRESH_BINARY);
+  threshold(frame_->Mat(),thresholded,127,255,cv::THRESH_BINARY);
   findContours(thresholded,contours,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_SIMPLE);
 
   for(size_t i=0;i<contours.size();i++){

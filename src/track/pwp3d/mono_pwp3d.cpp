@@ -130,7 +130,7 @@ void MonoPWP3D::ComputeNormalization(double &norm_foreground, double &norm_backg
 
 void MonoPWP3D::FindROI(const std::vector<cv::Vec2i> &convex_hull) {
 
-  ROI = *frame_->Mat(); //UNTIL I DO THIS FUNCTION
+  ROI = frame_->Mat(); //UNTIL I DO THIS FUNCTION
 
   for(int r=0;r<frame_->rows();r++){
     for(int c=0;c<frame_->cols();c++){

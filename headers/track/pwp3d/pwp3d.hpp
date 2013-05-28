@@ -32,7 +32,7 @@ namespace ttrk {
     */
     virtual void FindROI(const std::vector<cv::Vec2i> &convex_hull) = 0;
   
-    boost::shared_ptr<tcv::Image<unsigned char,3> > frame_;
+    boost::shared_ptr<sv::Frame> frame_;
     
     
   };

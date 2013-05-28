@@ -15,7 +15,7 @@ bool SurgicalToolTracker::FindConnectedRegions(const cv::Mat &image,std::vector<
 
   std::vector<std::vector<cv::Point> >contours;
   cv::Mat thresholded;
-  threshold(*frame_->Mat(),thresholded,127,255,cv::THRESH_BINARY);
+  threshold(frame_->Mat(),thresholded,127,255,cv::THRESH_BINARY);
   findContours(thresholded,contours,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_SIMPLE);
 
   for(size_t i=0;i<contours.size();i++){

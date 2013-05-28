@@ -13,6 +13,42 @@ NDImage::NDImage(const cv::Mat &image){
 
 void NDImage::SetUpImages(const cv::Mat &image){
 
+  rows_ = image.rows;
+  cols_ = image.cols;
+
+  images_new_ = cv::Mat(image.rows*image.cols,4,CV_32FC1);
+  cv::Mat hue,sat;
+  ConvertBGR2HS(image,hue,sat);
+  cv::Mat o2;
+  ConvertBGR2O2(image,o2);
+  images_.insert( NamedImage("o2",o2) );
+  cv::Mat o3;
+  ConvertBGR2O3(image,o3);
+  images_.insert( NamedImage("o3",o3) );
+
+  float *image_data = (float *)images_new_.data;
+  unsigned char *hue_data = (unsigned char *)hue.data;
+  unsigned char *sat_data = (unsigned char *)sat.data;
+  float *o2_data = (float *)o2.data;
+  float *o3_data = (float *)o3.data;
+  const int rows = image.rows;
+  const int cols = image.cols;
+
+
+  for(int r=0;r<rows;r++){
+    for(int c=0;c<cols;c++){
+      const int index = r*cols + c;
+      const int index2 = index*4;
+      image_data[index2] = hue_data[index];
+      image_data[index2+1] = sat_data[index];
+      image_data[index2+2] = o2_data[index];
+      image_data[index2+3] = o3_data[index];
+    }
+  }
+}
+
+void NDImage::SetUpImages__old(const cv::Mat &image){
+
 
   rows_ = image.rows;
   cols_ = image.cols;
@@ -56,11 +92,13 @@ void NDImage::SetUpImages(const cv::Mat &image){
 
 }
 
+
+
 /**
  * THIS FUNCTION IS BAD. MAKE IT LESS BAD.
  */
 
-cv::Mat NDImage::GetPixelData(const int r, const int c) const {
+cv::Mat NDImage::GetPixelData__old(const int r, const int c) const {
 
   //set up the return vector, should be float type for the classifier
   cv::Mat return_pix(1,NDImage::channels_,CV_32FC1);

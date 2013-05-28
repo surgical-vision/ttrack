@@ -39,14 +39,14 @@ namespace ttrk{
      * Overload for boost thread call. This function wraps the calls to the model fitting methods
      * @param image The image pulled from the video file or image file.
      */
-    void operator()(boost::shared_ptr<cv::Mat> image);
+    void operator()(boost::shared_ptr<sv::Frame> image);
 
   
     /**
      * Get a ptr to the frame now that the detector has finished classifying it
      * @return The frame after use.
      */
-    boost::shared_ptr<cv::Mat> GetPtrToFinishedFrame();
+    boost::shared_ptr<sv::Frame> GetPtrToFinishedFrame();
 
     /**
      * Toggle tracking on or not. If it's off, init is called on each new frame .
@@ -66,7 +66,7 @@ namespace ttrk{
     * Updates the intenal handle to point at the currently classified frame.
     * @param image The classified frame. Also held by the main TTrack class.
     */
-    void SetHandleToFrame(boost::shared_ptr<cv::Mat> image);
+    void SetHandleToFrame(boost::shared_ptr<sv::Frame> image);
 
     /**
     * Initialise the tracker to get a first estimate of the position. This should be customised with whatever initialisation proceedure is appropriate for the tracker in question.
@@ -80,7 +80,7 @@ namespace ttrk{
     */
     void UpdatePose(const cv::Mat &pose_estimate);
 
-
+    
 
     //StereoCamera camera_; /**< A camera model for projecting points onto the image plane. */
     std::vector<KalmanTracker> tracked_models_; /**< a vector of tracked models. TODO: switch this out for point cloud mesh or some better data structure. */
@@ -90,7 +90,8 @@ namespace ttrk{
     
     bool tracking_; /**< The variable for toggling tracking on or off.  */
     //boost::shared_ptr<cv::Mat> frame_; /**< The frame that the tracker is currently working on. */
-    boost::shared_ptr<tcv::Image<unsigned char,3> > frame_; /**< The frame that the tracker is currently working on. */
+    boost::shared_ptr<sv::Frame> frame_; /**< The frame that the tracker is currently working on. */
+    
 
   private:
 

@@ -14,6 +14,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
+#include <image/image.hpp>
 
 /**
  * @namespace ttrk
@@ -21,6 +22,8 @@
  */
 
 namespace ttrk{
+
+   enum CameraType { MONOCULAR = 0, STEREO = 1 };
 
   /**
    * @class TTrack
@@ -62,6 +65,8 @@ namespace ttrk{
      */
     void SaveFrame();
     
+   
+
     /**
      * Setup the directory tree structure containing the root directory of the data sets
      * as well as the directory where output files are to be saved. Also construct the detector
@@ -69,26 +74,27 @@ namespace ttrk{
      * @param root_dir The root training data directory.
      * @param classifier_type Specify the type of classifier.
      */
-    void SetUp(std::string root_dir, const ClassifierType classifier_type);
+    void SetUp(std::string root_dir, const ClassifierType classifier_type, const CameraType camera_type);
    
+    
 
   protected:
 
     /**
      * Draw the model at the current pose onto the classified image ready for it to be saved
      */
-    void DrawModel(boost::shared_ptr<cv::Mat> image);
+    void DrawModel(cv::Mat &image);
 
     /**
      * Grab a ptr to a new frame. This is the interface to use if reading from images or reading from a videofile.
      * @return The ptr to the frame.
      */
-    boost::shared_ptr<cv::Mat> GetPtrToNewFrame();
+    boost::shared_ptr<sv::Frame> GetPtrToNewFrame();
 
     /**
      * Get a pointer to the classifier frame from the detection system.
      */
-    boost::shared_ptr<cv::Mat> GetPtrToClassifiedFrame();
+    boost::shared_ptr<sv::Frame> GetPtrToClassifiedFrame();
     
     /**
      * The main method of the class. Called by RunImages or RunVideo which do the
@@ -104,10 +110,11 @@ namespace ttrk{
     boost::scoped_ptr<Tracker> tracker_; /**< The class responsible for finding the instrument in the image. */
     boost::scoped_ptr<Detect> detector_; /**< The class responsible for classifying the pixels in the image. */
     boost::scoped_ptr<Handler> handler_; /**< Pointer to either an ImageHandler or a VideoHandler which handles getting and saving frames with a simple interface */
-    boost::shared_ptr<cv::Mat> frame_; /**< A pointer to the current frame that will be passed from the classifier to the tracker. */
+    boost::shared_ptr<sv::Frame> frame_; /**< A pointer to the current frame that will be passed from the classifier to the tracker. */
     
     boost::shared_ptr<std::string> root_dir_; /**< A string containing the root directory for the data in use. */
     
+    CameraType camera_type_;
 
   private:
 

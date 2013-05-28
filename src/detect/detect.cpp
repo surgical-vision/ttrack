@@ -23,7 +23,7 @@ Detect::Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifie
 
 Detect::~Detect(){}
 
-void Detect::operator()(boost::shared_ptr<cv::Mat> image){
+void Detect::operator()(boost::shared_ptr<sv::Frame> image){
   
   SetHandleToFrame(image);
   ClassifyFrame();
@@ -33,38 +33,42 @@ void Detect::operator()(boost::shared_ptr<cv::Mat> image){
 void Detect::ClassifyFrame(){
 
   assert(Loaded());
-  assert(frame_->type() == CV_8UC3);
+  assert(frame_->Mat().type() == CV_8UC3);
 
-  NDImage nd_image(*frame_);
-  const int rows = frame_->rows;
-  const int cols = frame_->cols;
+  NDImage nd_image(frame_->Mat());
+  const int rows = frame_->rows();
+  const int cols = frame_->cols();
 
   size_t DEBUG_COUNT = 0;
-  *frame_ = cv::Mat(frame_->size(),CV_8UC1);
-  
+
+  //*frame_->ClassifiedImage() = cv::Mat(cv::Size(cols,rows),CV_8UC1);
+  unsigned char *frame_data = frame_->ClassifiedImage()->data;
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
 
+      const int index = r*cols + c;
       cv::Mat pix = nd_image.GetPixelData(r,c);
       
-      size_t prediction = 255*(classifier_->PredictClass(nd_image.GetPixelData(r,c)));
+      size_t prediction = 255*classifier_->PredictClass(pix);
       //frame_->at<cv::Vec3b>(r,c) = cv::Vec3b((unsigned char)prediction,(unsigned char)prediction,(unsigned char)prediction);
-      frame_->at<unsigned char>(r,c) = (unsigned char)prediction;
+      //frame_->at<unsigned char>(r,c) = (unsigned char)prediction;
+      frame_data[index] = (unsigned char)prediction;
 
-      if(prediction > 0) DEBUG_COUNT++;
+      DEBUG_COUNT+=prediction > 0;
 
     }
   }
 
   if(DEBUG_COUNT>300) found_ = true;
   else found_ = false;
+  cv::imwrite("test.png",frame_->Mat());
 
 }
 
-void Detect::SetHandleToFrame(boost::shared_ptr<cv::Mat> image){
+void Detect::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){
 
   //if the image is null then we must be at the last frame
-  if(image == 0x0 || image->data == 0x0) { 
+  if(image == 0x0) { 
     found_ = false; 
     return;
   }

@@ -5,6 +5,7 @@
 #include <vector>
 #include <utility>
 #include <string>
+#include <image/image.hpp>
 
 namespace ttrk{
 
@@ -25,7 +26,7 @@ namespace ttrk{
 
 
   protected:
-    
+
     std::string input_url_;
     std::string output_url_;
 

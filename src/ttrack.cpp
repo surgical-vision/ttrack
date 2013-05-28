@@ -5,14 +5,17 @@
 #include <cassert>
 #include <string>
 #include "../headers/track/stt/stereo_tool_tracker.hpp"
+#include "../headers/track/stt/monocular_tool_tracker.hpp"
 
 using namespace ttrk;
 
-void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type){
+void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, const CameraType camera_type){
   
   if(!boost::filesystem::exists(boost::filesystem::path(root_dir)))
     throw std::runtime_error("Error, directory " + root_dir + " does not exist.\n");
   
+  camera_type_ = camera_type;
+
   try{
   
     //set the shared_ptr containing the directory where data is
@@ -20,7 +23,18 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type){
 
     //if train type is NA, training is skipped
     detector_.reset(new Detect(root_dir_,classifier_type));
-    tracker_.reset(new StereoToolTracker(10,10,*root_dir_ + "/config/camera.xml"));
+    
+    switch(camera_type_){
+    case STEREO:
+      tracker_.reset(new StereoToolTracker(3,20,*root_dir_ + "/config/camera.xml"));
+      break;
+    case MONOCULAR:
+      tracker_.reset(new MonocularToolTracker(3,20,*root_dir_ + "/config/camera.xml"));
+      break;
+    default:
+      tracker_.reset(new StereoToolTracker(3,20,*root_dir_ + "/config/camera.xml"));
+      break;
+    }
 
   }catch(std::bad_alloc &e){
     std::cerr << "Error, memory error. Could not construct detector/tracker.\n" << e.what();
@@ -77,11 +91,11 @@ void TTrack::RunImages(const std::string &image_url){
 void TTrack::SaveFrame(){
 
   //draws the model at the current pose on c_frame_
-  boost::shared_ptr<cv::Mat> frame = tracker_->GetPtrToFinishedFrame();
+  boost::shared_ptr<sv::Frame> frame = tracker_->GetPtrToFinishedFrame();
 
   //DrawModel(frame_);
   
-  handler_->SavePtrToFrame(frame);
+  handler_->SavePtrToFrame(frame->PtrToMat());
 
 }
 
@@ -92,18 +106,39 @@ void TTrack::SaveDebug() const {
 
 }
 
-void TTrack::DrawModel(boost::shared_ptr<cv::Mat> frame){
+void TTrack::DrawModel(cv::Mat &frame){
 
 }
 
-boost::shared_ptr<cv::Mat> TTrack::GetPtrToNewFrame(){
+boost::shared_ptr<sv::Frame> TTrack::GetPtrToNewFrame(){
   
-  frame_ = handler_->GetPtrToNewFrame(); //now point at new frame, discarding old
+  boost::shared_ptr<cv::Mat> test = handler_->GetPtrToNewFrame();
+  
+  //if the input data has run out test will be empty, if this is so
+  //reset the frame_ pointer to empty and return it. this will signal to 
+  //the tracking/detect loop to stop
+  if (!test) {
+    frame_.reset();
+    return frame_;
+  }
+    
+
+  switch(camera_type_){
+  
+  case STEREO:
+    frame_.reset( new sv::StereoFrame(test) );
+    break;
+  case MONOCULAR:
+    frame_.reset( new sv::MonoFrame(test) );
+    break;
+
+  }
+  
   return frame_;
 
 }
 
-boost::shared_ptr<cv::Mat> TTrack::GetPtrToClassifiedFrame(){
+boost::shared_ptr<sv::Frame> TTrack::GetPtrToClassifiedFrame(){
 
   frame_ = detector_->GetPtrToClassifiedFrame();
   return frame_;

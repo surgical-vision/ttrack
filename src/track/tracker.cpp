@@ -7,7 +7,7 @@ Tracker::Tracker(){}
 
 Tracker::~Tracker(){}
 
-void Tracker::operator()(boost::shared_ptr<cv::Mat> image){
+void Tracker::operator()(boost::shared_ptr<sv::Frame> image){
   
   SetHandleToFrame(image);
 
@@ -27,11 +27,6 @@ void Tracker::operator()(boost::shared_ptr<cv::Mat> image){
   }
 }  
 
-
-
-
-
-
 void Tracker::UpdatePose(const cv::Mat &pose_estimate){
 
   // get the prediction from the kalman filter
@@ -41,7 +36,6 @@ void Tracker::UpdatePose(const cv::Mat &pose_estimate){
   // update the pose
 
 }
-
 
 bool Tracker::InitKalmanFilter(){
 
@@ -64,16 +58,15 @@ bool Tracker::InitKalmanFilter(){
 
 
 
-void Tracker::SetHandleToFrame(boost::shared_ptr<cv::Mat> image){
+void Tracker::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){
 
-  frame_.reset();
-  frame_->Mat() = image;
+  frame_ = image;
 
 }
 
 
-boost::shared_ptr<cv::Mat> Tracker::GetPtrToFinishedFrame(){
-  return frame_->Mat();
+boost::shared_ptr<sv::Frame> Tracker::GetPtrToFinishedFrame(){
+  return frame_;
 }
 
 void Tracker::Tracking(const bool toggle){

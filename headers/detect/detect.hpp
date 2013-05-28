@@ -5,6 +5,7 @@
 #include "baseclassifier.hpp"
 #include "../utils/nd_image.hpp"
 #include <opencv2/ml/ml.hpp>
+#include <image/image.hpp>
 
 namespace ttrk{
 
@@ -37,7 +38,7 @@ namespace ttrk{
      * The operator overload for the boost thread call. This function wraps the calls to the detection methods.
      * @param[in] image The image pulled from the camera, video file or image file.
      */
-    void operator()(boost::shared_ptr<cv::Mat> image); 
+    void operator()(boost::shared_ptr<sv::Frame> image); 
 
     /**
      * Has the detector found a candidate for the object in the frame.
@@ -55,13 +56,13 @@ namespace ttrk{
      * The operator returns a unique pointer to the classified frame. 
      * @return a unique pointer to the classified frame.
      */
-    boost::shared_ptr<cv::Mat> GetPtrToClassifiedFrame() const;
+    boost::shared_ptr<sv::Frame> GetPtrToClassifiedFrame() const;
 
   protected:
 
     void ClassifyFrame();
 
-    void SetHandleToFrame(boost::shared_ptr<cv::Mat> image);
+    void SetHandleToFrame(boost::shared_ptr<sv::Image<unsigned char,3> > image);
 
     void ResetHandleToFrame();
     
@@ -85,7 +86,7 @@ namespace ttrk{
     void LoadClassifier();
 
     boost::shared_ptr<std::string> root_dir_; /**< A string containing the root directory where classifier, data etc is stored. */
-    boost::shared_ptr<cv::Mat> frame_; /**< A pointer to the current frame, this is passed to the detector then passed to the tracker. */
+    boost::shared_ptr<sv::Frame> frame_; /**< A pointer to the current frame, this is passed to the detector then passed to the tracker. */
     bool found_; /**< Indicated whether the target object has been found in the image. */
     boost::shared_ptr<NDImage> nd_image_; /**< The N-D image which is being tracked. */
     boost::shared_ptr<BaseClassifier> classifier_; /**< The classifier. */
@@ -98,7 +99,7 @@ namespace ttrk{
 
   };
 
-  inline boost::shared_ptr<cv::Mat> Detect::GetPtrToClassifiedFrame() const {
+  inline boost::shared_ptr<sv::Image<unsigned char,3> > Detect::GetPtrToClassifiedFrame() const {
     return frame_;
   }
 

@@ -59,14 +59,14 @@ ImageHandler::ImageHandler(const std::string &input_url, const std::string &outp
 
 boost::shared_ptr<cv::Mat> ImageHandler::GetPtrToNewFrame(){
 
-  std::cout << "Loading first image..." << std::endl;
+  
   if(open_iter_ == paths_.end()) return boost::shared_ptr<cv::Mat>(); //return an empty shared ptr
   
   //load next image in the list and return it
   boost::shared_ptr<cv::Mat> m(new cv::Mat);
   *m = cv::imread(input_url_ + "/" + *open_iter_);
 
-  std::cout << "Loaded " << input_url_ + "/" + *open_iter_ << std::endl;
+  
   open_iter_++;
   if(m->data == 0x0) std::cout << "Error, no data" << std::endl;
   return m;
@@ -77,7 +77,8 @@ boost::shared_ptr<cv::Mat> VideoHandler::GetPtrToNewFrame(){
 
   boost::shared_ptr<cv::Mat> m(new cv::Mat);
   cap_ >> *m;
-  return m;
+  if(m->data == 0x0) return boost::shared_ptr<cv::Mat>();
+  else return m;
 
 }
 

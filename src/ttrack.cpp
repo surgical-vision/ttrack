@@ -24,6 +24,7 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
     //if train type is NA, training is skipped
     detector_.reset(new Detect(root_dir_,classifier_type));
     
+    //load the correct type of tool tracker
     switch(camera_type_){
     case STEREO:
       tracker_.reset(new StereoToolTracker(3,20,*root_dir_ + "/config/camera.xml"));

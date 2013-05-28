@@ -39,13 +39,9 @@ void Detect::ClassifyFrame(){
   const int rows = frame_->rows();
   const int cols = frame_->cols();
 
-  std::cout << rows << " == " << frame_->ClassifiedImage()->rows << std::endl;
-  std::cout << cols << " == " << frame_->ClassifiedImage()->cols << std::endl;
   size_t DEBUG_COUNT = 0;
 
-  //*frame_->ClassifiedImage() = cv::Mat(cv::Size(cols,rows),CV_8UC1);
-  unsigned char *frame_data = frame_->ClassifiedImage()->data;
-  std::cout << "Channels: " << frame_->ClassifiedImage()->channels();
+  unsigned char *frame_data = (unsigned char *)frame_->ClassifiedImage()->data;
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
 
@@ -53,10 +49,7 @@ void Detect::ClassifyFrame(){
       cv::Mat pix = nd_image.GetPixelData(r,c);
       
       unsigned char prediction = (unsigned char)255*classifier_->PredictClass(pix);
-      //frame_->at<cv::Vec3b>(r,c) = cv::Vec3b((unsigned char)prediction,(unsigned char)prediction,(unsigned char)prediction);
-      //frame_->at<unsigned char>(r,c) = (unsigned char)prediction;
       frame_data[index] = prediction;
-      //frame_->ClassifiedImage()->at<unsigned char>(r,c) = prediction;
 
       DEBUG_COUNT+=prediction > 0;
 

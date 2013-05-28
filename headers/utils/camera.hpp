@@ -1,8 +1,11 @@
 #ifndef _CAMERA_HPP_
 #define _CAMERA_HPP_
 #include "../headers.hpp"
+#include <image/image.hpp>
 
 namespace ttrk{
+
+  class StereoCamera;
 
   /**
   * @class MonocularCamera
@@ -56,6 +59,8 @@ namespace ttrk{
     */
     cv::Point3f UnProjectPoint(const cv::Point2i &point) const;
     
+    friend class StereoCamera;
+
   protected:
       
     cv::Mat intrinsic_matrix_; /**< The internal camera parameters. */
@@ -91,14 +96,25 @@ namespace ttrk{
     * Get a reference to the right eye of the camera.
     * @return The right eye of the camera.
     */
-     const MonocularCamera &right_eye() const { return right_eye_; }
+    const MonocularCamera &right_eye() const { return right_eye_; }
+
+    void Rectify(const cv::Size image_size);
+    bool IsRectified() const { return rectified_; }
+    void RemapLeftFrame(cv::Mat &image) const ;
+    void RemapRightFrame(cv::Mat &image) const ;
+
 
   protected:
 
+    bool rectified_;
+
     MonocularCamera left_eye_; /**< The left camera of the stereo rig. */
     MonocularCamera right_eye_; /**< The right camera of the stereo rig. */
-
+    
     cv::Mat extrinsic_matrix_; /**< The rotation and translation between the image planes of the two cameras. */
+
+    cv::Mat R1,R2,Q;
+    cv::Rect roi1, roi2;
 
   private:
 

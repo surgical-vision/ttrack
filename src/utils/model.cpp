@@ -49,7 +49,7 @@ void MISTool::GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f 
 
   cv::Mat central_axis = top - bottom;
   float dpdot = central_axis.dot(central_axis);
-  if(dpdot == 0.0) dpdot = 0.0000001;
+  if(dpdot == 0.0f) dpdot = 0.0000001;
 
   cv::Mat t1 = (cv::Mat)ray - ((1.0/(dpdot))*(ray.dot(central_axis))*central_axis);
   

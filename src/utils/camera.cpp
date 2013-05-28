@@ -54,7 +54,7 @@ cv::Point2f MonocularCamera::ProjectPoint(const cv::Point3f &point) const {
 }
 
 
-StereoCamera::StereoCamera(const std::string &calibration_filename){
+StereoCamera::StereoCamera(const std::string &calibration_filename):rectified_(false){
 
   cv::FileStorage fs;
 
@@ -81,6 +81,35 @@ StereoCamera::StereoCamera(const std::string &calibration_filename){
     SAFE_EXIT();
 
   }
+
+}
+
+void StereoCamera::Rectify(const cv::Size image_size) {
+
+  cv::Mat P1,P2
+  cv::stereoRectify(left_eye_.intrinsic_matrix_,left_eye_.distortion_params_,
+                    right_eye_.intrinsic_matrix_,right_eye_.distortion_params_,
+                    image_size,
+                    extrinsic_matrix_(cv::Range(0,3),cv::Range(0,3)),
+                    extrinsic_matrix_(cv::Range(0,3),cv::Range(3,3)),
+                    R1, R2, P1, P2, Q,
+                    0, // 0 || CV_CALIB_ZERO_DISPARITY
+                    0,  // -1 = default scaling, 0 = no black pixels, 1 = no source pixels lost
+                    cv::Size(), &roi1, &roi2); 
+
+
+  rectified_ = true;
+
+}
+
+void StereoCamera::RemapLeftFrame(cv::Mat &image) const {
+
+
+
+}
+
+
+void StereoCamera::RemapRightFrame(cv::Mat &image) const {
 
 
 

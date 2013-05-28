@@ -39,20 +39,24 @@ void Detect::ClassifyFrame(){
   const int rows = frame_->rows();
   const int cols = frame_->cols();
 
+  std::cout << rows << " == " << frame_->ClassifiedImage()->rows << std::endl;
+  std::cout << cols << " == " << frame_->ClassifiedImage()->cols << std::endl;
   size_t DEBUG_COUNT = 0;
 
   //*frame_->ClassifiedImage() = cv::Mat(cv::Size(cols,rows),CV_8UC1);
   unsigned char *frame_data = frame_->ClassifiedImage()->data;
+  std::cout << "Channels: " << frame_->ClassifiedImage()->channels();
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
 
       const int index = r*cols + c;
       cv::Mat pix = nd_image.GetPixelData(r,c);
       
-      size_t prediction = 255*classifier_->PredictClass(pix);
+      unsigned char prediction = (unsigned char)255*classifier_->PredictClass(pix);
       //frame_->at<cv::Vec3b>(r,c) = cv::Vec3b((unsigned char)prediction,(unsigned char)prediction,(unsigned char)prediction);
       //frame_->at<unsigned char>(r,c) = (unsigned char)prediction;
-      frame_data[index] = (unsigned char)prediction;
+      frame_data[index] = prediction;
+      //frame_->ClassifiedImage()->at<unsigned char>(r,c) = prediction;
 
       DEBUG_COUNT+=prediction > 0;
 
@@ -61,7 +65,6 @@ void Detect::ClassifyFrame(){
 
   if(DEBUG_COUNT>300) found_ = true;
   else found_ = false;
-  cv::imwrite("test.png",frame_->Mat());
 
 }
 

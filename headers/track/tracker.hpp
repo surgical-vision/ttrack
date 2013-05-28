@@ -66,7 +66,7 @@ namespace ttrk{
     * Updates the intenal handle to point at the currently classified frame.
     * @param image The classified frame. Also held by the main TTrack class.
     */
-    void SetHandleToFrame(boost::shared_ptr<sv::Frame> image);
+    virtual void SetHandleToFrame(boost::shared_ptr<sv::Frame> image);
 
     /**
     * Initialise the tracker to get a first estimate of the position. This should be customised with whatever initialisation proceedure is appropriate for the tracker in question.

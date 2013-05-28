@@ -89,9 +89,19 @@ void StereoToolTracker::FindConnectedRegionsFromSeed(const cv::Mat &image, const
         }
       }
     }
-
   } 
-
-
-
 }
+
+
+ void StereoToolTracker::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){
+
+   if( !camera_.IsRectified() ) camera_.Rectify(image->Mat().size());
+
+   boost::shared_ptr<sv::StereoFrame> stereo_image = boost::dynamic_pointer_cast<sv::StereoFrame>(image);
+   
+   camera_.RemapLeftFrame(stereo_image->LeftMat());
+   camera_.RemapRightFrame(stereo_image->RightMat());
+   //remap frames
+   
+
+ }

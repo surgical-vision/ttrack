@@ -22,6 +22,8 @@ namespace ttrk {
     
   protected:
 
+    virtual void SetHandleToFrame(boost::shared_ptr<sv::Frame> image);
+
     void CreateDisparityImage();
 
     void Init3DPoseFromDualMOITensor(const std::vector<cv::Vec2i> &region_left, const std::vector<cv::Vec2i> &region_right);

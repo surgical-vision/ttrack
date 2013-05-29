@@ -46,7 +46,9 @@ namespace ttrk{
     * @return The success of finding the blobs. 
     */
     bool FindConnectedRegions(const cv::Mat &frame, std::vector<std::vector<cv::Vec2i> >&connected_regions);
-    
+    bool ThresholdImage(const cv::Mat &image, std::vector<std::vector<cv::Point> > &contours) const;
+    void FindSingleRegionFromContour(const std::vector<cv::Point> &contour,std::vector<cv::Vec2i> &connected_region) const;
+    void GetContours(const cv::Mat &image, std::vector<std::vector<cv::Point> > &contours) const;
     template<typename T>
     T GetCenter(const std::vector<T> &contour) const ;
 

@@ -59,12 +59,18 @@ void StereoToolTracker::CreateDisparityImage(){
 
 bool StereoToolTracker::Init() {
 
-  boost::shared_ptr<sv::StereoImage<unsigned char,3> > stereo_frame_ = boost::dynamic_pointer_cast<sv::StereoImage<unsigned char,3> >(frame_);
-  
+  boost::shared_ptr<sv::StereoFrame> stereo_frame_ = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
+  boost::shared_ptr<sv::MonoFrame> mono_frame_ = boost::dynamic_pointer_cast<sv::MonoFrame>(frame_);
+
   //find the connected regions in the image
   std::vector<std::vector<cv::Vec2i> >connected_regions;
   if(!FindConnectedRegions(stereo_frame_->LeftMat(),connected_regions)) return false;
 
+  //find the largest region
+  std::vector<std::vector<cv::Vec2i> >::iterator largest = std::max_element(connected_regions.begin(),
+    connected_regions.end(),
+    [](const std::vector<cv::Vec2i> &a,const std::vector<cv::Vec2i> &b){ return a.size() < b.size(); }
+  );
 
   return false;
 }
@@ -106,10 +112,12 @@ void StereoToolTracker::FindConnectedRegionsFromSeed(const cv::Mat &image, const
 
  void StereoToolTracker::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){
 
-   if( !camera_.IsRectified() ) camera_.Rectify(image->Mat().size());
+   //first set the handle using the superclass method
+   Tracker::SetHandleToFrame(image);
 
+   //then rectify the camera and remap the images
+   if( !camera_.IsRectified() ) camera_.Rectify(image->Mat().size());
    boost::shared_ptr<sv::StereoFrame> stereo_image = boost::dynamic_pointer_cast<sv::StereoFrame>(image);
-   
    camera_.RemapLeftFrame(stereo_image->LeftMat());
    camera_.RemapRightFrame(stereo_image->RightMat());
 

@@ -103,6 +103,7 @@ namespace ttrk{
     void RemapLeftFrame(cv::Mat &image) const ;
     void RemapRightFrame(cv::Mat &image) const ;
 
+    void ReprojectTo3D(const cv::Mat &image, cv::Mat &point_cloud) const ;
 
   protected:
 
@@ -112,6 +113,8 @@ namespace ttrk{
     MonocularCamera right_eye_; /**< The right camera of the stereo rig. */
     
     cv::Mat extrinsic_matrix_; /**< The rotation and translation between the image planes of the two cameras. */
+
+    cv::Mat reprojection_matrix_;
 
     cv::Rect roi1, roi2;
     cv::Mat mapx_left_;

@@ -54,7 +54,7 @@ cv::Point2f MonocularCamera::ProjectPoint(const cv::Point3f &point) const {
 }
 
 
-StereoCamera::StereoCamera(const std::string &calibration_filename):rectified_(false){
+StereoCamera::StereoCamera(const std::string &calibration_filename):rectified_(false),extrinsic_matrix_(4,4,CV_64FC1){
 
   cv::FileStorage fs;
 
@@ -63,17 +63,19 @@ StereoCamera::StereoCamera(const std::string &calibration_filename):rectified_(f
     cv::Mat temp_intrinsic, temp_distortion;
 
     fs.open(calibration_filename,cv::FileStorage::READ); 
-    
-    fs["left-camera-intrinsic"] >> temp_intrinsic;
-    fs["left-camera-distortion"] >> temp_distortion;
+
+    fs["Left_Camera_Matrix"] >> temp_intrinsic;
+    fs["Left_Distortion_Coefficients"] >> temp_distortion;
     left_eye_ = MonocularCamera(temp_intrinsic, temp_distortion);
 
-    fs["right-camera-intrinsic"] >> temp_intrinsic;
-    fs["right-camera-distortion"] >> temp_distortion;
+    fs["Right_Camera_Matrix"] >> temp_intrinsic;
+    fs["Right_Distortion_Coefficients"] >> temp_distortion;
     right_eye_ = MonocularCamera(temp_intrinsic, temp_distortion);
-
-    fs["extrinsic"] >> extrinsic_matrix_;
-
+    
+    fs["Extrinsic_Camera_Rotation"] >> extrinsic_matrix_(cv::Range(0,3),cv::Range(0,3));
+    fs["Extrinsic_Camera_Translation"] >> extrinsic_matrix_(cv::Range(0,3),cv::Range(3,4));
+    extrinsic_matrix_(cv::Range(3,4),cv::Range::all()) = 0.0;
+    extrinsic_matrix_.at<double>(3,3) = 1.0;
 
   }catch(cv::Exception& e){
 
@@ -86,16 +88,25 @@ StereoCamera::StereoCamera(const std::string &calibration_filename):rectified_(f
 
 void StereoCamera::Rectify(const cv::Size image_size) {
 
-  cv::Mat P1,P2
+  cv::Mat P1,P2,R1,R2,Q;
+ 
   cv::stereoRectify(left_eye_.intrinsic_matrix_,left_eye_.distortion_params_,
                     right_eye_.intrinsic_matrix_,right_eye_.distortion_params_,
                     image_size,
                     extrinsic_matrix_(cv::Range(0,3),cv::Range(0,3)),
-                    extrinsic_matrix_(cv::Range(0,3),cv::Range(3,3)),
+                    extrinsic_matrix_(cv::Range(0,3),cv::Range(3,4)),
                     R1, R2, P1, P2, Q,
                     0, // 0 || CV_CALIB_ZERO_DISPARITY
                     0,  // -1 = default scaling, 0 = no black pixels, 1 = no source pixels lost
                     cv::Size(), &roi1, &roi2); 
+
+  cv::initUndistortRectifyMap(left_eye_.intrinsic_matrix_,
+      left_eye_.distortion_params_,
+      R1,P1,image_size,CV_32F,mapx_left_,mapy_left_); //must be 16s or 32f
+
+  cv::initUndistortRectifyMap(right_eye_.intrinsic_matrix_,
+      right_eye_.distortion_params_,
+      R1,P1,image_size,CV_32F,mapx_right_,mapy_right_);
 
 
   rectified_ = true;
@@ -104,13 +115,17 @@ void StereoCamera::Rectify(const cv::Size image_size) {
 
 void StereoCamera::RemapLeftFrame(cv::Mat &image) const {
 
-
-
+  cv::Mat rectified;
+  cv::remap(image,rectified,mapx_left_,mapy_left_,CV_INTER_CUBIC);
+  image = rectified;
+  
 }
 
 
 void StereoCamera::RemapRightFrame(cv::Mat &image) const {
 
-
-
+  cv::Mat rectified;
+  cv::remap(image,rectified,mapx_right_,mapy_right_,CV_INTER_CUBIC);
+  image = rectified;
+  
 }

@@ -30,18 +30,17 @@ void StereoToolTracker::CreateDisparityImage(){
 
 }
 
-bool StereoToolTracker::Init() {
+/*bool StereoToolTracker::Init() {
 
   boost::shared_ptr<sv::StereoImage<unsigned char,3> > stereo_frame_ = boost::dynamic_pointer_cast<sv::StereoImage<unsigned char,3> >(frame_);
-
+  
   //find the connected regions in the image
   std::vector<std::vector<cv::Vec2i> >connected_regions;
   if(!FindConnectedRegions(stereo_frame_->LeftMat(),connected_regions)) return false;
-
   
+  //for each connected region find the corresponding connected region in the other frame
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
-    //for each connected region find the corresponding connected region in the other frame
     std::vector<cv::Vec2i> corresponding_connected_region;
     const cv::Vec2i center_of_region = GetCenter<cv::Vec2i>(*connected_region);
     FindConnectedRegionsFromSeed(stereo_frame_->RightMat(), center_of_region, corresponding_connected_region);
@@ -56,6 +55,18 @@ bool StereoToolTracker::Init() {
 
   return false;
 
+}*/
+
+bool StereoToolTracker::Init() {
+
+  boost::shared_ptr<sv::StereoImage<unsigned char,3> > stereo_frame_ = boost::dynamic_pointer_cast<sv::StereoImage<unsigned char,3> >(frame_);
+  
+  //find the connected regions in the image
+  std::vector<std::vector<cv::Vec2i> >connected_regions;
+  if(!FindConnectedRegions(stereo_frame_->LeftMat(),connected_regions)) return false;
+
+
+  return false;
 }
 
 void StereoToolTracker::Init3DPoseFromDualMOITensor(const std::vector<cv::Vec2i> &region_left, const std::vector<cv::Vec2i> &region_right) {
@@ -101,7 +112,6 @@ void StereoToolTracker::FindConnectedRegionsFromSeed(const cv::Mat &image, const
    
    camera_.RemapLeftFrame(stereo_image->LeftMat());
    camera_.RemapRightFrame(stereo_image->RightMat());
-   //remap frames
-   
 
  }
+ 

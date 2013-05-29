@@ -113,8 +113,12 @@ namespace ttrk{
     
     cv::Mat extrinsic_matrix_; /**< The rotation and translation between the image planes of the two cameras. */
 
-    cv::Mat R1,R2,Q;
     cv::Rect roi1, roi2;
+    cv::Mat mapx_left_;
+    cv::Mat mapy_left_;
+    cv::Mat mapx_right_;
+    cv::Mat mapy_right_;
+
 
   private:
 

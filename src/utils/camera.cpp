@@ -90,19 +90,9 @@ void StereoCamera::ReprojectTo3D(const cv::Mat &disparity_image, cv::Mat &point_
 
   if(point_cloud.data == 0x0) point_cloud.create(disparity_image.size(),CV_32FC3);
 
+  cv::Mat rescaled = disparity_image;
+  //disparity_image.convertTo(rescaled,CV_8U,(1.0/16));// * disparity_image;
 
-  cv::Mat rescaled;
-  disparity_image.convertTo(rescaled,CV_8U,(1.0/16));// * disparity_image;
-
-  for(int r=0;r<rescaled.rows;r++){
-    for(int c=0;c<rescaled.cols;c++){
-      unsigned char var = rescaled.at<unsigned char>(r,c);
-      if (var < 0) std::cerr << " r = " << r << " c = " << c << " val = " << var << "\n";
-    }
-  }
-
-  std::cout << reprojection_matrix_;
-  //disparityImage.convertTo(
   cv::reprojectImageTo3D(rescaled,point_cloud,reprojection_matrix_);
 
   //mask point cloud if required
@@ -115,9 +105,9 @@ void StereoCamera::ReprojectTo3D(const cv::Mat &disparity_image, cv::Mat &point_
     const cv::Vec2i &pixel = connected_region[i];
     mask_data[pixel[1]*cols + pixel[0]] = 255;
   }
-
+  
   cv::Mat output;
-  //point_cloud = point_cloud & mask; //mask the point cloud
+  ///point_cloud = point_cloud & mask; //mask the point cloud
   cv::bitwise_and(point_cloud,point_cloud,output,mask);
   point_cloud = output;
 
@@ -134,20 +124,11 @@ void StereoCamera::Rectify(const cv::Size image_size) {
                     extrinsic_matrix_(cv::Range(0,3),cv::Range(3,4)),
                     R1, R2, P1, P2, reprojection_matrix_,
                     0, // 0 || CV_CALIB_ZERO_DISPARITY
-                    1,  // -1 = default scaling, 0 = no black pixels, 1 = no source pixels lost
+                    -1,  // -1 = default scaling, 0 = no black pixels, 1 = no source pixels lost
                     cv::Size(), &roi1, &roi2); 
-  /*
-  //HACK TO GET AROUND THIS ANNOYING OPENCV BUG
-  cv::stereoRectify(left_eye_.intrinsic_matrix_,left_eye_.distortion_params_,
-                    right_eye_.intrinsic_matrix_,right_eye_.distortion_params_,
-                    image_size,
-                    extrinsic_matrix_(cv::Range(0,3),cv::Range(0,3)),
-                    extrinsic_matrix_(cv::Range(0,3),cv::Range(3,4)),
-                    R1, R2, P1, P2, reprojection_matrix_,
-                    0, // 0 || CV_CALIB_ZERO_DISPARITY
-                    0,  // -1 = default scaling, 0 = no black pixels, 1 = no source pixels lost
-                    cv::Size(roi1.width,roi1.height), &roi1, &roi2); 
-                    */
+  
+  //store ROI1/2 in the stereo image class and then write method to extract these roi's whenever
+  //useful image area methods are needed
   cv::initUndistortRectifyMap(left_eye_.intrinsic_matrix_,
       left_eye_.distortion_params_,
       R1,P1,image_size,CV_32F,mapx_left_,mapy_left_); //must be 16s or 32f
@@ -166,7 +147,6 @@ void StereoCamera::RemapLeftFrame(cv::Mat &image) const {
   cv::Mat rectified;
   cv::remap(image,rectified,mapx_left_,mapy_left_,CV_INTER_CUBIC);
   image = rectified;
-  cv::imwrite("test_Rectifeid_.png",image);  
 }
 
 void StereoCamera::RemapRightFrame(cv::Mat &image) const {

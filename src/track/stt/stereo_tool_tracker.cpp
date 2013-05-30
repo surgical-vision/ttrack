@@ -21,7 +21,17 @@ void StereoToolTracker::CreateDisparityImage(){
   const int max_disp = 80; //must be exactly divisible by 16
   const int sad_win_size = 7;
   const int smoothness = left_image.channels()*sad_win_size*sad_win_size;
-  cv::StereoSGBM sgbm(min_disp,max_disp-min_disp,sad_win_size,8*smoothness,32*smoothness,4,50,10,20,2,false);
+  cv::StereoSGBM sgbm(min_disp,
+                      max_disp-min_disp,
+                      sad_win_size,
+                      8*smoothness,
+                      32*smoothness,
+                      4, //disp12MaxDiff
+                      50, //preFilterCap
+                      50, //uniquenessRatio [5-15]
+                      4, //speckleWindowSize [50-200]
+                      1,//speckleRange
+                      true);
 
   sgbm(left_image,right_image,out_disparity);
   cv::imwrite("disparity.png",out_disparity);
@@ -85,39 +95,7 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
 
   CreateDisparityImage();
   camera_.ReprojectTo3D(*(StereoFrame()->PtrToDisparityMap()),*(StereoFrame()->PtrToPointCloud()),region);
-  if(StereoFrame()->PtrToPointCloud()->type() != CV_32FC3) std::cerr << "Error, not the right type\n";
-  const int rows = StereoFrame()->PtrToPointCloud()->rows;
-  const int cols = StereoFrame()->PtrToPointCloud()->cols;
-
-  std::ofstream with_mask("withmask.xyz");
-
-  for(int r=0;r<rows;r++){
-    for(int c=0;c<cols;c++){
-      cv::Vec3f &point = StereoFrame()->PtrToPointCloud()->at<cv::Vec3f>(r,c);
-      with_mask << point[0] << " " << point[1] << " " << point[2] << "\n";
-
-    }
-  }
-
-  with_mask.close();
-
-  camera_.ReprojectTo3D(*(StereoFrame()->PtrToDisparityMap()),*(StereoFrame()->PtrToPointCloud()),std::vector<cv::Vec2i>());
-
   
-
-  std::ofstream without_mask("withoutmask.xyz");
-
-  for(int r=0;r<rows;r++){
-    for(int c=0;c<cols;c++){
-      cv::Vec3f &point = StereoFrame()->PtrToPointCloud()->at<cv::Vec3f>(r,c);
-      without_mask << point[0] << " " << point[1] << " " << point[2] << "\n";
-
-    }
-  }
-
-  without_mask.close();
-
-
 }
 
 void StereoToolTracker::FindConnectedRegionsFromSeed(const cv::Mat &image, const cv::Vec2i &seed, std::vector<cv::Vec2i> &connected_region){
@@ -157,23 +135,8 @@ void StereoToolTracker::FindConnectedRegionsFromSeed(const cv::Mat &image, const
    
    //then rectify the camera and remap the images
    if( !camera_.IsRectified() ) camera_.Rectify(stereo_image->LeftMat().size());
-   
-   cv::Mat l = stereo_image->LeftMat();
-   cv::Mat r = stereo_image->RightMat();
-   std::cout << "l bfore ==> " << (int)l.data << "\n";
-   cv::imwrite("left_not_rectified.png",l);
-   cv::imwrite("right_not_rectified.png",r);
-   camera_.RemapLeftFrame(l);
-   camera_.RemapRightFrame(r);
-   std::cout << "l after ==> " << (int)l.data << "\n";
-   cv::Mat ll = stereo_image->LeftMat();
-   std::cout << "ll ==> " <<  (int)ll.data << "\n" << "Return of LeftMat() ==> " << (int)stereo_image->LeftMat().data << std::endl;
-   l.copyTo(ll);
-   std::cout << "ll ==> " <<  (int)ll.data << "\n";
-   //stereo_image->LeftMat() = l.clone();
-   //stereo_image->RightMat() = r.clone();
-   cv::imwrite("left_now_rectified.png",l);
-   cv::imwrite("right_now_rectified.png",stereo_image->RightMat());
+   camera_.RemapLeftFrame(stereo_image->LeftMat());
+   camera_.RemapRightFrame(stereo_image->RightMat());
    
  }
  

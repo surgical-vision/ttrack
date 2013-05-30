@@ -103,7 +103,7 @@ namespace ttrk{
     void RemapLeftFrame(cv::Mat &image) const ;
     void RemapRightFrame(cv::Mat &image) const ;
 
-    void ReprojectTo3D(const cv::Mat &image, cv::Mat &point_cloud) const ;
+    void ReprojectTo3D(const cv::Mat &image, cv::Mat &point_cloud,const std::vector<cv::Vec2i> &connected_region) const ;
 
   protected:
 

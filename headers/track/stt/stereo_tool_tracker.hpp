@@ -19,6 +19,8 @@ namespace ttrk {
     * @return The success of the initialisation.
     */
     virtual bool Init();
+
+    boost::shared_ptr<sv::StereoFrame> StereoFrame() { return boost::dynamic_pointer_cast<sv::StereoFrame,sv::Frame>(frame_); }
     
   protected:
 
@@ -26,7 +28,7 @@ namespace ttrk {
 
     void CreateDisparityImage();
 
-    void Init3DPoseFromDualMOITensor(const std::vector<cv::Vec2i> &region_left, const std::vector<cv::Vec2i> &region_right);
+    void Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region);
 
     void FindConnectedRegionsFromSeed(const cv::Mat &image, const cv::Vec2i &seed, std::vector<cv::Vec2i> &connected_region);
 

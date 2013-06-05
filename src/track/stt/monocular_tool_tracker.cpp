@@ -27,3 +27,21 @@ bool MonocularToolTracker::Init(){
 
 }
 
+
+void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> &connected_region){
+
+  const cv::Vec2i center_of_mass = FindCenterOfMass(connected_region);
+
+}
+
+const cv::Vec2i MonocularToolTracker::FindCenterOfMass(const std::vector<cv::Vec2i> &connected_region) const {
+
+  cv::Vec2i ret(0,0);
+  return ret;
+
+}
+
+
+
+
+

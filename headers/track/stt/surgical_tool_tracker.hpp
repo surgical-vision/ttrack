@@ -49,26 +49,12 @@ namespace ttrk{
     bool ThresholdImage(const cv::Mat &image, std::vector<std::vector<cv::Point> > &contours) const;
     void FindSingleRegionFromContour(const std::vector<cv::Point> &contour,std::vector<cv::Vec2i> &connected_region) const;
     void GetContours(const cv::Mat &image, std::vector<std::vector<cv::Point> > &contours) const;
+    
     template<typename T>
     T GetCenter(const std::vector<T> &contour) const ;
 
-    /**
-    * Initialise the 2D pose of the instrument from the moments of the connected region.
-    * @param[in] A connected region of pixels.
-    */
-    void Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> &connected_region);
-    
-    /**
-    * Finds the center of mass of a connceted region of pixels.
-    * @param[in] A cluster of pixels coordindates.
-    * @param[out] The cluster center.
-    */
-    const cv::Vec2i FindCenterOfMass(const std::vector<cv::Vec2i> &connected_region) const;
-
   };
 
-
-  
   template<typename T>
   T SurgicalToolTracker::GetCenter(const std::vector<T> &contour) const {
     cv::Vec2i center(0,0);
@@ -79,6 +65,7 @@ namespace ttrk{
     center[1] = center[1]/(int)contour.size();
     return center;
   }
+
 
 }
 

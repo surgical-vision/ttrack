@@ -37,6 +37,7 @@
     <ClInclude Include="..\headers\track\kalman.hpp" />
     <ClInclude Include="..\headers\track\localizer.hpp" />
     <ClInclude Include="..\headers\track\model.hpp" />
+    <ClInclude Include="..\headers\track\pose.hpp" />
     <ClInclude Include="..\headers\track\pwp3d\mono_pwp3d.hpp" />
     <ClInclude Include="..\headers\track\pwp3d\pwp3d.hpp" />
     <ClInclude Include="..\headers\track\pwp3d\stereo_pwp3d.hpp" />

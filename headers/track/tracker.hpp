@@ -74,13 +74,7 @@ namespace ttrk{
     */
     virtual bool Init() = 0;
     
-    /**
-    * Update the target object pose using the Kalman Filter.
-    * @param[in] The pose estimate from the level set tracking system.
-    */
-    void UpdatePose(const cv::Mat &pose_estimate);
-
-    
+      
 
     //StereoCamera camera_; /**< A camera model for projecting points onto the image plane. */
     std::vector<KalmanTracker> tracked_models_; /**< a vector of tracked models. TODO: switch this out for point cloud mesh or some better data structure. */

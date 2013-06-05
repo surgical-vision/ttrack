@@ -39,7 +39,7 @@ void MonoPWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &fron
 
   cv::Vec3f ray = camera_->UnProjectPoint( cv::Point2i(c,r) );
   
-  current_model.model_->GetIntersection(ray, front_intersection, back_intersection);
+  current_model.model_->GetIntersection(ray, front_intersection, back_intersection,current_model.CurrentPose());
 
 }
 
@@ -61,7 +61,7 @@ cv::Mat MonoPWP3D::GetPoseDerivatives(const int r, const int c, const float dSDF
   return cv::Mat();
 }
 
-cv::Mat MonoPWP3D::TrackTargetInFrame(KalmanTracker &current_model){
+Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker &current_model){
 
   const int NUM_STEPS = 10;
   double energy = std::numeric_limits<double>::max(); //to minimise
@@ -97,7 +97,8 @@ cv::Mat MonoPWP3D::TrackTargetInFrame(KalmanTracker &current_model){
 
   }
 
-  return current_model.model_->Pose();
+  //return something like current_model.CurrentPose() + delta*Jacobian
+  return current_model.CurrentPose();
 
 }
 

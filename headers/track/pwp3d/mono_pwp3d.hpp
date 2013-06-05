@@ -10,7 +10,7 @@ namespace ttrk {
 
   public: 
     
-    virtual cv::Mat TrackTargetInFrame(KalmanTracker &model);
+    virtual Pose TrackTargetInFrame(KalmanTracker &model);
    
 
   protected:

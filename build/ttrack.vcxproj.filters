@@ -117,6 +117,9 @@
     <ClInclude Include="..\headers\track\pwp3d\stereo_pwp3d.hpp">
       <Filter>Header Files\track\pwp3d</Filter>
     </ClInclude>
+    <ClInclude Include="..\headers\track\pose.hpp">
+      <Filter>Header Files\track</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">

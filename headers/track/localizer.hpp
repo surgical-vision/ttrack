@@ -1,6 +1,7 @@
 #ifndef __LOCALIZER_HPP__
 #define __LOCALIZER_HPP__
 #include "kalman.hpp"
+#include "pose.hpp"
 
 namespace ttrk {
 
@@ -8,7 +9,7 @@ namespace ttrk {
 
   public:
 
-    virtual cv::Mat TrackTargetInFrame(KalmanTracker &model) = 0;
+    virtual Pose TrackTargetInFrame(KalmanTracker &model) = 0;
 
   };
 

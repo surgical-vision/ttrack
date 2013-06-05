@@ -27,3 +27,5 @@ ipch
 ./ipch/*
 build/ttrack.opensdf
 build/ttrack.suo
+*.xyz
+*.stl

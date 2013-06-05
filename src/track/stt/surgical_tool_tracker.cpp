@@ -12,14 +12,12 @@ SurgicalToolTracker::SurgicalToolTracker(const int radius, const int height):rad
 void SurgicalToolTracker::GetContours(const cv::Mat &image, std::vector<std::vector<cv::Point> > &contours) const {
 
   //threshold the image to 0 & 255 values
-  cv::Mat thresholded;
+  cv::Mat thresholded,thresholded8bit;
   threshold(image,thresholded,127,255,cv::THRESH_BINARY);
-  std::vector<cv::Mat> channels;
-  cv::split(thresholded,channels);
-
+  thresholded.convertTo(thresholded8bit,CV_8U);
+ 
   //find contours around the 255 'blobs' in the image
-  findContours(channels[0],contours,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_SIMPLE);
-  
+  findContours(thresholded8bit,contours,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_SIMPLE);
 }
 
 void SurgicalToolTracker::FindSingleRegionFromContour(const std::vector<cv::Point> &contour,std::vector<cv::Vec2i> &connected_region) const {
@@ -65,19 +63,3 @@ bool SurgicalToolTracker::FindConnectedRegions(const cv::Mat &image,std::vector<
   return connected_regions.size() > 0;
 
 }
-
-void SurgicalToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> &connected_region){
-
-  const cv::Vec2i center_of_mass = FindCenterOfMass(connected_region);
-
-}
-
-const cv::Vec2i SurgicalToolTracker::FindCenterOfMass(const std::vector<cv::Vec2i> &connected_region) const {
-
-  cv::Vec2i ret(0,0);
-  return ret;
-
-}
-
-
-

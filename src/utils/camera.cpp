@@ -91,7 +91,8 @@ void StereoCamera::ReprojectTo3D(const cv::Mat &disparity_image, cv::Mat &point_
   if(point_cloud.data == 0x0) point_cloud.create(disparity_image.size(),CV_32FC3);
 
   cv::Mat rescaled = disparity_image;
-  //disparity_image.convertTo(rescaled,CV_8U,(1.0/16));// * disparity_image;
+  cv::Mat rescaled2;
+  disparity_image.convertTo(rescaled2,CV_8U,(1.0/16));// * disparity_image;
 
   cv::reprojectImageTo3D(rescaled,point_cloud,reprojection_matrix_);
 
@@ -105,18 +106,15 @@ void StereoCamera::ReprojectTo3D(const cv::Mat &disparity_image, cv::Mat &point_
     const cv::Vec2i &pixel = connected_region[i];
     mask_data[pixel[1]*cols + pixel[0]] = 255;
   }
-  
   cv::Mat output;
-  ///point_cloud = point_cloud & mask; //mask the point cloud
   cv::bitwise_and(point_cloud,point_cloud,output,mask);
+
   point_cloud = output;
 
 }
 
 void StereoCamera::Rectify(const cv::Size image_size) {
 
-  cv::Mat P1,P2,R1,R2;
- 
   cv::stereoRectify(left_eye_.intrinsic_matrix_,left_eye_.distortion_params_,
                     right_eye_.intrinsic_matrix_,right_eye_.distortion_params_,
                     image_size,

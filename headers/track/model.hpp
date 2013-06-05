@@ -3,6 +3,7 @@
 #include "../headers.hpp"
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include "pose.hpp"
 
 namespace ttrk{
 
@@ -33,6 +34,10 @@ namespace ttrk{
     */    
     void AddNeighbour(size_t pt_index){ 
       neighbours_.push_back(pt_index);
+    }
+
+    VertexType TransformPoint(const boost::math::quaternion<double> &rotation, const cv::Vec3d translation){
+      VertexType ret = *this;
     }
 
     VertexType vertex_; /**< The vertex location. */
@@ -73,17 +78,13 @@ namespace ttrk{
     * @param[out] front The front intersection of the ray and the shape.
     * @param[out] back The back intersection of the ray and the shape. In the rare case that the intersection is exactly on an edge of the shape this will just be set to same as the front.
     */
-    virtual void GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back) const = 0;
+    virtual void GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const = 0;
     
-    /**
-    * Accessor to the pose. This can be stored in whichever form the user chooses. For instance, an \f$\mathcal{SE}3\f$ transformation  or a 7x1 vector of a quaternion and a position.
-    * @return A reference to the pose.
-    */
-    cv::Mat &Pose() { return pose_; }
+    
 
   protected:
   
-    cv::Mat pose_; /**< The pose of the model. */
+ 
 
   };
 
@@ -109,20 +110,20 @@ namespace ttrk{
     * @return The points.
     */
     virtual std::vector<SimplePoint<> > Points() const;
-    
+    //virtual std::vector<SimplePoint<> > TransformedPoints() const ;
     /**
     * Finds intersection between a ray and the cylinder representing the tool.
     * @param[in] ray The ray projected from the camera center through some pixel.
     * @prarm[out] front The front intersection.
     * @param[out] back The back intersection.
     */
-    virtual void GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back) const;
+    virtual void GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const;
 
   private:
 
     int radius_; /**< The radius of the cylinder. */
     int height_; /**< The height of the cylinder. */
-    std::vector<SimplePoint<> > points_; /**< The representation of surface of the tool as a set of points which have references to their neighbours. */
+    //std::vector<SimplePoint<> > points_; /**< The representation of surface of the tool as a set of points which have references to their neighbours. */
 
   };
 

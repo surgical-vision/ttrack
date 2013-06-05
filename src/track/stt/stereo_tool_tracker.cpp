@@ -34,40 +34,12 @@ void StereoToolTracker::CreateDisparityImage(){
                       true);
 
   sgbm(left_image,right_image,out_disparity);
-  cv::imwrite("disparity.png",out_disparity);
+
   //opencv sgbm multiplies each val by 16 so scale down to floating point array
   //out_disparity.convertTo(*(frame_->PtrToDisparity()),CV_32F,1.0/16);
   *(StereoFrame()->PtrToDisparityMap()) = out_disparity;
 
-
 }
-
-/*bool StereoToolTracker::Init() {
-
-  boost::shared_ptr<sv::StereoImage<unsigned char,3> > stereo_frame_ = boost::dynamic_pointer_cast<sv::StereoImage<unsigned char,3> >(frame_);
-  
-  //find the connected regions in the image
-  std::vector<std::vector<cv::Vec2i> >connected_regions;
-  if(!FindConnectedRegions(stereo_frame_->LeftMat(),connected_regions)) return false;
-  
-  //for each connected region find the corresponding connected region in the other frame
-  for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
-
-    std::vector<cv::Vec2i> corresponding_connected_region;
-    const cv::Vec2i center_of_region = GetCenter<cv::Vec2i>(*connected_region);
-    FindConnectedRegionsFromSeed(stereo_frame_->RightMat(), center_of_region, corresponding_connected_region);
-    
-    //create the tracked model and initialize it from the shape of the connected region
-    KalmanTracker new_tracker;
-    new_tracker.model_.reset( new MISTool(radius_,height_) );
-    tracked_models_.push_back( new_tracker ); 
-    Init3DPoseFromDualMOITensor(*connected_region,corresponding_connected_region);
-
-  }
-
-  return false;
-
-}*/
 
 
 bool StereoToolTracker::Init() {
@@ -76,7 +48,12 @@ bool StereoToolTracker::Init() {
 
   //find the connected regions in the image
   std::vector<std::vector<cv::Vec2i> >connected_regions;
-  if(!FindConnectedRegions(stereo_frame_->LeftMat(),connected_regions)) return false;
+  if(!FindConnectedRegions(*stereo_frame_->PtrToClassificationMap(),connected_regions)) {
+#if defined(_DEBUG) || defined( DEBUG )
+    std::cerr << "Could not find any connected regions!\n";
+#endif
+    return false;
+  }
 
   //for each connected region find the corresponding connected region in the other frame
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
@@ -84,46 +61,142 @@ bool StereoToolTracker::Init() {
     KalmanTracker new_tracker;
     new_tracker.model_.reset( new MISTool(radius_,height_) );
     tracked_models_.push_back( new_tracker ); 
-    Init3DPoseFromMOITensor(*connected_region);//,corresponding_connected_region);
+    Init3DPoseFromMOITensor(*connected_region, tracked_models_.back());//,corresponding_connected_region);
   
   }
 
   return false;
 }
 
-void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region) {
+cv::Vec3f StereoToolTracker::FindClusterMode(const boost::shared_ptr<cv::Mat> point_cloud, const boost::shared_ptr<cv::Mat> classification_map) const {
 
-  CreateDisparityImage();
-  camera_.ReprojectTo3D(*(StereoFrame()->PtrToDisparityMap()),*(StereoFrame()->PtrToPointCloud()),region);
+  cv::Vec3f cluster_mode(0,0,0);
+
+  //mean shift used to find cluster mode
+  //weighted average of all points in region
+  //start with initial estimate
+  //iterate over all points and score by distance from current start point
+  //if most of the points are distributed unevenly around the start point
+  //the new mean will be estiamted 
+
+  //
+  //1) kernel density estimation to find a di
+  //sum over 3d region for each voxel estimate a density as --
+  //  sum over the image pixels for each point (r,c) ---
+  //    create weight w_{i} according to the class probability for (r,c)
+  //    compute L1 norm of vector between backprojection of (r,c) and 3d point (x,y,z)
+  //    nroamlize by bandwidth 
+
+  return cluster_mode;
   
 }
 
-void StereoToolTracker::FindConnectedRegionsFromSeed(const cv::Mat &image, const cv::Vec2i &seed, std::vector<cv::Vec2i> &connected_region){
+void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, KalmanTracker &tracked_model) {
+
+  CreateDisparityImage();
   
-  std::vector<std::vector<cv::Point> >contours;
-  cv::Mat thresholded;
-  threshold(frame_->Mat(),thresholded,127,255,cv::THRESH_BINARY);
-  findContours(thresholded,contours,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_SIMPLE);
+  camera_.ReprojectTo3D(*(StereoFrame()->PtrToDisparityMap()),*(StereoFrame()->PtrToPointCloud()),region);
+  
+  cv::Vec3f center_of_mass = FindCenterOfMass(StereoFrame()->PtrToPointCloud());
+  cv::Vec3f center_of_mass_ = FindClusterMode(StereoFrame()->PtrToPointCloud(),StereoFrame()->PtrToClassificationMap());
 
-  for(size_t i=0;i<contours.size();i++){
-    std::vector<cv::Point> &contour = contours[i];
-    if(contour.size() < 100) continue;
-    cv::Point center = GetCenter<cv::Point>(contour);
-    cv::Mat mask = cv::Mat::zeros(frame_->rows()+2,frame_->cols()+2,CV_8UC1);
-    std::vector<std::vector<cv::Point> >t;
-    t.push_back(contour);
-    drawContours(mask,t,-1,cv::Scalar(255),CV_FILLED,8);
+  //find the central axis of the blob
+  cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->PtrToPointCloud());
+  
+  cv::Point3f start = (cv::Point3f)(center_of_mass + 10*central_axis);
+  cv::Point3f end = (cv::Point3f)(center_of_mass - 10*central_axis);
 
-    if( mask.at<unsigned char>(seed[1],seed[0]) == 255 ){
-      unsigned char *mask_ptr = (unsigned char *)mask.data;
-      for(int r=0;r<mask.rows;r++){
-        for(int c=0;c<mask.cols;c++){
-          if(mask_ptr[r*mask.cols + c] == static_cast<unsigned char>(255))
-            connected_region.push_back(cv::Vec2i(c,r));
-        }
-      }
+  std::vector<cv::Point3f> inpoint; //inpoint.push_back( (cv::Point3f)center_of_mass);
+  inpoint.push_back(start);
+  inpoint.push_back(end);
+  /*const int rows = StereoFrame()->PtrToPointCloud()->rows;
+  const int cols = StereoFrame()->PtrToPointCloud()->cols;
+  for(int r=0;r<rows;r++){
+    for(int c=0;c<cols;c++){
+      inpoint.push_back( (cv::Point3f)StereoFrame()->PtrToPointCloud()->at<cv::Vec3f>(r,c));
     }
-  } 
+  }*/
+  cv::Mat r = cv::Mat::eye(3,3,CV_64FC1);
+  cv::Mat t = cv::Mat::zeros(1,3,CV_64FC1);
+  cv::Mat dist = cv::Mat::zeros(1,4,CV_64FC1);
+  cv::Mat proj = camera_.GetP1();
+  cv::Point2f outpoint_;
+  std::vector<cv::Point2f> outpoint; outpoint.push_back(outpoint_);
+  cv::projectPoints(inpoint,
+                    r,
+                    t,
+                    camera_.GetP1(),
+                    dist,
+                    outpoint);
+
+  //for(auto i = outpoint.begin(); i!=outpoint.end();i++)
+  //  cv::circle((StereoFrame()->LeftMat()),*i,1,cv::Scalar(178,44,78),10);
+  cv::line((StereoFrame()->LeftMat()),outpoint[0],outpoint[1],cv::Scalar(178,44,78),5);
+
+  cv::imwrite("com.png",StereoFrame()->LeftMat());
+  
+
+
+}
+
+cv::Vec3f StereoToolTracker::FindPrincipalAxisFromMOITensor(const cv::Vec3f center_of_mass_, const boost::shared_ptr<cv::Mat> point_cloud) const {
+
+  cv::Matx<float,1,3> principal_axis(0,0,0);
+  cv::Matx<float,1,3> center_of_mass(center_of_mass_[0],center_of_mass_[1],center_of_mass_[2]);
+  cv::Matx<float,3,3> moi(3,3,CV_32FC1);
+  cv::Matx<float,3,3> E = cv::Matx<float,3,3>::eye();
+  
+  const int rows = point_cloud->rows;
+  const int cols = point_cloud->cols;
+  const int chans = point_cloud->channels();
+  assert(point_cloud->type() == CV_32FC3);
+
+  
+
+  for(int r=0;r<rows;r++){
+    for(int c=0;c<cols;c++){
+      
+      const cv::Matx<float,1,3> point = point_cloud->at<cv::Matx<float,1,3> >(r,c) - center_of_mass;
+      moi = moi + ((point*point.t())(0,0)*E) - (point.t()*point);
+      
+    }
+  }
+
+  cv::Mat eigenvectors,eigenvalues;
+  cv::eigen(moi,true,eigenvalues,eigenvectors);
+  
+  if(eigenvectors.type() != CV_32FC1) throw(std::runtime_error("eigenvector not float\n"));
+  //return cv::Vec3f(principal_axis(0),principal_axis(1),principal_axis(2));
+  int row = 1;
+  return cv::Vec3f(eigenvectors.at<float>(row,0),eigenvectors.at<float>(row,1),eigenvectors.at<float>(row,2));
+
+}
+
+cv::Vec3f StereoToolTracker::FindCenterOfMass(const boost::shared_ptr<cv::Mat> point_cloud) const {
+
+  const int rows = point_cloud->rows;
+  const int cols = point_cloud->cols;
+  const int chans = point_cloud->channels();
+  assert(point_cloud->type() == CV_32FC3);
+  
+  cv::Vec3f com(0,0,0);
+  int num_pts = 0;
+
+  for(int r=0;r<rows;r++){
+    for(int c=0;c<cols;c++){
+
+      const cv::Vec3f &pt = point_cloud->at<cv::Vec3f>(r,c);
+      com += pt;
+      num_pts += pt != cv::Vec3f(0,0,0);
+
+    }
+  }
+
+  for(int n=0;n<chans;n++) 
+    com[n]/= num_pts;
+
+  return com;
+
 }
 
 
@@ -137,6 +210,6 @@ void StereoToolTracker::FindConnectedRegionsFromSeed(const cv::Mat &image, const
    if( !camera_.IsRectified() ) camera_.Rectify(stereo_image->LeftMat().size());
    camera_.RemapLeftFrame(stereo_image->LeftMat());
    camera_.RemapRightFrame(stereo_image->RightMat());
-   
+   camera_.RemapLeftFrame(stereo_image->ClassificationMap());
  }
  

@@ -4,13 +4,14 @@
 #include "../localizer.hpp"
 #include "../../utils/camera.hpp"
 #include <image/image.hpp>
+#include "../pose.hpp"
 
 namespace ttrk {
 
   class PWP3D : public Localizer {
   public: 
     
-    virtual cv::Mat TrackTargetInFrame(KalmanTracker &model) = 0;
+    virtual Pose TrackTargetInFrame(KalmanTracker &model) = 0;
 
   protected:
       

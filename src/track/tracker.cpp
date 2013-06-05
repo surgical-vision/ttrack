@@ -3,10 +3,6 @@
 
 using namespace ttrk;
 
-Tracker::Tracker(){}
-
-Tracker::~Tracker(){}
-
 void Tracker::operator()(boost::shared_ptr<sv::Frame> image){
   
   SetHandleToFrame(image);
@@ -20,50 +16,26 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image){
   //track each model that we know about
   for(current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++ ){
     
-    cv::Mat pose_estimate = localizer_->TrackTargetInFrame(*current_model_);
+    Pose pose_measurement = localizer_->TrackTargetInFrame(*current_model_);
   
-    UpdatePose(pose_estimate);
+    current_model_->UpdatePose(pose_measurement);
   
   }
 }  
 
-void Tracker::UpdatePose(const cv::Mat &pose_estimate){
-
-  // get the prediction from the kalman filter
-
-  // combine with the measurement
-
-  // update the pose
-
-}
-
 bool Tracker::InitKalmanFilter(){
 
-  for(int i = 0; i<tracked_models_.size(); i++){
-  
-    KalmanTracker &track = tracked_models_[i];
-    cv::Mat initial_pose = track.model_->Pose();
-    // set up kalman filter specific stuff
-    
-    track.filter_.init( 6 , 6 );
-
-    
+  for(auto i = tracked_models_.begin(); i!=tracked_models_.end();i++){
+     // set up kalman filter specific stuff    
   }
     
   return true;
 
 }
 
-
-
-
-
 void Tracker::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){
-
   frame_ = image;
-
 }
-
 
 boost::shared_ptr<sv::Frame> Tracker::GetPtrToFinishedFrame(){
   return frame_;
@@ -72,4 +44,8 @@ boost::shared_ptr<sv::Frame> Tracker::GetPtrToFinishedFrame(){
 void Tracker::Tracking(const bool toggle){
   tracking_ = toggle;
 }
+
+Tracker::Tracker(){}
+
+Tracker::~Tracker(){}
   

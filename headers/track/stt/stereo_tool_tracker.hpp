@@ -28,10 +28,12 @@ namespace ttrk {
 
     void CreateDisparityImage();
 
-    void Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region);
+    void Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, KalmanTracker &tracked_model);
 
-    void FindConnectedRegionsFromSeed(const cv::Mat &image, const cv::Vec2i &seed, std::vector<cv::Vec2i> &connected_region);
-
+    cv::Vec3f FindCenterOfMass(const boost::shared_ptr<cv::Mat> point_cloud) const ; 
+    cv::Vec3f FindClusterMode(const boost::shared_ptr<cv::Mat> point_cloud, const boost::shared_ptr<cv::Mat> classification_map) const ;
+    cv::Vec3f FindPrincipalAxisFromMOITensor(const cv::Vec3f center_of_mass, const boost::shared_ptr<cv::Mat> point_cloud) const ;
+   
     StereoCamera camera_;
 
   };

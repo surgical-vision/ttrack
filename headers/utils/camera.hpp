@@ -105,6 +105,8 @@ namespace ttrk{
 
     void ReprojectTo3D(const cv::Mat &image, cv::Mat &point_cloud,const std::vector<cv::Vec2i> &connected_region) const ;
 
+    cv::Mat GetP1() { return P1(cv::Range(0,3),cv::Range(0,3));}
+
   protected:
 
     bool rectified_;
@@ -115,7 +117,7 @@ namespace ttrk{
     cv::Mat extrinsic_matrix_; /**< The rotation and translation between the image planes of the two cameras. */
 
     cv::Mat reprojection_matrix_;
-
+    cv::Mat P1,P2,R1,R2;
     cv::Rect roi1, roi2;
     cv::Mat mapx_left_;
     cv::Mat mapy_left_;

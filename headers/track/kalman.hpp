@@ -15,7 +15,11 @@ namespace ttrk {
   struct KalmanTracker {
 
     KalmanTracker():filter_(14,7,0,CV_32F){}   
+    KalmanTracker(const KalmanTracker &that){
+      model_ = that.model_;
+      pose_ = that.pose_;
 
+    }
     cv::KalmanFilter filter_; /**< The Kalman Filter used to track the class. */
     boost::shared_ptr<Model> model_; /**< The tracked model. */
     cv::Mat temporary_update_pose; /**< A store for the pose update. May be removed. */

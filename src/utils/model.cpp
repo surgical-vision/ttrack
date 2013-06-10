@@ -53,19 +53,81 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
 
 void MISTool::GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const {
 
-  cv::Mat top,bottom;
-  //top = pose_ * (cv::Mat)cv::Vec4f( (float)height_/2, (float)0.0, (float)0.0, (float)1.0);
-  //bottom = pose_ * (cv::Mat)cv::Vec3f( -(float)height_/2, (float)0.0, (float)0.0, (float)1.0);
-
-  assert((top.size() == cv::Size(3,1) || top.size() == cv::Size(1,3)) && top.size() == bottom.size());
-
-  cv::Mat central_axis = top - bottom;
-  double dpdot = central_axis.dot(central_axis);
-  if(dpdot == 0.0f) dpdot = 0.0000001;
-
-  cv::Mat t1 = (cv::Mat)ray - ((1.0/(dpdot))*(ray.dot(central_axis))*central_axis);
+  //cv::Mat top,bottom;
+  cv::Vec3f top(height_/2,0,0);
+  top = pose.Transform(top);
+  cv::Vec3f bottom(-height_/2,0,0);
+  bottom = pose.Transform(bottom);
   
+  cv::Vec3f dP = top - bottom;
+  double dPdP = dP.dot(dP);
+  if(!dPdP) dPdP = 0.0000001;
+  cv::Vec3f t_1 = ray - ((ray.dot(dP))/dPdP)*dP;
+  cv::Vec3f t_2 = ((bottom.dot(dP))/dPdP)*dP - bottom;
+
+  float a = t_1.dot(t_1);
+  float b = 2*t_1.dot(t_2);
+  float c = t_2.dot(t_2) - radius_*radius_;
+
+  float det = (b*b) - (4 *a*c);
+
+  if(det <= 0) {
+    front = back = cv::Vec3f(0,0,0);
+    return;
+  }
+  if(!a) a = 0.00000000001;
+
+  float s2 = (-b - sqrt(det))/(2*a);
+  float s1 = (-b + sqrt(det))/(2*a);
+  
+  float alp_1 = (s1*(ray.dot(dP)) - (bottom.dot(dP)))/(dPdP);
+  float alp_2 = (s2*(ray.dot(dP)) - (bottom.dot(dP)))/(dPdP);
+  
+  
+  
+  if(dP.dot(dP))  
+    dP = cv::normalize(dP);
+  
+  if(alp_1 >= 0.0 && alp_1 <= 1.0){ //intersection w/ side of cylinder
+    front = s1*ray;
+  }else{ //if not there then check for intersection with circular head of cylinder
+    front = CircleIntersection(bottom,dP,ray,radius_);
+    if(front == cv::Vec3f(0,0,0))
+      front = CircleIntersection(top,dP,ray,radius_);
+  }
+  if(alp_2 >= 0.0 && alp_2 <= 1.0){
+    back = s2*ray;
+  }else{
+    back = CircleIntersection(bottom,dP,ray,radius_);
+    if(back == cv::Vec3f(0,0,0))
+      back = CircleIntersection(bottom,dP,ray,radius_);
+  }
+  
+  if(front[0]!=front[0]){
+    throw(std::runtime_error("Error, cylinder intersection routine is giving nans!\n"));
 
 
+    if(front[2] > back[5]){
+      for(int c=0;c<3;c++)
+        std::swap(front[c],back[c]);
+    }
+
+  }
+}
+
+cv::Vec3f MISTool::CircleIntersection(const cv::Vec3f &A, const cv::Vec3f &n, const cv::Vec3f &d, const float R) const{
+  
+  assert(sqrt(n.dot(n)) >= 0.99 && sqrt(n.dot(n)) <= 1.01); //assert normalized
+  float dn = d.dot(n);
+
+  if(dn == 0.0) dn = 0.000000000001;
+
+  float mu = (A.dot(n))/(dn);
+
+  cv::Vec3f to_center = A - (mu*d);
+  if(sqrt(to_center.dot(to_center)) > R)
+    return cv::Vec3f(0,0,0);
+  else
+    return mu*d;
 
 }

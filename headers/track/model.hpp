@@ -120,7 +120,7 @@ namespace ttrk{
     * @param[out] back The back intersection.
     */
     virtual void GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const;
-
+    cv::Vec3f CircleIntersection(const cv::Vec3f &A, const cv::Vec3f &n, const cv::Vec3f &d, const float R) const ;
     virtual cv::Vec3f PrincipalAxis() const { return cv::Vec3f(1,0,0); }
 
   private:

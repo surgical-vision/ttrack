@@ -24,6 +24,9 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
     cv::Mat jacobian = cv::Mat::zeros(1,6,CV_64FC1);
 
+    cv::Mat front_view = cv::Mat::zeros(sdf_image.size(),CV_8UC1);
+    cv::Mat back_view = cv::Mat::zeros(sdf_image.size(),CV_8UC1);
+
     for(int r=0;r<ROI_left_.rows;r++){
       for(int c=0;c<ROI_left_.cols;c++){
 
@@ -31,12 +34,23 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
         const cv::Mat pose_derivatives = GetPoseDerivatives(r,c,dSDFdx.at<float>(r,c),dSDFdy.at<float>(r,c),sdf_image.at<float>(r,c),current_model);
 
+        cv::Vec2f projected_front = camera_->rectified_left_eye().ProjectPoint(cv::Point3f(pose_derivatives.at<double>(0,0),pose_derivatives.at<double>(1,0),pose_derivatives.at<double>(2,0)));
+        cv::Vec2f projected_back = camera_->rectified_left_eye().ProjectPoint(cv::Point3f(pose_derivatives.at<double>(3,0),pose_derivatives.at<double>(4,0),pose_derivatives.at<double>(5,0)));
+
+        if(cv::Point3f(pose_derivatives.at<double>(0,0),pose_derivatives.at<double>(1,0),pose_derivatives.at<double>(2,0)) != cv::Point3f(0,0,0))
+          front_view.at<unsigned char>(projected_front[1],projected_front[0]) = 255;      
+        if(cv::Point3f(pose_derivatives.at<double>(3,0),pose_derivatives.at<double>(4,0),pose_derivatives.at<double>(5,0)) != cv::Point3f(0,0,0))
+          back_view.at<unsigned char>(projected_back[1],projected_back[0]) = 255;
+
         const cv::Mat regularized_depth = GetRegularizedDepth(r,c);
 
-        jacobian = jacobian + (region_agreement*pose_derivatives) + regularized_depth;
+        //jacobian = jacobian + (region_agreement*pose_derivatives) + regularized_depth;
 
       }
     }
+
+    cv::imwrite("front.png",front_view);
+    cv::imwrite("back.png",back_view);
 
     ScaleJacobian(jacobian);
     ApplyGradientDescentStep(jacobian);
@@ -58,15 +72,11 @@ const cv::Mat StereoPWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
   std::vector<SimplePoint<> > points = current_model.ModelPointsAtCurrentPose();
   std::vector<cv::Vec2i > projected_points;//( points.size() );
 
-  cv::Mat t = cv::Mat::zeros(frame_->rows(),frame_->cols(),CV_8UC3);
   for(size_t i=0;i<points.size();i++){
-
     cv::Point2f pt = camera_->rectified_left_eye().ProjectPoint(points[i].vertex_);
     projected_points.push_back( cv::Vec2i( pt.x,pt.y) );
-    //cv::circle(t,projected_points.back(),2,cv::Scalar(255,1,4),2);
   }
-  cv::imwrite("test_points.png",t);
-  
+
   std::vector<cv::Vec2i> convex_hull;
   cv::convexHull(projected_points,convex_hull);
   cv::Mat convex_hull_(convex_hull);
@@ -90,7 +100,7 @@ const cv::Mat StereoPWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
 
 void StereoPWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, KalmanTracker &current_model){
 
-  cv::Vec3f ray = camera_->rectified_left_eye().UnProjectPoint( cv::Point2i(c,r) );
+  cv::Vec3f ray = camera_->rectified_left_eye().UnProjectPoint( cv::Point2i(c,r) ); 
   
   current_model.PtrToModel()->GetIntersection(ray, front_intersection, back_intersection,current_model.CurrentPose());
 
@@ -102,21 +112,22 @@ cv::Mat StereoPWP3D::GetPoseDerivatives(const int r, const int c, const float dS
   cv::Vec3f back_intersection;
 
   GetTargetIntersections(r,c,front_intersection,back_intersection,current_model);
-
-  for(int dof=0;dof<6;dof++){
-
-
-
-
+  cv::Mat ret(6,1,CV_64FC1);
+  //for(int dof=0;dof<6;dof++){
+  for(int c=0;c<3;c++){
+    ret.at<double>(c,0) = front_intersection[c];
+    ret.at<double>(3+c,0) = back_intersection[c];
   }
 
+ //}
 
-  return cv::Mat();
+
+  return ret;
 }
 
 double StereoPWP3D::GetRegionAgreement(const int r, const int c, const float sdf, const double norm_foreground, const double norm_background) const{
-
-  const double pixel_probability = ROI_left_.at<float>(r,c)/255.0;
+  
+  const double pixel_probability = (double)frame_->ClassificationMap().at<unsigned char>(r,c)/255.0;
   const double norm = (norm_foreground*pixel_probability) + (norm_background*(1.0-pixel_probability));
   const double foreground_probability = pixel_probability/norm;
   const double background_probability = (1-pixel_probability)/norm;

@@ -126,7 +126,6 @@ void StereoCamera::Rectify(const cv::Size image_size) {
                     -1,  // -1 = default scaling, 0 = no black pixels, 1 = no source pixels lost
                     cv::Size(), &roi1, &roi2); 
 
-  std::cout << extrinsic_matrix_(cv::Range(0,3),cv::Range(3,4)) << std::endl;
   InitRectified();
   
   //store ROI1/2 in the stereo image class and then write method to extract these roi's whenever

@@ -84,7 +84,7 @@ namespace ttrk{
     //StereoCamera camera_; /**< A camera model for projecting points onto the image plane. */
     std::vector<KalmanTracker> tracked_models_; /**< a vector of tracked models. TODO: switch this out for point cloud mesh or some better data structure. */
     std::vector<KalmanTracker>::iterator current_model_; /**< A reference to the currently tracked model. */
-    boost::scoped_ptr<Localizer> localizer_;
+    boost::shared_ptr<Localizer> localizer_;
 
     
     bool tracking_; /**< The variable for toggling tracking on or off.  */

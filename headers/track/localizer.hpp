@@ -2,6 +2,7 @@
 #define __LOCALIZER_HPP__
 #include "kalman.hpp"
 #include "pose.hpp"
+#include <image/image.hpp>
 
 namespace ttrk {
 
@@ -9,7 +10,7 @@ namespace ttrk {
 
   public:
 
-    virtual Pose TrackTargetInFrame(KalmanTracker model) = 0;
+    virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame) = 0;
 
   };
 

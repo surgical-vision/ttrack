@@ -4,9 +4,10 @@
 using namespace ttrk;
 
 
-Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model){
+Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
 
-  const int NUM_STEPS = 0;
+  frame_ = frame;
+  const int NUM_STEPS = 1;
   double energy = std::numeric_limits<double>::max(); //to minimise
 
   for(int step=0; step < NUM_STEPS; step++){
@@ -55,13 +56,16 @@ cv::Mat StereoPWP3D::GetRegularizedDepth(const int r, const int c) const {
 const cv::Mat StereoPWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
 
   std::vector<SimplePoint<> > points = current_model.ModelPointsAtCurrentPose();
-  std::vector<cv::Vec2i > projected_points( points.size() );
+  std::vector<cv::Vec2i > projected_points;//( points.size() );
 
+  cv::Mat t = cv::Mat::zeros(frame_->rows(),frame_->cols(),CV_8UC3);
   for(size_t i=0;i<points.size();i++){
 
-    projected_points.push_back( camera_->left_eye().ProjectPointToPixel(points[i].vertex_) );
-
+    cv::Point2f pt = camera_->rectified_left_eye().ProjectPoint(points[i].vertex_);
+    projected_points.push_back( cv::Vec2i( pt.x,pt.y) );
+    //cv::circle(t,projected_points.back(),2,cv::Scalar(255,1,4),2);
   }
+  cv::imwrite("test_points.png",t);
   
   std::vector<cv::Vec2i> convex_hull;
   cv::convexHull(projected_points,convex_hull);
@@ -79,14 +83,14 @@ const cv::Mat StereoPWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
 
     }
   }
-
+  
   return sdf_image;
 
 }
 
 void StereoPWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, KalmanTracker &current_model){
 
-  cv::Vec3f ray = camera_->left_eye().UnProjectPoint( cv::Point2i(c,r) );
+  cv::Vec3f ray = camera_->rectified_left_eye().UnProjectPoint( cv::Point2i(c,r) );
   
   current_model.PtrToModel()->GetIntersection(ray, front_intersection, back_intersection,current_model.CurrentPose());
 

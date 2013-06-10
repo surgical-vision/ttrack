@@ -61,8 +61,9 @@ cv::Mat MonoPWP3D::GetPoseDerivatives(const int r, const int c, const float dSDF
   return cv::Mat();
 }
 
-Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model){
+Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
 
+  frame_ = frame;
   const int NUM_STEPS = 10;
   double energy = std::numeric_limits<double>::max(); //to minimise
 

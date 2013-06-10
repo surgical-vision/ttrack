@@ -4,10 +4,12 @@
 
 using namespace ttrk;
 
-StereoToolTracker::StereoToolTracker(const int radius, const int height, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_(calibration_filename){
+StereoToolTracker::StereoToolTracker(const int radius, const int height, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_( new StereoCamera(calibration_filename)){
 
   localizer_.reset(new StereoPWP3D);
-  
+  boost::shared_ptr<StereoPWP3D> stereo_pwp3d = boost::dynamic_pointer_cast<StereoPWP3D>(localizer_);
+  stereo_pwp3d->Camera() = camera_;
+
 }
 
 void StereoToolTracker::CreateDisparityImage(){
@@ -95,22 +97,19 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
 
   //create the point cloud used to initialize the pose
   CreateDisparityImage();
-  camera_.ReprojectTo3D(*(StereoFrame()->PtrToDisparityMap()),*(StereoFrame()->PtrToPointCloud()),region);
+  camera_->ReprojectTo3D(*(StereoFrame()->PtrToDisparityMap()),*(StereoFrame()->PtrToPointCloud()),region);
   
-  //find the center of mass of the point cloud
+  //find the center of mass of the point cloud and shift it to the center of the shape rather than lie on the surface
   cv::Vec3f center_of_mass = FindCenterOfMass(StereoFrame()->PtrToPointCloud());
-  std::cerr << "central mass before is : " << cv::Point3f(center_of_mass) << std::endl << "length is : " << cv::norm(center_of_mass) << std::endl;
   center_of_mass *= (cv::norm(center_of_mass) + radius_ )/cv::norm(center_of_mass);
-  std::cerr << "central mass is " << cv::Point3f(center_of_mass) << std::endl;
+  
   cv::Vec3f center_of_mass_ = FindClusterMode(StereoFrame()->PtrToPointCloud(),StereoFrame()->PtrToClassificationMap());
-  center_of_mass = cv::Vec3f(0,0,60);
   //find the central axis of the point cloud
   cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->PtrToPointCloud());
   central_axis = cv::normalize(central_axis);
-  std::cerr << "central axis is " << cv::Point3f(central_axis) << std::endl << "length is : " << cv::norm(center_of_mass) << std::endl;
-  
+
+
   //use these two parameters to set the initial pose of the object
-  //central_axis = cv::Vec3f(0,1,0);
   tracked_model.SetPose(center_of_mass,central_axis);
   
 }
@@ -161,7 +160,7 @@ cv::Vec3f StereoToolTracker::FindCenterOfMass(const boost::shared_ptr<cv::Mat> p
     for(int c=0;c<cols;c++){
 
       const cv::Vec3f &pt = point_cloud->at<cv::Vec3f>(r,c);
-      const cv::Vec2i p = camera_.rectified_left_eye().ProjectPointToPixel(cv::Point3f(pt));
+      const cv::Vec2i p = camera_->rectified_left_eye().ProjectPointToPixel(cv::Point3f(pt));
       
       if( pt != cv::Vec3f(0,0,0) ){
         com += pt;
@@ -192,17 +191,20 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
   std::vector<SimplePoint<> > transformed_points = tracked_model.ModelPointsAtCurrentPose();
   for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
 
-    cv::Vec2f projected = camera_.rectified_left_eye().ProjectPoint(point->vertex_);
+    std::cout << cv::Point3f(point->vertex_) << " projects to ";
+    cv::Vec2f projected = camera_->rectified_left_eye().ProjectPoint(point->vertex_);
+    std::cout << cv::Point2f(projected) << std::endl;
+    cv::circle(canvas,cv::Point2f(projected),4,cv::Scalar(0,244,222),2);
 
     for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
       
       const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
-      cv::Vec2f projected_neighbour = camera_.rectified_left_eye().ProjectPoint( neighbour.vertex_ );
+      cv::Vec2f projected_neighbour = camera_->rectified_left_eye().ProjectPoint( neighbour.vertex_ );
 
       if(canvas.channels() == 3)
         line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),3,8);
       if(canvas.channels() == 1)
-        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(uchar)255,3,8);
+        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,3,8);
     }
   }
 
@@ -216,9 +218,9 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
    boost::shared_ptr<sv::StereoFrame> stereo_image = boost::dynamic_pointer_cast<sv::StereoFrame>(image);
    
    //then rectify the camera and remap the images
-   if( !camera_.IsRectified() ) camera_.Rectify(stereo_image->LeftMat().size());
-   camera_.RemapLeftFrame(stereo_image->LeftMat());
-   camera_.RemapRightFrame(stereo_image->RightMat());
-   camera_.RemapLeftFrame(stereo_image->ClassificationMap());
+   if( !camera_->IsRectified() ) camera_->Rectify(stereo_image->LeftMat().size());
+   camera_->RemapLeftFrame(stereo_image->LeftMat());
+   camera_->RemapRightFrame(stereo_image->RightMat());
+   camera_->RemapLeftFrame(stereo_image->ClassificationMap());
  }
  

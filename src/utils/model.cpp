@@ -19,8 +19,8 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
   for(size_t i=0;i<precision;i++){
 
     cv::Vec3f point(-(float)height_/2 + (float)(height_)*(i>=(precision/2)), 
-                     (float)(radius_ * cos(i * M_PI/4)), 
-                     (float)(radius_ * sin(i * M_PI/4)));
+                     (float)(radius_ * cos(i * 4*M_PI/precision)), 
+                     (float)(radius_ * sin(i * 4*M_PI/precision)));
 
     std::cerr << "Transforming points" << std::endl;
     std::cout << cv::Point3f(point) << " -- > ";

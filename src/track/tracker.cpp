@@ -16,7 +16,7 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image){
   //track each model that we know about
   for(current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++ ){
     
-    Pose pose_measurement = localizer_->TrackTargetInFrame(*current_model_);
+    Pose pose_measurement = localizer_->TrackTargetInFrame(*current_model_,image);
   
     current_model_->UpdatePose(pose_measurement);
   

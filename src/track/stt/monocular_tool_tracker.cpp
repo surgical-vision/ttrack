@@ -14,8 +14,8 @@ bool MonocularToolTracker::Init(){
 
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
-    KalmanTracker new_tracker;
-    new_tracker.model_.reset( new MISTool(radius_,height_) );
+    KalmanTracker new_tracker(boost::shared_ptr<Model>(new  MISTool(radius_,height_) ));
+    //new_tracker.model_.reset( new MISTool(radius_,height_) );
 
     tracked_models_.push_back( new_tracker ); 
 
@@ -38,6 +38,29 @@ const cv::Vec2i MonocularToolTracker::FindCenterOfMass(const std::vector<cv::Vec
 
   cv::Vec2i ret(0,0);
   return ret;
+
+}
+
+void MonocularToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const {
+
+  std::vector<SimplePoint<> > transformed_points = tracked_model.ModelPointsAtCurrentPose();
+  for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
+    throw(std::runtime_error("Error, finish this function!\n"));
+//  cv::Point cvpt(tpt[0],tpt[1]);
+   /* for(size_t n=0;n<pt.neighbours_.size();n++){
+
+      ttk::Point &npt = (*transformed_points)[pt.neighbours_[n]];
+      TooN::Vector<2> tnpt = ProjectPoint(npt.vertex_);
+      cv::Point cvnpt(tnpt[0],tnpt[1]);
+
+      if(image.channels() == 3)
+	line(image,cvpt,cvnpt,cv::Scalar(255,0,255),3,8);
+      if(image.channels() == 1)
+	line(image,cvpt,cvnpt,(uchar)255,3,8);
+    }
+  }
+  */
+  }
 
 }
 

@@ -27,13 +27,13 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
     //load the correct type of tool tracker
     switch(camera_type_){
     case STEREO:
-      tracker_.reset(new StereoToolTracker(3,20,*root_dir_ + "/config/camera.xml"));
+      tracker_.reset(new StereoToolTracker(2,20,*root_dir_ + "/config/camera.xml"));
       break;
     case MONOCULAR:
-      tracker_.reset(new MonocularToolTracker(3,20,*root_dir_ + "/config/camera.xml"));
+      tracker_.reset(new MonocularToolTracker(2,30,*root_dir_ + "/config/camera.xml"));
       break;
     default:
-      tracker_.reset(new StereoToolTracker(3,20,*root_dir_ + "/config/camera.xml"));
+      tracker_.reset(new StereoToolTracker(2,30,*root_dir_ + "/config/camera.xml"));
       break;
     }
 
@@ -94,6 +94,9 @@ void TTrack::SaveFrame(){
   //draws the model at the current pose on c_frame_
   boost::shared_ptr<sv::Frame> frame = tracker_->GetPtrToFinishedFrame();
 
+  cv::Mat canvas = frame->PtrToMat()->clone();
+  DrawModel(canvas);
+  cv::imwrite("./canvas.png",canvas);
   //DrawModel(frame_);
   
   handler_->SavePtrToFrame(frame->PtrToMat());
@@ -107,7 +110,14 @@ void TTrack::SaveDebug() const {
 
 }
 
-void TTrack::DrawModel(cv::Mat &frame){
+void TTrack::DrawModel(cv::Mat &frame) const {
+
+  //for each model that we are tracking 
+  for(auto tracked_model = tracker_->TrackedModels().begin(); tracked_model != tracker_->TrackedModels().end(); tracked_model++){
+ 
+    tracker_->DrawModelOnFrame(*tracked_model,frame);
+
+  }
 
 }
 
@@ -152,22 +162,12 @@ bool TTrack::constructed_ = false;
 
 boost::scoped_ptr<TTrack> TTrack::instance_(new TTrack);
 
-TTrack::TTrack(){}//:tracker_(0),detector_(0),handler_(0),frame_(0){}
+TTrack::TTrack(){}
 
-TTrack::~TTrack(){
-  /*delete handler_;
-  handler_ = 0x0;
-  delete detector_;
-  detector_ = 0x0;
-  delete tracker_;
-  tracker_ = 0x0;
-  delete frame_;
-  frame_ = 0x0;*/
-}
+TTrack::~TTrack(){}
 
 void TTrack::Destroy(){
 
-  //delete instance_;
   instance_.reset();// = 0;
   constructed_ = false;
 

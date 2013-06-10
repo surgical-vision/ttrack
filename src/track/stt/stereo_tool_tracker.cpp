@@ -28,8 +28,8 @@ void StereoToolTracker::CreateDisparityImage(){
                       32*smoothness,
                       4, //disp12MaxDiff
                       50, //preFilterCap
-                      50, //uniquenessRatio [5-15]
-                      4, //speckleWindowSize [50-200]
+                      10, //uniquenessRatio [5-15] 50
+                      50, //speckleWindowSize [50-200] 4
                       1,//speckleRange
                       true);
 
@@ -58,14 +58,14 @@ bool StereoToolTracker::Init() {
   //for each connected region find the corresponding connected region in the other frame
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
-    KalmanTracker new_tracker;
-    new_tracker.model_.reset( new MISTool(radius_,height_) );
+    KalmanTracker new_tracker(boost::shared_ptr<Model> (new MISTool(radius_,height_) ));
+    //new_tracker.Model().reset( new MISTool(radius_,height_) );
     tracked_models_.push_back( new_tracker ); 
     Init3DPoseFromMOITensor(*connected_region, tracked_models_.back());//,corresponding_connected_region);
   
   }
 
-  return false;
+  return true;
 }
 
 cv::Vec3f StereoToolTracker::FindClusterMode(const boost::shared_ptr<cv::Mat> point_cloud, const boost::shared_ptr<cv::Mat> classification_map) const {
@@ -93,50 +93,26 @@ cv::Vec3f StereoToolTracker::FindClusterMode(const boost::shared_ptr<cv::Mat> po
 
 void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, KalmanTracker &tracked_model) {
 
+  //create the point cloud used to initialize the pose
   CreateDisparityImage();
-  
   camera_.ReprojectTo3D(*(StereoFrame()->PtrToDisparityMap()),*(StereoFrame()->PtrToPointCloud()),region);
   
+  //find the center of mass of the point cloud
   cv::Vec3f center_of_mass = FindCenterOfMass(StereoFrame()->PtrToPointCloud());
+  std::cerr << "central mass before is : " << cv::Point3f(center_of_mass) << std::endl << "length is : " << cv::norm(center_of_mass) << std::endl;
+  center_of_mass *= (cv::norm(center_of_mass) + radius_ )/cv::norm(center_of_mass);
+  std::cerr << "central mass is " << cv::Point3f(center_of_mass) << std::endl;
   cv::Vec3f center_of_mass_ = FindClusterMode(StereoFrame()->PtrToPointCloud(),StereoFrame()->PtrToClassificationMap());
-
-  //find the central axis of the blob
+  center_of_mass = cv::Vec3f(0,0,60);
+  //find the central axis of the point cloud
   cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->PtrToPointCloud());
+  central_axis = cv::normalize(central_axis);
+  std::cerr << "central axis is " << cv::Point3f(central_axis) << std::endl << "length is : " << cv::norm(center_of_mass) << std::endl;
   
-  cv::Point3f start = (cv::Point3f)(center_of_mass + 10*central_axis);
-  cv::Point3f end = (cv::Point3f)(center_of_mass - 10*central_axis);
-
-  std::vector<cv::Point3f> inpoint; //inpoint.push_back( (cv::Point3f)center_of_mass);
-  inpoint.push_back(start);
-  inpoint.push_back(end);
-  /*const int rows = StereoFrame()->PtrToPointCloud()->rows;
-  const int cols = StereoFrame()->PtrToPointCloud()->cols;
-  for(int r=0;r<rows;r++){
-    for(int c=0;c<cols;c++){
-      inpoint.push_back( (cv::Point3f)StereoFrame()->PtrToPointCloud()->at<cv::Vec3f>(r,c));
-    }
-  }*/
-  cv::Mat r = cv::Mat::eye(3,3,CV_64FC1);
-  cv::Mat t = cv::Mat::zeros(1,3,CV_64FC1);
-  cv::Mat dist = cv::Mat::zeros(1,4,CV_64FC1);
-  cv::Mat proj = camera_.GetP1();
-  cv::Point2f outpoint_;
-  std::vector<cv::Point2f> outpoint; outpoint.push_back(outpoint_);
-  cv::projectPoints(inpoint,
-                    r,
-                    t,
-                    camera_.GetP1(),
-                    dist,
-                    outpoint);
-
-  //for(auto i = outpoint.begin(); i!=outpoint.end();i++)
-  //  cv::circle((StereoFrame()->LeftMat()),*i,1,cv::Scalar(178,44,78),10);
-  cv::line((StereoFrame()->LeftMat()),outpoint[0],outpoint[1],cv::Scalar(178,44,78),5);
-
-  cv::imwrite("com.png",StereoFrame()->LeftMat());
+  //use these two parameters to set the initial pose of the object
+  //central_axis = cv::Vec3f(0,1,0);
+  tracked_model.SetPose(center_of_mass,central_axis);
   
-
-
 }
 
 cv::Vec3f StereoToolTracker::FindPrincipalAxisFromMOITensor(const cv::Vec3f center_of_mass_, const boost::shared_ptr<cv::Mat> point_cloud) const {
@@ -165,8 +141,6 @@ cv::Vec3f StereoToolTracker::FindPrincipalAxisFromMOITensor(const cv::Vec3f cent
   cv::Mat eigenvectors,eigenvalues;
   cv::eigen(moi,true,eigenvalues,eigenvectors);
   
-  if(eigenvectors.type() != CV_32FC1) throw(std::runtime_error("eigenvector not float\n"));
-  //return cv::Vec3f(principal_axis(0),principal_axis(1),principal_axis(2));
   int row = 1;
   return cv::Vec3f(eigenvectors.at<float>(row,0),eigenvectors.at<float>(row,1),eigenvectors.at<float>(row,2));
 
@@ -180,22 +154,57 @@ cv::Vec3f StereoToolTracker::FindCenterOfMass(const boost::shared_ptr<cv::Mat> p
   assert(point_cloud->type() == CV_32FC3);
   
   cv::Vec3f com(0,0,0);
+  cv::Vec2i alt_com(0,0);
   int num_pts = 0;
 
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
 
       const cv::Vec3f &pt = point_cloud->at<cv::Vec3f>(r,c);
-      com += pt;
-      num_pts += pt != cv::Vec3f(0,0,0);
+      const cv::Vec2i p = camera_.rectified_left_eye().ProjectPointToPixel(cv::Point3f(pt));
+      
+      if( pt != cv::Vec3f(0,0,0) ){
+        com += pt;
+        num_pts++;
+      }
+
+      if(pt != cv::Vec3f(0,0,0))
+        alt_com += p;
 
     }
   }
 
-  for(int n=0;n<chans;n++) 
+  
+  for(int n=0;n<chans;n++) {
     com[n]/= num_pts;
+    if(n<2) alt_com[n]/=num_pts;
+    
+  }
+  
+  cv::Vec3f alt_com_3d = point_cloud->at<cv::Vec3f>(alt_com[0],alt_com[1]);
 
-  return com;
+  return alt_com_3d*2; //THIS IS MULITPLIED BY 2
+
+}
+
+void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const {
+
+  std::vector<SimplePoint<> > transformed_points = tracked_model.ModelPointsAtCurrentPose();
+  for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
+
+    cv::Vec2f projected = camera_.rectified_left_eye().ProjectPoint(point->vertex_);
+
+    for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
+      
+      const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
+      cv::Vec2f projected_neighbour = camera_.rectified_left_eye().ProjectPoint( neighbour.vertex_ );
+
+      if(canvas.channels() == 3)
+        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),3,8);
+      if(canvas.channels() == 1)
+        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(uchar)255,3,8);
+    }
+  }
 
 }
 

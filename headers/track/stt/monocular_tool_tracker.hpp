@@ -17,7 +17,8 @@ namespace ttrk {
     * @return The success of the initialisation.
     */
     virtual bool Init();
-  
+    virtual void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const;
+    
   protected:
 
     

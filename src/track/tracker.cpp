@@ -37,6 +37,8 @@ void Tracker::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){
   frame_ = image;
 }
 
+
+
 boost::shared_ptr<sv::Frame> Tracker::GetPtrToFinishedFrame(){
   return frame_;
 }

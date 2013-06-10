@@ -5,7 +5,7 @@ using namespace ttrk;
 
 const cv::Mat MonoPWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
 
-  std::vector<SimplePoint<> > points = current_model.model_->Points();
+  std::vector<SimplePoint<> > points = current_model.ModelPointsAtCurrentPose();
   std::vector<cv::Vec2i > projected_points( points.size() );
 
   for(size_t i=0;i<points.size();i++){
@@ -39,7 +39,7 @@ void MonoPWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &fron
 
   cv::Vec3f ray = camera_->UnProjectPoint( cv::Point2i(c,r) );
   
-  current_model.model_->GetIntersection(ray, front_intersection, back_intersection,current_model.CurrentPose());
+  current_model.PtrToModel()->GetIntersection(ray, front_intersection, back_intersection,current_model.CurrentPose());
 
 }
 
@@ -61,7 +61,7 @@ cv::Mat MonoPWP3D::GetPoseDerivatives(const int r, const int c, const float dSDF
   return cv::Mat();
 }
 
-Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker &current_model){
+Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model){
 
   const int NUM_STEPS = 10;
   double energy = std::numeric_limits<double>::max(); //to minimise

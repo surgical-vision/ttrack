@@ -4,10 +4,57 @@
 using namespace ttrk;
 
 
+Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model){
+
+  const int NUM_STEPS = 0;
+  double energy = std::numeric_limits<double>::max(); //to minimise
+
+  for(int step=0; step < NUM_STEPS; step++){
+     
+    cv::Mat sdf_image = ProjectShapeToSDF(current_model);
+
+    double norm_foreground,norm_background;
+    ComputeNormalization(norm_foreground,norm_background,sdf_image);
+
+    //compute the derivates of the sdf images
+    cv::Mat dSDFdx, dSDFdy;
+    cv::Sobel(sdf_image,dSDFdx,CV_32FC1,1,0,1);
+    cv::Sobel(sdf_image,dSDFdy,CV_32FC1,0,1,1);
+
+    cv::Mat jacobian = cv::Mat::zeros(1,6,CV_64FC1);
+
+    for(int r=0;r<ROI_left_.rows;r++){
+      for(int c=0;c<ROI_left_.cols;c++){
+
+        const double region_agreement = GetRegionAgreement(r,c,sdf_image.at<float>(r,c),norm_foreground, norm_background);
+
+        const cv::Mat pose_derivatives = GetPoseDerivatives(r,c,dSDFdx.at<float>(r,c),dSDFdy.at<float>(r,c),sdf_image.at<float>(r,c),current_model);
+
+        const cv::Mat regularized_depth = GetRegularizedDepth(r,c);
+
+        jacobian = jacobian + (region_agreement*pose_derivatives) + regularized_depth;
+
+      }
+    }
+
+    ScaleJacobian(jacobian);
+    ApplyGradientDescentStep(jacobian);
+
+  }
+
+  //return something like current_model.CurrentPose() + delta*Jacobian
+  return current_model.CurrentPose();
+
+}
+
+cv::Mat StereoPWP3D::GetRegularizedDepth(const int r, const int c) const {
+  cv::Mat x = cv::Mat::zeros(7,1,CV_64FC1);
+  return x;
+}
 
 const cv::Mat StereoPWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
 
-  std::vector<SimplePoint<> > points = current_model.model_->Points();
+  std::vector<SimplePoint<> > points = current_model.ModelPointsAtCurrentPose();
   std::vector<cv::Vec2i > projected_points( points.size() );
 
   for(size_t i=0;i<points.size();i++){
@@ -41,7 +88,7 @@ void StereoPWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &fr
 
   cv::Vec3f ray = camera_->left_eye().UnProjectPoint( cv::Point2i(c,r) );
   
-  current_model.model_->GetIntersection(ray, front_intersection, back_intersection,current_model.CurrentPose());
+  current_model.PtrToModel()->GetIntersection(ray, front_intersection, back_intersection,current_model.CurrentPose());
 
 }
 
@@ -61,47 +108,6 @@ cv::Mat StereoPWP3D::GetPoseDerivatives(const int r, const int c, const float dS
 
 
   return cv::Mat();
-}
-
-Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker &current_model){
-
-  const int NUM_STEPS = 10;
-  double energy = std::numeric_limits<double>::max(); //to minimise
-
-  for(int step=0; step < NUM_STEPS; step++){
-     
-    cv::Mat sdf_image = ProjectShapeToSDF(current_model);
-
-    double norm_foreground,norm_background;
-    ComputeNormalization(norm_foreground,norm_background,sdf_image);
-
-    //compute the derivates of the sdf images
-    cv::Mat dSDFdx, dSDFdy;
-    cv::Sobel(sdf_image,dSDFdx,CV_32FC1,1,0,1);
-    cv::Sobel(sdf_image,dSDFdy,CV_32FC1,0,1,1);
-
-    cv::Mat jacobian = cv::Mat::zeros(1,6,CV_64FC1);
-
-    for(int r=0;r<ROI_left_.rows;r++){
-      for(int c=0;c<ROI_left_.cols;c++){
-
-        const double region_agreement = GetRegionAgreement(r,c,sdf_image.at<float>(r,c),norm_foreground, norm_background);
-
-        const cv::Mat pose_derivatives = GetPoseDerivatives(r,c,dSDFdx.at<float>(r,c),dSDFdy.at<float>(r,c),sdf_image.at<float>(r,c),current_model);
-
-        jacobian = jacobian + (region_agreement*pose_derivatives);
-
-      }
-    }
-
-    ScaleJacobian(jacobian);
-    ApplyGradientDescentStep(jacobian);
-
-  }
-
-  //return something like current_model.CurrentPose() + delta*Jacobian
-  return current_model.CurrentPose();
-
 }
 
 double StereoPWP3D::GetRegionAgreement(const int r, const int c, const float sdf, const double norm_foreground, const double norm_background) const{

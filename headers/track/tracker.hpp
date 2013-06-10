@@ -11,6 +11,7 @@
 #include "localizer.hpp"
 #include "model.hpp"
 
+
 namespace ttrk{
 
  /**
@@ -48,11 +49,15 @@ namespace ttrk{
      */
     boost::shared_ptr<sv::Frame> GetPtrToFinishedFrame();
 
+    virtual void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const = 0;
+
     /**
      * Toggle tracking on or not. If it's off, init is called on each new frame .
      * @param toggle Set True for on, False for off.
      */
     void Tracking(const bool toggle);
+
+    std::vector<KalmanTracker> &TrackedModels() { return tracked_models_; }
 
   protected:
 

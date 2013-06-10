@@ -21,7 +21,7 @@ namespace ttrk {
     virtual bool Init();
 
     boost::shared_ptr<sv::StereoFrame> StereoFrame() { return boost::dynamic_pointer_cast<sv::StereoFrame,sv::Frame>(frame_); }
-    
+    virtual void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const;
   protected:
 
     virtual void SetHandleToFrame(boost::shared_ptr<sv::Frame> image);

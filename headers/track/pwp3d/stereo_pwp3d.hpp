@@ -9,8 +9,9 @@ namespace ttrk {
     
   public: 
     
-    virtual Pose TrackTargetInFrame(KalmanTracker model);
-
+    virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame);
+    boost::shared_ptr<StereoCamera> &Camera() { return camera_; }
+  
   protected:
 
      /**

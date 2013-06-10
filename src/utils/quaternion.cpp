@@ -10,6 +10,7 @@ Quaternion Quaternion::FromVectorToVector(const cv::Vec3f &from, const cv::Vec3f
       cv::Vec3f to_n = cv::normalize(to);
       
       float d = from_n.dot(to_n);
+
       if(d >= 1.0f){
         return boost::math::quaternion<double>();
       }
@@ -21,9 +22,7 @@ Quaternion Quaternion::FromVectorToVector(const cv::Vec3f &from, const cv::Vec3f
 
       cv::Vec3f axis = from_n.cross(to_n);
 
-      double angle_scale = 1.0;
-
-      Quaternion q( angle_scale*s*0.5f, cv::Vec3f(axis[0]*inv_s, axis[1]*inv_s, axis[2]*inv_s ));
+      Quaternion q( s*0.5f, cv::Vec3f(axis[0]*inv_s, axis[1]*inv_s, axis[2]*inv_s ));
 
       return q.Normalize();
 

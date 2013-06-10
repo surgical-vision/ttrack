@@ -34,7 +34,7 @@ namespace ttrk {
     cv::Vec3f FindClusterMode(const boost::shared_ptr<cv::Mat> point_cloud, const boost::shared_ptr<cv::Mat> classification_map) const ;
     cv::Vec3f FindPrincipalAxisFromMOITensor(const cv::Vec3f center_of_mass, const boost::shared_ptr<cv::Mat> point_cloud) const ;
    
-    StereoCamera camera_;
+    boost::shared_ptr<StereoCamera> camera_;
 
   };
 

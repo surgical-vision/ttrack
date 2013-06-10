@@ -8,8 +8,9 @@ using namespace ttrk;
 MISTool::MISTool(int radius, int height):radius_(radius),height_(height){ }
 
 
-std::vector<SimplePoint<> > MISTool::Points() const {
+std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
 
+  std::cout << height_ << " is the height in mm" << std::endl;
 
   const int precision = 32;
   std::vector< SimplePoint<> > points;
@@ -17,10 +18,16 @@ std::vector<SimplePoint<> > MISTool::Points() const {
 
   for(size_t i=0;i<precision;i++){
 
-    cv::Vec3f point(-(float)height_/2*(i>=precision/2) + (float)(height_/2)*(i,precision/2), (float)(radius_ * cos(i * M_PI/4)), (float)(radius_ * sin(i * M_PI/4)));
+    cv::Vec3f point(-(float)height_/2 + (float)(height_)*(i>=(precision/2)), 
+                     (float)(radius_ * cos(i * M_PI/4)), 
+                     (float)(radius_ * sin(i * M_PI/4)));
 
+    std::cerr << "Transforming points" << std::endl;
+    std::cout << cv::Point3f(point) << " -- > ";
+
+    point = pose.Transform(point);
     //transform point
-
+    std::cout << cv::Point3f(point) << std::endl;
     points.push_back( SimplePoint<>(point) );
 
 

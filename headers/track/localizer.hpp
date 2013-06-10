@@ -9,7 +9,7 @@ namespace ttrk {
 
   public:
 
-    virtual Pose TrackTargetInFrame(KalmanTracker &model) = 0;
+    virtual Pose TrackTargetInFrame(KalmanTracker model) = 0;
 
   };
 

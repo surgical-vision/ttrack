@@ -9,7 +9,7 @@ namespace ttrk {
     
   public: 
     
-    virtual Pose TrackTargetInFrame(KalmanTracker &model);
+    virtual Pose TrackTargetInFrame(KalmanTracker model);
 
   protected:
 
@@ -57,6 +57,8 @@ namespace ttrk {
     * @param[out] back_intersection The intersection between the ray and the back of the object.
     */
     void GetTargetIntersections(const int r, const int c, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, KalmanTracker &current_model);
+
+    cv::Mat GetRegularizedDepth(const int r, const int c) const;
 
 
     virtual void FindROI(const std::vector<cv::Vec2i> &convex_hull);

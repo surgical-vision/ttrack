@@ -81,9 +81,9 @@ namespace ttrk{
   protected:
 
     /**
-     * Draw the model at the current pose onto the classified image ready for it to be saved
+     * Draw the model at the current pose onto the canvas image ready for it to be saved
      */
-    void DrawModel(cv::Mat &image);
+    void DrawModel(cv::Mat &image) const;
 
     /**
      * Grab a ptr to a new frame. This is the interface to use if reading from images or reading from a videofile.

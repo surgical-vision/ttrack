@@ -11,7 +11,7 @@ namespace ttrk {
   class PWP3D : public Localizer {
   public: 
     
-    virtual Pose TrackTargetInFrame(KalmanTracker &model) = 0;
+    virtual Pose TrackTargetInFrame(KalmanTracker model) = 0;
 
   protected:
       

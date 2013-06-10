@@ -59,6 +59,8 @@ namespace ttrk{
     * Construct an empty model.
     */
     Model(){}
+    //Model &operator=(const Model &that){ return Model(); }
+    Model(const Model &that){ }
     
     /**
     * Delete the model.
@@ -70,7 +72,7 @@ namespace ttrk{
     * this is implemented as a virtual function to allow custom representation of the shape.
     * @return A vector of points.
     */
-    virtual std::vector<SimplePoint<> > Points() const = 0;
+    virtual std::vector<SimplePoint<> > Points(const Pose &pose) const = 0;
     
     /**
     * Get an intersection between the model and a ray cast from the camera. This is needed in the tracking methods.
@@ -80,7 +82,7 @@ namespace ttrk{
     */
     virtual void GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const = 0;
     
-    
+    virtual cv::Vec3f PrincipalAxis() const = 0;
 
   protected:
   
@@ -109,7 +111,7 @@ namespace ttrk{
     * Provides access to a vector of SimplePoints which represent the cylinder.
     * @return The points.
     */
-    virtual std::vector<SimplePoint<> > Points() const;
+    virtual std::vector<SimplePoint<> > Points(const Pose &pose) const;
     //virtual std::vector<SimplePoint<> > TransformedPoints() const ;
     /**
     * Finds intersection between a ray and the cylinder representing the tool.
@@ -118,6 +120,8 @@ namespace ttrk{
     * @param[out] back The back intersection.
     */
     virtual void GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const;
+
+    virtual cv::Vec3f PrincipalAxis() const { return cv::Vec3f(1,0,0); }
 
   private:
 

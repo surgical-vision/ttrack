@@ -12,29 +12,34 @@ namespace ttrk {
   * @struct KalmanTracker
   * @brief A container to hold a tracked model and the kalman filter associated with it.
   */
-  struct KalmanTracker {
+  class KalmanTracker {
 
-    KalmanTracker():filter_(14,7,0,CV_32F){}   
-    KalmanTracker(const KalmanTracker &that){
-      model_ = that.model_;
-      pose_ = that.pose_;
-
-    }
-    cv::KalmanFilter filter_; /**< The Kalman Filter used to track the class. */
-    boost::shared_ptr<Model> model_; /**< The tracked model. */
-    cv::Mat temporary_update_pose; /**< A store for the pose update. May be removed. */
+  public:
     
+    KalmanTracker(){}
+    KalmanTracker(boost::shared_ptr<Model> model):model_(model),filter_(14,7,0,CV_32F){}   
+    KalmanTracker(const KalmanTracker &that);
 
-    Pose &UpdatePose(const Pose &pose_measurement) { return pose_; }
+    void SetPose(const cv::Vec3f translation, const cv::Vec3f rotated_principal_axis); 
+    void UpdatePose(const Pose &pose_measurement) { pose_ = pose_measurement; }
+    
     /**
     * Accessor to the pose. This can be stored in whichever form the user chooses. For instance, an \f$\mathcal{SE}3\f$ transformation  or a 7x1 vector of a quaternion and a position.
     * @return A reference to the pose.
     */
     Pose &CurrentPose() { return pose_; }
 
-    Pose pose_; /**< The pose of the model. */
+    boost::shared_ptr<Model> PtrToModel(){ return model_; }
+    std::vector<SimplePoint<> > ModelPointsAtCurrentPose() const { return model_->Points(pose_); }
 
-    //cv::Mat pose_;
+  protected:
+
+    
+    cv::KalmanFilter filter_; /**< The Kalman Filter used to track the class. */
+    boost::shared_ptr<Model> model_; /**< The tracked model. */
+    cv::Mat temporary_update_pose; /**< A store for the pose update. May be removed. */
+
+    Pose pose_; /**< The pose of the model. */
 
   };
 

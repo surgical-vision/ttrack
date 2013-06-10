@@ -45,8 +45,9 @@ cv::Point3f MonocularCamera::UnProjectPoint(const cv::Point2i &point) const {
 cv::Point2f MonocularCamera::ProjectPoint(const cv::Point3f &point) const {
 
   std::vector<cv::Point2f> projected_point;
-  
-  cv::projectPoints(std::vector<cv::Point3f>(1,point),cv::Mat::zeros(3,1,CV_64FC1),cv::Mat::zeros(3,1,CV_64FC1),intrinsic_matrix_,distortion_params_,projected_point);
+  static cv::Mat rot = cv::Mat::eye(3,3,CV_64FC1);
+  static cv::Mat tran = cv::Mat::zeros(3,1,CV_64FC1);
+  cv::projectPoints(std::vector<cv::Point3f>(1,point),rot,tran,intrinsic_matrix_,distortion_params_,projected_point);
   if(projected_point.size() != 1) throw(std::runtime_error("Error, projected points size != 1.\n"));
 
   return projected_point.front();
@@ -124,6 +125,9 @@ void StereoCamera::Rectify(const cv::Size image_size) {
                     0, // 0 || CV_CALIB_ZERO_DISPARITY
                     -1,  // -1 = default scaling, 0 = no black pixels, 1 = no source pixels lost
                     cv::Size(), &roi1, &roi2); 
+
+  std::cout << extrinsic_matrix_(cv::Range(0,3),cv::Range(3,4)) << std::endl;
+  InitRectified();
   
   //store ROI1/2 in the stereo image class and then write method to extract these roi's whenever
   //useful image area methods are needed

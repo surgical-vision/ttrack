@@ -58,6 +58,11 @@ namespace ttrk{
     * @return The ray.
     */
     cv::Point3f UnProjectPoint(const cv::Point2i &point) const;
+
+    double Fx() const { return intrinsic_matrix_.at<double>(0,0); }
+    double Fy() const { return intrinsic_matrix_.at<double>(1,1); }
+    double Px() const { return intrinsic_matrix_.at<double>(3,0); }
+    double Py() const { return intrinsic_matrix_.at<double>(3,1); }
     
     friend class StereoCamera;
 

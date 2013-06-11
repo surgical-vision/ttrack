@@ -61,7 +61,7 @@ namespace ttrk {
 
     cv::Mat GetRegularizedDepth(const int r, const int c) const;
 
-
+    inline cv::Vec3f GetDOFDerivatives(const int dof, const Pose &pose, const cv::Vec3f &point) const ;
     virtual void FindROI(const std::vector<cv::Vec2i> &convex_hull);
 
     boost::shared_ptr<StereoCamera> camera_;
@@ -70,6 +70,36 @@ namespace ttrk {
 
   };
 
+  cv::Vec3f StereoPWP3D::GetDOFDerivatives(const int dof, const Pose &pose, const cv::Vec3f &point) const {
+    
+    switch(dof){
+    case 0:
+      return cv::Vec3f(1,0,0);
+    case 1:
+      return cv::Vec3f(0,1,0);
+    case 2:
+      return cv::Vec3f(0,0,1);
+    case 3:
+      return cv::Vec3f((2*pose.rotation_.Y()*point[1])+(2*pose.rotation_.Z()*point[2]),
+                       (2*pose.rotation_.Y()*point[0])-(4*pose.rotation_.X()*point[1])-(2*pose.rotation_.W()*point[2]),
+                       (2*pose.rotation_.Z()*point[0])+(2*pose.rotation_.W()*point[1])-(4*pose.rotation_.X()*point[2]));
+
+    case 4:
+      return cv::Vec3f((2*pose.rotation_.X()*point[1])-(4*pose.rotation_.Y()*point[0])+(2*pose.rotation_.W()*point[2]),
+                       (2*pose.rotation_.X()*point[0])+(2*pose.rotation_.Z()*point[2]),
+                       (2*pose.rotation_.Z()*point[1])+(2*pose.rotation_.W()*point[0])-(4*pose.rotation_.Y()*point[2]));
+    case 5:
+      return cv::Vec3f((2*pose.rotation_.X()*point[2])-(2*pose.rotation_.W()*point[1])-(4*pose.rotation_.Z()*point[0]),
+                       (2*pose.rotation_.W()*point[0])-(4*pose.rotation_.X()*point[1])+(2*pose.rotation_.Y()*point[2]),
+                       (2*pose.rotation_.X()*point[0])+(2*pose.rotation_.Y()*point[1]));
+
+    case 6:
+      return cv::Vec3f((2*pose.rotation_.Y()*point[2])-(2*pose.rotation_.Z()*point[1]),
+                       (2*pose.rotation_.Z()*point[0])-(2*pose.rotation_.X()*point[2]),
+                       (2*pose.rotation_.X()*point[1])-(2*pose.rotation_.Y()*point[0]));
+    }
+  }
+  
 
 
 

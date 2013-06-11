@@ -125,8 +125,8 @@ namespace ttrk{
 
   private:
 
-    int radius_; /**< The radius of the cylinder. */
-    int height_; /**< The height of the cylinder. */
+    float radius_; /**< The radius of the cylinder. */
+    float height_; /**< The height of the cylinder. */
     //std::vector<SimplePoint<> > points_; /**< The representation of surface of the tool as a set of points which have references to their neighbours. */
 
   };

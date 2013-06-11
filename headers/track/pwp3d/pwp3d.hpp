@@ -21,11 +21,22 @@ namespace ttrk {
     */
     void ScaleJacobian(cv::Mat &jacobian) const;
 
+    double DeltaFunction(float x){
+      double std = 0.08; // ----0.05
+      return (1.0/(std*sqrt(2*M_PI)))*exp(-((x*x)/(2*std*std)));
+    }
+
+    double HeavisideFunction(float x){
+      const double a = 0.4; //equates to blur between -25 and 25 ---- 0.3
+      double r = 1.0/(exp(-a*x) + 1);
+      return r;
+    }
+
     /**
     * Applys one step of gradient descent to the pose. 
     * @param[in] jacobian The pose update of the target object.
     */    
-    void ApplyGradientDescentStep(const cv::Mat &jacobian);
+    void ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose);
 
     /**
     * Experimental! Finds and sets a ROI image around the target object. This is to reduce the tracking cost of computing the value of the energy function on pixels which are far from the object contour.

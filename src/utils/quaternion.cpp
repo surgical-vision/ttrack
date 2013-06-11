@@ -11,14 +11,14 @@ Quaternion Quaternion::FromVectorToVector(const cv::Vec3f &from, const cv::Vec3f
       
       float d = from_n.dot(to_n);
 
-      if(d >= 1.0f){
+      if(d >= 1.0){
         return boost::math::quaternion<double>();
       }
 
       //check if d \approx = 0
 
-      float s = sqrt( (1+d)*2 );
-      float inv_s = 1.0/s;
+      float s = (float)sqrt( (1+d)*2 );
+      float inv_s = 1.0f/s;
 
       cv::Vec3f axis = from_n.cross(to_n);
 
@@ -50,6 +50,6 @@ cv::Vec3f Quaternion::RotateVector(const cv::Vec3f &to_rotate) const {
 
   boost::math::quaternion<double> rotated = (internal_quaternion_ * vec_quat) * boost::math::conj<double>(internal_quaternion_);
 
-  return cv::Vec3f(rotated.R_component_2(),rotated.R_component_3(),rotated.R_component_3());
+  return cv::Vec3f((float)rotated.R_component_2(),(float)rotated.R_component_3(),(float)rotated.R_component_3());
 
 }

@@ -54,14 +54,14 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
 void MISTool::GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const {
 
   //cv::Mat top,bottom;
-  cv::Vec3f top(height_/2,0,0);
+  cv::Vec3f top((float)height_/2,0.0,0.0);
   top = pose.Transform(top);
-  cv::Vec3f bottom(-height_/2,0,0);
+  cv::Vec3f bottom((float)-height_/2,0.0,0.0);
   bottom = pose.Transform(bottom);
   
   cv::Vec3f dP = top - bottom;
-  double dPdP = dP.dot(dP);
-  if(!dPdP) dPdP = 0.0000001;
+  float dPdP = dP.dot(dP);
+  if(!dPdP) dPdP = 0.0000001f;
   cv::Vec3f t_1 = ray - ((ray.dot(dP))/dPdP)*dP;
   cv::Vec3f t_2 = ((bottom.dot(dP))/dPdP)*dP - bottom;
 
@@ -75,13 +75,13 @@ void MISTool::GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f 
     front = back = cv::Vec3f(0,0,0);
     return;
   }
-  if(!a) a = 0.00000000001;
+  if(!a) a = 0.00000000001f;
 
   float s2 = (-b - sqrt(det))/(2*a);
   float s1 = (-b + sqrt(det))/(2*a);
   
-  float alp_1 = (s1*(ray.dot(dP)) - (bottom.dot(dP)))/(dPdP);
-  float alp_2 = (s2*(ray.dot(dP)) - (bottom.dot(dP)))/(dPdP);
+  float alp_1 = (s1*((float)ray.dot(dP)) - (float)(bottom.dot(dP)))/(dPdP);
+  float alp_2 = (s2*((float)ray.dot(dP)) - (float)(bottom.dot(dP)))/(dPdP);
   
   
   

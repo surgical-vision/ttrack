@@ -10,6 +10,8 @@
   #include <crtdbg.h>
 #endif
 #include <boost/shared_ptr.hpp>
+#include <boost/timer.hpp>
+#include <boost/progress.hpp>
 #include <iostream>
 
 #ifndef DEBUG

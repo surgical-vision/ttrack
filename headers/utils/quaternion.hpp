@@ -15,6 +15,12 @@ namespace sv {
     static Quaternion FromVectorToVector(const cv::Vec3f &from, const cv::Vec3f to);
     cv::Vec3f RotateVector(const cv::Vec3f &to_rotate) const ;
     Quaternion Normalize() const ;
+    inline double X() const;
+    inline double Y() const;
+    inline double Z() const;
+    inline double W() const;
+
+    inline friend Quaternion operator*(const Quaternion &a, const Quaternion &b);
 
   protected:
 
@@ -22,6 +28,26 @@ namespace sv {
 
 
   };
+
+  Quaternion operator*(const Quaternion &a, const Quaternion &b) {
+    
+    Quaternion q;
+    q.internal_quaternion_ = a.internal_quaternion_ * b.internal_quaternion_;
+    return q;
+  }
+
+  double Quaternion::X() const {
+    return internal_quaternion_.R_component_2();
+  }
+  double Quaternion::Y() const {
+    return internal_quaternion_.R_component_3();
+  }
+  double Quaternion::Z() const {
+    return internal_quaternion_.R_component_4();
+  }
+  double Quaternion::W() const {
+    return internal_quaternion_.R_component_1();
+  }
 }
 
 

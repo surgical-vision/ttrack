@@ -53,7 +53,7 @@ cv::Mat MonoPWP3D::GetPoseDerivatives(const int r, const int c, const float dSDF
   for(int dof=0;dof<6;dof++){
 
 
-
+    int x = 0;
 
   }
 
@@ -94,7 +94,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
     }
 
     ScaleJacobian(jacobian);
-    ApplyGradientDescentStep(jacobian);
+    ApplyGradientDescentStep(jacobian,current_model.CurrentPose());
 
   }
 

@@ -7,11 +7,13 @@ using namespace ttrk;
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
 
   frame_ = frame;
-  const int NUM_STEPS = 1;
+  const int NUM_STEPS = 2;
   double energy = std::numeric_limits<double>::max(); //to minimise
 
   for(int step=0; step < NUM_STEPS; step++){
-     
+#ifdef DEBUG
+    boost::progress_timer t; //timer prints time when it goes out of scope
+#endif
     cv::Mat sdf_image = ProjectShapeToSDF(current_model);
 
     double norm_foreground,norm_background;
@@ -22,7 +24,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     cv::Sobel(sdf_image,dSDFdx,CV_32FC1,1,0,1);
     cv::Sobel(sdf_image,dSDFdy,CV_32FC1,0,1,1);
 
-    cv::Mat jacobian = cv::Mat::zeros(1,6,CV_64FC1);
+    cv::Mat jacobian = cv::Mat::zeros(7,1,CV_64FC1);
 
     cv::Mat front_view = cv::Mat::zeros(sdf_image.size(),CV_8UC1);
     cv::Mat back_view = cv::Mat::zeros(sdf_image.size(),CV_8UC1);
@@ -32,28 +34,18 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
         const double region_agreement = GetRegionAgreement(r,c,sdf_image.at<float>(r,c),norm_foreground, norm_background);
 
-        const cv::Mat pose_derivatives = GetPoseDerivatives(r,c,dSDFdx.at<float>(r,c),dSDFdy.at<float>(r,c),sdf_image.at<float>(r,c),current_model);
-
-        cv::Vec2f projected_front = camera_->rectified_left_eye().ProjectPoint(cv::Point3f(pose_derivatives.at<double>(0,0),pose_derivatives.at<double>(1,0),pose_derivatives.at<double>(2,0)));
-        cv::Vec2f projected_back = camera_->rectified_left_eye().ProjectPoint(cv::Point3f(pose_derivatives.at<double>(3,0),pose_derivatives.at<double>(4,0),pose_derivatives.at<double>(5,0)));
-
-        if(cv::Point3f(pose_derivatives.at<double>(0,0),pose_derivatives.at<double>(1,0),pose_derivatives.at<double>(2,0)) != cv::Point3f(0,0,0))
-          front_view.at<unsigned char>(projected_front[1],projected_front[0]) = 255;      
-        if(cv::Point3f(pose_derivatives.at<double>(3,0),pose_derivatives.at<double>(4,0),pose_derivatives.at<double>(5,0)) != cv::Point3f(0,0,0))
-          back_view.at<unsigned char>(projected_back[1],projected_back[0]) = 255;
-
+        const cv::Mat pose_derivatives = DeltaFunction(sdf_image.at<float>(r,c))*GetPoseDerivatives(r,c,dSDFdx.at<float>(r,c),dSDFdy.at<float>(r,c),sdf_image.at<float>(r,c),current_model);
+        //(x,y,z,w,r1,r2,r3)
         const cv::Mat regularized_depth = GetRegularizedDepth(r,c);
 
-        //jacobian = jacobian + (region_agreement*pose_derivatives) + regularized_depth;
-
+        for(int i=0;i<pose_derivatives.rows;i++)
+          jacobian.at<double>(i,0) += region_agreement*pose_derivatives.at<double>(i,0) + regularized_depth.at<double>(i,0);
+        
       }
     }
 
-    cv::imwrite("front.png",front_view);
-    cv::imwrite("back.png",back_view);
-
     ScaleJacobian(jacobian);
-    ApplyGradientDescentStep(jacobian);
+    ApplyGradientDescentStep(jacobian,current_model.CurrentPose());
 
   }
 
@@ -89,7 +81,7 @@ const cv::Mat StereoPWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
   for(int r=0;r<sdf_image.rows;r++){
     for(int c=0;c<sdf_image.cols;c++){
 
-      sdf_image.at<float>(r,c) = (float)pointPolygonTest(convex_hull_,cv::Point2f((float)c,(float)r),true);
+      sdf_image.at<float>(r,c) = HeavisideFunction((float)pointPolygonTest(convex_hull_,cv::Point2f((float)c,(float)r),true));
 
     }
   }
@@ -112,14 +104,18 @@ cv::Mat StereoPWP3D::GetPoseDerivatives(const int r, const int c, const float dS
   cv::Vec3f back_intersection;
 
   GetTargetIntersections(r,c,front_intersection,back_intersection,current_model);
-  cv::Mat ret(6,1,CV_64FC1);
-  //for(int dof=0;dof<6;dof++){
-  for(int c=0;c<3;c++){
-    ret.at<double>(c,0) = front_intersection[c];
-    ret.at<double>(3+c,0) = back_intersection[c];
-  }
+  if(front_intersection == cv::Vec3f(0,0,0)) return cv::Mat::zeros(6,2,CV_64FC1);
+  cv::Mat ret(6,2,CV_64FC1);
+  for(int dof=0;dof<6;dof++){
 
- //}
+    cv::Vec3f dof_derivatives = GetDOFDerivatives(dof,current_model.CurrentPose(),front_intersection);
+      
+    const double dXdL = camera_->rectified_left_eye().Fx() * ((1.0/(front_intersection[2]*front_intersection[2]))*(front_intersection[2]*dof_derivatives[0]) - (front_intersection[0]*dof_derivatives[2]));
+    const double dYdL = camera_->rectified_left_eye().Fy() * ((1.0/(front_intersection[2]*front_intersection[2]))*(front_intersection[2]*dof_derivatives[1]) - (front_intersection[1]*dof_derivatives[2]));
+    ret.at<double>(dof,0) = dSDFdx * dXdL;
+    ret.at<double>(dof,1) = dSDFdy * dYdL;
+  
+  }
 
 
   return ret;

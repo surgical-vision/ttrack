@@ -28,8 +28,9 @@ namespace ttrk {
     * @return A reference to the pose.
     */
     Pose &CurrentPose() { return pose_; }
-
+    const Pose &CurrentPose() const { return pose_; }
     boost::shared_ptr<Model> PtrToModel(){ return model_; }
+    const boost::shared_ptr<Model> PtrToModel() const { return model_; }
     std::vector<SimplePoint<> > ModelPointsAtCurrentPose() const { return model_->Points(pose_); }
 
   protected:

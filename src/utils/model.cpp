@@ -10,8 +10,6 @@ MISTool::MISTool(int radius, int height):radius_(radius),height_(height){ }
 
 std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
 
-  std::cout << height_ << " is the height in mm" << std::endl;
-
   const int precision = 32;
   std::vector< SimplePoint<> > points;
   points.reserve(precision);
@@ -22,12 +20,9 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
                      (float)(radius_ * cos(i * 4*M_PI/precision)), 
                      (float)(radius_ * sin(i * 4*M_PI/precision)));
 
-    std::cerr << "Transforming points" << std::endl;
-    std::cout << cv::Point3f(point) << " -- > ";
-
+   
     point = pose.Transform(point);
     //transform point
-    std::cout << cv::Point3f(point) << std::endl;
     points.push_back( SimplePoint<>(point) );
 
 

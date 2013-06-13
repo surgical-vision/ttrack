@@ -4,6 +4,7 @@
 #include <vector>
 #include "../headers.hpp"
 #include <unordered_map>
+#include <boost/functional/hash.hpp>
 
 namespace ttrk{
 
@@ -59,7 +60,12 @@ namespace ttrk{
   */
   struct hashVec{
     size_t operator()(const cv::Vec3b &b) const{
-      return std::hash<int>()((int)b[0]) ^ std::hash<int>()((int)b[1]) ^ std::hash<int>()((int)b[2]);
+      size_t seed = 0;
+      boost::hash_combine(seed,b[0]);
+      boost::hash_combine(seed,b[1]);
+      boost::hash_combine(seed,b[2]);
+      return seed;
+      //return std::hash<int>()((int)b[0]) ^ std::hash<int>()((int)b[1]) ^ std::hash<int>()((int)b[2]);
     }
   };
 

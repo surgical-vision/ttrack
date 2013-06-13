@@ -30,10 +30,9 @@ namespace ttrk {
     * @param[in] c The column index of the current pixel.
     * @param[in] dSDFdx The derivative of the signed distance function /f$\frac{\partial SDF}{\partial x}/f$ at the current pixel.
     * @param[in] dSDFdy The derivative of the signed distance function /f$\frac{\partial SDF}{\partial y}/f$ at the current pixel.
-    * @param[in[ sdf The current value of the signed distance function at the pixel /f$(r,c)/f$.
     * @return The pose derivitives as a vector.
     */
-    cv::Mat GetPoseDerivatives(const int r, const int c, const float dSDFdx, const float dSDFdy, const float sdf, KalmanTracker &current_model);
+    cv::Mat GetPoseDerivatives(const int r, const int c, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model);
     
     /**
     * Construct a signed distance function of the outer contour of the shape projected into the image plane.
@@ -57,12 +56,14 @@ namespace ttrk {
     * @param[out] front_intersection The intersection between the ray and the front of the object.
     * @param[out] back_intersection The intersection between the ray and the back of the object.
     */
-    void GetTargetIntersections(const int r, const int c, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, KalmanTracker &current_model);
+    void GetTargetIntersections(const int r, const int c, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model) const ;
 
-    cv::Mat GetRegularizedDepth(const int r, const int c) const;
+    cv::Mat GetRegularizedDepth(const int r, const int c, const KalmanTracker &kalman_tracker) const;
 
     inline cv::Vec3f GetDOFDerivatives(const int dof, const Pose &pose, const cv::Vec3f &point) const ;
     virtual void FindROI(const std::vector<cv::Vec2i> &convex_hull);
+
+    void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const;
 
     boost::shared_ptr<StereoCamera> camera_;
     cv::Mat ROI_left_; /**< Experimental feature. Instead of performing the level set tracking over the whole image, try to find a ROI around where the target of interest is located. */
@@ -70,8 +71,13 @@ namespace ttrk {
 
   };
 
-  cv::Vec3f StereoPWP3D::GetDOFDerivatives(const int dof, const Pose &pose, const cv::Vec3f &point) const {
-    
+  cv::Vec3f StereoPWP3D::GetDOFDerivatives(const int dof, const Pose &pose, const cv::Vec3f &point_) const {
+
+    //derivatives use the (x,y,z) from the initial reference frame not the transformed one so inverse the transformation
+    cv::Vec3f point = point_ - pose.translation_;
+    point = pose.rotation_.Inverse().RotateVector(point);
+
+    //return the (dx/dL,dy/dL,dz/dL) derivative for the degree of freedom
     switch(dof){
     case 0:
       return cv::Vec3f(1,0,0);

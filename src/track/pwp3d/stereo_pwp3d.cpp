@@ -4,18 +4,46 @@
 using namespace ttrk;
 
 
+/*** REMOVE THIS ***/
+
+
+void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const {
+
+  std::vector<SimplePoint<> > transformed_points = tracked_model.ModelPointsAtCurrentPose();
+  for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
+
+    cv::Vec2f projected = camera_->rectified_left_eye().ProjectPoint(point->vertex_);
+
+    for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
+      
+      const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
+      cv::Vec2f projected_neighbour = camera_->rectified_left_eye().ProjectPoint( neighbour.vertex_ );
+
+      if(canvas.channels() == 3)
+        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),3,8);
+      if(canvas.channels() == 1)
+        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,3,8);
+    }
+  }
+
+}
+
+
+
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
 
   frame_ = frame;
-  const int NUM_STEPS = 2;
-  double energy = std::numeric_limits<double>::max(); //to minimise
-
+  const int NUM_STEPS = 15;
+  
   for(int step=0; step < NUM_STEPS; step++){
+
 #ifdef DEBUG
     boost::progress_timer t; //timer prints time when it goes out of scope
 #endif
+
     cv::Mat sdf_image = ProjectShapeToSDF(current_model);
 
+    //compute the normalization values n_f and n_b
     double norm_foreground,norm_background;
     ComputeNormalization(norm_foreground,norm_background,sdf_image);
 
@@ -24,22 +52,22 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     cv::Sobel(sdf_image,dSDFdx,CV_32FC1,1,0,1);
     cv::Sobel(sdf_image,dSDFdy,CV_32FC1,0,1,1);
 
+    //(x,y,z,w,r1,r2,r3)
     cv::Mat jacobian = cv::Mat::zeros(7,1,CV_64FC1);
-
-    cv::Mat front_view = cv::Mat::zeros(sdf_image.size(),CV_8UC1);
-    cv::Mat back_view = cv::Mat::zeros(sdf_image.size(),CV_8UC1);
 
     for(int r=0;r<ROI_left_.rows;r++){
       for(int c=0;c<ROI_left_.cols;c++){
 
-        const double region_agreement = GetRegionAgreement(r,c,sdf_image.at<float>(r,c),norm_foreground, norm_background);
+        //P_f - P_b / (H * P_f + (1 - H) * P_b)
+        const double region_agreement = GetRegionAgreement(r, c, sdf_image.at<float>(r,c), norm_foreground, norm_background);
 
-        const cv::Mat pose_derivatives = DeltaFunction(sdf_image.at<float>(r,c))*GetPoseDerivatives(r,c,dSDFdx.at<float>(r,c),dSDFdy.at<float>(r,c),sdf_image.at<float>(r,c),current_model);
-        //(x,y,z,w,r1,r2,r3)
-        const cv::Mat regularized_depth = GetRegularizedDepth(r,c);
+        //dH / dL
+        const cv::Mat pose_derivatives = DeltaFunction(sdf_image.at<float>(r,c)) * GetPoseDerivatives(r, c, dSDFdx.at<float>(r,c), dSDFdy.at<float>(r,c), current_model);
+        
+        const cv::Mat regularized_depth = GetRegularizedDepth(r,c,current_model);
 
         for(int i=0;i<pose_derivatives.rows;i++)
-          jacobian.at<double>(i,0) += region_agreement*pose_derivatives.at<double>(i,0) + regularized_depth.at<double>(i,0);
+          jacobian.at<double>(i,0) += -1 * (region_agreement*pose_derivatives.at<double>(i,0)) + regularized_depth.at<double>(i,0);
         
       }
     }
@@ -47,50 +75,79 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     ScaleJacobian(jacobian);
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose());
 
+/*** TO DELETE ***/
+    cv::Mat canvas = frame_->Mat().clone();
+    DrawModelOnFrame(current_model,canvas);
+    std::stringstream ss; ss << "step_" << step << ".png";
+    cv::imwrite(ss.str(),canvas);
+
   }
 
-  //return something like current_model.CurrentPose() + delta*Jacobian
   return current_model.CurrentPose();
 
 }
 
-cv::Mat StereoPWP3D::GetRegularizedDepth(const int r, const int c) const {
-  cv::Mat x = cv::Mat::zeros(7,1,CV_64FC1);
+cv::Mat StereoPWP3D::GetRegularizedDepth(const int r, const int c, const KalmanTracker &current_model) const {
+  
+  const int NUM_DERIVS = 7;
+  cv::Vec3f front_intersection;
+  cv::Vec3f back_intersection;
+
+  //find the (x,y,z) coordinates of the front and back intersection between the ray from the current pixel and the target object. return zero vector for no intersection.
+  GetTargetIntersections(r,c,front_intersection,back_intersection,current_model);
+  if(front_intersection == cv::Vec3f(0,0,0)) return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
+  
+  boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
+  const double z_estimate = front_intersection[2];
+  const double z_stereo = stereo_frame->PtrToDisparityMap()->at<float>(r,c); //scaled by 16?
+
+  const double d_mag = 2*(z_estimate - z_stereo)/std::abs(z_estimate - z_stereo);
+
+  cv::Mat x(NUM_DERIVS,1,CV_64FC1);
+
+  for(int dof=0;dof<NUM_DERIVS;dof++){
+
+    const cv::Vec3f dof_derivatives = GetDOFDerivatives(dof,current_model.CurrentPose(),front_intersection);
+
+    x.at<double>(dof,1) = d_mag * dof_derivatives[2];
+
+  }
+
   return x;
+
 }
 
 const cv::Mat StereoPWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
 
+  //get the model points at the current pose and project them into the image
   std::vector<SimplePoint<> > points = current_model.ModelPointsAtCurrentPose();
-  std::vector<cv::Vec2i > projected_points;//( points.size() );
-
+  std::vector<cv::Vec2i > projected_points;
   for(size_t i=0;i<points.size();i++){
     cv::Point2f pt = camera_->rectified_left_eye().ProjectPoint(points[i].vertex_);
     projected_points.push_back( cv::Vec2i( pt.x,pt.y) );
   }
 
+  //find the convex hull of these points
   std::vector<cv::Vec2i> convex_hull;
   cv::convexHull(projected_points,convex_hull);
   cv::Mat convex_hull_(convex_hull);
 
-  FindROI(convex_hull); //POTENTIAL OPTIMISATION: find a ROI around the target object to not run tracking over whole image. Not yet implemented.
+  //POTENTIAL OPTIMIZATION: find a ROI around the target object to not run tracking over whole image. Not yet implemented.
+  FindROI(convex_hull); 
 
-  //alternatively use cv::distanceTransform?
+  //find the distance between pixels and the convex hull - heaviside function is applied after this function as need to obtain derivatives of sdf
   cv::Mat sdf_image(ROI_left_.size(),CV_32FC1);
-
   for(int r=0;r<sdf_image.rows;r++){
     for(int c=0;c<sdf_image.cols;c++){
-
-      sdf_image.at<float>(r,c) = HeavisideFunction((float)pointPolygonTest(convex_hull_,cv::Point2f((float)c,(float)r),true));
-
+      //cv::pointpolygontest returns positive inside, negative outside
+      sdf_image.at<float>(r,c) = (float)pointPolygonTest(convex_hull_,cv::Point2f((float)c,(float)r),true);
     }
   }
   
   return sdf_image;
-
 }
 
-void StereoPWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, KalmanTracker &current_model){
+void StereoPWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model) const {
 
   cv::Vec3f ray = camera_->rectified_left_eye().UnProjectPoint( cv::Point2i(c,r) ); 
   
@@ -98,22 +155,26 @@ void StereoPWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &fr
 
 }
 
-cv::Mat StereoPWP3D::GetPoseDerivatives(const int r, const int c, const float dSDFdx, const float dSDFdy, const float sdf, KalmanTracker &current_model){
+cv::Mat StereoPWP3D::GetPoseDerivatives(const int r, const int c, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model){
 
+  const int NUM_DERIVS = 7;
   cv::Vec3f front_intersection;
   cv::Vec3f back_intersection;
 
+  //find the (x,y,z) coordinates of the front and back intersection between the ray from the current pixel and the target object. return zero vector for no intersection.
   GetTargetIntersections(r,c,front_intersection,back_intersection,current_model);
-  if(front_intersection == cv::Vec3f(0,0,0)) return cv::Mat::zeros(6,2,CV_64FC1);
-  cv::Mat ret(6,2,CV_64FC1);
-  for(int dof=0;dof<6;dof++){
+  if(front_intersection == cv::Vec3f(0,0,0)) return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
+  
+  const double z_inv_sq = 1.0/(front_intersection[2]*front_intersection[2]);
 
-    cv::Vec3f dof_derivatives = GetDOFDerivatives(dof,current_model.CurrentPose(),front_intersection);
+  cv::Mat ret(NUM_DERIVS,1,CV_64FC1);
+  for(int dof=0;dof<NUM_DERIVS;dof++){
+
+    const cv::Vec3f dof_derivatives = GetDOFDerivatives(dof,current_model.CurrentPose(),front_intersection);
       
-    const double dXdL = camera_->rectified_left_eye().Fx() * ((1.0/(front_intersection[2]*front_intersection[2]))*(front_intersection[2]*dof_derivatives[0]) - (front_intersection[0]*dof_derivatives[2]));
-    const double dYdL = camera_->rectified_left_eye().Fy() * ((1.0/(front_intersection[2]*front_intersection[2]))*(front_intersection[2]*dof_derivatives[1]) - (front_intersection[1]*dof_derivatives[2]));
-    ret.at<double>(dof,0) = dSDFdx * dXdL;
-    ret.at<double>(dof,1) = dSDFdy * dYdL;
+    const double dXdL = camera_->rectified_left_eye().Fx() * (z_inv_sq*(front_intersection[2]*dof_derivatives[0]) - (front_intersection[0]*dof_derivatives[2]));
+    const double dYdL = camera_->rectified_left_eye().Fy() * (z_inv_sq*(front_intersection[2]*dof_derivatives[1]) - (front_intersection[1]*dof_derivatives[2]));
+    ret.at<double>(dof,0) = (dSDFdx * dXdL) + (dSDFdy * dYdL);
   
   }
 

@@ -53,8 +53,8 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
 void TTrack::Run(){
 
   (*detector_)( GetPtrToNewFrame() ); 
-
-  while(detector_->Found()){
+  size_t frame = 0;
+  while(detector_->Found() && frame < 10){
     
     boost::thread TrackThread(boost::ref(*(tracker_.get())), GetPtrToClassifiedFrame() );
     boost::thread DetectThread(boost::ref(*(detector_.get())), GetPtrToNewFrame() );
@@ -68,6 +68,8 @@ void TTrack::Run(){
 
     CleanUp();
 
+    frame++;
+
   }
   
 }  
@@ -76,7 +78,7 @@ void TTrack::RunVideo(const std::string &video_url){
   
   //tracker_->Tracking(true);
   tracker_->Tracking(false); // SET this IN THE CONSTRUCTOR
-  handler_.reset(new VideoHandler(*root_dir_ + video_url, *root_dir_));
+  handler_.reset(new VideoHandler(*root_dir_ + video_url, *root_dir_ + "/tracked_video.avi"));
   Run();
  
 }
@@ -84,7 +86,7 @@ void TTrack::RunVideo(const std::string &video_url){
 void TTrack::RunImages(const std::string &image_url){
 
   tracker_->Tracking(false);
-  handler_.reset(new ImageHandler(*root_dir_ + image_url, *root_dir_));
+  handler_.reset(new ImageHandler(*root_dir_ + image_url, *root_dir_ + "/tracked_frames/"));
   Run();
 
 }

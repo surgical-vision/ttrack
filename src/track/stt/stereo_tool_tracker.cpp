@@ -38,8 +38,8 @@ void StereoToolTracker::CreateDisparityImage(){
   sgbm(left_image,right_image,out_disparity);
 
   //opencv sgbm multiplies each val by 16 so scale down to floating point array
-  //out_disparity.convertTo(*(frame_->PtrToDisparity()),CV_32F,1.0/16);
-  *(StereoFrame()->PtrToDisparityMap()) = out_disparity;
+  out_disparity.convertTo(*(StereoFrame()->PtrToDisparityMap()),-1);//,1.0/16);
+  //*(StereoFrame()->PtrToDisparityMap()) = out_disparity;
 
 }
 
@@ -182,7 +182,7 @@ cv::Vec3f StereoToolTracker::FindCenterOfMass(const boost::shared_ptr<cv::Mat> p
   
   cv::Vec3f alt_com_3d = point_cloud->at<cv::Vec3f>(alt_com[0],alt_com[1]);
 
-  return alt_com_3d*2; //THIS IS MULITPLIED BY 2
+  return alt_com_3d; //THIS IS MULITPLIED BY 2
 
 }
 
@@ -191,9 +191,7 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
   std::vector<SimplePoint<> > transformed_points = tracked_model.ModelPointsAtCurrentPose();
   for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
 
-    std::cout << cv::Point3f(point->vertex_) << " projects to ";
     cv::Vec2f projected = camera_->rectified_left_eye().ProjectPoint(point->vertex_);
-    std::cout << cv::Point2f(projected) << std::endl;
     cv::circle(canvas,cv::Point2f(projected),4,cv::Scalar(0,244,222),2);
 
     for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){

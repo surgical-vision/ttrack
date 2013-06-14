@@ -27,6 +27,7 @@ bool Tracker::InitKalmanFilter(){
 
   for(auto i = tracked_models_.begin(); i!=tracked_models_.end();i++){
      // set up kalman filter specific stuff    
+    i->Init();
   }
     
   return true;

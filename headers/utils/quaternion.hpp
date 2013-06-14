@@ -12,6 +12,7 @@ namespace sv {
     Quaternion(){}
     Quaternion(boost::math::quaternion<double> &x):internal_quaternion_(x) {}
     Quaternion(const double angle, const cv::Vec3f &axis);
+    inline explicit Quaternion(const cv::Vec3f &euler_angles);
     static Quaternion FromVectorToVector(const cv::Vec3f &from, const cv::Vec3f to);
     cv::Vec3f RotateVector(const cv::Vec3f &to_rotate) const ;
     Quaternion Normalize() const ;
@@ -20,6 +21,9 @@ namespace sv {
     inline double Y() const;
     inline double Z() const;
     inline double W() const;
+
+    //(psi,theta,phi
+    inline cv::Vec3f EulerAngles() const ;
 
     inline friend Quaternion operator*(const Quaternion &a, const Quaternion &b);
     inline friend Quaternion operator+(const Quaternion &a, const Quaternion &b);
@@ -30,6 +34,29 @@ namespace sv {
 
 
   };
+
+  Quaternion::Quaternion(const cv::Vec3f &euler_angles){
+
+    const float half_phi = euler_angles[0]/2;
+    const float half_theta = euler_angles[1]/2;
+    const float half_psi = euler_angles[2]/2;
+    const float q1 = (cos(half_phi)*cos(half_theta)*cos(half_psi)) + (sin(half_phi)*sin(half_theta)*sin(half_psi));
+    const float q2 = (sin(half_phi)*cos(half_theta)*cos(half_psi)) - (cos(half_phi)*sin(half_theta)*sin(half_psi));
+    const float q3 = (cos(half_phi)*sin(half_theta)*cos(half_psi)) + (sin(half_phi)*cos(half_theta)*sin(half_psi));
+    const float q4 = (cos(half_phi)*cos(half_theta)*sin(half_psi)) - (sin(half_phi)*sin(half_theta)*cos(half_psi));
+    
+    internal_quaternion_ = boost::math::quaternion<double>(q1,q2,q3,q4);
+  }
+
+  cv::Vec3f Quaternion::EulerAngles() const {
+    /*const float psi = atan2(2*(Y()*Z()+W()*X()),W()*W() - X()*X() - Y()*Y() - Z()*Z());
+    const float theta = asin(-2*(X()*Z() - W()*Y()));
+    const float phi = atan2(2*(X()*Y() + W()*Z()),W()*W()+X()*X()-Y()*Y()-Z()*Z());*/
+    const float phi = atan2( 2*(W()*X() + Y()*Z()), 1-2*(X()*X()+Y()*Y()) );
+    const float theta = asin(2*(W()*Y() - Z()*X()));
+    const float psi = atan2( 2*(W()*Z() + X()*Y()), 1-2*(Y()*Y()+Z()*Z()) );
+    return cv::Vec3f(phi,theta,psi);
+  }
 
   Quaternion Quaternion::Inverse() const {
     return boost::math::conj<double>(internal_quaternion_);

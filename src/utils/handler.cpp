@@ -18,13 +18,6 @@ VideoHandler::VideoHandler(const std::string &input_url, const std::string &outp
     throw std::runtime_error("Unable to open videofile: " + input_url_ + "\nPlease enter a new filename.\n");
   }
 
-  // open the writer to create the processed video
-  writer_.open(output_url_,CV_FOURCC('M','J','P','G'), 25, 
-               cv::Size((int)cap_.get(CV_CAP_PROP_FRAME_HEIGHT),
-                        (int)cap_.get(CV_CAP_PROP_FRAME_WIDTH)));
-  if(!writer_.isOpened()){
-    throw std::runtime_error("Unable to open videofile: " + output_url_ + " for saving.\nPlease enter a new filename.\n");
-  }
 
 }
 
@@ -97,8 +90,17 @@ void ImageHandler::SavePtrToFrame(boost::shared_ptr<cv::Mat> image){
 
 void VideoHandler::SavePtrToFrame(const boost::shared_ptr<cv::Mat> image){
   
-  if(!writer_.isOpened()) throw std::runtime_error("Error, attempt to save frame without available video writer.\n");
+  if(!writer_.isOpened()){  
+  // open the writer to create the processed video
+    writer_.open(output_url_,CV_FOURCC('D','I','B',' '), 25, 
+                 cv::Size(image->cols,image->rows));
+    if(!writer_.isOpened()){
+      throw std::runtime_error("Unable to open videofile: " + output_url_ + " for saving.\nPlease enter a new filename.\n");
+    }
+  }
   
+  
+  if(!writer_.isOpened()) throw std::runtime_error("Error, attempt to save frame without available video writer.\n");
   writer_ << *image;
   
 }

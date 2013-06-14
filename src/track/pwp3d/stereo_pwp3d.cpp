@@ -33,8 +33,13 @@ void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat c
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
 
   frame_ = frame;
-  const int NUM_STEPS = 15;
-  
+  const int NUM_STEPS = 1;
+
+  /*** TO DELETE ***/
+  cv::Mat canvas = frame_->Mat().clone();
+  DrawModelOnFrame(current_model,canvas);
+  cv::imwrite("step_init.png",canvas);
+
   for(int step=0; step < NUM_STEPS; step++){
 
 #ifdef DEBUG
@@ -99,8 +104,13 @@ cv::Mat StereoPWP3D::GetRegularizedDepth(const int r, const int c, const KalmanT
   
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
   const double z_estimate = front_intersection[2];
-  const double z_stereo = stereo_frame->PtrToDisparityMap()->at<float>(r,c); //scaled by 16?
+  const double z_stereo = stereo_frame->PtrToDisparityMap()->at<short>(r,c); //scaled by 16?
 
+  const double z_diff = z_estimate - z_stereo;
+
+  //if(z_diff < 1000) {
+  //  std::cerr << "estimate = " << z_estimate << "\nstereo = " << z_stereo << "\n\n (" << r << "," << c << ")\n\n\n\n";
+  //}
   const double d_mag = 2*(z_estimate - z_stereo)/std::abs(z_estimate - z_stereo);
 
   cv::Mat x(NUM_DERIVS,1,CV_64FC1);
@@ -109,7 +119,7 @@ cv::Mat StereoPWP3D::GetRegularizedDepth(const int r, const int c, const KalmanT
 
     const cv::Vec3f dof_derivatives = GetDOFDerivatives(dof,current_model.CurrentPose(),front_intersection);
 
-    x.at<double>(dof,1) = d_mag * dof_derivatives[2];
+    x.at<double>(dof,0) = d_mag * dof_derivatives[2];
 
   }
 
@@ -163,8 +173,11 @@ cv::Mat StereoPWP3D::GetPoseDerivatives(const int r, const int c, const float dS
 
   //find the (x,y,z) coordinates of the front and back intersection between the ray from the current pixel and the target object. return zero vector for no intersection.
   GetTargetIntersections(r,c,front_intersection,back_intersection,current_model);
+
+
   if(front_intersection == cv::Vec3f(0,0,0)) return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
   
+  //std::cout << "front intersection " << cv::Point3f(front_intersection) << std::endl;
   const double z_inv_sq = 1.0/(front_intersection[2]*front_intersection[2]);
 
   cv::Mat ret(NUM_DERIVS,1,CV_64FC1);

@@ -21,8 +21,8 @@ namespace ttrk {
     KalmanTracker(const KalmanTracker &that);
 
     void SetPose(const cv::Vec3f translation, const cv::Vec3f rotated_principal_axis); 
-    void UpdatePose(const Pose &pose_measurement) { pose_ = pose_measurement; }
-    
+    void UpdatePose(const Pose &pose_measurement) ;
+    void Init();
     /**
     * Accessor to the pose. This can be stored in whichever form the user chooses. For instance, an \f$\mathcal{SE}3\f$ transformation  or a 7x1 vector of a quaternion and a position.
     * @return A reference to the pose.

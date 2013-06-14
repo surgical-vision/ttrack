@@ -41,10 +41,6 @@ void Detect::ClassifyFrame(){
 
   size_t DEBUG_COUNT = 0;
 
-  *frame_->PtrToClassificationMap() = cv::imread("test.png",0);
-  found_ = true;
-  return;
-
   unsigned char *frame_data = (unsigned char *)frame_->PtrToClassificationMap()->data;
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){

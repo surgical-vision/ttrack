@@ -93,14 +93,9 @@ void TTrack::RunImages(const std::string &image_url){
 
 void TTrack::SaveFrame(){
 
-  //draws the model at the current pose on c_frame_
   boost::shared_ptr<sv::Frame> frame = tracker_->GetPtrToFinishedFrame();
 
-  cv::Mat canvas = frame->PtrToMat()->clone();
-  DrawModel(canvas);
-  cv::imwrite("./canvas.png",canvas);
-  //DrawModel(frame_);
-  
+  //request the handler to save it to a video/image 
   handler_->SavePtrToFrame(frame->PtrToMat());
 
 }

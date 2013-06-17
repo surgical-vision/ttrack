@@ -33,7 +33,7 @@ void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat c
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
 
   frame_ = frame;
-  const int NUM_STEPS = 1;
+  const int NUM_STEPS = 5;
 
   /*** TO DELETE ***/
   cv::Mat canvas = frame_->Mat().clone();
@@ -123,6 +123,7 @@ cv::Mat StereoPWP3D::GetRegularizedDepth(const int r, const int c, const KalmanT
 
   }
 
+  return cv::Mat::zeros(x.size(),x.type());
   return x;
 
 }

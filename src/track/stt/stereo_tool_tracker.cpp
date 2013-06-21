@@ -1,6 +1,8 @@
 #include "../../../headers/track/stt/stereo_tool_tracker.hpp"
 #include "../../../headers/track/pwp3d/stereo_pwp3d.hpp"
 #include <fstream>
+#include <stdlib.h>
+#include <time.h> 
 
 using namespace ttrk;
 
@@ -99,14 +101,17 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   CreateDisparityImage();
   camera_->ReprojectTo3D(*(StereoFrame()->PtrToDisparityMap()),*(StereoFrame()->PtrToPointCloud()),region);
   
+  srand(time(0x0));
   //find the center of mass of the point cloud and shift it to the center of the shape rather than lie on the surface
   cv::Vec3f center_of_mass = FindCenterOfMass(StereoFrame()->PtrToPointCloud());
-  center_of_mass *= (cv::norm(center_of_mass) + radius_ )/cv::norm(center_of_mass);
-  
+  center_of_mass *= (cv::norm(center_of_mass) + radius_)/cv::norm(center_of_mass);
+  center_of_mass += cv::Vec3f((float)rand()/RAND_MAX,(float)rand()/RAND_MAX,(float)rand()/RAND_MAX);
   cv::Vec3f center_of_mass_ = FindClusterMode(StereoFrame()->PtrToPointCloud(),StereoFrame()->PtrToClassificationMap());
   //find the central axis of the point cloud
   cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->PtrToPointCloud());
+  central_axis += cv::Vec3f((float)rand()/(10*RAND_MAX),(float)rand()/(10*RAND_MAX),(float)rand()/(10*RAND_MAX));
   central_axis = cv::normalize(central_axis);
+  
 
 
   //use these two parameters to set the initial pose of the object

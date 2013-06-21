@@ -1,6 +1,6 @@
 #include "../../../headers/track/pwp3d/stereo_pwp3d.hpp"
 #include "../../../headers/utils/helpers.hpp"
-
+#include<boost/filesystem.hpp>
 using namespace ttrk;
 
 
@@ -33,13 +33,17 @@ void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat c
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
 
   frame_ = frame;
-  const int NUM_STEPS = 5;
+  const int NUM_STEPS = 8;
 
   /*** TO DELETE ***/
+  std::cerr << "starting pose is: "<< current_model.CurrentPose().rotation_ << " + " << cv::Point3f(current_model.CurrentPose().translation_) << std::endl;
   cv::Mat canvas = frame_->Mat().clone();
   DrawModelOnFrame(current_model,canvas);
-  cv::imwrite("step_init.png",canvas);
-
+  static int frame_count = 0;
+  std::stringstream ss; ss << "frame_" << frame_count;
+  boost::filesystem::create_directory(ss.str());
+  cv::imwrite(ss.str()+"/step_init.png",canvas);
+  frame_count++;
   for(int step=0; step < NUM_STEPS; step++){
 
 #ifdef DEBUG
@@ -83,8 +87,8 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 /*** TO DELETE ***/
     cv::Mat canvas = frame_->Mat().clone();
     DrawModelOnFrame(current_model,canvas);
-    std::stringstream ss; ss << "step_" << step << ".png";
-    cv::imwrite(ss.str(),canvas);
+    std::stringstream ss_2; ss_2 << "step_" << step << ".png";
+    cv::imwrite(ss.str()+"/"+ss_2.str(),canvas);
 
   }
 
@@ -124,7 +128,7 @@ cv::Mat StereoPWP3D::GetRegularizedDepth(const int r, const int c, const KalmanT
   }
 
   return cv::Mat::zeros(x.size(),x.type());
-  return x;
+  //return x;
 
 }
 

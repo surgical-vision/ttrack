@@ -23,9 +23,12 @@ void KalmanTracker::UpdatePose(const Pose &pose_measurement) {
 
   //predict the measurement with the kalman filter
  
-  std::cout << "estimation: " << estimation << std::endl;
-  std::cout << "Prediction: " << prediction << std::endl;
+  std::cout << "entire estimation: " << estimation << std::endl;
+  
+  std::cout << "prediction: " << prediction;
   cv::Mat position_prediction = *(cv::Mat_<float>(6, 1) << estimation.at<float>(0,0),estimation.at<float>(1,0),estimation.at<float>(2,0),estimation.at<float>(6,0),estimation.at<float>(7,0),estimation.at<float>(8,0) );
+
+  std::cout << "position prediction: " << position_prediction << std::endl;
   pose_ = position_prediction;//position_prediction.clone(); 
 
 }

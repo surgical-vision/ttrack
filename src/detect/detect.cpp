@@ -46,11 +46,11 @@ void Detect::ClassifyFrame(){
     for(int c=0;c<cols;c++){
 
       const int index = r*cols + c;
-      /*
+      
       cv::Mat pix = nd_image.GetPixelData(r,c);
       
-      unsigned char prediction = (unsigned char)255*classifier_->PredictClass(pix);*/
-      const unsigned char prediction = 255;
+      const unsigned char prediction = (unsigned char)255*classifier_->PredictClass(pix);
+      
       frame_data[index] = prediction;
 
       DEBUG_COUNT += prediction > 0;
@@ -58,6 +58,7 @@ void Detect::ClassifyFrame(){
     }
   }
 
+  cv::imwrite("classification_map.png", frame_->ClassificationMap());
 
   if(DEBUG_COUNT>300) found_ = true;
   else found_ = false;

@@ -25,6 +25,7 @@ namespace sv {
     //(psi,theta,phi
     inline cv::Vec3f EulerAngles() const ;
 
+    inline friend std::ostream &operator<<(std::ostream &stream, const Quaternion &a);
     inline friend Quaternion operator*(const Quaternion &a, const Quaternion &b);
     inline friend Quaternion operator+(const Quaternion &a, const Quaternion &b);
     inline friend Quaternion operator-(const Quaternion &a, const Quaternion &b);
@@ -34,6 +35,11 @@ namespace sv {
 
 
   };
+
+  std::ostream &operator<<(std::ostream &stream, const Quaternion &a){
+    stream << "[" << a.X() << ", " << a.X() << ", " << a.Y() << ", " << a.Z() << "]\n";
+    return stream;
+  }
 
   Quaternion::Quaternion(const cv::Vec3f &euler_angles){
 

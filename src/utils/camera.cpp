@@ -75,10 +75,22 @@ StereoCamera::StereoCamera(const std::string &calibration_filename):rectified_(f
     fs["Right_Distortion_Coefficients"] >> temp_distortion;
     right_eye_ = MonocularCamera(temp_intrinsic, temp_distortion);
     
-    fs["Extrinsic_Camera_Rotation"] >> extrinsic_matrix_(cv::Range(0,3),cv::Range(0,3));
+    /*fs["Extrinsic_Camera_Rotation"] >> extrinsic_matrix_(cv::Range(0,3),cv::Range(0,3));
     fs["Extrinsic_Camera_Translation"] >> extrinsic_matrix_(cv::Range(0,3),cv::Range(3,4));
     extrinsic_matrix_(cv::Range(3,4),cv::Range::all()) = 0.0;
+    extrinsic_matrix_.at<double>(3,3) = 1.0;*/
+    cv::Mat rotation(3,3,CV_64FC1),translation(3,1,CV_64FC1);
+    fs["Extrinsic_Camera_Rotation"] >> rotation;
+    fs["Extrinsic_Camera_Translation"] >> translation;
+    for(int r=0;r<3;r++){
+      for(int c=0;c<3;c++){
+        extrinsic_matrix_.at<double>(r,c) = rotation.at<double>(r,c);
+      }
+      extrinsic_matrix_.at<double>(r,0) = translation.at<double>(r,0);
+    }
+    extrinsic_matrix_(cv::Range(3,4),cv::Range::all()) = 0.0;
     extrinsic_matrix_.at<double>(3,3) = 1.0;
+
 
   }catch(cv::Exception& e){
 

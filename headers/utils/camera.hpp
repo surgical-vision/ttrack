@@ -1,5 +1,5 @@
-#ifndef _CAMERA_HPP_
-#define _CAMERA_HPP_
+#ifndef __CAMERA_HPP__
+#define __CAMERA_HPP__
 #include "../headers.hpp"
 #include <image/image.hpp>
 

@@ -9,8 +9,9 @@ namespace sv {
   class Quaternion {
   
   public:
+
     Quaternion(){}
-    Quaternion(boost::math::quaternion<double> &x):internal_quaternion_(x) {}
+    Quaternion(const boost::math::quaternion<double> &x):internal_quaternion_(x) {}
     Quaternion(const double angle, const cv::Vec3f &axis);
     inline explicit Quaternion(const cv::Vec3f &euler_angles);
     static Quaternion FromVectorToVector(const cv::Vec3f &from, const cv::Vec3f to);
@@ -24,11 +25,11 @@ namespace sv {
 
     //(psi,theta,phi
     inline cv::Vec3f EulerAngles() const ;
-
     inline friend std::ostream &operator<<(std::ostream &stream, const Quaternion &a);
     inline friend Quaternion operator*(const Quaternion &a, const Quaternion &b);
     inline friend Quaternion operator+(const Quaternion &a, const Quaternion &b);
     inline friend Quaternion operator-(const Quaternion &a, const Quaternion &b);
+
   protected:
 
     boost::math::quaternion<double> internal_quaternion_;
@@ -65,7 +66,7 @@ namespace sv {
   }
 
   Quaternion Quaternion::Inverse() const {
-    return boost::math::conj<double>(internal_quaternion_);
+    return Quaternion(boost::math::conj<double>(internal_quaternion_));
   }
   
   

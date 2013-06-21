@@ -6,42 +6,43 @@ Quaternion::Quaternion(const double angle, const cv::Vec3f &axis):internal_quate
 
 Quaternion Quaternion::FromVectorToVector(const cv::Vec3f &from, const cv::Vec3f to){
   
-      cv::Vec3f from_n = cv::normalize(from);
-      cv::Vec3f to_n = cv::normalize(to);
+  cv::Vec3f from_n,to_n;
+  cv::normalize(from,from_n);
+  cv::normalize(to,to_n);
       
-      float d = from_n.dot(to_n);
+  float d = from_n.dot(to_n);
 
-      if(d >= 1.0){
-        return boost::math::quaternion<double>();
-      }
+  if(d >= 1.0){
+    return boost::math::quaternion<double>();
+  }
 
-      //check if d \approx = 0
+  //check if d \approx = 0
 
-      float s = (float)sqrt( (1+d)*2 );
-      float inv_s = 1.0f/s;
+  float s = (float)sqrt( (1+d)*2 );
+  float inv_s = 1.0f/s;
 
-      cv::Vec3f axis = from_n.cross(to_n);
+  cv::Vec3f axis = from_n.cross(to_n);
 
-      Quaternion q( s*0.5f, cv::Vec3f(axis[0]*inv_s, axis[1]*inv_s, axis[2]*inv_s ));
+  Quaternion q( s*0.5f, cv::Vec3f(axis[0]*inv_s, axis[1]*inv_s, axis[2]*inv_s ));
 
-      return q.Normalize();
+  return q.Normalize();
 
 }
 
 Quaternion Quaternion::Normalize() const {
   
-      //Note boost::math::norm(quaternion) is Cayley norm NOT Euclidean norm...
-      double mag_2 = (internal_quaternion_.R_component_1() * internal_quaternion_.R_component_1()) 
-                   + (internal_quaternion_.R_component_2() * internal_quaternion_.R_component_2()) 
-                   + (internal_quaternion_.R_component_3() * internal_quaternion_.R_component_3()) 
-                   + (internal_quaternion_.R_component_4() * internal_quaternion_.R_component_4());
+  //Note boost::math::norm(quaternion) is Cayley norm NOT Euclidean norm...
+  double mag_2 = (internal_quaternion_.R_component_1() * internal_quaternion_.R_component_1()) 
+    + (internal_quaternion_.R_component_2() * internal_quaternion_.R_component_2()) 
+    + (internal_quaternion_.R_component_3() * internal_quaternion_.R_component_3()) 
+    + (internal_quaternion_.R_component_4() * internal_quaternion_.R_component_4());
       
-      double mag = sqrt(mag_2);
+  double mag = sqrt(mag_2);
       
-      return boost::math::quaternion<double>(internal_quaternion_.R_component_1()/mag,
-                                             internal_quaternion_.R_component_2()/mag,
-                                             internal_quaternion_.R_component_3()/mag,
-                                             internal_quaternion_.R_component_4()/mag);
+  return boost::math::quaternion<double>(internal_quaternion_.R_component_1()/mag,
+                                         internal_quaternion_.R_component_2()/mag,
+                                         internal_quaternion_.R_component_3()/mag,
+                                         internal_quaternion_.R_component_4()/mag);
 }
 
 cv::Vec3f Quaternion::RotateVector(const cv::Vec3f &to_rotate) const {

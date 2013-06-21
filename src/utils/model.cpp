@@ -80,8 +80,11 @@ void MISTool::GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f 
   
   
   
-  if(dP.dot(dP))  
-    dP = cv::normalize(dP);
+  if(dP.dot(dP)){
+    cv::Vec3f tdP = dP;
+    //dP = cv::normalize(dP);
+    cv::normalize(tdP,dP);
+  }
   
   if(alp_1 >= 0.0 && alp_1 <= 1.0){ //intersection w/ side of cylinder
     front = s1*ray;

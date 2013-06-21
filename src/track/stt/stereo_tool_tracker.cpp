@@ -109,11 +109,12 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   cv::Vec3f center_of_mass_ = FindClusterMode(StereoFrame()->PtrToPointCloud(),StereoFrame()->PtrToClassificationMap());
   //find the central axis of the point cloud
   cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->PtrToPointCloud());
-  central_axis += cv::Vec3f((float)rand()/(10*RAND_MAX),(float)rand()/(10*RAND_MAX),(float)rand()/(10*RAND_MAX));
-  central_axis = cv::normalize(central_axis);
+  central_axis += cv::Vec3f((float)rand()/(10.0*RAND_MAX),(float)rand()/(10.0*RAND_MAX),(float)rand()/(10.0*RAND_MAX));
   
-
-
+  cv::Vec3f t_central_axis = central_axis;
+  //central_axis = cv::normalize(central_axis);
+  cv::normalize(t_central_axis,central_axis);
+  
   //use these two parameters to set the initial pose of the object
   tracked_model.SetPose(center_of_mass,central_axis);
   

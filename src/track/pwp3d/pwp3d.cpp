@@ -35,9 +35,10 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian) const {
   //if(translation.dot(translation) > 0)
     cv::Vec3f t_translation = translation;
     cv::normalize(t_translation,translation);
+    translation *= 5;
     //translation = cv::normalize(translation);
   }
-  translation *= 5;
+  
 
   for(int i=0;i<3;i++) jacobian.at<double>(i,0) = translation[i];
   

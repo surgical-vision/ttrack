@@ -86,7 +86,7 @@ StereoCamera::StereoCamera(const std::string &calibration_filename):rectified_(f
       for(int c=0;c<3;c++){
         extrinsic_matrix_.at<double>(r,c) = rotation.at<double>(r,c);
       }
-      extrinsic_matrix_.at<double>(r,0) = translation.at<double>(r,0);
+      extrinsic_matrix_.at<double>(r,3) = translation.at<double>(r,0);
     }
     extrinsic_matrix_(cv::Range(3,4),cv::Range::all()) = 0.0;
     extrinsic_matrix_.at<double>(3,3) = 1.0;

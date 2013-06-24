@@ -159,7 +159,7 @@ cv::Vec3f StereoToolTracker::FindCenterOfMass(const boost::shared_ptr<cv::Mat> p
   assert(point_cloud->type() == CV_32FC3);
   
   cv::Vec3f com(0,0,0);
-  cv::Vec2i alt_com(0,0);
+  cv::Vec2f alt_com(0,0);
   int num_pts = 0;
 
   for(int r=0;r<rows;r++){
@@ -174,7 +174,7 @@ cv::Vec3f StereoToolTracker::FindCenterOfMass(const boost::shared_ptr<cv::Mat> p
       }
 
       if(pt != cv::Vec3f(0,0,0))
-        alt_com += p;
+        alt_com += cv::Vec2f(p);
 
     }
   }

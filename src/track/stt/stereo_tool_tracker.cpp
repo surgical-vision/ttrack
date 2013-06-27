@@ -101,16 +101,23 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   CreateDisparityImage();
   camera_->ReprojectTo3D(*(StereoFrame()->PtrToDisparityMap()),*(StereoFrame()->PtrToPointCloud()),region);
   
-  srand(time(0x0));
   //find the center of mass of the point cloud and shift it to the center of the shape rather than lie on the surface
   cv::Vec3f center_of_mass = FindCenterOfMass(StereoFrame()->PtrToPointCloud());
   center_of_mass *= (cv::norm(center_of_mass) + radius_)/cv::norm(center_of_mass);
-  center_of_mass += cv::Vec3f((float)rand()/RAND_MAX,(float)rand()/RAND_MAX,(float)rand()/RAND_MAX);
-  cv::Vec3f center_of_mass_ = FindClusterMode(StereoFrame()->PtrToPointCloud(),StereoFrame()->PtrToClassificationMap());
+  std::cerr << "center of mass = " << cv::Point3f(center_of_mass) << std::endl;
+    
   //find the central axis of the point cloud
   cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->PtrToPointCloud());
-  central_axis += cv::Vec3f((float)rand()/(10.0*RAND_MAX),(float)rand()/(10.0*RAND_MAX),(float)rand()/(10.0*RAND_MAX));
   
+  //RANDOMIZATION
+  srand(time(0x0));
+  std::cerr << "centeral axis = " << cv::Point3f(central_axis) << std::endl;
+  center_of_mass -= cv::Vec3f(2*(float)rand()/RAND_MAX,2*(float)rand()/RAND_MAX,2*(float)rand()/RAND_MAX);
+  //central_axis += cv::Vec3f(-(float)rand()/(2*RAND_MAX),(float)rand()/(3*RAND_MAX),(float)rand()/(2*RAND_MAX));
+  center_of_mass = cv::Vec3f(0,0,35);
+  //central_axis += cv::Vec3f(-0.3,0.3,0.6);
+  std::cerr << "centeral axis = " << cv::Point3f(central_axis) << std::endl;
+
   cv::Vec3f t_central_axis = central_axis;
   //central_axis = cv::normalize(central_axis);
   cv::normalize(t_central_axis,central_axis);
@@ -131,8 +138,6 @@ cv::Vec3f StereoToolTracker::FindPrincipalAxisFromMOITensor(const cv::Vec3f cent
   const int cols = point_cloud->cols;
   const int chans = point_cloud->channels();
   assert(point_cloud->type() == CV_32FC3);
-
-  
 
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
@@ -188,7 +193,7 @@ cv::Vec3f StereoToolTracker::FindCenterOfMass(const boost::shared_ptr<cv::Mat> p
   
   cv::Vec3f alt_com_3d = point_cloud->at<cv::Vec3f>(alt_com[0],alt_com[1]);
 
-  return alt_com_3d; //THIS IS MULITPLIED BY 2
+  return alt_com_3d; 
 
 }
 
@@ -198,7 +203,6 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
   for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
 
     cv::Vec2f projected = camera_->rectified_left_eye().ProjectPoint(point->vertex_);
-    cv::circle(canvas,cv::Point2f(projected),4,cv::Scalar(0,244,222),2);
 
     for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
       
@@ -206,9 +210,9 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
       cv::Vec2f projected_neighbour = camera_->rectified_left_eye().ProjectPoint( neighbour.vertex_ );
 
       if(canvas.channels() == 3)
-        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),3,8);
+        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),1,CV_AA);
       if(canvas.channels() == 1)
-        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,3,8);
+        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,1,CV_AA);
     }
   }
 

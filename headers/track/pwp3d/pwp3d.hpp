@@ -34,7 +34,7 @@ namespace ttrk {
 
     /**
     * Applys one step of gradient descent to the pose. 
-    * @param[in] jacobian The pose update of the target object.
+    * @param[in]    jacobian The pose update of the target object.
     */    
     void ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose);
 

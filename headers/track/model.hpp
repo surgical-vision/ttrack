@@ -79,9 +79,10 @@ namespace ttrk{
     * @param[in] ray The ray cast from the camera
     * @param[out] front The front intersection of the ray and the shape.
     * @param[out] back The back intersection of the ray and the shape. In the rare case that the intersection is exactly on an edge of the shape this will just be set to same as the front.
+    * @return bool The success of the intersection test.
     */
-    virtual void GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const = 0;
-    
+    virtual bool GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const = 0;
+
     virtual cv::Vec3f PrincipalAxis() const = 0;
 
   protected:
@@ -112,15 +113,19 @@ namespace ttrk{
     * @return The points.
     */
     virtual std::vector<SimplePoint<> > Points(const Pose &pose) const;
-    //virtual std::vector<SimplePoint<> > TransformedPoints() const ;
+    
     /**
     * Finds intersection between a ray and the cylinder representing the tool.
     * @param[in] ray The ray projected from the camera center through some pixel.
     * @prarm[out] front The front intersection.
     * @param[out] back The back intersection.
+    * @return bool The success of the intersection test
     */
-    virtual void GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const;
-    cv::Vec3f CircleIntersection(const cv::Vec3f &A, const cv::Vec3f &n, const cv::Vec3f &d, const float R) const ;
+    virtual bool GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const;
+    
+    bool CircleIntersection(const cv::Vec3f &A, const cv::Vec3f &n, const cv::Vec3f &d, const float R,cv::Vec3f &intersection) const ;
+    
+    
     virtual cv::Vec3f PrincipalAxis() const { return cv::Vec3f(1,0,0); }
 
   private:

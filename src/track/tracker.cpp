@@ -20,6 +20,8 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image){
   
     current_model_->UpdatePose(pose_measurement);
     
+    std::cout << cv::Point3f(current_model_->CurrentPose().translation_) << std::endl;
+
     DrawModelOnFrame(*current_model_,frame_->Mat());
   
   }

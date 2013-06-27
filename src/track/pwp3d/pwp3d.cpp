@@ -26,26 +26,37 @@ void PWP3D::ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose){
 
 void PWP3D::ScaleJacobian(cv::Mat &jacobian) const {
 
-  jacobian = 0.000000001 * jacobian;
+  std::cerr << "Before scaling: " << jacobian << std::endl;
+
+  jacobian = 0.000000003 * jacobian;
 
   cv::Vec3f translation = jacobian(cv::Range(0,3),cv::Range::all());
   sv::Quaternion rotation(jacobian.at<double>(3,0),cv::Vec3f(jacobian.at<double>(4,0),jacobian.at<double>(5,0),jacobian.at<double>(6,0)));
 
+  /*
   if(cv::norm(translation) > 1.0){
   //if(translation.dot(translation) > 0)
     cv::Vec3f t_translation = translation;
     cv::normalize(t_translation,translation);
     translation *= 5;
     //translation = cv::normalize(translation);
-  }
-  
+  }*/
 
-  for(int i=0;i<3;i++) jacobian.at<double>(i,0) = translation[i];
+  translation = -translation;
+  //translation[2] = 0;
+  for(int i=0;i<3;i++) jacobian.at<double>(i,0) = translation[i]*500;
   
+  
+  jacobian.at<double>(3,0) = 0;
+  jacobian.at<double>(4,0) = 0;
+  jacobian.at<double>(5,0) = 0;
+  jacobian.at<double>(6,0) = 0;
+  /*
   jacobian.at<double>(3,0) = rotation.W();
   jacobian.at<double>(4,0) = rotation.X();
   jacobian.at<double>(5,0) = rotation.Y();
   jacobian.at<double>(6,0) = rotation.Z();
-
+  */
+  std::cerr << "After scaling: " << jacobian << std::endl;
 }
 

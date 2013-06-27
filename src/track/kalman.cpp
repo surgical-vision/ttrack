@@ -16,18 +16,12 @@ void KalmanTracker::SetPose(const cv::Vec3f translation, const cv::Vec3f rotated
 
 void KalmanTracker::UpdatePose(const Pose &pose_measurement) {
 
-  std::cout << "Pose measurement: " <<  (cv::Mat)pose_measurement << std::endl;
-
   const cv::Mat prediction = filter_.predict();
   const cv::Mat estimation = filter_.correct((cv::Mat)pose_measurement);
 
   //predict the measurement with the kalman filter
  
-  std::cout << "entire estimation: " << estimation << std::endl;
-  
-  std::cout << "prediction: " << prediction;
   cv::Mat position_prediction = *(cv::Mat_<float>(6, 1) << estimation.at<float>(0,0),estimation.at<float>(1,0),estimation.at<float>(2,0),estimation.at<float>(6,0),estimation.at<float>(7,0),estimation.at<float>(8,0) );
-
   std::cout << "position prediction: " << position_prediction << std::endl;
   pose_ = position_prediction;//position_prediction.clone(); 
 

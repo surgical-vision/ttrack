@@ -28,11 +28,12 @@ namespace ttrk {
     * Get the second part of the derivative. The derivative of the contour w.r.t the pose parameters.
     * @param[in] r The row index of the current pixel.
     * @param[in] c The column index of the current pixel.
+    * @param[in] sdf The value of the signed distance function for (r,c).
     * @param[in] dSDFdx The derivative of the signed distance function /f$\frac{\partial SDF}{\partial x}/f$ at the current pixel.
     * @param[in] dSDFdy The derivative of the signed distance function /f$\frac{\partial SDF}{\partial y}/f$ at the current pixel.
     * @return The pose derivitives as a vector.
     */
-    cv::Mat GetPoseDerivatives(const int r, const int c, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model);
+    cv::Mat GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model);
     
     /**
     * Construct a signed distance function of the outer contour of the shape projected into the image plane.
@@ -55,9 +56,12 @@ namespace ttrk {
     * @prarm[in] c The column index of the pixel.
     * @param[out] front_intersection The intersection between the ray and the front of the object.
     * @param[out] back_intersection The intersection between the ray and the back of the object.
+    * @return bool The success of the intersection test.
     */
-    void GetTargetIntersections(const int r, const int c, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model) const ;
-
+    bool GetTargetIntersections(const int r, const int c, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model) const ;
+    
+    bool GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model) const ;
+    
     cv::Mat GetRegularizedDepth(const int r, const int c, const KalmanTracker &kalman_tracker) const;
 
     inline cv::Vec3f GetDOFDerivatives(const int dof, const Pose &pose, const cv::Vec3f &point) const ;

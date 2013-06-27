@@ -35,14 +35,17 @@ namespace ttrk {
       if(that.size() == cv::Size(1,6)){
         const cv::Vec3f translation(that(cv::Range(0,3),cv::Range::all()));
         const cv::Vec3f rotation(that(cv::Range(3,6),cv::Range::all()));
-        return Pose(translation,sv::Quaternion(rotation));
+        this->rotation_ = sv::Quaternion(rotation);
+        this->translation_ = translation;
       }else if(that.size() == cv::Size(6,1)){
         const cv::Vec3f translation(that(cv::Range::all(),cv::Range(0,3)));
         const cv::Vec3f rotation(that(cv::Range::all(),cv::Range(3,7)));
-        return Pose(translation,sv::Quaternion(rotation));
+        this->rotation_ = sv::Quaternion(rotation);
+        this->translation_ = translation;
       }else{
         throw(std::runtime_error("Error, invalid assignement to ttrk::Pose from cv::Mat. Dimensions do not match!\n"));
       }
+      return *this;
     }
 
 

@@ -20,9 +20,9 @@ void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat c
       cv::Vec2f projected_neighbour = camera_->rectified_left_eye().ProjectPoint( neighbour.vertex_ );
 
       if(canvas.channels() == 3)
-        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),3,8);
+        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),1,CV_AA);
       if(canvas.channels() == 1)
-        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,3,8);
+        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,1,CV_AA);
     }
   }
 
@@ -33,7 +33,7 @@ void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat c
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
 
   frame_ = frame;
-  const int NUM_STEPS = 8;
+  const int NUM_STEPS = 20;
 
   /*** TO DELETE ***/
   std::cerr << "starting pose is: "<< current_model.CurrentPose().rotation_ << " + " << cv::Point3f(current_model.CurrentPose().translation_) << std::endl;
@@ -44,6 +44,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   boost::filesystem::create_directory(ss.str());
   cv::imwrite(ss.str()+"/step_init.png",canvas);
   frame_count++;
+  
   for(int step=0; step < NUM_STEPS; step++){
 
 #ifdef DEBUG
@@ -51,10 +52,14 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 #endif
 
     cv::Mat sdf_image = ProjectShapeToSDF(current_model);
-
+    
     //compute the normalization values n_f and n_b
     double norm_foreground,norm_background;
     ComputeNormalization(norm_foreground,norm_background,sdf_image);
+    if(norm_foreground == 0) {
+      std::cerr << "The object is not in view!\n";
+      return current_model.CurrentPose();
+    }
 
     //compute the derivates of the sdf images
     cv::Mat dSDFdx, dSDFdy;
@@ -71,7 +76,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
         const double region_agreement = GetRegionAgreement(r, c, sdf_image.at<float>(r,c), norm_foreground, norm_background);
 
         //dH / dL
-        const cv::Mat pose_derivatives = DeltaFunction(sdf_image.at<float>(r,c)) * GetPoseDerivatives(r, c, dSDFdx.at<float>(r,c), dSDFdy.at<float>(r,c), current_model);
+        const cv::Mat pose_derivatives = GetPoseDerivatives(r, c, sdf_image, dSDFdx.at<float>(r,c), dSDFdy.at<float>(r,c), current_model);
         
         const cv::Mat regularized_depth = GetRegularizedDepth(r,c,current_model);
 
@@ -99,7 +104,9 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 cv::Mat StereoPWP3D::GetRegularizedDepth(const int r, const int c, const KalmanTracker &current_model) const {
   
   const int NUM_DERIVS = 7;
-  cv::Vec3f front_intersection;
+  return cv::Mat::zeros(7,1,CV_64FC1);
+  
+  /*cv::Vec3f front_intersection;
   cv::Vec3f back_intersection;
 
   //find the (x,y,z) coordinates of the front and back intersection between the ray from the current pixel and the target object. return zero vector for no intersection.
@@ -127,9 +134,8 @@ cv::Mat StereoPWP3D::GetRegularizedDepth(const int r, const int c, const KalmanT
 
   }
 
-  return cv::Mat::zeros(x.size(),x.type());
-  //return x;
-
+  return x;
+  */
 }
 
 const cv::Mat StereoPWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
@@ -149,7 +155,7 @@ const cv::Mat StereoPWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
 
   //POTENTIAL OPTIMIZATION: find a ROI around the target object to not run tracking over whole image. Not yet implemented.
   FindROI(convex_hull); 
-
+ 
   //find the distance between pixels and the convex hull - heaviside function is applied after this function as need to obtain derivatives of sdf
   cv::Mat sdf_image(ROI_left_.size(),CV_32FC1);
   for(int r=0;r<sdf_image.rows;r++){
@@ -158,33 +164,66 @@ const cv::Mat StereoPWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
       sdf_image.at<float>(r,c) = (float)pointPolygonTest(convex_hull_,cv::Point2f((float)c,(float)r),true);
     }
   }
-  
   return sdf_image;
 }
 
-void StereoPWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model) const {
+bool StereoPWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model) const {
 
   cv::Vec3f ray = camera_->rectified_left_eye().UnProjectPoint( cv::Point2i(c,r) ); 
-  
-  current_model.PtrToModel()->GetIntersection(ray, front_intersection, back_intersection,current_model.CurrentPose());
+  return current_model.PtrToModel()->GetIntersection(ray, front_intersection, back_intersection,current_model.CurrentPose());
 
 }
 
-cv::Mat StereoPWP3D::GetPoseDerivatives(const int r, const int c, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model){
+
+bool StereoPWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model) const {
+
+  static cv::Mat temp_im = cv::Mat::zeros(cv::Size(1920,540),CV_8UC1);
+  if(sdf.at<float>(r,c) < -15 || sdf.at<float>(r,c) >= 0) return false;
+  
+  const float sdf_pixel = abs(sdf.at<float>(r,c));
+
+  int close_r = r, close_c = c;
+  for(int rad=sdf_pixel-2;rad<sdf_pixel+2;rad++){
+    for(int theta=0;theta<8*rad;theta++){
+
+      close_r = r + (rad * sin(theta*2*M_PI/(8*rad)) );
+      close_c = c + (rad * cos(theta*2*M_PI/(8*rad)) );
+      
+      if(close_r < 0 || close_r >= sdf.rows || close_c < 0 || close_c >= sdf.cols) continue;
+      if(sdf.at<float>(close_r,close_c) >= 0) {
+        temp_im.at<unsigned char>(close_r,close_c) = 255;
+        cv::imwrite("found_edge_points.png",temp_im);
+        cv::Vec3f ray = camera_->rectified_left_eye().UnProjectPoint( cv::Point2i(close_c,close_r) ); 
+        return current_model.PtrToModel()->GetIntersection(ray, front_intersection,back_intersection,current_model.CurrentPose());
+      }
+    }
+  }
+
+  //throw(std::runtime_error("sohuldn't be her\n"));
+  
+  return false;
+}
+
+cv::Mat StereoPWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model){
 
   const int NUM_DERIVS = 7;
+  //if(dSDFdx == 0.0f && dSDFdy == 0.0f) return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
+   
+  static cv::Mat temp_im = cv::Mat::zeros(cv::Size(1920,540),CV_8UC3);
+  if(r == 539 && c == 1919) cv::imwrite("intersectionpoints.png",temp_im);
+   //find the (x,y,z) coordinates of the front and back intersection between the ray from the current pixel and the target object. return zero vector for no intersection.
   cv::Vec3f front_intersection;
   cv::Vec3f back_intersection;
-
-  //find the (x,y,z) coordinates of the front and back intersection between the ray from the current pixel and the target object. return zero vector for no intersection.
-  GetTargetIntersections(r,c,front_intersection,back_intersection,current_model);
-
-
-  if(front_intersection == cv::Vec3f(0,0,0)) return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
+  bool intersects = GetTargetIntersections(r,c,front_intersection,back_intersection,current_model);
+  temp_im.at<cv::Vec3b>(r,c)[0] = 255*intersects;
+  if(!intersects) {
+    //intersects = GetNearestIntersection(r,c,sdf,front_intersection,back_intersection,current_model);
+    //if(intersects) temp_im.at<cv::Vec3b>(r,c)[2] = 255;
+    if(!intersects) return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
+  }
   
-  //std::cout << "front intersection " << cv::Point3f(front_intersection) << std::endl;
-  const double z_inv_sq = 1.0/(front_intersection[2]*front_intersection[2]);
 
+  const double z_inv_sq = 1.0/(front_intersection[2]*front_intersection[2]);
   cv::Mat ret(NUM_DERIVS,1,CV_64FC1);
   for(int dof=0;dof<NUM_DERIVS;dof++){
 
@@ -192,7 +231,7 @@ cv::Mat StereoPWP3D::GetPoseDerivatives(const int r, const int c, const float dS
       
     const double dXdL = camera_->rectified_left_eye().Fx() * (z_inv_sq*(front_intersection[2]*dof_derivatives[0]) - (front_intersection[0]*dof_derivatives[2]));
     const double dYdL = camera_->rectified_left_eye().Fy() * (z_inv_sq*(front_intersection[2]*dof_derivatives[1]) - (front_intersection[1]*dof_derivatives[2]));
-    ret.at<double>(dof,0) = (dSDFdx * dXdL) + (dSDFdy * dYdL);
+    ret.at<double>(dof,0) = DeltaFunction(sdf.at<float>(r,c)) * ((dSDFdx * dXdL) + (dSDFdy * dYdL));
   
   }
 
@@ -212,6 +251,7 @@ double StereoPWP3D::GetRegionAgreement(const int r, const int c, const float sdf
 }
 
 void StereoPWP3D::ComputeNormalization(double &norm_foreground, double &norm_background, const cv::Mat &sdf_image) const {
+  
   norm_foreground = norm_background = 0.0;
   const int width = sdf_image.cols, height = sdf_image.rows;
 
@@ -225,6 +265,11 @@ void StereoPWP3D::ComputeNormalization(double &norm_foreground, double &norm_bac
     }
   }
 
+
+  norm_foreground /= (height*width);
+  norm_background /= (height*width);
+  
+
 }
 
 
@@ -233,12 +278,13 @@ void StereoPWP3D::FindROI(const std::vector<cv::Vec2i> &convex_hull) {
 
   ROI_left_ = frame_->Mat(); //UNTIL I DO THIS FUNCTION
 
+  /*
   for(int r=0;r<frame_->rows();r++){
     for(int c=0;c<frame_->cols();c++){
 
 
 
     }
-  }
+  }*/
   
 }

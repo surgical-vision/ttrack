@@ -52,7 +52,6 @@
     <ClInclude Include="..\headers\utils\handler.hpp" />
     <ClInclude Include="..\headers\utils\helpers.hpp" />
     <ClInclude Include="..\headers\utils\nd_image.hpp" />
-    <ClInclude Include="..\headers\utils\quaternion.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\detect\baseclassifier.cpp" />
@@ -75,7 +74,6 @@
     <ClCompile Include="..\src\utils\helpers.cpp" />
     <ClCompile Include="..\src\utils\model.cpp" />
     <ClCompile Include="..\src\utils\nd_image.cpp" />
-    <ClCompile Include="..\src\utils\quaternion.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{0B42D26C-2E7F-49CA-850F-369C1072DA49}</ProjectGuid>
@@ -143,7 +141,7 @@
     <IncludePath>C:\Program Files\boost\boost_1_51\;C:\Program Files\opencv\build\install\include\opencv\;C:\Program Files\opencv\build\install\include\opencv2\;C:\Program Files\opencv\build\install\include\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\Program Files\boost\boost_1_51\;C:\Program Files\opencv\build\install\include\opencv\;C:\Program Files\opencv\build\install\include\opencv2\;C:\Program Files\opencv\build\install\include\;c:\Users\max\projects\image\;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Program Files\boost\boost_1_51\;C:\Program Files\opencv\build\install\include\opencv\;C:\Program Files\opencv\build\install\include\opencv2\;C:\Program Files\opencv\build\install\include\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'">
     <IncludePath>C:\Program Files\boost\boost_1_51\;C:\Program Files\opencv\build\install\include\opencv\;C:\Program Files\opencv\build\install\include\opencv2\;C:\Program Files\opencv\build\install\include\;$(IncludePath)</IncludePath>

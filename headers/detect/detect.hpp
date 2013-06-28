@@ -5,7 +5,7 @@
 #include "baseclassifier.hpp"
 #include "../utils/nd_image.hpp"
 #include <opencv2/ml/ml.hpp>
-#include <image/image.hpp>
+#include "../../deps/image/image/image.hpp"
 
 namespace ttrk{
 

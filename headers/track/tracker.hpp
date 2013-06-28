@@ -3,7 +3,7 @@
 
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/io.hpp>
-#include <image/image.hpp>
+#include "../../deps/image/image/image.hpp"
 #include <boost/scoped_ptr.hpp>
 #include "../headers.hpp"
 //#include "camera.hpp"

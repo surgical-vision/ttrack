@@ -1,7 +1,7 @@
 #ifndef __CAMERA_HPP__
 #define __CAMERA_HPP__
 #include "../headers.hpp"
-#include <image/image.hpp>
+#include "../../deps/image/image/image.hpp"
 
 namespace ttrk{
 

@@ -1,7 +1,7 @@
 #ifndef __POSE_HPP__
 #define __POSE_HPP__
 
-#include "../utils/quaternion.hpp"
+#include "../../deps/quaternion/inc/quaternion.hpp"
 
 namespace ttrk {
 

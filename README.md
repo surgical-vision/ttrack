@@ -22,10 +22,11 @@ Dependencies
 Install Guide
 -------------
 
+Clone the Image and Quaternion header repositories to the deps directory.
 Eventually I will get around to properly learning CMake. Until then...
 
 * Linux - Grab the makefile from the build directory and copy to the
-root directory. Edit path to boost/opencv if necessary. Build with Make.   
+root directory. Edit path to dependencies. Build with Make.   
 
 * Windows - Use Visual Studio solution in the build directory.
 

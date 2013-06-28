@@ -3,7 +3,7 @@
 
 #include "../localizer.hpp"
 #include "../../utils/camera.hpp"
-#include <image/image.hpp>
+#include "../../../deps/image/image/image.hpp"
 #include "../pose.hpp"
 
 namespace ttrk {

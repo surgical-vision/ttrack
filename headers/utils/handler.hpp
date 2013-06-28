@@ -5,7 +5,7 @@
 #include <vector>
 #include <utility>
 #include <string>
-#include <image/image.hpp>
+#include "../../deps/image/image/image.hpp"
 
 namespace ttrk{
 

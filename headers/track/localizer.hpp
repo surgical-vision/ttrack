@@ -2,7 +2,7 @@
 #define __LOCALIZER_HPP__
 #include "kalman.hpp"
 #include "pose.hpp"
-#include <image/image.hpp>
+#include "../../deps/image/image/image.hpp"
 
 namespace ttrk {
 

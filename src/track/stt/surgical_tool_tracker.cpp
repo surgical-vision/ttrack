@@ -1,6 +1,6 @@
 #include "../../../headers/track/stt/surgical_tool_tracker.hpp"
 #include "../../../headers/track/pwp3d/pwp3d.hpp"
-#include <image/image.hpp>
+#include "../../../deps/image/image/image.hpp"
 
 using namespace ttrk;
 

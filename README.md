@@ -17,9 +17,12 @@ Dependencies
 * [OpenCV v2.3.1](http://opencv.org/downloads.html) or higher 
 * [Boost v1.48.0](http://www.boost.org/users/download/) but will probably work on older versions of boost too.
 * [Image](https://github.com/maximilianallan/image)
+* [Quaternion](https://github.com/maximilianallan/quaternion)
 
 Install Guide
 -------------
+
+Eventually I will get around to properly learning CMake. Until then...
 
 * Linux - Grab the makefile from the build directory and copy to the
 root directory. Edit path to boost/opencv if necessary. Build with Make.   

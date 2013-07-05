@@ -153,7 +153,8 @@ const cv::Mat StereoPWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
   cv::convexHull(projected_points,convex_hull);
   cv::Mat convex_hull_(convex_hull);
 
-  //POTENTIAL OPTIMIZATION: find a ROI around the target object to not run tracking over whole image. Not yet implemented.
+  //POTENTIAL OPTIMIZATION: 
+  //find a ROI around the target object to not run tracking over whole image. Not yet implemented.
   FindROI(convex_hull); 
  
   //find the distance between pixels and the convex hull - heaviside function is applied after this function as need to obtain derivatives of sdf

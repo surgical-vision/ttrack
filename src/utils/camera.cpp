@@ -107,7 +107,7 @@ void StereoCamera::ReprojectTo3D(const cv::Mat &disparity_image, cv::Mat &point_
 
   cv::Mat rescaled = disparity_image;
   cv::Mat rescaled2;
-  disparity_image.convertTo(rescaled2,CV_8U,(1.0/16));// * disparity_image;
+  disparity_image.convertTo(rescaled,CV_8U,(1.0/1.5));// * disparity_image;
 
   cv::reprojectImageTo3D(rescaled,point_cloud,reprojection_matrix_);
 

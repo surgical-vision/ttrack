@@ -107,6 +107,8 @@ namespace ttrk {
       return cv::Vec3f((2*pose.rotation_.Y()*point[2])-(2*pose.rotation_.Z()*point[1]),
                        (2*pose.rotation_.Z()*point[0])-(2*pose.rotation_.X()*point[2]),
                        (2*pose.rotation_.X()*point[1])-(2*pose.rotation_.Y()*point[0]));
+    default:
+      throw std::runtime_error("Error, a value in the range 0-6 must be supplied");
     }
   }
   

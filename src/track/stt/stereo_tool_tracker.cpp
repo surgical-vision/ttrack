@@ -38,7 +38,7 @@ void StereoToolTracker::CreateDisparityImage(){
                       true);
 
   sgbm(left_image,right_image,out_disparity);
-
+  
   //opencv sgbm multiplies each val by 16 so scale down to floating point array
   out_disparity.convertTo(*(StereoFrame()->PtrToDisparityMap()),-1);//,1.0/16);
   //*(StereoFrame()->PtrToDisparityMap()) = out_disparity;
@@ -105,17 +105,17 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   cv::Vec3f center_of_mass = FindCenterOfMass(StereoFrame()->PtrToPointCloud());
   center_of_mass *= (cv::norm(center_of_mass) + radius_)/cv::norm(center_of_mass);
   std::cerr << "center of mass = " << cv::Point3f(center_of_mass) << std::endl;
-    
+  
+  //RANDOMIZATION
+  srand(time(0x0));
+  //center_of_mass -= cv::Vec3f(2*(float)rand()/RAND_MAX,2*(float)rand()/RAND_MAX,2*(float)rand()/RAND_MAX);
+  
   //find the central axis of the point cloud
   cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->PtrToPointCloud());
   
   //RANDOMIZATION
   srand(time(0x0));
-  std::cerr << "centeral axis = " << cv::Point3f(central_axis) << std::endl;
-  center_of_mass -= cv::Vec3f(2*(float)rand()/RAND_MAX,2*(float)rand()/RAND_MAX,2*(float)rand()/RAND_MAX);
-  //central_axis += cv::Vec3f(-(float)rand()/(2*RAND_MAX),(float)rand()/(3*RAND_MAX),(float)rand()/(2*RAND_MAX));
-  center_of_mass = cv::Vec3f(0,0,35);
-  //central_axis += cv::Vec3f(-0.3,0.3,0.6);
+  central_axis += cv::Vec3f(-(float)rand()/(2*RAND_MAX),(float)rand()/(3*RAND_MAX),(float)rand()/(2*RAND_MAX));
   std::cerr << "centeral axis = " << cv::Point3f(central_axis) << std::endl;
 
   cv::Vec3f t_central_axis = central_axis;
@@ -230,5 +230,7 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
    camera_->RemapLeftFrame(stereo_image->LeftMat());
    camera_->RemapRightFrame(stereo_image->RightMat());
    camera_->RemapLeftFrame(stereo_image->ClassificationMap());
+   stereo_image->rectified_region_ = camera_->ROILeft();
+
  }
  

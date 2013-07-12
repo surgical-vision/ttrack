@@ -108,14 +108,16 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   
   //RANDOMIZATION
   srand(time(0x0));
-  //center_of_mass -= cv::Vec3f(2*(float)rand()/RAND_MAX,2*(float)rand()/RAND_MAX,2*(float)rand()/RAND_MAX);
+  //center_of_mass += cv::Vec3f(2*(float)rand()/RAND_MAX,2*(float)rand()/RAND_MAX,2*(float)rand()/RAND_MAX);
   
+
   //find the central axis of the point cloud
   cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->PtrToPointCloud());
   
+  center_of_mass += cv::Vec3f(4,-4,-7);
   //RANDOMIZATION
   srand(time(0x0));
-  central_axis += cv::Vec3f(-(float)rand()/(2*RAND_MAX),(float)rand()/(3*RAND_MAX),(float)rand()/(2*RAND_MAX));
+  //central_axis -= cv::Vec3f(-(float)rand()/(2*RAND_MAX),(float)rand()/(3*RAND_MAX),(float)rand()/(2*RAND_MAX));
   std::cerr << "centeral axis = " << cv::Point3f(central_axis) << std::endl;
 
   cv::Vec3f t_central_axis = central_axis;
@@ -231,6 +233,12 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
    camera_->RemapRightFrame(stereo_image->RightMat());
    camera_->RemapLeftFrame(stereo_image->ClassificationMap());
    stereo_image->rectified_region_ = camera_->ROILeft();
+
+   static size_t frame_count;
+   std::stringstream ss;
+   ss << "classification_map" << frame_count++ << ".png";
+   cv::imwrite( ss.str() , frame_->ClassificationMap());
+
 
  }
  

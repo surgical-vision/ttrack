@@ -60,10 +60,7 @@ void Detect::ClassifyFrame(){
     }
   }
 
-  std::stringstream ss;
-  ss << "classification_map" << frame_count << ".png";
-  cv::imwrite( ss.str() , frame_->ClassificationMap());
-
+  
   if(DEBUG_COUNT>300) found_ = true;
   else found_ = false;
 

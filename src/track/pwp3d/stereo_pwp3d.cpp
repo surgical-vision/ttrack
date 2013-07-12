@@ -1,6 +1,8 @@
 #include "../../../headers/track/pwp3d/stereo_pwp3d.hpp"
 #include "../../../headers/utils/helpers.hpp"
 #include<boost/filesystem.hpp>
+#include <opencv2/contrib/contrib.hpp>
+
 using namespace ttrk;
 
 
@@ -13,7 +15,7 @@ void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat c
   for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
 
     cv::Vec2f projected = camera_->rectified_left_eye().ProjectPoint(point->vertex_);
-
+    
     for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
       
       const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
@@ -33,7 +35,7 @@ void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat c
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
 
   frame_ = frame;
-  const int NUM_STEPS = 5;
+  const int NUM_STEPS = 25;
 
   /*** TO DELETE ***/
   std::cerr << "starting pose is: "<< current_model.CurrentPose().rotation_ << " + " << cv::Point3f(current_model.CurrentPose().translation_) << std::endl;
@@ -45,14 +47,36 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   cv::imwrite(ss.str()+"/step_init.png",canvas);
   frame_count++;
   
+  DEBUG_DIR_ = ss.str() + "/debug/";
+  boost::filesystem::create_directory(DEBUG_DIR_);
+  std::ofstream ENERGY_FILE((DEBUG_DIR_ + "/energy_file.csv").c_str());
+  if(!ENERGY_FILE.is_open()) throw(std::runtime_error("Error, could not open energy file!\n"));
+
   for(int step=0; step < NUM_STEPS; step++){
 
 #ifdef DEBUG
     boost::progress_timer t; //timer prints time when it goes out of scope
 #endif
 
-    cv::Mat sdf_image = ProjectShapeToSDF(current_model);
     
+
+    /**********************************************************************************************************/
+    cv::Mat sdf_image = ProjectShapeToSDF(current_model);
+    cv::Mat normed;
+    cv::Mat hsdf_image(sdf_image.size(),CV_32FC1);
+    cv::normalize(sdf_image,normed,0,255,cv::NORM_MINMAX);
+    cv::Mat colormap1; cv::applyColorMap(normed,colormap1,cv::COLORMAP_HSV);
+    cv::imwrite(DEBUG_DIR_ + "/sdf_image.png",colormap1);
+    for(int r=0;r<sdf_image.rows;r++) for(int c=0;c<sdf_image.cols;c++) 
+      hsdf_image.at<float>(r,c) = Heaviside(sdf_image.at<float>(r,c));
+    
+    cv::normalize(hsdf_image,normed,0,255,cv::NORM_MINMAX);
+    cv::applyColorMap(normed,colormap1,cv::COLORMAP_HSV);
+    cv::imwrite(DEBUG_DIR_ + "/hsdf_image.png",colormap1);
+    /**********************************************************************************************************/
+
+
+
     //compute the normalization values n_f and n_b
     double norm_foreground,norm_background;
     ComputeNormalization(norm_foreground,norm_background,sdf_image);
@@ -68,8 +92,11 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
     //(x,y,z,w,r1,r2,r3)
     cv::Mat jacobian = cv::Mat::zeros(7,1,CV_64FC1);
-
     boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
+    
+    cv::Mat ENERGY_IMAGE = cv::Mat::zeros(ROI_left_.size(),CV_32FC1);
+    double energy = 0.0;
+    
 
     for(int r=0;r<ROI_left_.rows;r++){
       for(int c=0;c<ROI_left_.cols;c++){
@@ -77,6 +104,15 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
         if(!stereo_frame->InsideRectifiedRegion(r,c)) {
           continue;
         }
+        /******/
+        const double pixel_probability = (double)frame_->ClassificationMap().at<unsigned char>(r,c)/255.0;
+        const double norm = (norm_foreground*pixel_probability) + (norm_background*(1.0-pixel_probability));
+        const double foreground_probability = pixel_probability/norm;
+        const double background_probability = (1-pixel_probability)/norm;
+        ENERGY_IMAGE.at<float>(r,c) = -log(Heaviside(sdf_image.at<float>(r,c))*foreground_probability + (1-Heaviside(sdf_image.at<float>(r,c)))*background_probability);
+        energy += ENERGY_IMAGE.at<float>(r,c);
+        
+        /******/
 
         //P_f - P_b / (H * P_f + (1 - H) * P_b)
         const double region_agreement = GetRegionAgreement(r, c, sdf_image.at<float>(r,c), norm_foreground, norm_background);
@@ -92,10 +128,16 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
       }
     }
 
+    ENERGY_FILE << energy << " ";
+    ENERGY_FILE.flush();
+    std::cout << "ENERGY IS : " << energy << std::endl;
     ScaleJacobian(jacobian);
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose());
     
 /*** TO DELETE ***/
+    cv::Mat normed2; cv::normalize(ENERGY_IMAGE,normed2,0,255,cv::NORM_MINMAX);
+    cv::Mat colormap; cv::applyColorMap(normed2,colormap,cv::COLORMAP_HSV);
+    cv::imwrite(DEBUG_DIR_ + "/energy.png",ENERGY_IMAGE);
     cv::Mat canvas = frame_->Mat().clone();
     DrawModelOnFrame(current_model,canvas);
     std::stringstream ss_2; ss_2 << "step_" << step << ".png";
@@ -103,6 +145,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
   }
 
+  ENERGY_FILE.close();
   current_model.CurrentPose().rotation_ = current_model.CurrentPose().rotation_.Normalize();
   return current_model.CurrentPose();
 

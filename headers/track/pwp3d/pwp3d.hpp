@@ -46,6 +46,7 @@ namespace ttrk {
   
     boost::shared_ptr<sv::Frame> frame_;
     
+    std::string DEBUG_DIR_;
     
   };
 

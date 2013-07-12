@@ -44,55 +44,6 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
 
   return points;
 }
-/*
-bool MISTool::GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const {
-  cv::Vec3f top((float)height_/2,0.0,0.0);
-  top = pose.Transform(top);
-  cv::Vec3f bottom((float)-height_/2,0.0,0.0);
-  bottom = pose.Transform(bottom);
-
-  cv::Vec3f AB = top - bottom;
-  cv::Vec3f AO = cv::Vec3f(0,0,0) - bottom;
-
-  float AB_dot_d = AB.dot(ray);
-  float AB_dot_AO = AB.dot(AO);
-  float AB_dot_AB = AB.dot(AB);
-
-  float m = AB_dot_d / AB_dot_AB;
-  float n = AB_dot_AO / AB_dot_AB;
-
-  cv::Vec3f Q = ray - (AB * m);
-  cv::Vec3f R = AO - (AB * n);
-
-  float a = Q.dot(Q);
-  float b = 2.0f * Q.dot(R);
-  float c = R.dot(R) - (radius_ * radius_);
-
-  float discriminant = b * b - 4.0f * a * c;
-  if(discriminant < 0.0f)
-  {
-    // The ray doesn't hit the infinite cylinder defined by (A, B).
-    // No intersection.
-    return false;
-  }
-
-  float tmin = (-b - sqrt(discriminant)) / (2.0f * a);
-  float tmax = (-b + sqrt(discriminant)) / (2.0f * a);
-  if(tmin > tmax)
-  {
-    float temp = tmin;
-    tmin = tmax;
-    tmax = temp;
-  }
-  float t_k1 = tmin * m + n;
-  if(t_k1 >= 0.0 && t_k1 <= 1.0){ 
-    front = cv::Vec3f(0,0,0) + (ray * tmin);
-    return true;
-  }else{
-    return false;
-  }
-
-}*/
 
 bool MISTool::GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const {
 

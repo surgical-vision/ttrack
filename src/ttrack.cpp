@@ -27,7 +27,7 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
     //load the correct type of tool tracker
     switch(camera_type_){
     case STEREO:
-      tracker_.reset(new StereoToolTracker(2,10,*root_dir_ + "/config/camera.xml"));
+      tracker_.reset(new StereoToolTracker(2,40,*root_dir_ + "/config/camera.xml"));
       break;
     case MONOCULAR:
       tracker_.reset(new MonocularToolTracker(2,40,*root_dir_ + "/config/camera.xml"));
@@ -54,7 +54,7 @@ void TTrack::Run(){
 
   (*detector_)( GetPtrToNewFrame() ); 
   size_t frame = 0;
-  while(detector_->Found() && frame < 10){
+  while(detector_->Found() && frame < 20){
     
     boost::thread TrackThread(boost::ref(*(tracker_.get())), GetPtrToClassifiedFrame() );
     boost::thread DetectThread(boost::ref(*(detector_.get())), GetPtrToNewFrame() );

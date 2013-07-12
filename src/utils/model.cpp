@@ -136,7 +136,7 @@ bool MISTool::GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f 
   //check the intersections with the front of the cylinder
   bool front_intersection = false;
   if(alp_1 >= 0.0 && alp_1 <= 1.0){ //intersection w/ side of cylinder
-    cv::Vec3f front_old = s1*ray;
+    front = s1*ray;
     front_intersection = true;
   }else{ //if not there then check for intersection with circular head of cylinder
     front_intersection = CircleIntersection(bottom,dP,ray,radius_,front);

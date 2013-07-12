@@ -119,6 +119,9 @@ namespace ttrk{
       rectified_left_eye_.distortion_params_ = cv::Mat::zeros(1,5,CV_64FC1);
       rectified_right_eye_.distortion_params_ = cv::Mat::zeros(1,5,CV_64FC1);
     }
+
+    cv::Rect ROILeft() const { return roi1; }
+
   protected:
 
     bool rectified_;

@@ -39,6 +39,8 @@ void Detect::ClassifyFrame(){
   const int rows = frame_->rows();
   const int cols = frame_->cols();
 
+  static size_t frame_count = 0;
+
   size_t DEBUG_COUNT = 0;
 
   unsigned char *frame_data = (unsigned char *)frame_->PtrToClassificationMap()->data;
@@ -58,7 +60,9 @@ void Detect::ClassifyFrame(){
     }
   }
 
-  cv::imwrite("classification_map.png", frame_->ClassificationMap());
+  std::stringstream ss;
+  ss << "classification_map" << frame_count << ".png";
+  cv::imwrite( ss.str() , frame_->ClassificationMap());
 
   if(DEBUG_COUNT>300) found_ = true;
   else found_ = false;

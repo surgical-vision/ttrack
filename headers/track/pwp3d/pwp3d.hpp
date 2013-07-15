@@ -18,8 +18,9 @@ namespace ttrk {
     /**
     * Apply some scaling to the pose derivatives to modify the step size.
     * @param[in] jacobian The pose derivatives.
+    * @param[in] step_id The number of steps done. Used for scaling down the step size.
     */
-    void ScaleJacobian(cv::Mat &jacobian) const;
+    void ScaleJacobian(cv::Mat &jacobian, const int step_number) const;
 
     double DeltaFunction(float x){
       double std = 0.08; // ----0.05

@@ -16,8 +16,8 @@ void KalmanTracker::SetPose(const cv::Vec3f translation, const cv::Vec3f rotated
 
 void KalmanTracker::UpdatePose(const Pose &pose_measurement) {
 
-  pose_ = pose_measurement;
-  return;
+  //pose_ = pose_measurement;
+  //return;
     
   const cv::Mat prediction = filter_.predict();
   std::cout << "prediction = " << prediction << std::endl;
@@ -33,7 +33,7 @@ void KalmanTracker::UpdatePose(const Pose &pose_measurement) {
 
 void KalmanTracker::Init() {
 
-  static float dt = 0.05;
+  static float dt = 1;
 
   //params (x,y,z,dx,dy,dz,r1,r2,r3,,dr1,dr2,dr3) - euler angles allows linear parametrization
   filter_.init(12,6,0); //dynamic params, measurement params, control params
@@ -46,6 +46,7 @@ void KalmanTracker::Init() {
     filter_.transitionMatrix.at<float>(i-3,i) = dt;
     filter_.transitionMatrix.at<float>(i+3,i+6) = dt;
   }
+  std::cout << filter_.transitionMatrix << std::endl;
 
   filter_.measurementMatrix = cv::Mat::zeros(6,12,CV_32F);
   for(int i=0;i<3;i++){

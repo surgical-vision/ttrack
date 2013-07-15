@@ -93,7 +93,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
       }
     }
 
-    ScaleJacobian(jacobian);
+    ScaleJacobian(jacobian, step);
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose());
 
   }

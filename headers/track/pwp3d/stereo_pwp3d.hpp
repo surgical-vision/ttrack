@@ -83,30 +83,34 @@ namespace ttrk {
 
     //return the (dx/dL,dy/dL,dz/dL) derivative for the degree of freedom
     switch(dof){
-    case 0:
+    
+    case 0: //x
       return cv::Vec3f(1,0,0);
-    case 1:
+    case 1: //y
       return cv::Vec3f(0,1,0);
-    case 2:
+    case 2: //z
       return cv::Vec3f(0,0,1);
-    case 3:
+    
+    
+    case 3: //qw
+      return cv::Vec3f((2*pose.rotation_.Y()*point[2])-(2*pose.rotation_.Z()*point[1]),
+                       (2*pose.rotation_.Z()*point[0])-(2*pose.rotation_.X()*point[2]),
+                       (2*pose.rotation_.X()*point[1])-(2*pose.rotation_.Y()*point[0]));
+
+    case 4: //qx
       return cv::Vec3f((2*pose.rotation_.Y()*point[1])+(2*pose.rotation_.Z()*point[2]),
                        (2*pose.rotation_.Y()*point[0])-(4*pose.rotation_.X()*point[1])-(2*pose.rotation_.W()*point[2]),
                        (2*pose.rotation_.Z()*point[0])+(2*pose.rotation_.W()*point[1])-(4*pose.rotation_.X()*point[2]));
 
-    case 4:
+    case 5: //qy
       return cv::Vec3f((2*pose.rotation_.X()*point[1])-(4*pose.rotation_.Y()*point[0])+(2*pose.rotation_.W()*point[2]),
                        (2*pose.rotation_.X()*point[0])+(2*pose.rotation_.Z()*point[2]),
                        (2*pose.rotation_.Z()*point[1])+(2*pose.rotation_.W()*point[0])-(4*pose.rotation_.Y()*point[2]));
-    case 5:
+    case 6: //qz
       return cv::Vec3f((2*pose.rotation_.X()*point[2])-(2*pose.rotation_.W()*point[1])-(4*pose.rotation_.Z()*point[0]),
                        (2*pose.rotation_.W()*point[0])-(4*pose.rotation_.X()*point[1])+(2*pose.rotation_.Y()*point[2]),
                        (2*pose.rotation_.X()*point[0])+(2*pose.rotation_.Y()*point[1]));
 
-    case 6:
-      return cv::Vec3f((2*pose.rotation_.Y()*point[2])-(2*pose.rotation_.Z()*point[1]),
-                       (2*pose.rotation_.Z()*point[0])-(2*pose.rotation_.X()*point[2]),
-                       (2*pose.rotation_.X()*point[1])-(2*pose.rotation_.Y()*point[0]));
     default:
       throw std::runtime_error("Error, a value in the range 0-6 must be supplied");
     }

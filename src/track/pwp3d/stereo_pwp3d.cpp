@@ -35,7 +35,7 @@ void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat c
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
 
   frame_ = frame;
-  const int NUM_STEPS = 25;
+  const int NUM_STEPS = 3;
 
   /*** TO DELETE ***/
   std::cerr << "starting pose is: "<< current_model.CurrentPose().rotation_ << " + " << cv::Point3f(current_model.CurrentPose().translation_) << std::endl;
@@ -131,7 +131,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     ENERGY_FILE << energy << " ";
     ENERGY_FILE.flush();
     std::cout << "ENERGY IS : " << energy << std::endl;
-    ScaleJacobian(jacobian);
+    ScaleJacobian(jacobian,step);
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose());
     
 /*** TO DELETE ***/
@@ -252,7 +252,7 @@ bool StereoPWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &fr
 
 bool StereoPWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model) const {
 
-  if(sdf.at<float>(r,c) < -15 || sdf.at<float>(r,c) >= 0) return false;
+  if(sdf.at<float>(r,c) < -10 || sdf.at<float>(r,c) >= 0) return false;
   
   cv::Point2i min_point;
   const cv::Point2i start_pt(c,r);
@@ -318,7 +318,7 @@ cv::Mat StereoPWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat 
   cv::Vec3f front_intersection;
   cv::Vec3f back_intersection;
   bool intersects = GetTargetIntersections(r,c,front_intersection,back_intersection,current_model);
-  //temp_im.at<cv::Vec3b>(r,c)[0] = 255*intersects;
+
   if(!intersects) {
     intersects = GetNearestIntersection(r,c,sdf,front_intersection,back_intersection,current_model);
     if(!intersects)
@@ -332,8 +332,8 @@ cv::Mat StereoPWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat 
 
     const cv::Vec3f dof_derivatives = GetDOFDerivatives(dof,current_model.CurrentPose(),front_intersection);
       
-    const double dXdL = camera_->rectified_left_eye().Fx() * (z_inv_sq*(front_intersection[2]*dof_derivatives[0]) - (front_intersection[0]*dof_derivatives[2]));
-    const double dYdL = camera_->rectified_left_eye().Fy() * (z_inv_sq*(front_intersection[2]*dof_derivatives[1]) - (front_intersection[1]*dof_derivatives[2]));
+    const double dXdL = camera_->rectified_left_eye().Fx() * (z_inv_sq*((front_intersection[2]*dof_derivatives[0]) - (front_intersection[0]*dof_derivatives[2])));
+    const double dYdL = camera_->rectified_left_eye().Fy() * (z_inv_sq*((front_intersection[2]*dof_derivatives[1]) - (front_intersection[1]*dof_derivatives[2])));
     ret.at<double>(dof,0) = DeltaFunction(sdf.at<float>(r,c)) * ((dSDFdx * dXdL) + (dSDFdy * dYdL));
   
   }

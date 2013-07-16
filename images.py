@@ -17,6 +17,8 @@ for dir in f:
   
     if im.find('step_init') >= 0: 
       continue
+    if im == 'debug':
+      continue
     
     src = dir + '/' + im
     dst = 'all_frames/frame_' + str(len(os.listdir('all_frames'))) + '.png'

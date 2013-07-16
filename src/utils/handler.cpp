@@ -97,6 +97,10 @@ void ImageHandler::SavePtrToFrame(boost::shared_ptr<cv::Mat> image){
 
 void VideoHandler::SavePtrToFrame(const boost::shared_ptr<cv::Mat> image){
   
+  /*******/
+  static int frame_num = 0;
+  /*******/
+
   if(!writer_.isOpened()){  
   // open the writer to create the processed video
     writer_.open(output_url_,CV_FOURCC('D','I','B',' '), 25, 
@@ -109,7 +113,13 @@ void VideoHandler::SavePtrToFrame(const boost::shared_ptr<cv::Mat> image){
   
   if(!writer_.isOpened()) throw std::runtime_error("Error, attempt to save frame without available video writer.\n");
   writer_ << *image;
-  
+
+  /*******/
+  std::stringstream ss; ss << "debug/frame_" << frame_num << ".png";
+  cv::imwrite(ss.str(),*image);
+  frame_num++;
+  /*******/
+
 }
 
 void Handler::SaveDebug(const std::vector< ImAndName > &to_save) const {

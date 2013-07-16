@@ -42,7 +42,7 @@ void StereoToolTracker::CreateDisparityImage(){
   //opencv sgbm multiplies each val by 16 so scale down to floating point array
   out_disparity.convertTo(*(StereoFrame()->PtrToDisparityMap()),-1);//,1.0/16);
   //*(StereoFrame()->PtrToDisparityMap()) = out_disparity;
-
+  cv::imwrite("disparity.png",out_disparity);
 }
 
 
@@ -106,19 +106,9 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   center_of_mass *= (cv::norm(center_of_mass) + radius_)/cv::norm(center_of_mass);
   std::cerr << "center of mass = " << cv::Point3f(center_of_mass) << std::endl;
   
-  //RANDOMIZATION
-  srand(time(0x0));
-  //center_of_mass += cv::Vec3f(2*(float)rand()/RAND_MAX,2*(float)rand()/RAND_MAX,2*(float)rand()/RAND_MAX);
-  
-
   //find the central axis of the point cloud
   cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->PtrToPointCloud());
   
-  //center_of_mass += cv::Vec3f(4,-4,-7);
-  //RANDOMIZATION
-  srand(time(0x0));
-  //central_axis -= cv::Vec3f(-(float)rand()/(2*RAND_MAX),(float)rand()/(3*RAND_MAX),(float)rand()/(2*RAND_MAX));
-  //central_axis -= cv::Vec3f(-0.1,-0.2,-0.3);
   std::cerr << "centeral axis = " << cv::Point3f(central_axis) << std::endl;
 
   cv::Vec3f t_central_axis = central_axis;

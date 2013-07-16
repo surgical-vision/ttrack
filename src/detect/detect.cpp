@@ -60,7 +60,6 @@ void Detect::ClassifyFrame(){
     }
   }
 
-  
   if(DEBUG_COUNT>300) found_ = true;
   else found_ = false;
 

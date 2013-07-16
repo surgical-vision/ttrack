@@ -35,7 +35,11 @@ void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat c
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
 
   frame_ = frame;
-  const int NUM_STEPS = 3;
+  const int NUM_STEPS = 15;
+
+#ifdef DEBUG
+    boost::progress_timer t; //timer prints time when it goes out of scope
+#endif
 
 #ifdef SAVEDEBUG
   std::cerr << "starting pose is: "<< current_model.CurrentPose().rotation_ << " + " << cv::Point3f(current_model.CurrentPose().translation_) << std::endl;
@@ -53,31 +57,12 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   if(!ENERGY_FILE.is_open()) throw(std::runtime_error("Error, could not open energy file!\n"));
 #endif
 
+  cv::Vec3f initial_translation = current_model.CurrentPose().translation_;
+  double min_energy = std::numeric_limits<double>::max();
   for(int step=0; step < NUM_STEPS; step++){
 
-#ifdef DEBUG
-    boost::progress_timer t; //timer prints time when it goes out of scope
-#endif
-
-    
-
-    /**********************************************************************************************************/
     cv::Mat sdf_image = ProjectShapeToSDF(current_model);
-    //cv::Mat normed;
-    //cv::Mat hsdf_image(sdf_image.size(),CV_32FC1);
-    //cv::normalize(sdf_image,normed,0,255,cv::NORM_MINMAX);
-    //cv::Mat colormap1; cv::applyColorMap(normed,colormap1,cv::COLORMAP_HSV);
-    //cv::imwrite(DEBUG_DIR_ + "/sdf_image.png",colormap1);
-    //for(int r=0;r<sdf_image.rows;r++) for(int c=0;c<sdf_image.cols;c++) 
-    //  hsdf_image.at<float>(r,c) = Heaviside(sdf_image.at<float>(r,c));
     
-    //cv::normalize(hsdf_image,normed,0,255,cv::NORM_MINMAX);
-    //cv::applyColorMap(normed,colormap1,cv::COLORMAP_HSV);
-    //cv::imwrite(DEBUG_DIR_ + "/hsdf_image.png",colormap1);
-    /**********************************************************************************************************/
-
-
-
     //compute the normalization values n_f and n_b
     double norm_foreground,norm_background;
     ComputeNormalization(norm_foreground,norm_background,sdf_image);
@@ -128,6 +113,9 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     //ENERGY_FILE << energy << " ";
     //ENERGY_FILE.flush();
     std::cout << "ENERGY IS : " << energy << std::endl;
+    if(energy < min_energy) min_energy = energy;
+    else break;
+
     ScaleJacobian(jacobian,step);
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose());
     
@@ -144,6 +132,8 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
   //ENERGY_FILE.close();
   //current_model.CurrentPose().rotation_ = current_model.CurrentPose().rotation_.Normalize();
+  cv::Vec3f translational_velocity = current_model.CurrentPose().translation_ - initial_translation;
+  current_model.CurrentPose().translational_velocity_ = translational_velocity;
   return current_model.CurrentPose();
 
 }
@@ -249,7 +239,7 @@ bool StereoPWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &fr
 
 bool StereoPWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model) const {
 
-  if(sdf.at<float>(r,c) < -10 || sdf.at<float>(r,c) >= 0) return false;
+  if(sdf.at<float>(r,c) < -20 || sdf.at<float>(r,c) >= 0) return false;
   
   cv::Point2i min_point;
   const cv::Point2i start_pt(c,r);

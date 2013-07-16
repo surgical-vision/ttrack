@@ -18,6 +18,7 @@ namespace ttrk {
     inline Pose(const Pose &that){
       translation_ = that.translation_;
       rotation_ = that.rotation_;
+      translational_velocity_ = that.translational_velocity_;
     }
 
     inline cv::Vec3f Transform(const cv::Vec3f &to_transform) const {
@@ -29,19 +30,28 @@ namespace ttrk {
     cv::Vec3f translation_;
     sv::Quaternion rotation_;
 
+    /**** EXPERIMENTAL ****/
+    cv::Vec3f translational_velocity_;
+    //cv::Vec3f rotational_velocity;
+
   };
 
    Pose Pose::operator=(const cv::Mat &that){
-      if(that.size() == cv::Size(1,6)){
-        const cv::Vec3f translation(that(cv::Range(0,3),cv::Range::all()));
-        const cv::Vec3f rotation(that(cv::Range(3,6),cv::Range::all()));
+      if(that.size() == cv::Size(1,9)){
+        
+        const cv::Vec3f translation(that(cv::Range(0,3),cv::Range::all()));     
+        const cv::Vec3f velocity(that(cv::Range(3,6),cv::Range::all()));
+        const cv::Vec3f rotation(that(cv::Range(6,9),cv::Range::all()));
         this->rotation_ = sv::Quaternion(rotation);
         this->translation_ = translation;
-      }else if(that.size() == cv::Size(6,1)){
+        this->translational_velocity_ = velocity;
+      }else if(that.size() == cv::Size(9,1)){
         const cv::Vec3f translation(that(cv::Range::all(),cv::Range(0,3)));
-        const cv::Vec3f rotation(that(cv::Range::all(),cv::Range(3,7)));
+        const cv::Vec3f velocity(that(cv::Range::all(),cv::Range(3,6)));
+        const cv::Vec3f rotation(that(cv::Range::all(),cv::Range(6,9)));
         this->rotation_ = sv::Quaternion(rotation);
         this->translation_ = translation;
+        this->translational_velocity_ = velocity;
       }else{
         throw(std::runtime_error("Error, invalid assignement to ttrk::Pose from cv::Mat. Dimensions do not match!\n"));
       }
@@ -50,12 +60,13 @@ namespace ttrk {
 
 
   Pose::operator cv::Mat() const {
-    cv::Mat r(6,1,CV_32FC1);
-    for(int i=0;i<3;i++) r.at<float>(i,0) = translation_[i];
-    cv::Vec3f euler = rotation_.EulerAngles();
-    r.at<float>(3,0) = euler[0];
-    r.at<float>(4,0) = euler[1];
-    r.at<float>(5,0) = euler[2];
+    cv::Mat r(9,1,CV_32FC1);
+    cv::Vec3f euler = rotation_.EulerAngles();    
+    for(int i=0;i<3;i++){
+      r.at<float>(i,0) = translation_[i];
+      r.at<float>(i+3,0) = translational_velocity_[i];      
+      r.at<float>(i+6,0) = euler[i];
+    }
     return r;  
   }
 

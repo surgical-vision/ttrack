@@ -53,8 +53,8 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
 void TTrack::Run(){
 
   (*detector_)( GetPtrToNewFrame() ); 
-  size_t frame = 0;
-  while(detector_->Found() && frame < 20){
+  
+  while(detector_->Found()){
     
     boost::thread TrackThread(boost::ref(*(tracker_.get())), GetPtrToClassifiedFrame() );
     boost::thread DetectThread(boost::ref(*(detector_.get())), GetPtrToNewFrame() );
@@ -67,8 +67,6 @@ void TTrack::Run(){
 #endif
 
     CleanUp();
-
-    frame++;
 
   }
   

@@ -233,13 +233,9 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
    camera_->RemapLeftFrame(stereo_image->LeftMat());
    camera_->RemapRightFrame(stereo_image->RightMat());
    camera_->RemapLeftFrame(stereo_image->ClassificationMap());
+   
+   //save the roi around the good part of the image to speed up localization
    stereo_image->rectified_region_ = camera_->ROILeft();
-
-   static size_t frame_count;
-   std::stringstream ss;
-   ss << "classification_map" << frame_count++ << ".png";
-   cv::imwrite( ss.str() , frame_->ClassificationMap());
-
-
+     
  }
  

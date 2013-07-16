@@ -3,9 +3,14 @@
 
 using namespace ttrk;
 
-void Tracker::operator()(boost::shared_ptr<sv::Frame> image){
+void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
   
   SetHandleToFrame(image);
+
+  if(!found){
+    tracking_ = false;
+    return;
+  }
 
   if(!tracking_){
     if(!Init() || !InitKalmanFilter()) //do any custom initalisation in the virtual Init function

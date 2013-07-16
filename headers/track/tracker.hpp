@@ -39,8 +39,9 @@ namespace ttrk{
     /**
      * Overload for boost thread call. This function wraps the calls to the model fitting methods
      * @param image The image pulled from the video file or image file.
+     * @param found The success of the detection system. Stops tracking and sets the tracker up to perform tracking recovery when object is detected again.
      */
-    void operator()(boost::shared_ptr<sv::Frame> image);
+    void operator()(boost::shared_ptr<sv::Frame> image, const bool found);
 
   
     /**

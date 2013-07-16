@@ -37,7 +37,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   frame_ = frame;
   const int NUM_STEPS = 3;
 
-  /*** TO DELETE ***/
+#ifdef SAVEDEBUG
   std::cerr << "starting pose is: "<< current_model.CurrentPose().rotation_ << " + " << cv::Point3f(current_model.CurrentPose().translation_) << std::endl;
   cv::Mat canvas = frame_->Mat().clone();
   DrawModelOnFrame(current_model,canvas);
@@ -51,6 +51,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   boost::filesystem::create_directory(DEBUG_DIR_);
   std::ofstream ENERGY_FILE((DEBUG_DIR_ + "/energy_file.csv").c_str());
   if(!ENERGY_FILE.is_open()) throw(std::runtime_error("Error, could not open energy file!\n"));
+#endif
 
   for(int step=0; step < NUM_STEPS; step++){
 
@@ -62,17 +63,17 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
     /**********************************************************************************************************/
     cv::Mat sdf_image = ProjectShapeToSDF(current_model);
-    cv::Mat normed;
-    cv::Mat hsdf_image(sdf_image.size(),CV_32FC1);
-    cv::normalize(sdf_image,normed,0,255,cv::NORM_MINMAX);
-    cv::Mat colormap1; cv::applyColorMap(normed,colormap1,cv::COLORMAP_HSV);
-    cv::imwrite(DEBUG_DIR_ + "/sdf_image.png",colormap1);
-    for(int r=0;r<sdf_image.rows;r++) for(int c=0;c<sdf_image.cols;c++) 
-      hsdf_image.at<float>(r,c) = Heaviside(sdf_image.at<float>(r,c));
+    //cv::Mat normed;
+    //cv::Mat hsdf_image(sdf_image.size(),CV_32FC1);
+    //cv::normalize(sdf_image,normed,0,255,cv::NORM_MINMAX);
+    //cv::Mat colormap1; cv::applyColorMap(normed,colormap1,cv::COLORMAP_HSV);
+    //cv::imwrite(DEBUG_DIR_ + "/sdf_image.png",colormap1);
+    //for(int r=0;r<sdf_image.rows;r++) for(int c=0;c<sdf_image.cols;c++) 
+    //  hsdf_image.at<float>(r,c) = Heaviside(sdf_image.at<float>(r,c));
     
-    cv::normalize(hsdf_image,normed,0,255,cv::NORM_MINMAX);
-    cv::applyColorMap(normed,colormap1,cv::COLORMAP_HSV);
-    cv::imwrite(DEBUG_DIR_ + "/hsdf_image.png",colormap1);
+    //cv::normalize(hsdf_image,normed,0,255,cv::NORM_MINMAX);
+    //cv::applyColorMap(normed,colormap1,cv::COLORMAP_HSV);
+    //cv::imwrite(DEBUG_DIR_ + "/hsdf_image.png",colormap1);
     /**********************************************************************************************************/
 
 
@@ -94,24 +95,20 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     cv::Mat jacobian = cv::Mat::zeros(7,1,CV_64FC1);
     boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
     
-    cv::Mat ENERGY_IMAGE = cv::Mat::zeros(ROI_left_.size(),CV_32FC1);
+    //cv::Mat ENERGY_IMAGE = cv::Mat::zeros(ROI_left_.size(),CV_32FC1);
     double energy = 0.0;
     
-
     for(int r=0;r<ROI_left_.rows;r++){
       for(int c=0;c<ROI_left_.cols;c++){
 
-        if(!stereo_frame->InsideRectifiedRegion(r,c)) {
-          continue;
-        }
-        /******/
+        if(!stereo_frame->InsideRectifiedRegion(r,c)) continue;
+      
+        /*****/
         const double pixel_probability = (double)frame_->ClassificationMap().at<unsigned char>(r,c)/255.0;
         const double norm = (norm_foreground*pixel_probability) + (norm_background*(1.0-pixel_probability));
         const double foreground_probability = pixel_probability/norm;
         const double background_probability = (1-pixel_probability)/norm;
-        ENERGY_IMAGE.at<float>(r,c) = -log(Heaviside(sdf_image.at<float>(r,c))*foreground_probability + (1-Heaviside(sdf_image.at<float>(r,c)))*background_probability);
-        energy += ENERGY_IMAGE.at<float>(r,c);
-        
+        energy += -log(Heaviside(sdf_image.at<float>(r,c))*foreground_probability + (1-Heaviside(sdf_image.at<float>(r,c)))*background_probability);
         /******/
 
         //P_f - P_b / (H * P_f + (1 - H) * P_b)
@@ -128,13 +125,13 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
       }
     }
 
-    ENERGY_FILE << energy << " ";
-    ENERGY_FILE.flush();
+    //ENERGY_FILE << energy << " ";
+    //ENERGY_FILE.flush();
     std::cout << "ENERGY IS : " << energy << std::endl;
     ScaleJacobian(jacobian,step);
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose());
     
-/*** TO DELETE ***/
+#ifdef SAVEDEBUG
     cv::Mat normed2; cv::normalize(ENERGY_IMAGE,normed2,0,255,cv::NORM_MINMAX);
     cv::Mat colormap; cv::applyColorMap(normed2,colormap,cv::COLORMAP_HSV);
     cv::imwrite(DEBUG_DIR_ + "/energy.png",ENERGY_IMAGE);
@@ -142,11 +139,11 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     DrawModelOnFrame(current_model,canvas);
     std::stringstream ss_2; ss_2 << "step_" << step << ".png";
     cv::imwrite(ss.str()+"/"+ss_2.str(),canvas);
-
+#endif
   }
 
-  ENERGY_FILE.close();
-  current_model.CurrentPose().rotation_ = current_model.CurrentPose().rotation_.Normalize();
+  //ENERGY_FILE.close();
+  //current_model.CurrentPose().rotation_ = current_model.CurrentPose().rotation_.Normalize();
   return current_model.CurrentPose();
 
 }

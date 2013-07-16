@@ -29,3 +29,8 @@ build/ttrack.opensdf
 build/ttrack.suo
 *.xyz
 *.stl
+frame_*
+all_frames
+images.py
+deps
+deps/*

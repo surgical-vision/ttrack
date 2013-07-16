@@ -54,9 +54,9 @@ void TTrack::Run(){
 
   (*detector_)( GetPtrToNewFrame() ); 
   
-  while(detector_->Found()){
+  while( !handler_->Done() ){
     
-    boost::thread TrackThread(boost::ref(*(tracker_.get())), GetPtrToClassifiedFrame() );
+    boost::thread TrackThread(boost::ref(*(tracker_.get())), GetPtrToClassifiedFrame() , detector_->Found() );
     boost::thread DetectThread(boost::ref(*(detector_.get())), GetPtrToNewFrame() );
 
     TrackThread.join();

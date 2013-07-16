@@ -4,6 +4,7 @@
 using namespace ttrk;
 
 Handler::Handler(const std::string &input_url, const std::string &output_url):
+  done_(false),
   input_url_(input_url),
   output_url_(output_url){}
 
@@ -18,7 +19,7 @@ VideoHandler::VideoHandler(const std::string &input_url, const std::string &outp
     throw std::runtime_error("Unable to open videofile: " + input_url_ + "\nPlease enter a new filename.\n");
   }
 
-
+  
 }
 
 ImageHandler::ImageHandler(const std::string &input_url, const std::string &output_url):
@@ -53,7 +54,10 @@ ImageHandler::ImageHandler(const std::string &input_url, const std::string &outp
 boost::shared_ptr<cv::Mat> ImageHandler::GetPtrToNewFrame(){
 
   
-  if(open_iter_ == paths_.end()) return boost::shared_ptr<cv::Mat>(); //return an empty shared ptr
+  if(open_iter_ == paths_.end()) {
+    done_ = true;
+    return boost::shared_ptr<cv::Mat>(); //return an empty shared ptr
+  }
   
   //load next image in the list and return it
   boost::shared_ptr<cv::Mat> m(new cv::Mat);
@@ -70,8 +74,13 @@ boost::shared_ptr<cv::Mat> VideoHandler::GetPtrToNewFrame(){
 
   boost::shared_ptr<cv::Mat> m(new cv::Mat);
   cap_ >> *m;
-  if(m->data == 0x0) return boost::shared_ptr<cv::Mat>();
-  else return m;
+  
+  if(m->data == 0x0) { 
+    done_ = true;
+    return boost::shared_ptr<cv::Mat>();
+  } else {
+    return m;
+  }
 
 }
 
@@ -79,8 +88,6 @@ void ImageHandler::SavePtrToFrame(boost::shared_ptr<cv::Mat> image){
 
   if(save_iter_ == paths_.end()) throw std::runtime_error("Error, attempt to save image with no file path available.\n");
   
-  std::cout << *save_iter_ << std::endl;;
-
   if(!cv::imwrite(output_url_ + "/" + *save_iter_,*image)) 
     throw std::runtime_error("Error, failed to write to path: " + output_url_ + "/" + *save_iter_ );
 

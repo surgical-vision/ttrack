@@ -23,10 +23,11 @@ namespace ttrk{
     virtual void SetInputFileName(const std::string &url) = 0;
     virtual void SetOutputFileName(const std::string &url) = 0;   
     void SaveDebug(const std::vector< ImAndName > &to_save) const;
-
+    virtual bool Done() { return done_; }
 
   protected:
 
+    bool done_;
     std::string input_url_;
     std::string output_url_;
 
@@ -41,7 +42,7 @@ namespace ttrk{
     virtual void SavePtrToFrame(const boost::shared_ptr<cv::Mat> image);
     virtual void SetInputFileName(const std::string &url);
     virtual void SetOutputFileName(const std::string &url);   
-
+       
   private:
 
     cv::VideoCapture cap_;
@@ -59,7 +60,7 @@ namespace ttrk{
     virtual void SavePtrToFrame(const boost::shared_ptr<cv::Mat> image);
     virtual void SetInputFileName(const std::string &url);
     virtual void SetOutputFileName(const std::string &url);
-
+    
   private:
 
     std::vector<std::string> paths_;

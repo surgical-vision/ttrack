@@ -108,7 +108,7 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   
   //find the central axis of the point cloud
   cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->PtrToPointCloud());
-  
+  //center_of_mass += cv::Vec3f(3.1,-2.0,4.1);
   std::cerr << "centeral axis = " << cv::Point3f(central_axis) << std::endl;
 
   cv::Vec3f t_central_axis = central_axis;

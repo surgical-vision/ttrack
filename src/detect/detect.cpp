@@ -41,7 +41,7 @@ void Detect::ClassifyFrame(){
 
   static size_t frame_count = 0;
 
-  size_t DEBUG_COUNT = 0;
+  size_t pixel_count = 0;
 
   unsigned char *frame_data = (unsigned char *)frame_->PtrToClassificationMap()->data;
   for(int r=0;r<rows;r++){
@@ -55,12 +55,12 @@ void Detect::ClassifyFrame(){
       
       frame_data[index] = prediction;
 
-      DEBUG_COUNT += prediction > 0;
+      pixel_count += prediction > 0;
 
     }
   }
 
-  if(DEBUG_COUNT>300) found_ = true;
+  if(pixel_count > (0.04*rows*cols)) found_ = true;
   else found_ = false;
 
 }

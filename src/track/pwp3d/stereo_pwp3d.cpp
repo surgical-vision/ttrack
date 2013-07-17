@@ -67,7 +67,9 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     double norm_foreground,norm_background;
     ComputeNormalization(norm_foreground,norm_background,sdf_image);
     if(norm_foreground == 0) {
-      std::cerr << "The object is not in view!\n";
+#ifdef DEBUG
+      std::cerr << "The object is not in view!\n"; 
+#endif
       return current_model.CurrentPose();
     }
 
@@ -87,14 +89,9 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
       for(int c=0;c<ROI_left_.cols;c++){
 
         if(!stereo_frame->InsideRectifiedRegion(r,c)) continue;
-      
-        /*****/
-        const double pixel_probability = (double)frame_->ClassificationMap().at<unsigned char>(r,c)/255.0;
-        const double norm = (norm_foreground*pixel_probability) + (norm_background*(1.0-pixel_probability));
-        const double foreground_probability = pixel_probability/norm;
-        const double background_probability = (1-pixel_probability)/norm;
-        energy += -log(Heaviside(sdf_image.at<float>(r,c))*foreground_probability + (1-Heaviside(sdf_image.at<float>(r,c)))*background_probability);
-        /******/
+        
+        //compute the energy value for this pixel - not used for pose jacobian, just for assessing minima/progress
+        energy += GetEnergy(r,c,sdf_image.at<float>(r,c), norm_foreground, norm_background);
 
         //P_f - P_b / (H * P_f + (1 - H) * P_b)
         const double region_agreement = GetRegionAgreement(r, c, sdf_image.at<float>(r,c), norm_foreground, norm_background);
@@ -102,17 +99,22 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
         //dH / dL
         const cv::Mat pose_derivatives = GetPoseDerivatives(r, c, sdf_image, dSDFdx.at<float>(r,c), dSDFdy.at<float>(r,c), current_model);
       
+        //find the stereo regularized depth
         const cv::Mat regularized_depth = GetRegularizedDepth(r,c,current_model);
 
+        //update the jacobian
         for(int i=0;i<pose_derivatives.rows;i++)
           jacobian.at<double>(i,0) += -1 * (region_agreement*pose_derivatives.at<double>(i,0)) + regularized_depth.at<double>(i,0);
         
       }
     }
 
-    //ENERGY_FILE << energy << " ";
-    //ENERGY_FILE.flush();
+#ifdef SAVEDEBUG
+    ENERGY_FILE << energy << " ";
+    ENERGY_FILE.flush();
     std::cout << "ENERGY IS : " << energy << std::endl;
+#endif
+    
     if(energy < min_energy) min_energy = energy;
     else break;
 
@@ -120,24 +122,37 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose());
     
 #ifdef SAVEDEBUG
-    cv::Mat normed2; cv::normalize(ENERGY_IMAGE,normed2,0,255,cv::NORM_MINMAX);
-    cv::Mat colormap; cv::applyColorMap(normed2,colormap,cv::COLORMAP_HSV);
-    cv::imwrite(DEBUG_DIR_ + "/energy.png",ENERGY_IMAGE);
+   
     cv::Mat canvas = frame_->Mat().clone();
     DrawModelOnFrame(current_model,canvas);
     std::stringstream ss_2; ss_2 << "step_" << step << ".png";
     cv::imwrite(ss.str()+"/"+ss_2.str(),canvas);
 #endif
+
   }
 
-  //ENERGY_FILE.close();
-  //current_model.CurrentPose().rotation_ = current_model.CurrentPose().rotation_.Normalize();
+#ifdef SAVEDEBUG
+  ENERGY_FILE.close();
+#endif
+  
+  //update the velocity model... a bit crude
   cv::Vec3f translational_velocity = current_model.CurrentPose().translation_ - initial_translation;
   current_model.CurrentPose().translational_velocity_ = translational_velocity;
+
   return current_model.CurrentPose();
 
 }
 
+
+double StereoPWP3D::GetEnergy(const int r, const int c, const float sdf, const double norm_foreground, const double norm_background) const {
+
+  const double pixel_probability = (double)frame_->ClassificationMap().at<unsigned char>(r,c)/255.0;
+  const double norm = (norm_foreground*pixel_probability) + (norm_background*(1.0-pixel_probability));
+  const double foreground_probability = pixel_probability/norm;
+  const double background_probability = (1-pixel_probability)/norm;
+  return -log(Heaviside(sdf)*foreground_probability + (1-Heaviside(sdf))*background_probability);
+
+}
 cv::Mat StereoPWP3D::GetRegularizedDepth(const int r, const int c, const KalmanTracker &current_model) const {
   
   const int NUM_DERIVS = 7;
@@ -239,7 +254,7 @@ bool StereoPWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &fr
 
 bool StereoPWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model) const {
 
-  if(sdf.at<float>(r,c) < -20 || sdf.at<float>(r,c) >= 0) return false;
+  if(sdf.at<float>(r,c) < -10 || sdf.at<float>(r,c) >= 0) return false;
   
   cv::Point2i min_point;
   const cv::Point2i start_pt(c,r);
@@ -267,33 +282,6 @@ bool StereoPWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat
   cv::Vec3f ray = camera_->rectified_left_eye().UnProjectPoint( cv::Point2i(min_point.x,min_point.y) ); 
   return current_model.PtrToModel()->GetIntersection(ray, front_intersection,back_intersection,current_model.CurrentPose());
 
-
-  /*
-  static cv::Mat temp_im = cv::Mat::zeros(cv::Size(1920,540),CV_8UC1);
-  if(sdf.at<float>(r,c) < -15 || sdf.at<float>(r,c) >= 0) return false;
-  
-  const float sdf_pixel = abs(sdf.at<float>(r,c));
-
-  int close_r = r, close_c = c;
-  for(int rad=sdf_pixel-2;rad<sdf_pixel+2;rad++){
-    for(int theta=0;theta<8*rad;theta++){
-
-      close_r = r + (rad * sin(theta*2*M_PI/(8*rad)) );
-      close_c = c + (rad * cos(theta*2*M_PI/(8*rad)) );
-      
-      if(close_r < 0 || close_r >= sdf.rows || close_c < 0 || close_c >= sdf.cols) continue;
-      if(sdf.at<float>(close_r,close_c) >= 0) {
-        temp_im.at<unsigned char>(close_r,close_c) = 255;
-        cv::imwrite("found_edge_points.png",temp_im);
-        cv::Vec3f ray = camera_->rectified_left_eye().UnProjectPoint( cv::Point2i(close_c,close_r) ); 
-        return current_model.PtrToModel()->GetIntersection(ray, front_intersection,back_intersection,current_model.CurrentPose());
-      }
-    }
-  }
-  */
-  //throw(std::runtime_error("sohuldn't be her\n"));
-  
-  return false;
 }
 
 cv::Mat StereoPWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model){

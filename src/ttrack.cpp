@@ -93,7 +93,7 @@ void TTrack::SaveFrame(){
 
   boost::shared_ptr<sv::Frame> frame = tracker_->GetPtrToFinishedFrame();
 
-  //request the handler to save it to a video/image 
+  //request the handler to save it to a video/image
   handler_->SavePtrToFrame(frame->PtrToMat());
 
 }

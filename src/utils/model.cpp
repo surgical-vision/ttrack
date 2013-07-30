@@ -5,7 +5,7 @@ using namespace ttrk;
 
 
 
-MISTool::MISTool(int radius, int height):radius_(radius),height_(height){ }
+MISTool::MISTool(float radius, float height):radius_(radius),height_(height){ }
 
 
 std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
@@ -131,7 +131,7 @@ bool MISTool::CircleIntersection(const cv::Vec3f &A, const cv::Vec3f &n, const c
   assert(sqrt(n.dot(n)) >= 0.99 && sqrt(n.dot(n)) <= 1.01); //assert normalized
   float dn = d.dot(n);
 
-  if(dn == 0.0) dn = 0.000000000001;
+  if(dn == (float)0.0) dn = (float)0.000000000001;
 
   float mu = (A.dot(n))/(dn);
 

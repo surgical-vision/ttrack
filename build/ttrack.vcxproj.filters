@@ -102,9 +102,6 @@
     <ClInclude Include="..\headers\utils\exceptions.hpp">
       <Filter>Header Files\utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\headers\utils\frame.hpp">
-      <Filter>Header Files\utils</Filter>
-    </ClInclude>
     <ClInclude Include="..\headers\utils\handler.hpp">
       <Filter>Header Files\utils</Filter>
     </ClInclude>
@@ -119,6 +116,9 @@
     </ClInclude>
     <ClInclude Include="..\headers\track\pose.hpp">
       <Filter>Header Files\track</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\utils\result_plotter.hpp">
+      <Filter>Header Files\utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -106,7 +106,7 @@ namespace ttrk{
     * @param[in] radius The cylinder radius.
     * @param[in] height The cylinder height.
     */
-    MISTool(int radius, int height);
+    MISTool(float radius, float height);
     
     /**
     * Provides access to a vector of SimplePoints which represent the cylinder.

@@ -62,6 +62,8 @@ namespace ttrk{
 
   protected:
 
+    virtual void ProcessFrame() { return; }
+
     /**
     * Initialises the Kalman Filter by setting the state transition matrix, the measurement matrix and the coviariance matrices.
     * @return The success of the initilisation.

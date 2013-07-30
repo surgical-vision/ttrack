@@ -9,7 +9,7 @@ namespace ttrk {
 
   public:
 
-    StereoToolTracker(const int radius, const int height, const std::string &calibration_filename);
+    StereoToolTracker(const float  radius, const float  height, const std::string &calibration_filename);
 
     virtual ~StereoToolTracker(){}
 
@@ -25,6 +25,8 @@ namespace ttrk {
     virtual void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const;
   
   protected:
+
+    virtual void ProcessFrame();
 
     virtual void SetHandleToFrame(boost::shared_ptr<sv::Frame> image);
 

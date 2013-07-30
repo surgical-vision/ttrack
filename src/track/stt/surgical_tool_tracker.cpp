@@ -5,7 +5,7 @@
 using namespace ttrk;
 
 
-SurgicalToolTracker::SurgicalToolTracker(const int radius, const int height):radius_(radius),height_(height){
+SurgicalToolTracker::SurgicalToolTracker(const float radius, const float height):radius_(radius),height_(height){
 
 }
 

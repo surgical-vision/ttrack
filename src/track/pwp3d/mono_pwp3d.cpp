@@ -11,6 +11,7 @@ const cv::Mat MonoPWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
   for(size_t i=0;i<points.size();i++){
 
     projected_points.push_back( camera_->ProjectPointToPixel(points[i].vertex_) );
+    
 
   }
   

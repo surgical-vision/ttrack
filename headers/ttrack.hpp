@@ -39,7 +39,6 @@ namespace ttrk{
   public:
     
     static void Destroy();
-    void CleanUp();
     ~TTrack();
     
     /**
@@ -103,9 +102,9 @@ namespace ttrk{
     void Run();
     
     /**
-     * Save the debugging images, if required
+     * Save the results, if required
      */
-    void SaveDebug() const;
+    void SaveResults() const;
 
     boost::scoped_ptr<Tracker> tracker_; /**< The class responsible for finding the instrument in the image. */
     boost::scoped_ptr<Detect> detector_; /**< The class responsible for classifying the pixels in the image. */

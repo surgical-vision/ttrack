@@ -33,9 +33,9 @@ void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat c
 
 
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
-
+#define SAVEDEBUG
   frame_ = frame;
-  const int NUM_STEPS = 15;
+  const int NUM_STEPS = 500;
 
 #ifdef DEBUG
     boost::progress_timer t; //timer prints time when it goes out of scope
@@ -62,7 +62,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   for(int step=0; step < NUM_STEPS; step++){
 
     cv::Mat sdf_image = ProjectShapeToSDF(current_model);
-    
+ 
     //compute the normalization values n_f and n_b
     double norm_foreground,norm_background;
     ComputeNormalization(norm_foreground,norm_background,sdf_image);
@@ -116,13 +116,12 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 #endif
     
     if(energy < min_energy) min_energy = energy;
-    else break;
+    //else break;
 
     ScaleJacobian(jacobian,step);
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose());
     
 #ifdef SAVEDEBUG
-   
     cv::Mat canvas = frame_->Mat().clone();
     DrawModelOnFrame(current_model,canvas);
     std::stringstream ss_2; ss_2 << "step_" << step << ".png";
@@ -167,7 +166,7 @@ cv::Mat StereoPWP3D::GetRegularizedDepth(const int r, const int c, const KalmanT
   
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
   const double z_estimate = front_intersection[2];
-  const double z_stereo = stereo_frame->PtrToDisparityMap()->at<short>(r,c); //scaled by 16?
+  const double z_stereo = stereo_frame->PtrToPointCloud()->at<cv::Vec3f>(r,c)[2]; //scaled by 16?
 
   const double z_diff = z_estimate - z_stereo;
 
@@ -180,14 +179,15 @@ cv::Mat StereoPWP3D::GetRegularizedDepth(const int r, const int c, const KalmanT
 
   for(int dof=0;dof<NUM_DERIVS;dof++){
 
-    const cv::Vec3f dof_derivatives = GetDOFDerivatives(dof,current_model.CurrentPose(),front_intersection);
+    //const cv::Vec3f dof_derivatives = GetDOFDerivatives(dof,current_model.CurrentPose(),front_intersection);
 
-    x.at<double>(dof,0) = d_mag * dof_derivatives[2];
+    if(dof != 2) x.at<double>(dof,0) = 0;
+    else x.at<double>(dof,0) = d_mag ;//* dof_derivatives[2];
 
   }
 
-  return x;
-  */
+  return x;*/
+  
 }
 
 const cv::Mat StereoPWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
@@ -242,6 +242,7 @@ const cv::Mat StereoPWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
     }
   }
   return sdf_image;*/
+
 }
 
 bool StereoPWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model) const {
@@ -254,12 +255,13 @@ bool StereoPWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &fr
 
 bool StereoPWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model) const {
 
-  if(sdf.at<float>(r,c) < -10 || sdf.at<float>(r,c) >= 0) return false;
+  static const int search_range= 15; //has to be larger than border for search to work!
+  if(sdf.at<float>(r,c) <  -10 || sdf.at<float>(r,c) >= 0) return false;
   
   cv::Point2i min_point;
   const cv::Point2i start_pt(c,r);
-  float min_dist = 99999.0f;
-  int max_r = r+20, min_r = r-20, max_c = c+20, min_c = c-20;
+  float min_dist = std::numeric_limits<float>::max();
+  int max_r = r+search_range, min_r = r-search_range, max_c = c+search_range, min_c = c-search_range;
   if(max_r >= sdf.rows) max_r = sdf.rows-1;
   if(max_c >= sdf.cols) max_c = sdf.cols-1;
   if(min_r < 0) min_r = 0;
@@ -268,7 +270,7 @@ bool StereoPWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat
   for(int row=min_r;row<max_r;row++){
     for(int col=min_c;col<max_c;col++){
       
-      if(std::abs(sdf.at<float>(row,col)) > 0.2) continue;
+      if(sdf.at<float>(row,col) < 0.3) continue;
       const cv::Point2i test_pt(col,row);
       const cv::Point2i dist = test_pt - start_pt;
       float dist_val = (float)sqrt((float)dist.x*dist.x + dist.y*dist.y);
@@ -280,8 +282,7 @@ bool StereoPWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat
   }
 
   cv::Vec3f ray = camera_->rectified_left_eye().UnProjectPoint( cv::Point2i(min_point.x,min_point.y) ); 
-  return current_model.PtrToModel()->GetIntersection(ray, front_intersection,back_intersection,current_model.CurrentPose());
-
+  return  current_model.PtrToModel()->GetIntersection(ray, front_intersection,back_intersection,current_model.CurrentPose());
 }
 
 cv::Mat StereoPWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model){
@@ -293,13 +294,13 @@ cv::Mat StereoPWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat 
   cv::Vec3f front_intersection;
   cv::Vec3f back_intersection;
   bool intersects = GetTargetIntersections(r,c,front_intersection,back_intersection,current_model);
-
+  
   if(!intersects) {
     intersects = GetNearestIntersection(r,c,sdf,front_intersection,back_intersection,current_model);
     if(!intersects)
       return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
   }
-  
+
   if(front_intersection[2] == 0) front_intersection[2] = 0.00000001;
   const double z_inv_sq = 1.0/(front_intersection[2]*front_intersection[2]);
   cv::Mat ret(NUM_DERIVS,1,CV_64FC1);

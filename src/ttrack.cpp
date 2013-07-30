@@ -6,6 +6,7 @@
 #include <string>
 #include "../headers/track/stt/stereo_tool_tracker.hpp"
 #include "../headers/track/stt/monocular_tool_tracker.hpp"
+#include "../headers/utils/result_plotter.hpp"
 
 using namespace ttrk;
 
@@ -27,13 +28,13 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
     //load the correct type of tool tracker
     switch(camera_type_){
     case STEREO:
-      tracker_.reset(new StereoToolTracker(2,40,*root_dir_ + "/config/camera.xml"));
+      tracker_.reset(new StereoToolTracker(2.5,40,*root_dir_ + "/config/camera.xml"));
       break;
     case MONOCULAR:
-      tracker_.reset(new MonocularToolTracker(2,40,*root_dir_ + "/config/camera.xml"));
+      tracker_.reset(new MonocularToolTracker(2.5,40,*root_dir_ + "/config/camera.xml"));
       break;
     default:
-      tracker_.reset(new StereoToolTracker(2,40,*root_dir_ + "/config/camera.xml"));
+      tracker_.reset(new StereoToolTracker(2.5,40,*root_dir_ + "/config/camera.xml"));
       break;
     }
 
@@ -54,6 +55,8 @@ void TTrack::Run(){
 
   (*detector_)( GetPtrToNewFrame() ); 
   
+  int count = 0;
+
   while( !handler_->Done() ){
     
     boost::thread TrackThread(boost::ref(*(tracker_.get())), GetPtrToClassifiedFrame() , detector_->Found() );
@@ -62,11 +65,11 @@ void TTrack::Run(){
     TrackThread.join();
     DetectThread.join();
     
-#ifdef DEBUG
     SaveFrame();
-#endif
-
-    CleanUp();
+    SaveResults();
+    
+    if (count > 200) break;
+    count++;
 
   }
   
@@ -74,8 +77,7 @@ void TTrack::Run(){
 
 void TTrack::RunVideo(const std::string &video_url){
   
-  //tracker_->Tracking(true);
-  tracker_->Tracking(false); // SET this IN THE CONSTRUCTOR
+  tracker_->Tracking(false); 
   handler_.reset(new VideoHandler(*root_dir_ + video_url, *root_dir_ + "/tracked_video.avi"));
   Run();
  
@@ -94,14 +96,35 @@ void TTrack::SaveFrame(){
   boost::shared_ptr<sv::Frame> frame = tracker_->GetPtrToFinishedFrame();
 
   //request the handler to save it to a video/image
-  handler_->SavePtrToFrame(frame->PtrToMat());
+  handler_->SavePtrToFrame(frame->PtrToROI());
 
 }
 
-void TTrack::SaveDebug() const {
+void TTrack::SaveResults() const {
   
-  //iterate through all images, push to vector
-  //send to iamge handler
+  boost::shared_ptr<const sv::Frame> frame = tracker_->GetPtrToFinishedFrame();
+  std::vector<KalmanTracker> &tracked_models = tracker_->TrackedModels();
+
+  for( size_t i = 0 ; i < tracked_models.size() ; i++ ){
+
+    KalmanTracker &model = tracked_models[i];
+    
+    boost::shared_ptr<std::ofstream> results_file = model.SaveFile();
+
+    if( !results_file->is_open() ){
+
+      std::stringstream ss; ss << *root_dir_ + "/model_pose" << i << ".txt";
+      results_file->open( ss.str(),  std::ofstream::out);
+      
+    }
+
+    cv::Vec3f angle_axis = model.CurrentPose().rotation_.AngleAxis();
+    cv::Vec3f translation = model.CurrentPose().translation_;
+
+    *results_file << translation[0] << "," << translation[1] << "," << translation[2] << "," << angle_axis[0] << "," << angle_axis[1] << "," << angle_axis[2] << "\n" ;
+    results_file->flush();
+
+  }
 
 }
 
@@ -163,14 +186,12 @@ TTrack::~TTrack(){}
 
 void TTrack::Destroy(){
 
-  instance_.reset();// = 0;
+  instance_.reset();
   constructed_ = false;
 
 }
 
-TTrack::TTrack(const TTrack &that){
-  assert(0);
-}
+TTrack::TTrack(const TTrack &that){}
 
 TTrack &TTrack::operator=(const TTrack &that){
 
@@ -191,9 +212,4 @@ TTrack &TTrack::Instance(){
   return *(instance_.get());
 }
 
-void TTrack::CleanUp(){
-
-  //delete tracker_->GetPtrToFinishedFrame();
-
-}
 

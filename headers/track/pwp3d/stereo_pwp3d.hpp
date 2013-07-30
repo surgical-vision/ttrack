@@ -14,7 +14,7 @@ namespace ttrk {
   
   protected:
 
-    double GetEnergy(const const int r, const int c, const float sdf, const double norm_foreground, const double norm_background) const;
+    double GetEnergy(const int r, const int c, const float sdf, const double norm_foreground, const double norm_background) const;
 
      /**
     * Compute the first part of the derivative, getting a weight for each contribution based on the region agreements.

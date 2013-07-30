@@ -6,7 +6,7 @@
 
 using namespace ttrk;
 
-StereoToolTracker::StereoToolTracker(const int radius, const int height, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_( new StereoCamera(calibration_filename)){
+StereoToolTracker::StereoToolTracker(const float radius, const float height, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_( new StereoCamera(calibration_filename)){
 
   localizer_.reset(new StereoPWP3D);
   boost::shared_ptr<StereoPWP3D> stereo_pwp3d = boost::dynamic_pointer_cast<StereoPWP3D>(localizer_);
@@ -95,6 +95,13 @@ cv::Vec3f StereoToolTracker::FindClusterMode(const boost::shared_ptr<cv::Mat> po
   
 }
 
+void StereoToolTracker::ProcessFrame(){
+
+  CreateDisparityImage();
+  camera_->ReprojectTo3D(*(StereoFrame()->PtrToDisparityMap()),*(StereoFrame()->PtrToPointCloud()),std::vector<cv::Vec2i>());
+
+}
+
 void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, KalmanTracker &tracked_model) {
 
   //create the point cloud used to initialize the pose
@@ -135,6 +142,7 @@ cv::Vec3f StereoToolTracker::FindPrincipalAxisFromMOITensor(const cv::Vec3f cent
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
       
+      if( point_cloud->at<cv::Vec3f>(r,c) == cv::Vec3f(0,0,0) || point_cloud->at<cv::Vec3f>(r,c)[2] < 0 ) continue;
       const cv::Matx<float,1,3> point = point_cloud->at<cv::Matx<float,1,3> >(r,c) - center_of_mass;
       moi = moi + ((point*point.t())(0,0)*E) - (point.t()*point);
       
@@ -157,36 +165,32 @@ cv::Vec3f StereoToolTracker::FindCenterOfMass(const boost::shared_ptr<cv::Mat> p
   assert(point_cloud->type() == CV_32FC3);
   
   cv::Vec3f com(0,0,0);
-  cv::Vec2f alt_com(0,0);
-  int num_pts = 0;
+  size_t num_pts = 0;
+
+  std::vector<cv::Vec3f> pts;
 
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
 
       const cv::Vec3f &pt = point_cloud->at<cv::Vec3f>(r,c);
-      const cv::Vec2i p = camera_->rectified_left_eye().ProjectPointToPixel(cv::Point3f(pt));
       
-      if( pt != cv::Vec3f(0,0,0) ){
+      //const cv::Point2i p = camera_->rectified_left_eye().ProjectPointToPixel(cv::Point3f(pt));
+      
+      if( pt != cv::Vec3f(0,0,0) && pt[2] > 0){
+        
         com += pt;
         num_pts++;
       }
 
-      if(pt != cv::Vec3f(0,0,0))
-        alt_com += cv::Vec2f(p);
 
     }
   }
-
   
-  for(int n=0;n<chans;n++) {
-    com[n]/= num_pts;
-    if(n<2) alt_com[n]/=num_pts;
-    
-  }
-  
-  cv::Vec3f alt_com_3d = point_cloud->at<cv::Vec3f>(alt_com[0],alt_com[1]);
+  com[0] = com[0]/num_pts;
+  com[1] = com[1]/num_pts;
+  com[2] = com[2]/num_pts;
 
-  return alt_com_3d; 
+  return com;
 
 }
 

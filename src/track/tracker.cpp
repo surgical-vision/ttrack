@@ -7,16 +7,20 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
   
   SetHandleToFrame(image);
 
+  ProcessFrame();
+
   if(!found){
     //tracking_ = false;
     return;
   }
 
   if(!tracking_){
+
     tracked_models_.clear(); //get rid of anything we were tracking before
     if(!Init() || !InitKalmanFilter()) //do any custom initalisation in the virtual Init function
       return;
     tracking_ = true;
+
   }
   
   //track each model that we know about
@@ -30,6 +34,7 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
   
   }
 }  
+
 
 bool Tracker::InitKalmanFilter(){
 

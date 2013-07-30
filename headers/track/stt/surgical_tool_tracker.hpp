@@ -21,7 +21,7 @@ namespace ttrk{
     * @param[in] height The tool height.
     * @param[in] calibration_filename The url of the camera calibration file.
     */
-    SurgicalToolTracker(const int radius, const int height);
+    SurgicalToolTracker(const float radius, const float height);
 
     /**
     * The destructor.
@@ -37,8 +37,8 @@ namespace ttrk{
     
   protected:
 
-    const int radius_; /**< The tool radius in metric units. Used for constructing new tool models. */
-    const int height_; /**< The tool tool length in metric units. Used for constructing new tool models. */
+    const float radius_; /**< The tool radius in metric units. Used for constructing new tool models. */
+    const float height_; /**< The tool tool length in metric units. Used for constructing new tool models. */
 
     /**
     * Find connected regions in the classified image. Each blob is a candidate for a surgical instrument. 

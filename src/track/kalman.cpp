@@ -5,6 +5,7 @@ using namespace ttrk;
 KalmanTracker::KalmanTracker(const KalmanTracker &that){
   model_ = that.model_;
   pose_ = that.pose_;
+  save_file_ = that.save_file_;
 }
 
 void KalmanTracker::SetPose(const cv::Vec3f translation, const cv::Vec3f rotated_principal_axis) {

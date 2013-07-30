@@ -3,7 +3,7 @@
 
 using namespace ttrk;
 
-MonocularToolTracker::MonocularToolTracker(const int radius, const int height, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_(calibration_filename){
+MonocularToolTracker::MonocularToolTracker(const float radius, const float height, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_(calibration_filename){
   localizer_.reset(new MonoPWP3D);
 }
 

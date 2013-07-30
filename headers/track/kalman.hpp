@@ -5,6 +5,7 @@
 #include <boost/shared_ptr.hpp>
 #include "model.hpp"
 #include "pose.hpp"
+#include <fstream>
 
 namespace ttrk {
 
@@ -16,8 +17,8 @@ namespace ttrk {
 
   public:
     
-    KalmanTracker(){}
-    KalmanTracker(boost::shared_ptr<Model> model):model_(model),filter_(14,7,0,CV_32F){}   
+    KalmanTracker() : save_file_(new std::ofstream) {}
+    KalmanTracker(boost::shared_ptr<Model> model):save_file_(new std::ofstream),model_(model),filter_(14,7,0,CV_32F){}   
     KalmanTracker(const KalmanTracker &that);
 
     void SetPose(const cv::Vec3f translation, const cv::Vec3f rotated_principal_axis); 
@@ -33,8 +34,11 @@ namespace ttrk {
     const boost::shared_ptr<Model> PtrToModel() const { return model_; }
     std::vector<SimplePoint<> > ModelPointsAtCurrentPose() const { return model_->Points(pose_); }
 
+    boost::shared_ptr<std::ofstream> SaveFile() { return save_file_; }
+
   protected:
 
+    boost::shared_ptr<std::ofstream> save_file_; /**< A file handle where the pose is saved for results logging. */
     
     cv::KalmanFilter filter_; /**< The Kalman Filter used to track the class. */
     boost::shared_ptr<Model> model_; /**< The tracked model. */

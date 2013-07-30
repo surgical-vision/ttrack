@@ -48,10 +48,10 @@
     <ClInclude Include="..\headers\ttrack.hpp" />
     <ClInclude Include="..\headers\utils\camera.hpp" />
     <ClInclude Include="..\headers\utils\exceptions.hpp" />
-    <ClInclude Include="..\headers\utils\frame.hpp" />
     <ClInclude Include="..\headers\utils\handler.hpp" />
     <ClInclude Include="..\headers\utils\helpers.hpp" />
     <ClInclude Include="..\headers\utils\nd_image.hpp" />
+    <ClInclude Include="..\headers\utils\result_plotter.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\detect\baseclassifier.cpp" />

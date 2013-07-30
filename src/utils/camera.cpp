@@ -27,7 +27,8 @@ MonocularCamera::MonocularCamera(const std::string &calibration_filename){
 
 cv::Point2i MonocularCamera::ProjectPointToPixel(const cv::Point3f &point) const {
   cv::Point2f pt = ProjectPoint(point);
-  return cv::Point2i(ttrk::round(pt.y),ttrk::round(pt.x));
+  //return cv::Point2i(ttrk::round(pt.x));
+  return cv::Point2i(ttrk::round(pt.x),ttrk::round(pt.y));
 }
 
 

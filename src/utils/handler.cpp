@@ -74,6 +74,13 @@ boost::shared_ptr<cv::Mat> VideoHandler::GetPtrToNewFrame(){
 
   boost::shared_ptr<cv::Mat> m(new cv::Mat);
   cap_ >> *m;
+
+  /*static bool first = true;
+  if(first){
+    for(int n=0;n<60;n++)
+      cap_ >> *m;
+    first = false;
+  }*/
   
   if(m->data == 0x0) { 
     done_ = true;

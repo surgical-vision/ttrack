@@ -18,9 +18,8 @@ void KalmanTracker::SetPose(const cv::Vec3f translation, const cv::Vec3f rotated
 
 void KalmanTracker::UpdatePose(const Pose &pose_measurement) {
 
-  //predict the measurement with the kalman filter
-  const cv::Mat prediction = filter_.predict();
-  const cv::Mat estimation = filter_.correct((cv::Mat)pose_measurement);
+  const cv::Mat prediction = filter_.predict(); //compute prior P(w_{t}|x_{1},...,x_{t-1}) (using Chapman-Kolomogorov e.q.)
+  const cv::Mat estimation = filter_.correct((cv::Mat)pose_measurement); //compute posterior by combining the measurement likelihood with the prior
   
   cv::Mat position_prediction = *(cv::Mat_<float>(9, 1) << estimation.at<float>(0,0),estimation.at<float>(1,0),estimation.at<float>(2,0),estimation.at<float>(3,0),estimation.at<float>(4,0),estimation.at<float>(5,0),estimation.at<float>(6,0),estimation.at<float>(7,0),estimation.at<float>(8,0) );
   pose_ = position_prediction;
@@ -35,7 +34,6 @@ void KalmanTracker::Init() {
   filter_.init(12,9,0); //dynamic params, measurement params, control params
 
   cv::Mat state(6,1,CV_32F);
-  cv::Mat process_noise(6,1,CV_32F);
 
   filter_.transitionMatrix = cv::Mat::eye(12,12,CV_32F);
   for(int i=3;i<6;i++){
@@ -48,8 +46,8 @@ void KalmanTracker::Init() {
     filter_.measurementMatrix.at<float>(i,i) = 1;
   
 
-  cv::setIdentity(filter_.processNoiseCov, cv::Scalar::all(1e-2));
-  cv::setIdentity(filter_.measurementNoiseCov, cv::Scalar::all(1e-4));
+  cv::setIdentity(filter_.processNoiseCov, cv::Scalar::all(1e-2)); //uncertainty in the model
+  cv::setIdentity(filter_.measurementNoiseCov, cv::Scalar::all(1e-3)); //uncertainty in the measurement
   cv::setIdentity(filter_.errorCovPost, cv::Scalar::all(1));
   
 }

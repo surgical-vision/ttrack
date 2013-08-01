@@ -36,9 +36,9 @@ namespace ttrk{
       neighbours_.push_back(pt_index);
     }
 
-    VertexType TransformPoint(const boost::math::quaternion<double> &rotation, const cv::Vec3d translation){
-      VertexType ret = *this;
-    }
+    //VertexType TransformPoint(const boost::math::quaternion<double> &rotation, const cv::Vec3d translation){
+      //VertexType ret = *this;
+    //}
 
     VertexType vertex_; /**< The vertex location. */
     std::vector<size_t> neighbours_; /**< The neighbours of the vertex. */
@@ -85,6 +85,8 @@ namespace ttrk{
 
     virtual cv::Vec3f PrincipalAxis() const = 0;
 
+    virtual double Radius() = 0;
+
   protected:
   
  
@@ -128,11 +130,22 @@ namespace ttrk{
     
     virtual cv::Vec3f PrincipalAxis() const { return cv::Vec3f(1,0,0); }
 
+    virtual double Radius() { return radius_; }
+
   private:
+
+    bool GetIntersectionShaft(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const;
+    bool GetIntersectionTip(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const;
 
     float radius_; /**< The radius of the cylinder. */
     float height_; /**< The height of the cylinder. */
     //std::vector<SimplePoint<> > points_; /**< The representation of surface of the tool as a set of points which have references to their neighbours. */
+
+    float radius_tip_;
+    float height_tip_;
+
+    float radius_fraction_;
+    float height_fraction_;
 
   };
 

@@ -15,11 +15,14 @@ namespace ttrk{
 
   public:
    
+    cv::Mat distortion_params() { return intrinsic_matrix_; }
+
     /**
     * Construct a camera with a calibration file. This file should be in the opencv calibration xml format.
     * @param[in] calibration_filename The url of the calibration file.
     */ 
     explicit MonocularCamera(const std::string &calibration_filename);
+
 
     /**
     * Construct a camera directly specifying the intrinsic and distortion parameters. 
@@ -95,14 +98,14 @@ namespace ttrk{
     * Get a reference to the left eye of the camera.
     * @return The left eye of the camera.
     */
-    const MonocularCamera &left_eye() const { return left_eye_; }
-    const MonocularCamera &rectified_left_eye() const { return rectified_left_eye_; }
+    boost::shared_ptr<MonocularCamera> left_eye() const { return left_eye_; }
+    boost::shared_ptr<MonocularCamera> rectified_left_eye() const { return rectified_left_eye_; }
     /**
     * Get a reference to the right eye of the camera.
     * @return The right eye of the camera.
     */
-    const MonocularCamera &right_eye() const { return right_eye_; }
-    const MonocularCamera &rectified_right_eye() const { return rectified_right_eye_; }
+    boost::shared_ptr<MonocularCamera> right_eye() const { return right_eye_; }
+    boost::shared_ptr<MonocularCamera> rectified_right_eye() const { return rectified_right_eye_; }
 
     void Rectify(const cv::Size image_size);
     bool IsRectified() const { return rectified_; }
@@ -114,10 +117,10 @@ namespace ttrk{
     cv::Mat GetP1() { return P1(cv::Range(0,3),cv::Range(0,3));}
 
     void InitRectified() {
-      rectified_left_eye_.intrinsic_matrix_ = P1(cv::Range(0,3),cv::Range(0,3));
-      rectified_right_eye_.intrinsic_matrix_ = P2(cv::Range(0,3),cv::Range(0,3));
-      rectified_left_eye_.distortion_params_ = cv::Mat::zeros(1,5,CV_64FC1);
-      rectified_right_eye_.distortion_params_ = cv::Mat::zeros(1,5,CV_64FC1);
+      rectified_left_eye_->intrinsic_matrix_ = P1(cv::Range(0,3),cv::Range(0,3));
+      rectified_right_eye_->intrinsic_matrix_ = P2(cv::Range(0,3),cv::Range(0,3));
+      rectified_left_eye_->distortion_params_ = cv::Mat::zeros(1,5,CV_64FC1);
+      rectified_right_eye_->distortion_params_ = cv::Mat::zeros(1,5,CV_64FC1);
     }
 
     cv::Rect ROILeft() const { return roi1; }
@@ -126,10 +129,10 @@ namespace ttrk{
 
     bool rectified_;
 
-    MonocularCamera left_eye_; /**< The left camera of the stereo rig. */
-    MonocularCamera right_eye_; /**< The right camera of the stereo rig. */
-    MonocularCamera rectified_left_eye_;
-    MonocularCamera rectified_right_eye_;
+    boost::shared_ptr<MonocularCamera> left_eye_; /**< The left camera of the stereo rig. */
+    boost::shared_ptr<MonocularCamera> right_eye_; /**< The right camera of the stereo rig. */
+    boost::shared_ptr<MonocularCamera> rectified_left_eye_;
+    boost::shared_ptr<MonocularCamera> rectified_right_eye_;
     cv::Mat extrinsic_matrix_; /**< The rotation and translation between the image planes of the two cameras. */
 
     cv::Mat reprojection_matrix_;

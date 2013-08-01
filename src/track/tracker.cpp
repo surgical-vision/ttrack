@@ -7,7 +7,7 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
   
   SetHandleToFrame(image);
 
-  ProcessFrame();
+  //ProcessFrame();
 
   if(!found){
     //tracking_ = false;

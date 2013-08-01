@@ -26,7 +26,8 @@ namespace ttrk {
     * Initialise the 2D pose of the instrument from the moments of the connected region.
     * @param[in] A connected region of pixels.
     */
-    void Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> &connected_region);
+    
+    void Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> &connected_region, KalmanTracker &tracked_model);
     
     /**
     * Finds the center of mass of a connceted region of pixels.
@@ -34,7 +35,7 @@ namespace ttrk {
     * @param[out] The cluster center.
     */
     const cv::Vec2i FindCenterOfMass(const std::vector<cv::Vec2i> &connected_region) const;
-
+    float ComputeWidth(float e1, float e2, size_t size) const ;
 
     MonocularCamera camera_;
 

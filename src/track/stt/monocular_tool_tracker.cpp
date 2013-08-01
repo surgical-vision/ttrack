@@ -10,7 +10,7 @@ MonocularToolTracker::MonocularToolTracker(const float radius, const float heigh
 bool MonocularToolTracker::Init(){
 
   std::vector<std::vector<cv::Vec2i> >connected_regions;
-  if(!FindConnectedRegions((frame_->Mat()),connected_regions)) return false;
+  if(!FindConnectedRegions(*(frame_->PtrToClassificationMap()),connected_regions)) return false;
 
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
@@ -19,7 +19,7 @@ bool MonocularToolTracker::Init(){
 
     tracked_models_.push_back( new_tracker ); 
 
-    Init2DPoseFromMOITensor(*connected_region);
+    Init2DPoseFromMOITensor(*connected_region,tracked_models_.back());
 
   }
 
@@ -28,16 +28,89 @@ bool MonocularToolTracker::Init(){
 }
 
 
-void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> &connected_region){
+void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> &connected_region, KalmanTracker &tracked_model){
 
   const cv::Vec2i center_of_mass = FindCenterOfMass(connected_region);
+  cv::Mat moi_tensor = cv::Mat::zeros(2,2,CV_32FC1);
+  float *data = (float *)moi_tensor.data;
+  
+  /* moi [ xx , xy ; yx , yy ] */
+  for(int r=0;r<2;r++){
+    for(int c=0;c<2;c++){
+      if(r==1 && c== 0) {
+	      //symmetric...
+	      data[r*2 + c] = data[c*2 + r];
+	      continue;
+      }
+      
+      for(size_t i=0;i<connected_region.size();i++){
+
+        cv::Vec2i p = connected_region[i] - center_of_mass;
+        int p_i = p[0]*(1-r) + p[1]*r;
+        int p_j = p[0]*(1-c) + p[1]*c;
+
+        data[r*2 + c] +=  (( (p[0]*p[0]+p[1]*p[1])*(r==c)) 
+          - (p_i*p_j) );
+      }
+    }
+  }
+
+  cv::Mat eigenvals = cv::Mat::zeros(2,1,CV_32FC1);
+  cv::Mat eigenvecs = cv::Mat::zeros(2,2,CV_32FC1);
+  cv::eigen(moi_tensor,eigenvals,eigenvecs);
+
+  float *e = (float *)eigenvecs.data;
+  float *v = (float *)eigenvals.data;
+
+  float width = ComputeWidth(v[0],v[1],connected_region.size());
+
+
+
+  cv::Vec2f central_axis(e[0],e[1]);
+  cv::Vec2f horizontal_axis(e[2],e[3]);
+
+  cv::Vec2f top = cv::Vec2f(center_of_mass) + (0.5*width)*horizontal_axis;
+  cv::Vec2f bottom = cv::Vec2f(center_of_mass) - (0.5*width)*horizontal_axis;
+
+  cv::Point3f top_unp = camera_.UnProjectPoint(cv::Point2i(top));
+  cv::Point3f bottom_unp = camera_.UnProjectPoint(cv::Point2i(bottom));
+  
+  cv::Vec3f diff = cv::Vec3f(top_unp) - cv::Vec3f(bottom_unp);
+  float abs_diff = sqrt( static_cast<double>( diff[0]*diff[0] + diff[1]*diff[1] + diff[2]*diff[2] ) );
+  
+  float z = tracked_model.PtrToModel()->Radius()/abs_diff;
+
+  cv::Vec3f center = z*cv::Vec3f(center_of_mass[0],center_of_mass[1],1);
+  
+  tracked_model.SetPose(center,cv::Vec3f(central_axis[0],central_axis[1],0));
+
+}
+
+float MonocularToolTracker::ComputeWidth(float e1, float e2, size_t mass) const {
+  float i_x = std::abs(e1);
+  float i_y = std::abs(e2);
+  
+  if(i_x < i_y)
+    std::swap(i_x,i_y);
+  
+  return sqrt( (2.0*i_y) / mass );
 
 }
 
 const cv::Vec2i MonocularToolTracker::FindCenterOfMass(const std::vector<cv::Vec2i> &connected_region) const {
 
-  cv::Vec2i ret(0,0);
-  return ret;
+  cv::Vec2f com(0,0);
+
+  for(auto pt = connected_region.begin() ; pt != connected_region.end() ; pt++ ){
+
+    com += *pt;
+
+  }
+  
+  com[0] = com[0]/connected_region.size();
+  com[1] = com[1]/connected_region.size();
+
+  return com;
 
 }
 

@@ -3,44 +3,75 @@
 #include <fstream>
 #include <stdlib.h>
 #include <time.h> 
-
+#include "../../../headers/utils/quasi_dense_stereo.hpp"
+#include <stdint.h>
 using namespace ttrk;
 
 StereoToolTracker::StereoToolTracker(const float radius, const float height, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_( new StereoCamera(calibration_filename)){
 
   localizer_.reset(new StereoPWP3D);
   boost::shared_ptr<StereoPWP3D> stereo_pwp3d = boost::dynamic_pointer_cast<StereoPWP3D>(localizer_);
-  stereo_pwp3d->Camera() = camera_;
+  stereo_pwp3d->GetStereoCamera() = camera_; //MOVE THESE TO CONSTRUCTOR
+  stereo_pwp3d->Camera() = stereo_pwp3d->GetStereoCamera()->rectified_left_eye();
 
 }
 
 void StereoToolTracker::CreateDisparityImage(){
 
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
-  const cv::Mat &left_image = stereo_frame->LeftMat();
-  const cv::Mat &right_image = stereo_frame->RightMat();
-  cv::Mat out_disparity;
+  cv::Mat &left_image = stereo_frame->LeftMat();
+  cv::Mat &right_image = stereo_frame->RightMat();
+  cv::Mat out_disparity(left_image.rows,left_image.cols,CV_8UC3);
+  /*QuasiDenseStereo qds;
 
+  qds.initialise( cvSize( left_image.cols, left_image.rows ) );
+  qds.Param.BorderX = 15;				// borders around the image
+  qds.Param.BorderY = 15;
+  qds.Param.N = 5;						// neighbours
+  qds.Param.Ct = 0.5;					// corre threshold for seeds
+  qds.Param.Dg = 0.5;					// disparity gradient
+  qds.Param.WinSizeX = 3;				// corr window size
+  qds.Param.WinSizeY = 3;	
+  qds.Param.Tt = 200;
+
+  IplImage left = (IplImage)left_image;
+  IplImage right = (IplImage)right_image;
+  qds.process(&left,&right);
+  IplImage disparity = (IplImage)out_disparity;
+  qds.getDisparityImage(&disparity);
+  */
   const int min_disp = 0;
-  const int max_disp = 80; //must be exactly divisible by 16
-  const int sad_win_size = 7;
+  const int max_disp = 32; //must be exactly divisible by 16
+  const int sad_win_size = 5;
   const int smoothness = left_image.channels()*sad_win_size*sad_win_size;
+  //cv::StereoBM sgbm;//(cv::StereoBM::FISH_EYE_PRESET ,16,5);
   cv::StereoSGBM sgbm(min_disp,
                       max_disp-min_disp,
                       sad_win_size,
                       8*smoothness,
-                      32*smoothness,
-                      4, //disp12MaxDiff
-                      50, //preFilterCap
-                      10, //uniquenessRatio [5-15] 50
-                      50, //speckleWindowSize [50-200] 4
-                      1,//speckleRange
-                      true);
-
+                      32*smoothness);
+  /*,
+  //                    4, //disp12MaxDiff
+  //                    50, //preFilterCap
+  //                    10, //uniquenessRatio [5-15] 50
+  //                    50, //speckleWindowSize [50-200] 4
+  //                    1,//speckleRange
+  //                    true);*/
+  //cv::Mat left_gray,right_gray;
+  //cv::cvtColor(left_image,left_gray,CV_BGR2GRAY);
+  //cv::cvtColor(right_image,right_gray,CV_BGR2GRAY);
+  //sgbm(left_gray,right_gray,out_disparity);
   sgbm(left_image,right_image,out_disparity);
-  
+  cv::Mat float_disp(out_disparity.size(),CV_32FC1);
+  for(int r=0;r<out_disparity.rows;r++){
+    for(int c=0;c<out_disparity.cols;c++){
+      //float_disp.at<float>(r,c) = (float)out_disparity.at<cv::Vec3b>(r,c)[0];
+      float_disp.at<float>(r,c) = static_cast<float>(out_disparity.at<int16_t>(r,c));///16.0f;
+    }
+  }
+
   //opencv sgbm multiplies each val by 16 so scale down to floating point array
-  out_disparity.convertTo(*(StereoFrame()->PtrToDisparityMap()),-1);//,1.0/16);
+  *(StereoFrame()->PtrToDisparityMap()) = float_disp;
   //*(StereoFrame()->PtrToDisparityMap()) = out_disparity;
   cv::imwrite("disparity.png",out_disparity);
 }
@@ -106,11 +137,13 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
 
   //create the point cloud used to initialize the pose
   CreateDisparityImage();
+  std::cerr << "size of connected region is " << region.size() << "\n";
   camera_->ReprojectTo3D(*(StereoFrame()->PtrToDisparityMap()),*(StereoFrame()->PtrToPointCloud()),region);
   
   //find the center of mass of the point cloud and shift it to the center of the shape rather than lie on the surface
   cv::Vec3f center_of_mass = FindCenterOfMass(StereoFrame()->PtrToPointCloud());
-  center_of_mass *= (cv::norm(center_of_mass) + radius_)/cv::norm(center_of_mass);
+  center_of_mass *= ((cv::norm(center_of_mass) + radius_)/cv::norm(center_of_mass));
+  center_of_mass *= 1.5;
   std::cerr << "center of mass = " << cv::Point3f(center_of_mass) << std::endl;
   
   //find the central axis of the point cloud
@@ -122,6 +155,7 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   //central_axis = cv::normalize(central_axis);
   cv::normalize(t_central_axis,central_axis);
   
+  central_axis = -central_axis;
   //use these two parameters to set the initial pose of the object
   tracked_model.SetPose(center_of_mass,central_axis);
   
@@ -176,12 +210,11 @@ cv::Vec3f StereoToolTracker::FindCenterOfMass(const boost::shared_ptr<cv::Mat> p
       
       //const cv::Point2i p = camera_->rectified_left_eye().ProjectPointToPixel(cv::Point3f(pt));
       
-      if( pt != cv::Vec3f(0,0,0) && pt[2] > 0){
-        
+      if( pt != cv::Vec3f(0,0,0) ){
         com += pt;
         num_pts++;
       }
-
+      
 
     }
   }
@@ -199,12 +232,12 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
   std::vector<SimplePoint<> > transformed_points = tracked_model.ModelPointsAtCurrentPose();
   for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
 
-    cv::Vec2f projected = camera_->rectified_left_eye().ProjectPoint(point->vertex_);
+    cv::Vec2f projected = camera_->rectified_left_eye()->ProjectPoint(point->vertex_);
 
     for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
       
       const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
-      cv::Vec2f projected_neighbour = camera_->rectified_left_eye().ProjectPoint( neighbour.vertex_ );
+      cv::Vec2f projected_neighbour = camera_->rectified_left_eye()->ProjectPoint( neighbour.vertex_ );
 
       if(canvas.channels() == 3)
         line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),1,CV_AA);

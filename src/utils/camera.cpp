@@ -1,6 +1,6 @@
 #include "../../headers/utils/camera.hpp"
 #include "../../headers/utils/helpers.hpp"
-
+#include <fstream>
 using namespace ttrk;
 
 MonocularCamera::MonocularCamera(const std::string &calibration_filename){
@@ -70,12 +70,14 @@ StereoCamera::StereoCamera(const std::string &calibration_filename):rectified_(f
 
     fs["Left_Camera_Matrix"] >> temp_intrinsic;
     fs["Left_Distortion_Coefficients"] >> temp_distortion;
-    left_eye_ = MonocularCamera(temp_intrinsic, temp_distortion);
+    left_eye_.reset( new MonocularCamera(temp_intrinsic, temp_distortion) );
+    rectified_left_eye_.reset( new MonocularCamera );
 
     fs["Right_Camera_Matrix"] >> temp_intrinsic;
     fs["Right_Distortion_Coefficients"] >> temp_distortion;
-    right_eye_ = MonocularCamera(temp_intrinsic, temp_distortion);
-    
+    right_eye_.reset( new MonocularCamera(temp_intrinsic, temp_distortion) );
+    rectified_right_eye_.reset( new MonocularCamera );
+
     /*fs["Extrinsic_Camera_Rotation"] >> extrinsic_matrix_(cv::Range(0,3),cv::Range(0,3));
     fs["Extrinsic_Camera_Translation"] >> extrinsic_matrix_(cv::Range(0,3),cv::Range(3,4));
     extrinsic_matrix_(cv::Range(3,4),cv::Range::all()) = 0.0;
@@ -105,34 +107,68 @@ StereoCamera::StereoCamera(const std::string &calibration_filename):rectified_(f
 void StereoCamera::ReprojectTo3D(const cv::Mat &disparity_image, cv::Mat &point_cloud, const std::vector<cv::Vec2i> &connected_region) const {
 
   if(point_cloud.data == 0x0) point_cloud.create(disparity_image.size(),CV_32FC3);
-
-  cv::Mat rescaled = disparity_image;
-  cv::Mat rescaled2;
-  disparity_image.convertTo(rescaled,CV_8U,(1.0/1.5));// * disparity_image;
-
-  cv::reprojectImageTo3D(rescaled,point_cloud,reprojection_matrix_);
+  cv::Mat disp_image = disparity_image.clone();
 
   //mask point cloud if required
   cv::Mat mask;
-  if(connected_region.size() == 0) mask = cv::Mat::ones(disparity_image.size(),CV_8UC1);
-  else mask = cv::Mat::zeros(disparity_image.size(),CV_8UC1);
+  if(connected_region.size() == 0){
+    mask = cv::Mat::ones(disparity_image.size(),CV_8UC1) * 255;
+  }else{
+    mask = cv::Mat::zeros(disparity_image.size(),CV_8UC1);
+  }
   unsigned char *mask_data = (unsigned char *)mask.data;
   const int cols = mask.cols;
   for(size_t i=0;i<connected_region.size();i++){
     const cv::Vec2i &pixel = connected_region[i];
     mask_data[pixel[1]*cols + pixel[0]] = 255;
   }
-  cv::Mat output;
-  cv::bitwise_and(point_cloud,point_cloud,output,mask);
 
-  point_cloud = output;
+ 
+
+ /* for (int r = 0; r < disparity_image.rows; r++){
+    for (int c =0;c < disparity_image.cols; c++ ){
+      
+      disp_image.at<int16_t>(r,c) *= (mask.at<unsigned char>(r,c) == 255);
+      
+    }
+  }*/
+
+  cv::imwrite("mask.png",mask);
+  cv::reprojectImageTo3D(disp_image,point_cloud,reprojection_matrix_,true,-1);
+
+  cv::Mat z = cv::Mat::zeros(disp_image.size(),CV_8UC1);
+
+  std::ofstream ofs("points.txt");  
+  for (int r = 0; r < point_cloud.rows; r++){
+    for (int c =0;c < point_cloud.cols; c++ ){
+      
+        
+      if(mask.at<unsigned char>(r,c) != 255)
+        point_cloud.at<cv::Vec3f>(r,c) = cv::Vec3f(0,0,0) ;      
+      
+      if(point_cloud.at<cv::Vec3f>(r,c)[2] < 0 || point_cloud.at<cv::Vec3f>(r,c)[2] == 10000)
+        point_cloud.at<cv::Vec3f>(r,c) = cv::Vec3f(0,0,0);
+ 
+      cv::Point3f point(point_cloud.at<cv::Vec3f>(r,c) );
+      if(point != cv::Point3f(0,0,0)){
+        ofs <<  point << "\n";
+        z.at<unsigned char>(r,c) = 255;
+        
+      }
+     
+    }
+  }
+  
+  cv::imwrite("negdisp.png",z);
+  ofs.close();
+
 
 }
 
 void StereoCamera::Rectify(const cv::Size image_size) {
 
-  cv::stereoRectify(left_eye_.intrinsic_matrix_,left_eye_.distortion_params_,
-                    right_eye_.intrinsic_matrix_,right_eye_.distortion_params_,
+  cv::stereoRectify(left_eye_->intrinsic_matrix_,left_eye_->distortion_params_,
+                    right_eye_->intrinsic_matrix_,right_eye_->distortion_params_,
                     image_size,
                     extrinsic_matrix_(cv::Range(0,3),cv::Range(0,3)),
                     extrinsic_matrix_(cv::Range(0,3),cv::Range(3,4)),
@@ -145,12 +181,12 @@ void StereoCamera::Rectify(const cv::Size image_size) {
   
   //store ROI1/2 in the stereo image class and then write method to extract these roi's whenever
   //useful image area methods are needed
-  cv::initUndistortRectifyMap(left_eye_.intrinsic_matrix_,
-      left_eye_.distortion_params_,
+  cv::initUndistortRectifyMap(left_eye_->intrinsic_matrix_,
+      left_eye_->distortion_params_,
       R1,P1,image_size,CV_32F,mapx_left_,mapy_left_); //must be 16s or 32f
 
-  cv::initUndistortRectifyMap(right_eye_.intrinsic_matrix_,
-      right_eye_.distortion_params_,
+  cv::initUndistortRectifyMap(right_eye_->intrinsic_matrix_,
+      right_eye_->distortion_params_,
       R1,P1,image_size,CV_32F,mapx_right_,mapy_right_);
 
 

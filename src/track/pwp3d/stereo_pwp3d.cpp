@@ -12,14 +12,15 @@ using namespace ttrk;
 void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const {
 
   std::vector<SimplePoint<> > transformed_points = tracked_model.ModelPointsAtCurrentPose();
+ 
   for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
 
-    cv::Vec2f projected = camera_->rectified_left_eye().ProjectPoint(point->vertex_);
+    cv::Vec2f projected = camera_->ProjectPoint(point->vertex_);
     
     for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
       
       const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
-      cv::Vec2f projected_neighbour = camera_->rectified_left_eye().ProjectPoint( neighbour.vertex_ );
+      cv::Vec2f projected_neighbour = camera_->ProjectPoint( neighbour.vertex_ );
 
       if(canvas.channels() == 3)
         line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),1,CV_AA);
@@ -35,7 +36,7 @@ void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat c
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
 #define SAVEDEBUG
   frame_ = frame;
-  const int NUM_STEPS = 500;
+  const int NUM_STEPS = 15;
 
 #ifdef DEBUG
     boost::progress_timer t; //timer prints time when it goes out of scope
@@ -116,7 +117,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 #endif
     
     if(energy < min_energy) min_energy = energy;
-    //else break;
+    else break;
 
     ScaleJacobian(jacobian,step);
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose());
@@ -143,15 +144,6 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 }
 
 
-double StereoPWP3D::GetEnergy(const int r, const int c, const float sdf, const double norm_foreground, const double norm_background) const {
-
-  const double pixel_probability = (double)frame_->ClassificationMap().at<unsigned char>(r,c)/255.0;
-  const double norm = (norm_foreground*pixel_probability) + (norm_background*(1.0-pixel_probability));
-  const double foreground_probability = pixel_probability/norm;
-  const double background_probability = (1-pixel_probability)/norm;
-  return -log(Heaviside(sdf)*foreground_probability + (1-Heaviside(sdf))*background_probability);
-
-}
 cv::Mat StereoPWP3D::GetRegularizedDepth(const int r, const int c, const KalmanTracker &current_model) const {
   
   const int NUM_DERIVS = 7;
@@ -190,172 +182,12 @@ cv::Mat StereoPWP3D::GetRegularizedDepth(const int r, const int c, const KalmanT
   
 }
 
-const cv::Mat StereoPWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
-
-  ROI_left_ = frame_->Mat();
-  cv::Mat sdf_image(ROI_left_.size(),CV_32FC1);
-  cv::Mat intersection_image(ROI_left_.size(),CV_8UC1);
-  for(int r=0;r<sdf_image.rows;r++){
-    for(int c=0;c<sdf_image.cols;c++){
-      cv::Vec3f ray = camera_->rectified_left_eye().UnProjectPoint( cv::Point2i(c,r) );
-      intersection_image.at<unsigned char>(r,c) = 255 * current_model.PtrToModel()->GetIntersection(ray, cv::Vec3f() , cv::Vec3f() ,current_model.CurrentPose());
-    }
-  }
-  
-  cv::Mat edge_image(intersection_image.size(),CV_8UC1);
-  cv::Canny(intersection_image,edge_image,1,100);
-  distanceTransform(~edge_image,sdf_image,CV_DIST_L2,CV_DIST_MASK_PRECISE);
-  
-  for(int r=0;r<sdf_image.rows;r++){
-    for(int c=0;c<sdf_image.cols;c++){
-      if(intersection_image.at<unsigned char>(r,c) != 255)
-        sdf_image.at<float>(r,c) *= -1;
-    }
-  }
-
-  return sdf_image;
-  
-/*
-  //get the model points at the current pose and project them into the image
-  std::vector<SimplePoint<> > points = current_model.ModelPointsAtCurrentPose();
-  std::vector<cv::Vec2i > projected_points;
-  for(size_t i=0;i<points.size();i++){
-    cv::Point2f pt = camera_->rectified_left_eye().ProjectPoint(points[i].vertex_);
-    projected_points.push_back( cv::Vec2i( pt.x,pt.y) );
-  }
-
-  //find the convex hull of these points
-  std::vector<cv::Vec2i> convex_hull;
-  cv::convexHull(projected_points,convex_hull);
-  cv::Mat convex_hull_(convex_hull);
-
-  //POTENTIAL OPTIMIZATION: 
-  //find a ROI around the target object to not run tracking over whole image. Not yet implemented.
-  FindROI(convex_hull); 
- 
-  //find the distance between pixels and the convex hull - heaviside function is applied after this function as need to obtain derivatives of sdf
-  cv::Mat sdf_image(ROI_left_.size(),CV_32FC1);
-  for(int r=0;r<sdf_image.rows;r++){
-    for(int c=0;c<sdf_image.cols;c++){
-      //cv::pointpolygontest returns positive inside, negative outside
-      sdf_image.at<float>(r,c) = (float)pointPolygonTest(convex_hull_,cv::Point2f((float)c,(float)r),true);
-    }
-  }
-  return sdf_image;*/
-
-}
-
-bool StereoPWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model) const {
-
-  cv::Vec3f ray = camera_->rectified_left_eye().UnProjectPoint( cv::Point2i(c,r) ); 
-  return current_model.PtrToModel()->GetIntersection(ray, front_intersection, back_intersection,current_model.CurrentPose());
-
-}
-
-
-bool StereoPWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model) const {
-
-  static const int search_range= 15; //has to be larger than border for search to work!
-  if(sdf.at<float>(r,c) <  -10 || sdf.at<float>(r,c) >= 0) return false;
-  
-  cv::Point2i min_point;
-  const cv::Point2i start_pt(c,r);
-  float min_dist = std::numeric_limits<float>::max();
-  int max_r = r+search_range, min_r = r-search_range, max_c = c+search_range, min_c = c-search_range;
-  if(max_r >= sdf.rows) max_r = sdf.rows-1;
-  if(max_c >= sdf.cols) max_c = sdf.cols-1;
-  if(min_r < 0) min_r = 0;
-  if(min_c < 0) min_c = 0;
-
-  for(int row=min_r;row<max_r;row++){
-    for(int col=min_c;col<max_c;col++){
-      
-      if(sdf.at<float>(row,col) < 0.3) continue;
-      const cv::Point2i test_pt(col,row);
-      const cv::Point2i dist = test_pt - start_pt;
-      float dist_val = (float)sqrt((float)dist.x*dist.x + dist.y*dist.y);
-      if(dist_val < min_dist){
-        min_dist = dist_val;
-        min_point = test_pt;
-      }
-    }
-  }
-
-  cv::Vec3f ray = camera_->rectified_left_eye().UnProjectPoint( cv::Point2i(min_point.x,min_point.y) ); 
-  return  current_model.PtrToModel()->GetIntersection(ray, front_intersection,back_intersection,current_model.CurrentPose());
-}
-
-cv::Mat StereoPWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model){
-
-  const int NUM_DERIVS = 7;
-  //if(dSDFdx == 0.0f && dSDFdy == 0.0f) return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
-   
-   //find the (x,y,z) coordinates of the front and back intersection between the ray from the current pixel and the target object. return zero vector for no intersection.
-  cv::Vec3f front_intersection;
-  cv::Vec3f back_intersection;
-  bool intersects = GetTargetIntersections(r,c,front_intersection,back_intersection,current_model);
-  
-  if(!intersects) {
-    intersects = GetNearestIntersection(r,c,sdf,front_intersection,back_intersection,current_model);
-    if(!intersects)
-      return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
-  }
-
-  if(front_intersection[2] == 0) front_intersection[2] = 0.00000001;
-  const double z_inv_sq = 1.0/(front_intersection[2]*front_intersection[2]);
-  cv::Mat ret(NUM_DERIVS,1,CV_64FC1);
-  for(int dof=0;dof<NUM_DERIVS;dof++){
-
-    const cv::Vec3f dof_derivatives = GetDOFDerivatives(dof,current_model.CurrentPose(),front_intersection);
-      
-    const double dXdL = camera_->rectified_left_eye().Fx() * (z_inv_sq*((front_intersection[2]*dof_derivatives[0]) - (front_intersection[0]*dof_derivatives[2])));
-    const double dYdL = camera_->rectified_left_eye().Fy() * (z_inv_sq*((front_intersection[2]*dof_derivatives[1]) - (front_intersection[1]*dof_derivatives[2])));
-    ret.at<double>(dof,0) = DeltaFunction(sdf.at<float>(r,c)) * ((dSDFdx * dXdL) + (dSDFdy * dYdL));
-  
-  }
-
-
-  return ret;
-}
-
-double StereoPWP3D::GetRegionAgreement(const int r, const int c, const float sdf, const double norm_foreground, const double norm_background) const{
-  
-  const double pixel_probability = (double)frame_->ClassificationMap().at<unsigned char>(r,c)/255.0;
-  const double norm = (norm_foreground*pixel_probability) + (norm_background*(1.0-pixel_probability));
-  const double foreground_probability = pixel_probability/norm;
-  const double background_probability = (1-pixel_probability)/norm;
-  const double region_agreement = (foreground_probability - background_probability)/ (Heaviside(sdf)*foreground_probability + (1.0-Heaviside(sdf))*background_probability);
-  return region_agreement;
-
-}
-
-void StereoPWP3D::ComputeNormalization(double &norm_foreground, double &norm_background, const cv::Mat &sdf_image) const {
-  
-  norm_foreground = norm_background = 0.0;
-  const int width = sdf_image.cols, height = sdf_image.rows;
-
-  for(int r=0;r<height;r++){
-    for(int c=0;c<width;c++){
-
-      double sdf_pixel = sdf_image.at<float>(r,c);
-      norm_foreground += Heaviside(sdf_pixel);
-      norm_background += 1.0 - Heaviside(sdf_pixel);
-      
-    }
-  }
-
-
-  //norm_foreground /= (height*width);
-  //norm_background /= (height*width);
-  
-
-}
 
 
 
 void StereoPWP3D::FindROI(const std::vector<cv::Vec2i> &convex_hull) {
 
-  ROI_left_ = frame_->Mat(); //UNTIL I DO THIS FUNCTION
+  ROI() = frame_->Mat(); //UNTIL I DO THIS FUNCTION
 
   /*
   for(int r=0;r<frame_->rows();r++){

@@ -31,7 +31,7 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
       tracker_.reset(new StereoToolTracker(3,30,*root_dir_ + "/config/camera.xml"));
       break;
     case MONOCULAR:
-      tracker_.reset(new MonocularToolTracker(3,30,*root_dir_ + "/config/camera.xml"));
+      tracker_.reset(new MonocularToolTracker(3,30,*root_dir_ + "/config/mono_camera.xml"));
       break;
     default:
       tracker_.reset(new StereoToolTracker(3,30,*root_dir_ + "/config/camera.xml"));

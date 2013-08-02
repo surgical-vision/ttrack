@@ -3,8 +3,10 @@
 
 using namespace ttrk;
 
-MonocularToolTracker::MonocularToolTracker(const float radius, const float height, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_(calibration_filename){
+MonocularToolTracker::MonocularToolTracker(const float radius, const float height, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_(new MonocularCamera(calibration_filename)){
   localizer_.reset(new MonoPWP3D);
+  boost::shared_ptr<MonoPWP3D> mono_pwp3d = boost::dynamic_pointer_cast<MonoPWP3D>(localizer_);
+  mono_pwp3d->Camera() = camera_;
 }
 
 bool MonocularToolTracker::Init(){
@@ -66,23 +68,25 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
 
 
 
-  cv::Vec2f central_axis(e[0],e[1]);
-  cv::Vec2f horizontal_axis(e[2],e[3]);
+  cv::Vec2f central_axis(e[2],e[3]);
+  cv::Vec2f horizontal_axis(e[0],e[1]);
 
   cv::Vec2f top = cv::Vec2f(center_of_mass) + (0.5*width)*horizontal_axis;
   cv::Vec2f bottom = cv::Vec2f(center_of_mass) - (0.5*width)*horizontal_axis;
 
-  cv::Point3f top_unp = camera_.UnProjectPoint(cv::Point2i(top));
-  cv::Point3f bottom_unp = camera_.UnProjectPoint(cv::Point2i(bottom));
-  
+  cv::Point3f top_unp = camera_->UnProjectPoint(cv::Point2i(top));
+  cv::Point3f bottom_unp = camera_->UnProjectPoint(cv::Point2i(bottom));
+  cv::Point3f center_unp = camera_->UnProjectPoint(cv::Point2i(center_of_mass));
   cv::Vec3f diff = cv::Vec3f(top_unp) - cv::Vec3f(bottom_unp);
   float abs_diff = sqrt( static_cast<double>( diff[0]*diff[0] + diff[1]*diff[1] + diff[2]*diff[2] ) );
   
   float z = tracked_model.PtrToModel()->Radius()/abs_diff;
 
-  cv::Vec3f center = z*cv::Vec3f(center_of_mass[0],center_of_mass[1],1);
-  
-  tracked_model.SetPose(center,cv::Vec3f(central_axis[0],central_axis[1],0));
+  cv::Vec3f center = z*cv::Vec3f(center_unp);
+  cv::Vec3f central_axis_3f(central_axis[0],central_axis[1],0);
+  tracked_model.SetPose(center,-central_axis_3f);
+  std::cerr << "center of mass " << cv::Point3f(center) << "\n";
+  std::cerr << "central axiS " << cv::Point3f(central_axis) << "\n";
 
 }
 
@@ -116,25 +120,22 @@ const cv::Vec2i MonocularToolTracker::FindCenterOfMass(const std::vector<cv::Vec
 
 void MonocularToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const {
 
-  std::vector<SimplePoint<> > transformed_points = tracked_model.ModelPointsAtCurrentPose();
+std::vector<SimplePoint<> > transformed_points = tracked_model.ModelPointsAtCurrentPose();
   for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
-    throw(std::runtime_error("Error, finish this function!\n"));
-//  cv::Point cvpt(tpt[0],tpt[1]);
-   /* for(size_t n=0;n<pt.neighbours_.size();n++){
 
-      ttk::Point &npt = (*transformed_points)[pt.neighbours_[n]];
-      TooN::Vector<2> tnpt = ProjectPoint(npt.vertex_);
-      cv::Point cvnpt(tnpt[0],tnpt[1]);
+    cv::Vec2f projected = camera_->ProjectPoint(point->vertex_);
 
-      if(image.channels() == 3)
-	line(image,cvpt,cvnpt,cv::Scalar(255,0,255),3,8);
-      if(image.channels() == 1)
-	line(image,cvpt,cvnpt,(uchar)255,3,8);
+    for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
+      
+      const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
+      cv::Vec2f projected_neighbour = camera_->ProjectPoint( neighbour.vertex_ );
+
+      if(canvas.channels() == 3)
+        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),1,CV_AA);
+      if(canvas.channels() == 1)
+        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,1,CV_AA);
     }
   }
-  */
-  }
-
 }
 
 

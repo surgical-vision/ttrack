@@ -15,9 +15,10 @@ int main(int argc, char **argv){
      _chdir("../");
 #endif
      //construct the helper classes and train the classifier
-    t.SetUp("./data/test_video/",ttrk::RF,ttrk::STEREO);
-    t.RunVideo("video.avi");
-    //t.RunVideo("short2.avi");
+     t.SetUp("./data/test_video/",ttrk::RF,ttrk::STEREO);
+     //t.SetUp("./data/test_video/",ttrk::RF,ttrk::MONOCULAR);
+     t.RunVideo("video.avi");
+     //t.RunVideo("short2.avi");
 
   }catch(std::runtime_error &e){
 

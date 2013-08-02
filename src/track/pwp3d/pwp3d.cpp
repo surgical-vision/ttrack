@@ -22,11 +22,15 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number) const {
   static float scales[7] = { (float)1.0 , (float)0.8 , (float)0.7 , (float)0.5, (float)0.4 , (float)0.3, (float)0.1 };
 
   float scale = (float)3.0;
+  //scale = 1.0;
+  //scale = 1.0;
   //if( step_number > 6) scale = scales[6];
   //else scale = scales[step_number];
-
+  
   jacobian = (float)0.00000001 * jacobian;
-  for(int i=0;i<3;i++) jacobian.at<double>(i,0) *= 150 * scale;
+  
+  std::cerr << "jacobian = " << jacobian << std::endl;
+  for(int i=0;i<3;i++) jacobian.at<double>(i,0) *= 80 * scale;
   for(int i=3;i<7;i++) jacobian.at<double>(i,0) *= 0.4 * scale;
 
 }
@@ -183,11 +187,11 @@ cv::Mat PWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, 
     const double dXdL = camera_->Fx() * (z_inv_sq*((front_intersection[2]*dof_derivatives[0]) - (front_intersection[0]*dof_derivatives[2])));
     const double dYdL = camera_->Fy() * (z_inv_sq*((front_intersection[2]*dof_derivatives[1]) - (front_intersection[1]*dof_derivatives[2])));
     ret.at<double>(dof,0) = DeltaFunction(sdf.at<float>(r,c)) * ((dSDFdx * dXdL) + (dSDFdy * dYdL));
-  
+      
   }
 
-
   return ret;
+
 }
 
 
@@ -204,6 +208,7 @@ const cv::Mat PWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
     }
   }
   
+  cv::imwrite("intersection_image.png",intersection_image);
   cv::Mat edge_image(intersection_image.size(),CV_8UC1);
   cv::Canny(intersection_image,edge_image,1,100);
   distanceTransform(~edge_image,sdf_image,CV_DIST_L2,CV_DIST_MASK_PRECISE);

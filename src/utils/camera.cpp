@@ -10,8 +10,8 @@ MonocularCamera::MonocularCamera(const std::string &calibration_filename){
   try{
 
     fs.open(calibration_filename,cv::FileStorage::READ); 
-    fs["camera-intrinsic"] >> intrinsic_matrix_;
-    fs["camera-distortion"] >> distortion_params_;
+    fs["Camera_Matrix"] >> intrinsic_matrix_;
+    fs["Distortion_Coefficients"] >> distortion_params_;
 
 
   }catch(cv::Exception& e){

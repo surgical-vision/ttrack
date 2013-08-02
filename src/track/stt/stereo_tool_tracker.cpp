@@ -137,7 +137,6 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
 
   //create the point cloud used to initialize the pose
   CreateDisparityImage();
-  std::cerr << "size of connected region is " << region.size() << "\n";
   camera_->ReprojectTo3D(*(StereoFrame()->PtrToDisparityMap()),*(StereoFrame()->PtrToPointCloud()),region);
   
   //find the center of mass of the point cloud and shift it to the center of the shape rather than lie on the surface
@@ -147,8 +146,9 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   std::cerr << "center of mass = " << cv::Point3f(center_of_mass) << std::endl;
   
   //find the central axis of the point cloud
+  center_of_mass += cv::Vec3f(-3.1,-2.0,4.1);
   cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->PtrToPointCloud());
-  //center_of_mass += cv::Vec3f(3.1,-2.0,4.1);
+  central_axis += cv::Vec3f(-0.3,-0.1,-0.2);
   std::cerr << "centeral axis = " << cv::Point3f(central_axis) << std::endl;
 
   cv::Vec3f t_central_axis = central_axis;

@@ -37,7 +37,7 @@ namespace ttrk {
     const cv::Vec2i FindCenterOfMass(const std::vector<cv::Vec2i> &connected_region) const;
     float ComputeWidth(float e1, float e2, size_t size) const ;
 
-    MonocularCamera camera_;
+    boost::shared_ptr<MonocularCamera> camera_;
 
   };
 

@@ -36,7 +36,7 @@ void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat c
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
 #define SAVEDEBUG
   frame_ = frame;
-  const int NUM_STEPS = 15;
+  const int NUM_STEPS = 125;
 
 #ifdef DEBUG
     boost::progress_timer t; //timer prints time when it goes out of scope
@@ -117,7 +117,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 #endif
     
     if(energy < min_energy) min_energy = energy;
-    else break;
+    //else break;
 
     ScaleJacobian(jacobian,step);
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose());

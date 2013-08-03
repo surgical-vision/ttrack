@@ -9,7 +9,7 @@ localises 3D objects in video images. The system
 incorporates a Random Forest classifier and a level-set based
 segmentation system to determine pose in 3D dimenesions. The system is
 currently being developed to tracking MIS instruments but can easily
-be extended to track any rigid object.
+be extended to track almost any rigid object.
 
 Dependencies
 ------------

@@ -1,6 +1,6 @@
 #include "../../headers/track/model.hpp"
 #include "../../headers/utils/helpers.hpp"
-
+#include <fstream>
 using namespace ttrk;
 
 
@@ -25,7 +25,7 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
                      (float)(radius_ * cos(i * 4*M_PI/precision)), 
                      (float)(radius_ * sin(i * 4*M_PI/precision)));
 
-    point = pose.Transform(point);
+    //point = pose.Transform(point);
     //transform point
     points.push_back( SimplePoint<>(point) );
 
@@ -53,7 +53,7 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
                      (float)(radius_tip_ * cos(i * 4*M_PI/precision)) - 0.15*radius_*2,//((0.5 - (radius_fraction_/2))*radius_*2), 
                      (float)(radius_tip_ * sin(i * 4*M_PI/precision)));
 
-    point = pose.Transform(point);
+    //point = pose.Transform(point);
     //transform point
     test_points.push_back( SimplePoint<>(point) );
 
@@ -74,6 +74,23 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
     test_points[i].AddNeighbour(precision+Wrap(i+(precision/2),0,precision-1));
   
   points.insert(points.end(),test_points.begin(),test_points.end());
+
+  /*std::ofstream ofs("model.xyz");
+  for (auto point = points.begin(); point != points.end(); point++){
+
+    ofs << point->vertex_[0] << " " << point->vertex_[1] << " " << point->vertex_[2] << " ";
+    for (auto neighbour = point->neighbours_.begin();neighbour != point->neighbours_.end() ; neighbour++) {
+
+      ofs << *neighbour;
+      if( neighbour != point->neighbours_.end() - 1)
+        ofs << " ";
+
+    }
+    ofs << "\n";
+
+  }
+
+  ofs.close();*/
   return points;
 }
 

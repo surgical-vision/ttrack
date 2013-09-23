@@ -30,10 +30,8 @@ void KalmanTracker::Init() {
 
   static float dt = 1;
 
-  //params (x,y,z,dx,dy,dz,r1,r2,r3,,dr1,dr2,dr3) - euler angles allows linear parametrization
+  //params (x,y,z,dx,dy,dz,r1,r2,r3,dr1,dr2,dr3) - euler angles allows linear parametrization
   filter_.init(12,9,0); //dynamic params, measurement params, control params
-
-  cv::Mat state(6,1,CV_32F);
 
   filter_.transitionMatrix = cv::Mat::eye(12,12,CV_32F);
   for(int i=3;i<6;i++){

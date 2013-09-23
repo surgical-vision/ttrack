@@ -50,6 +50,19 @@ namespace ttrk{
     
   };
 
+  class StereoVideoHandler : public VideoHandler {
+
+  public:
+
+    StereoVideoHandler(const std::string &left_input_url,const std::string &right_input_url,const std::string &output_url);
+    virtual boost::shared_ptr<cv::Mat> GetPtrToNewFrame();
+
+  private:
+
+    cv::VideoCapture right_cap_;
+    cv::VideoWriter right_writer_;
+
+  };
 
   class ImageHandler : public Handler {
 

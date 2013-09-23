@@ -83,6 +83,12 @@ void TTrack::RunVideo(const std::string &video_url){
  
 }
 
+void TTrack::RunVideo(const std::string &left_video_url,const std::string &right_video_url){
+  tracker_->Tracking(false); 
+  handler_.reset(new StereoVideoHandler(*root_dir_ + left_video_url, *root_dir_ + right_video_url, *root_dir_ + "/tracked_video.avi"));
+  Run();
+}
+
 void TTrack::RunImages(const std::string &image_url){
 
   tracker_->Tracking(false);

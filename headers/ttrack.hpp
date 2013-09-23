@@ -52,6 +52,7 @@ namespace ttrk{
      * @param[in] video_url The url of the video file. Give this relative to root directory.
      */
     void RunVideo(const std::string &video_url);
+    void TTrack::RunVideo(const std::string &left_video_url,const std::string &right_video_url);
     
     /**
      * A method to start running the main method of the class. Same features as RunVideo but it inputs still frames from a directory

@@ -34,7 +34,7 @@ void Detect::ClassifyFrame(){
 
   assert(Loaded());
   assert(frame_->Mat().type() == CV_8UC3);
-
+  
   NDImage nd_image(frame_->Mat());
   const int rows = frame_->rows();
   const int cols = frame_->cols();
@@ -62,7 +62,6 @@ void Detect::ClassifyFrame(){
 
   if(pixel_count > (0.04*rows*cols)) found_ = true;
   else found_ = false;
-
 }
 
 void Detect::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){

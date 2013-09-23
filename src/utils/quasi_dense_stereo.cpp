@@ -517,8 +517,9 @@ void	QuasiDenseStereo::getDisparityImage(IplImage* img, int numDisparityLevels, 
 				continue;
 			}
 
-			float ScaledDisparity = 255 - 255.f*((dsp[(y)*img->width+x]-mindsp)/(maxdsp-mindsp));
-			unsigned char DisparityImageVal = (unsigned char)ScaledDisparity;
+			//float ScaledDisparity = 255 - 255.f*((dsp[(y)*img->width+x]-mindsp)/(maxdsp-mindsp));
+			float ScaledDisparity = dsp[(y)*img->width+x];
+      unsigned char DisparityImageVal = (unsigned char)ScaledDisparity;
 
 			imgData[(y)*s+x*3] = DisparityImageVal;
 			imgData[(y)*s+x*3+1] = DisparityImageVal;

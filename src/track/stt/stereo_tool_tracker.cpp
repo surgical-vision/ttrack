@@ -7,6 +7,8 @@
 #include <stdint.h>
 using namespace ttrk;
 
+#define QUASI
+
 StereoToolTracker::StereoToolTracker(const float radius, const float height, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_( new StereoCamera(calibration_filename)){
 
   localizer_.reset(new StereoPWP3D);
@@ -21,8 +23,12 @@ void StereoToolTracker::CreateDisparityImage(){
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
   cv::Mat &left_image = stereo_frame->LeftMat();
   cv::Mat &right_image = stereo_frame->RightMat();
+  cv::imwrite("left.png",left_image);
+  cv::imwrite("right.png",right_image);
   cv::Mat out_disparity(left_image.rows,left_image.cols,CV_8UC3);
-  /*QuasiDenseStereo qds;
+
+#ifdef QUASI
+  QuasiDenseStereo qds;
 
   qds.initialise( cvSize( left_image.cols, left_image.rows ) );
   qds.Param.BorderX = 15;				// borders around the image
@@ -30,21 +36,23 @@ void StereoToolTracker::CreateDisparityImage(){
   qds.Param.N = 5;						// neighbours
   qds.Param.Ct = 0.5;					// corre threshold for seeds
   qds.Param.Dg = 0.5;					// disparity gradient
-  qds.Param.WinSizeX = 3;				// corr window size
-  qds.Param.WinSizeY = 3;	
-  qds.Param.Tt = 200;
+  qds.Param.WinSizeX = 6;				// corr window size
+  qds.Param.WinSizeY = 6;	
+  qds.Param.Tt = 50;
 
   IplImage left = (IplImage)left_image;
   IplImage right = (IplImage)right_image;
   qds.process(&left,&right);
   IplImage disparity = (IplImage)out_disparity;
   qds.getDisparityImage(&disparity);
-  */
+  
+#endif
+  
+#ifdef STEREO_SGBM
   const int min_disp = 0;
   const int max_disp = 32; //must be exactly divisible by 16
   const int sad_win_size = 5;
   const int smoothness = left_image.channels()*sad_win_size*sad_win_size;
-  //cv::StereoBM sgbm;//(cv::StereoBM::FISH_EYE_PRESET ,16,5);
   cv::StereoSGBM sgbm(min_disp,
                       max_disp-min_disp,
                       sad_win_size,
@@ -57,16 +65,26 @@ void StereoToolTracker::CreateDisparityImage(){
   //                    50, //speckleWindowSize [50-200] 4
   //                    1,//speckleRange
   //                    true);*/
-  //cv::Mat left_gray,right_gray;
-  //cv::cvtColor(left_image,left_gray,CV_BGR2GRAY);
-  //cv::cvtColor(right_image,right_gray,CV_BGR2GRAY);
-  //sgbm(left_gray,right_gray,out_disparity);
+  
   sgbm(left_image,right_image,out_disparity);
+  
+#endif
+
   cv::Mat float_disp(out_disparity.size(),CV_32FC1);
   for(int r=0;r<out_disparity.rows;r++){
     for(int c=0;c<out_disparity.cols;c++){
-      //float_disp.at<float>(r,c) = (float)out_disparity.at<cv::Vec3b>(r,c)[0];
+
+#ifdef QUASI
+      float_disp.at<float>(r,c) = ((float)out_disparity.at<cv::Vec3b>(r,c)[0]);
+      if(float_disp.at<float>(r,c) <= 0 || (float)out_disparity.at<cv::Vec3b>(r,c)[0] == 200){
+        float_disp.at<float>(r,c) = 0;
+      }
+#elif defined STEREO_SGBM
       float_disp.at<float>(r,c) = static_cast<float>(out_disparity.at<int16_t>(r,c));///16.0f;
+      if(float_disp.at<float>(r,c) <= 0{
+        float_disp.at<float>(r,c) = 0;
+      }
+#endif
     }
   }
 
@@ -142,7 +160,7 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   //find the center of mass of the point cloud and shift it to the center of the shape rather than lie on the surface
   cv::Vec3f center_of_mass = FindCenterOfMass(StereoFrame()->PtrToPointCloud());
   center_of_mass *= ((cv::norm(center_of_mass) + radius_)/cv::norm(center_of_mass));
-  center_of_mass *= 1.5;
+  //center_of_mass *= 1.5;
   std::cerr << "center of mass = " << cv::Point3f(center_of_mass) << std::endl;
   
   //find the central axis of the point cloud

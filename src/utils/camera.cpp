@@ -94,13 +94,35 @@ StereoCamera::StereoCamera(const std::string &calibration_filename):rectified_(f
     extrinsic_matrix_(cv::Range(3,4),cv::Range::all()) = 0.0;
     extrinsic_matrix_.at<double>(3,3) = 1.0;
 
-
   }catch(cv::Exception& e){
 
     std::cerr << "Error while reading from camara calibration file.\n" << e.msg << "\n";
     SAFE_EXIT();
 
   }
+
+}
+
+void TestReproject(const cv::Mat &disparity_map, cv::Mat &reprojected_point_cloud, const cv::Mat &reprojection_matrix) {
+
+  reprojected_point_cloud = cv::Mat(disparity_map.size(),CV_32FC3);
+
+  for(int r=0;r<disparity_map.rows;r++){
+    for(int c=0;c<disparity_map.cols;c++){
+
+      cv::Vec3f &point = reprojected_point_cloud.at<cv::Vec3f>(r,c);
+
+      double data[] = {r,c,disparity_map.at<float>(r,c),1.0};
+      cv::Mat p(4,1,CV_64FC1,data);
+      cv::Mat dp = reprojection_matrix * p;
+      const double denom = dp.at<double>(0,3);
+      point = cv::Vec3f( dp.at<double>(0,0)/denom, dp.at<double>(0,1)/denom, dp.at<double>(0,2)/denom);
+      //if(data[2] == 14.0){
+      //  std::cerr << cv::Point3f(point) << "\n";
+      //}
+    }
+  }
+
 
 }
 
@@ -134,13 +156,15 @@ void StereoCamera::ReprojectTo3D(const cv::Mat &disparity_image, cv::Mat &point_
   }*/
 
   cv::imwrite("mask.png",mask);
-  cv::reprojectImageTo3D(disp_image,point_cloud,reprojection_matrix_,true,-1);
+  //cv::reprojectImageTo3D(disp_image,point_cloud,reprojection_matrix_,true,-1);
+  TestReproject(disp_image,point_cloud,reprojection_matrix_);
 
   cv::Mat z = cv::Mat::zeros(disp_image.size(),CV_8UC1);
+  std::cerr << reprojection_matrix_ << "\n";
 
-  std::ofstream ofs("points.txt");  
+  std::ofstream ofs("points.xyz");  
   for (int r = 0; r < point_cloud.rows; r++){
-    for (int c =0;c < point_cloud.cols; c++ ){
+    for (int c =0; c < point_cloud.cols; c++ ){
       
         
       if(mask.at<unsigned char>(r,c) != 255)
@@ -151,7 +175,9 @@ void StereoCamera::ReprojectTo3D(const cv::Mat &disparity_image, cv::Mat &point_
  
       cv::Point3f point(point_cloud.at<cv::Vec3f>(r,c) );
       if(point != cv::Point3f(0,0,0)){
-        ofs <<  point << "\n";
+        //std::cerr << disp_image.at<float>(r,c) << "-->" << point << "\n";
+        //if(point.z < 0 || point.z > 100) point.z = 50;
+        ofs << point.x << " " << point.y << " " << point.z << "\n";
         z.at<unsigned char>(r,c) = 255;
         
       }
@@ -173,8 +199,8 @@ void StereoCamera::Rectify(const cv::Size image_size) {
                     extrinsic_matrix_(cv::Range(0,3),cv::Range(0,3)),
                     extrinsic_matrix_(cv::Range(0,3),cv::Range(3,4)),
                     R1, R2, P1, P2, reprojection_matrix_,
-                    0, // 0 || CV_CALIB_ZERO_DISPARITY
-                    -1,  // -1 = default scaling, 0 = no black pixels, 1 = no source pixels lost
+                    CV_CALIB_ZERO_DISPARITY, // 0 || CV_CALIB_ZERO_DISPARITY
+                    1,  // -1 = default scaling, 0 = no black pixels, 1 = no source pixels lost
                     cv::Size(), &roi1, &roi2); 
 
   InitRectified();

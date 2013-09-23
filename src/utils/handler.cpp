@@ -22,6 +22,46 @@ VideoHandler::VideoHandler(const std::string &input_url, const std::string &outp
   
 }
 
+StereoVideoHandler::StereoVideoHandler(const std::string &left_input_url,const std::string &right_input_url,const std::string &output_url):
+  VideoHandler(left_input_url,output_url)
+  {
+
+  right_cap_.open(right_input_url);
+  if(!right_cap_.isOpened()){
+    throw std::runtime_error("Unable to open videofile: " + right_input_url + "\nPlease enter a new filename.\n");
+  }
+
+}
+
+  
+boost::shared_ptr<cv::Mat> StereoVideoHandler::GetPtrToNewFrame(){
+
+  cv::Mat right_frame;
+  right_cap_ >> right_frame;
+  boost::shared_ptr<cv::Mat> m(new cv::Mat(right_frame.rows,2*right_frame.cols,right_frame.type()));
+  std::cerr << m->rows << "," << m->cols << "\n";
+  //right_cap_ >> m;
+  
+  cv::Mat lhs = (*m)(cv::Rect(0,0,right_frame.cols,right_frame.rows));
+  cv::Mat rhs = (*m)(cv::Rect(right_frame.cols,0,right_frame.cols,right_frame.rows));
+  right_frame.copyTo(rhs);
+  VideoHandler::GetPtrToNewFrame()->copyTo(lhs);
+  /*static bool first = true;
+  if(first){
+    for(int n=0;n<60;n++)
+      cap_ >> *m;
+    first = false;
+  }*/
+  
+  if(m->data == 0x0) { 
+    done_ = true;
+    return boost::shared_ptr<cv::Mat>();
+  } else {
+    return m;
+  }
+
+}
+
 ImageHandler::ImageHandler(const std::string &input_url, const std::string &output_url):
   Handler(input_url,output_url){
 

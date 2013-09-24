@@ -52,6 +52,8 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   cv::imwrite(ss.str()+"/step_init.png",canvas);
   frame_count++;
   
+  SAFE_EXIT();
+
   DEBUG_DIR_ = ss.str() + "/debug/";
   boost::filesystem::create_directory(DEBUG_DIR_);
   std::ofstream ENERGY_FILE((DEBUG_DIR_ + "/energy_file.csv").c_str());
@@ -96,7 +98,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
         //P_f - P_b / (H * P_f + (1 - H) * P_b)
         const double region_agreement = GetRegionAgreement(r, c, sdf_image.at<float>(r,c), norm_foreground, norm_background);
-
+        
         //dH / dL
         const cv::Mat pose_derivatives = GetPoseDerivatives(r, c, sdf_image, dSDFdx.at<float>(r,c), dSDFdy.at<float>(r,c), current_model);
       
@@ -104,9 +106,15 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
         const cv::Mat regularized_depth = GetRegularizedDepth(r,c,current_model);
 
         //update the jacobian
-        for(int i=0;i<pose_derivatives.rows;i++)
+        for(int i=0;i<pose_derivatives.rows;i++){
+          double pp = (region_agreement*pose_derivatives.at<double>(i,0));
+          if (pp != pp)
+            continue;
           jacobian.at<double>(i,0) += -1 * (region_agreement*pose_derivatives.at<double>(i,0)) + regularized_depth.at<double>(i,0);
-        
+        }
+       
+        //if( jacobian.at<double>(0,0) != 0 &&  jacobian.at<double>(2,0) != 0 && jacobian.at<double>(3,0) != 0 && jacobian.at<double>(4,0) != 0)
+          //std::cerr << "Jacobian = " << jacobian << "\n";
       }
     }
 

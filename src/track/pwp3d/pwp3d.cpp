@@ -1,6 +1,6 @@
 #include "../../../headers/track/pwp3d/pwp3d.hpp"
 #include "../../../headers/utils/helpers.hpp"
-
+#include <boost/math/special_functions/fpclassify.hpp>
 using namespace ttrk;
 
 void PWP3D::ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose){
@@ -22,15 +22,17 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number) const {
   static float scales[7] = { (float)1.0 , (float)0.8 , (float)0.7 , (float)0.5, (float)0.4 , (float)0.3, (float)0.1 };
 
   float scale = (float)3.0;
-  //scale = 1.0;
+  scale = 1.0;
   //scale = 1.0;
   //if( step_number > 6) scale = scales[6];
   //else scale = scales[step_number];
   
-  jacobian = (float)0.00000001 * jacobian;
+  //jacobian = (float)0.00000001 * jacobian;
+  jacobian =   (float)0.000000006 * jacobian;
   
   std::cerr << "jacobian = " << jacobian << std::endl;
-  for(int i=0;i<3;i++) jacobian.at<double>(i,0) *= 80 * scale;
+  //for(int i=0;i<3;i++) jacobian.at<double>(i,0) *= 80 * scale;
+  for(int i=0;i<3;i++) jacobian.at<double>(i,0) *= 150 * scale;
   for(int i=3;i<7;i++) jacobian.at<double>(i,0) *= 0.4 * scale;
 
 }
@@ -84,7 +86,12 @@ double PWP3D::GetEnergy(const int r, const int c, const float sdf, const double 
   const double norm = (norm_foreground*pixel_probability) + (norm_background*(1.0-pixel_probability));
   const double foreground_probability = pixel_probability/norm;
   const double background_probability = (1-pixel_probability)/norm;
-  return -log(Heaviside(sdf)*foreground_probability + (1-Heaviside(sdf))*background_probability);
+  
+  double x = -log(Heaviside(sdf)*foreground_probability + (1-Heaviside(sdf))*background_probability);
+  if ( x == std::numeric_limits<double>::infinity() )
+    return 0;
+  return x;
+
 
 }
 
@@ -95,6 +102,8 @@ double PWP3D::GetRegionAgreement(const int r, const int c, const float sdf, cons
   const double foreground_probability = pixel_probability/norm;
   const double background_probability = (1-pixel_probability)/norm;
   const double region_agreement = (foreground_probability - background_probability)/ (Heaviside(sdf)*foreground_probability + (1.0-Heaviside(sdf))*background_probability);
+  if(region_agreement == std::numeric_limits<double>::infinity())
+    return 0.0;
   return region_agreement;
 
 }
@@ -208,7 +217,6 @@ const cv::Mat PWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
     }
   }
   
-  cv::imwrite("intersection_image.png",intersection_image);
   cv::Mat edge_image(intersection_image.size(),CV_8UC1);
   cv::Canny(intersection_image,edge_image,1,100);
   distanceTransform(~edge_image,sdf_image,CV_DIST_L2,CV_DIST_MASK_PRECISE);

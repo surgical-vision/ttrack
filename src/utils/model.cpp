@@ -33,13 +33,6 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
   }
 
 
-  cv::Vec3f test_point(120,3,3);
-  test_point = pose.Transform(test_point);
-  std::cerr << "(120,0,0) --> " << cv::Point3f(test_point) << "\n";
-  test_point = cv::Vec3f(-120,3,3);
-  test_point = pose.Transform(test_point);
-  std::cerr << "(-120,0,0) --> " << cv::Point3f(test_point) << "\n";
-
   for(int i=0;i<precision/2;i++){
     points[i].AddNeighbour(Wrap(i-1,0,(precision/2)-1));
     points[i].AddNeighbour(Wrap(i+1,0,(precision/2)-1));

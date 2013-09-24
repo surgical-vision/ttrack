@@ -2,6 +2,9 @@
 #include "../../../headers/utils/helpers.hpp"
 #include<boost/filesystem.hpp>
 #include <opencv2/contrib/contrib.hpp>
+#include <opencv2/features2d/features2d.hpp>
+#include <opencv2/ml/ml.hpp>
+#include <opencv2/nonfree/features2d.hpp>
 
 using namespace ttrk;
 
@@ -52,13 +55,14 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   cv::imwrite(ss.str()+"/step_init.png",canvas);
   frame_count++;
   
-  SAFE_EXIT();
-
   DEBUG_DIR_ = ss.str() + "/debug/";
   boost::filesystem::create_directory(DEBUG_DIR_);
   std::ofstream ENERGY_FILE((DEBUG_DIR_ + "/energy_file.csv").c_str());
   if(!ENERGY_FILE.is_open()) throw(std::runtime_error("Error, could not open energy file!\n"));
 #endif
+
+
+  //ComputeDescriptorsForPointTracking(frame_,current_model);
 
   cv::Vec3f initial_translation = current_model.CurrentPose().translation_;
   double min_energy = std::numeric_limits<double>::max();
@@ -205,5 +209,58 @@ void StereoPWP3D::FindROI(const std::vector<cv::Vec2i> &convex_hull) {
 
     }
   }*/
+  
+}
+
+void StereoPWP3D::ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame> frame, KalmanTracker current_model ){
+
+    //make a descriptor finder
+    cv::Mat image_gray;
+    cv::cvtColor(frame_->Mat(),image_gray,CV_RGB2GRAY);
+    cv::Mat shape_image = ProjectShapeToSDF(current_model);
+
+    cv::SurfFeatureDetector detector(400);
+    std::vector<cv::KeyPoint> keypoints;
+    detector.detect(image_gray,keypoints);
+    std::vector<cv::KeyPoint> tool_keypoints;
+
+    for( auto kp = keypoints.begin(); kp != keypoints.end(); kp++ ){
+
+      cv::Point2f &pt = kp->pt;
+      if(shape_image.at<float>(pt.y,pt.x) > 0){
+        tool_keypoints.push_back(*kp);
+      }
+    
+    }
+
+    std::sort(tool_keypoints.begin(),tool_keypoints.end(),
+      [](const cv::KeyPoint &a, const cv::KeyPoint &b) -> bool {
+        return a.response > b.response;
+    });
+
+    std::ofstream ofs("Keypoints.xml");
+    //collect descriptors in the image plane
+    cv::SurfDescriptorExtractor extractor;
+    cv::Mat descriptors;
+    extractor.compute(image_gray,tool_keypoints,descriptors);
+    int i=0;
+    for( auto kp = tool_keypoints.begin(); kp != tool_keypoints.end() && kp != tool_keypoints.begin()+20; kp++ ){
+
+      cv::Point2f &pt = kp->pt;
+      cv::Vec3f ray = camera_->UnProjectPoint( cv::Point2i(int(pt.x),int(pt.y)) );
+      cv::Vec3f front;
+      current_model.PtrToModel()->GetIntersection(ray, front, cv::Vec3f() ,current_model.CurrentPose());
+      cv::Vec3f front_on_model = current_model.CurrentPose().InverseTransform(front);
+      if (current_model.CurrentPose().Transform(front_on_model) != front){
+        std::cerr << cv::Point3f(front) << " != " << cv::Point3f(current_model.CurrentPose().Transform(front_on_model)) << "\n";
+      }
+  
+      ofs << "<KeyPoint>\n\t<Coordinate>\n\t\t" << front_on_model[0] << " " << front_on_model[1] << " " << front_on_model[2] << "\n\t</Coord>\n";
+      ofs << "\t<Descriptor>\n\t\t" << descriptors.row(i) << "\n\t</Descriptor>\n</KeyPoint>\n";
+    
+    }
+    ofs.close();
+
+
   
 }

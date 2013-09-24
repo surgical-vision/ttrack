@@ -25,6 +25,12 @@ namespace ttrk {
       return rotation_.RotateVector(to_transform) + translation_;
     }
 
+    inline cv::Vec3f InverseTransform(const cv::Vec3f &to_inv_transform) const {
+      cv::Vec3f t = to_inv_transform - translation_;
+      sv::Quaternion inverse_rotation = rotation_.Inverse();
+      return inverse_rotation.RotateVector(t);
+    }
+
     inline operator cv::Mat() const;
 
     cv::Vec3f translation_;

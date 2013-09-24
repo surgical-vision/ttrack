@@ -22,6 +22,7 @@ namespace ttrk {
     virtual void FindROI(const std::vector<cv::Vec2i> &convex_hull);
 
     void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const;
+    void ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame> frame, KalmanTracker current_model );
 
     boost::shared_ptr<StereoCamera> stereo_camera_;
     cv::Mat ROI_left_; /**< Experimental feature. Instead of performing the level set tracking over the whole image, try to find a ROI around where the target of interest is located. */

@@ -50,9 +50,10 @@ cv::Point2f MonocularCamera::ProjectPoint(const cv::Point3f &point) const {
   std::vector<cv::Point2f> projected_point;
   static cv::Mat rot = cv::Mat::eye(3,3,CV_64FC1);
   static cv::Mat tran = cv::Mat::zeros(3,1,CV_64FC1);
+  
   cv::projectPoints(std::vector<cv::Point3f>(1,point),rot,tran,intrinsic_matrix_,distortion_params_,projected_point);
   if(projected_point.size() != 1) throw(std::runtime_error("Error, projected points size != 1.\n"));
-
+  
   return projected_point.front();
 
 }
@@ -78,10 +79,6 @@ StereoCamera::StereoCamera(const std::string &calibration_filename):rectified_(f
     right_eye_.reset( new MonocularCamera(temp_intrinsic, temp_distortion) );
     rectified_right_eye_.reset( new MonocularCamera );
 
-    /*fs["Extrinsic_Camera_Rotation"] >> extrinsic_matrix_(cv::Range(0,3),cv::Range(0,3));
-    fs["Extrinsic_Camera_Translation"] >> extrinsic_matrix_(cv::Range(0,3),cv::Range(3,4));
-    extrinsic_matrix_(cv::Range(3,4),cv::Range::all()) = 0.0;
-    extrinsic_matrix_.at<double>(3,3) = 1.0;*/
     cv::Mat rotation(3,3,CV_64FC1),translation(3,1,CV_64FC1);
     fs["Extrinsic_Camera_Rotation"] >> rotation;
     fs["Extrinsic_Camera_Translation"] >> translation;
@@ -115,14 +112,14 @@ void TestReproject(const cv::Mat &disparity_map, cv::Mat &reprojected_point_clou
       double data[] = {r,c,disparity_map.at<float>(r,c),1.0};
       cv::Mat p(4,1,CV_64FC1,data);
       cv::Mat dp = reprojection_matrix * p;
-      const double denom = dp.at<double>(0,3);
-      point = cv::Vec3f( dp.at<double>(0,0)/denom, dp.at<double>(0,1)/denom, dp.at<double>(0,2)/denom);
+      const double denom = dp.at<double>(3);
+      point = cv::Vec3f( dp.at<double>(0)/denom, dp.at<double>(1)/denom, dp.at<double>(2)/denom);
       //if(data[2] == 14.0){
       //  std::cerr << cv::Point3f(point) << "\n";
       //}
     }
   }
-
+  
 
 }
 
@@ -155,14 +152,14 @@ void StereoCamera::ReprojectTo3D(const cv::Mat &disparity_image, cv::Mat &point_
     }
   }*/
 
-  cv::imwrite("mask.png",mask);
+  //cv::imwrite("mask.png",mask);
   //cv::reprojectImageTo3D(disp_image,point_cloud,reprojection_matrix_,true,-1);
   TestReproject(disp_image,point_cloud,reprojection_matrix_);
 
-  cv::Mat z = cv::Mat::zeros(disp_image.size(),CV_8UC1);
-  std::cerr << reprojection_matrix_ << "\n";
+  //cv::Mat z = cv::Mat::zeros(disp_image.size(),CV_8UC1);
+  //std::cerr << reprojection_matrix_ << "\n";
 
-  std::ofstream ofs("points.xyz");  
+  //std::ofstream ofs("points.xyz");  
   for (int r = 0; r < point_cloud.rows; r++){
     for (int c =0; c < point_cloud.cols; c++ ){
       
@@ -177,16 +174,16 @@ void StereoCamera::ReprojectTo3D(const cv::Mat &disparity_image, cv::Mat &point_
       if(point != cv::Point3f(0,0,0)){
         //std::cerr << disp_image.at<float>(r,c) << "-->" << point << "\n";
         //if(point.z < 0 || point.z > 100) point.z = 50;
-        ofs << point.x << " " << point.y << " " << point.z << "\n";
-        z.at<unsigned char>(r,c) = 255;
+        //ofs << point.x << " " << point.y << " " << point.z << "\n";
+        //z.at<unsigned char>(r,c) = 255;
         
       }
      
     }
   }
   
-  cv::imwrite("negdisp.png",z);
-  ofs.close();
+  //cv::imwrite("negdisp.png",z);
+  //ofs.close();
 
 
 }
@@ -200,7 +197,7 @@ void StereoCamera::Rectify(const cv::Size image_size) {
                     extrinsic_matrix_(cv::Range(0,3),cv::Range(3,4)),
                     R1, R2, P1, P2, reprojection_matrix_,
                     CV_CALIB_ZERO_DISPARITY, // 0 || CV_CALIB_ZERO_DISPARITY
-                    1,  // -1 = default scaling, 0 = no black pixels, 1 = no source pixels lost
+                    0,  // -1 = default scaling, 0 = no black pixels, 1 = no source pixels lost
                     cv::Size(), &roi1, &roi2); 
 
   InitRectified();
@@ -213,7 +210,7 @@ void StereoCamera::Rectify(const cv::Size image_size) {
 
   cv::initUndistortRectifyMap(right_eye_->intrinsic_matrix_,
       right_eye_->distortion_params_,
-      R1,P1,image_size,CV_32F,mapx_right_,mapy_right_);
+      R2,P2,image_size,CV_32F,mapx_right_,mapy_right_);
 
 
   rectified_ = true;

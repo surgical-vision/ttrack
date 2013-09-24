@@ -7,7 +7,7 @@ using namespace ttrk;
 
 MISTool::MISTool(float radius, float height):radius_(radius),height_(height){
   radius_fraction_ = 0.8;
-  height_fraction_ = 1.7;
+  height_fraction_ = 1.4;
   radius_tip_ = radius_fraction_ * radius_;
   height_tip_ = height_fraction_  * height_;
 }
@@ -25,13 +25,20 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
                      (float)(radius_ * cos(i * 4*M_PI/precision)), 
                      (float)(radius_ * sin(i * 4*M_PI/precision)));
 
-    //point = pose.Transform(point);
+    point = pose.Transform(point);
     //transform point
     points.push_back( SimplePoint<>(point) );
 
 
   }
 
+
+  cv::Vec3f test_point(120,3,3);
+  test_point = pose.Transform(test_point);
+  std::cerr << "(120,0,0) --> " << cv::Point3f(test_point) << "\n";
+  test_point = cv::Vec3f(-120,3,3);
+  test_point = pose.Transform(test_point);
+  std::cerr << "(-120,0,0) --> " << cv::Point3f(test_point) << "\n";
 
   for(int i=0;i<precision/2;i++){
     points[i].AddNeighbour(Wrap(i-1,0,(precision/2)-1));
@@ -53,7 +60,7 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
                      (float)(radius_tip_ * cos(i * 4*M_PI/precision)) - 0.15*radius_*2,//((0.5 - (radius_fraction_/2))*radius_*2), 
                      (float)(radius_tip_ * sin(i * 4*M_PI/precision)));
 
-    //point = pose.Transform(point);
+    point = pose.Transform(point);
     //transform point
     test_points.push_back( SimplePoint<>(point) );
 
@@ -75,22 +82,6 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
   
   points.insert(points.end(),test_points.begin(),test_points.end());
 
-  /*std::ofstream ofs("model.xyz");
-  for (auto point = points.begin(); point != points.end(); point++){
-
-    ofs << point->vertex_[0] << " " << point->vertex_[1] << " " << point->vertex_[2] << " ";
-    for (auto neighbour = point->neighbours_.begin();neighbour != point->neighbours_.end() ; neighbour++) {
-
-      ofs << *neighbour;
-      if( neighbour != point->neighbours_.end() - 1)
-        ofs << " ";
-
-    }
-    ofs << "\n";
-
-  }
-
-  ofs.close();*/
   return points;
 }
 

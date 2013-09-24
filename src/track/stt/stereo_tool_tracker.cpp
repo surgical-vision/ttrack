@@ -7,7 +7,8 @@
 #include <stdint.h>
 using namespace ttrk;
 
-#define QUASI
+#define STEREO_SGBM
+#undef QUASI
 
 StereoToolTracker::StereoToolTracker(const float radius, const float height, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_( new StereoCamera(calibration_filename)){
 
@@ -23,8 +24,7 @@ void StereoToolTracker::CreateDisparityImage(){
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
   cv::Mat &left_image = stereo_frame->LeftMat();
   cv::Mat &right_image = stereo_frame->RightMat();
-  cv::imwrite("left.png",left_image);
-  cv::imwrite("right.png",right_image);
+  
   cv::Mat out_disparity(left_image.rows,left_image.cols,CV_8UC3);
 
 #ifdef QUASI
@@ -34,11 +34,11 @@ void StereoToolTracker::CreateDisparityImage(){
   qds.Param.BorderX = 15;				// borders around the image
   qds.Param.BorderY = 15;
   qds.Param.N = 5;						// neighbours
-  qds.Param.Ct = 0.5;					// corre threshold for seeds
+  qds.Param.Ct = 0.3;					// corre threshold for seeds
   qds.Param.Dg = 0.5;					// disparity gradient
   qds.Param.WinSizeX = 6;				// corr window size
   qds.Param.WinSizeY = 6;	
-  qds.Param.Tt = 50;
+  qds.Param.Tt = 100;
 
   IplImage left = (IplImage)left_image;
   IplImage right = (IplImage)right_image;
@@ -50,14 +50,20 @@ void StereoToolTracker::CreateDisparityImage(){
   
 #ifdef STEREO_SGBM
   const int min_disp = 0;
-  const int max_disp = 32; //must be exactly divisible by 16
-  const int sad_win_size = 5;
+  const int max_disp = 48; //must be exactly divisible by 16
+  const int sad_win_size = 12;
   const int smoothness = left_image.channels()*sad_win_size*sad_win_size;
   cv::StereoSGBM sgbm(min_disp,
                       max_disp-min_disp,
                       sad_win_size,
                       8*smoothness,
-                      32*smoothness);
+                      32*smoothness,
+                      4,
+                      50,
+                      10,
+                      50,
+                      1,
+                      true);
   /*,
   //                    4, //disp12MaxDiff
   //                    50, //preFilterCap
@@ -81,7 +87,7 @@ void StereoToolTracker::CreateDisparityImage(){
       }
 #elif defined STEREO_SGBM
       float_disp.at<float>(r,c) = static_cast<float>(out_disparity.at<int16_t>(r,c));///16.0f;
-      if(float_disp.at<float>(r,c) <= 0{
+      if(float_disp.at<float>(r,c) <= 0){
         float_disp.at<float>(r,c) = 0;
       }
 #endif
@@ -91,7 +97,9 @@ void StereoToolTracker::CreateDisparityImage(){
   //opencv sgbm multiplies each val by 16 so scale down to floating point array
   *(StereoFrame()->PtrToDisparityMap()) = float_disp;
   //*(StereoFrame()->PtrToDisparityMap()) = out_disparity;
-  cv::imwrite("disparity.png",out_disparity);
+#if defined(SAVEDEBUG)
+  cv::imwrite("debug/disparity.png", float_disp);
+#endif
 }
 
 
@@ -112,7 +120,6 @@ bool StereoToolTracker::Init() {
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
     KalmanTracker new_tracker(boost::shared_ptr<Model> (new MISTool(radius_,height_) ));
-    //new_tracker.Model().reset( new MISTool(radius_,height_) );
     tracked_models_.push_back( new_tracker ); 
     Init3DPoseFromMOITensor(*connected_region, tracked_models_.back());//,corresponding_connected_region);
   
@@ -161,19 +168,23 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   cv::Vec3f center_of_mass = FindCenterOfMass(StereoFrame()->PtrToPointCloud());
   center_of_mass *= ((cv::norm(center_of_mass) + radius_)/cv::norm(center_of_mass));
   //center_of_mass *= 1.5;
+  center_of_mass = cv::Vec3f(9.7,-0.6,48);
   std::cerr << "center of mass = " << cv::Point3f(center_of_mass) << std::endl;
   
   //find the central axis of the point cloud
-  center_of_mass += cv::Vec3f(-3.1,-2.0,4.1);
+  //center_of_mass += cv::Vec3f(-3.1,-2.0,4.1);
   cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->PtrToPointCloud());
-  central_axis += cv::Vec3f(-0.3,-0.1,-0.2);
-  std::cerr << "centeral axis = " << cv::Point3f(central_axis) << std::endl;
-
+  //central_axis += cv::Vec3f(-0.3,-0.1,-0.2);
+  central_axis = cv::Vec3f(-1,-0.18,1.05);//-1.4,0.2,-0.2);
+  std::cerr << "before normalize central axis: " << cv::Point3f(central_axis) << "\n";
   cv::Vec3f t_central_axis = central_axis;
-  //central_axis = cv::normalize(central_axis);
   cv::normalize(t_central_axis,central_axis);
-  
-  central_axis = -central_axis;
+
+  //central_axis = -central_axis;
+  std::cerr << "central axis = " << cv::Point3f(central_axis) << std::endl;
+
+  //central_axis = cv::normalize(central_axis);
+
   //use these two parameters to set the initial pose of the object
   tracked_model.SetPose(center_of_mass,central_axis);
   
@@ -273,12 +284,23 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
    Tracker::SetHandleToFrame(image);
    boost::shared_ptr<sv::StereoFrame> stereo_image = boost::dynamic_pointer_cast<sv::StereoFrame>(image);
    
+#if defined(SAVEDEBUG) 
+  cv::imwrite("debug/dist_left.png",stereo_image->LeftMat());
+  cv::imwrite("debug/dist_right.png",stereo_image->RightMat());
+#endif
+
    //then rectify the camera and remap the images
    if( !camera_->IsRectified() ) camera_->Rectify(stereo_image->LeftMat().size());
    camera_->RemapLeftFrame(stereo_image->LeftMat());
    camera_->RemapRightFrame(stereo_image->RightMat());
    camera_->RemapLeftFrame(stereo_image->ClassificationMap());
    
+#if defined(SAVEDEBUG) 
+  cv::imwrite("debug/left.png",stereo_image->LeftMat());
+  cv::imwrite("debug/right.png",stereo_image->RightMat());
+  cv::imwrite("debug/classified.png",stereo_image->ClassificationMap());
+#endif
+
    //save the roi around the good part of the image to speed up localization
    stereo_image->rectified_region_ = camera_->ROILeft();
      

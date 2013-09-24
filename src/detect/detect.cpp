@@ -62,6 +62,7 @@ void Detect::ClassifyFrame(){
 
   if(pixel_count > (0.04*rows*cols)) found_ = true;
   else found_ = false;
+
 }
 
 void Detect::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){

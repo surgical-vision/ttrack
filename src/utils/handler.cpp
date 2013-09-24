@@ -39,19 +39,11 @@ boost::shared_ptr<cv::Mat> StereoVideoHandler::GetPtrToNewFrame(){
   cv::Mat right_frame;
   right_cap_ >> right_frame;
   boost::shared_ptr<cv::Mat> m(new cv::Mat(right_frame.rows,2*right_frame.cols,right_frame.type()));
-  std::cerr << m->rows << "," << m->cols << "\n";
-  //right_cap_ >> m;
   
   cv::Mat lhs = (*m)(cv::Rect(0,0,right_frame.cols,right_frame.rows));
   cv::Mat rhs = (*m)(cv::Rect(right_frame.cols,0,right_frame.cols,right_frame.rows));
   right_frame.copyTo(rhs);
   VideoHandler::GetPtrToNewFrame()->copyTo(lhs);
-  /*static bool first = true;
-  if(first){
-    for(int n=0;n<60;n++)
-      cap_ >> *m;
-    first = false;
-  }*/
   
   if(m->data == 0x0) { 
     done_ = true;

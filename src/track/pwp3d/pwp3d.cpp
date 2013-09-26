@@ -30,7 +30,7 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number) const {
   //jacobian = (float)0.00000001 * jacobian;
   jacobian =   (float)0.000000001 * jacobian;
   
-  std::cerr << "jacobian = " << jacobian << std::endl;
+  //std::cerr << "jacobian = " << jacobian << std::endl;
   //for(int i=0;i<3;i++) jacobian.at<double>(i,0) *= 80 * scale;
   for(int i=0;i<3;i++) jacobian.at<double>(i,0) *= 350 * scale;
   for(int i=3;i<7;i++) jacobian.at<double>(i,0) *= 1.0 * scale;
@@ -89,7 +89,7 @@ double PWP3D::GetEnergy(const int r, const int c, const float sdf, const double 
   
   double x = -log(Heaviside(sdf)*foreground_probability + (1-Heaviside(sdf))*background_probability);
   if ( x == std::numeric_limits<double>::infinity() )
-    return 0;
+    return 1000;  
   return x;
 
 

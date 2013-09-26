@@ -68,7 +68,7 @@ void TTrack::Run(){
     SaveFrame();
     SaveResults();
     
-    if (count > 200) break;
+    if (count > 400) break;
     count++;
 
   }

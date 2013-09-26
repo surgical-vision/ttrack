@@ -193,7 +193,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opencv_video249d.lib;opencv_calib3d249.lib;opencv_legacy249d.lib;opencv_ts249d.lib;opencv_videostab249d.lib;opencv_highgui249d.lib;opencv_ml249d.lib;opencv_imgproc249d.lib;opencv_core249d.lib;boost_filesystem-vc100-mt-gd-1_51.lib;boost_thread-vc100-mt-gd-1_51.lib;boost_system-vc100-mt-gd-1_51.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_video249d.lib;opencv_calib3d249.lib;opencv_legacy249d.lib;opencv_ts249d.lib;opencv_features2d249d.lib;opencv_videostab249d.lib;opencv_highgui249d.lib;opencv_nonfree249d.lib;opencv_ml249d.lib;opencv_imgproc249d.lib;opencv_core249d.lib;boost_filesystem-vc100-mt-gd-1_51.lib;boost_thread-vc100-mt-gd-1_51.lib;boost_system-vc100-mt-gd-1_51.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>C:\Program Files\opencv\build\lib\Debug</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

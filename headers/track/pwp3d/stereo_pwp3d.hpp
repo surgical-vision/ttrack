@@ -22,6 +22,7 @@ namespace ttrk {
     virtual void FindROI(const std::vector<cv::Vec2i> &convex_hull);
 
     void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const;
+    Pose ApplyPointBasedRegistration(boost::shared_ptr<sv::Frame> frame, KalmanTracker &current_model );
     void ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame> frame, KalmanTracker current_model );
 
     boost::shared_ptr<StereoCamera> stereo_camera_;

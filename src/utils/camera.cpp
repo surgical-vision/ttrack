@@ -123,6 +123,33 @@ void TestReproject(const cv::Mat &disparity_map, cv::Mat &reprojected_point_clou
 
 }
 
+cv::Vec3f StereoCamera::ReprojectPointTo3D(const cv::Point2i &left, const cv::Point2i &right){
+
+  int vertical_disparity = std::abs(left.y - right.y);
+  if (vertical_disparity > 40){
+
+    //std::cerr << "THIS IS BAD";
+    return cv::Vec3f(0,0,0);
+
+  }else{
+    int horizontal_disparity = left.x - right.x;
+    cv::Mat to_reproject(4,1,CV_64FC1);
+    to_reproject.at<double>(0) = left.x;
+    to_reproject.at<double>(1) = left.y;
+    to_reproject.at<double>(2) = horizontal_disparity;
+    to_reproject.at<double>(3) = 1;
+    cv::Mat projected = reprojection_matrix_ * to_reproject;
+    if (projected.at<double>(3) == 0) projected.at<double>(3) = 0.1;
+    return cv::Vec3f( projected.at<double>(0)/projected.at<double>(3),
+                      projected.at<double>(1)/projected.at<double>(3),
+                      projected.at<double>(2)/projected.at<double>(3));
+  }
+
+
+
+}
+
+
 void StereoCamera::ReprojectTo3D(const cv::Mat &disparity_image, cv::Mat &point_cloud, const std::vector<cv::Vec2i> &connected_region) const {
 
   if(point_cloud.data == 0x0) point_cloud.create(disparity_image.size(),CV_32FC3);

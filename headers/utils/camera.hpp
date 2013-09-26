@@ -15,8 +15,8 @@ namespace ttrk{
 
   public:
    
-    cv::Mat distortion_params() { return intrinsic_matrix_; }
-
+    cv::Mat distortion_params() { return distortion_params_; }
+    cv::Mat intrinsic_params() { return intrinsic_matrix_; }
     /**
     * Construct a camera with a calibration file. This file should be in the opencv calibration xml format.
     * @param[in] calibration_filename The url of the calibration file.
@@ -113,7 +113,7 @@ namespace ttrk{
     void RemapRightFrame(cv::Mat &image) const ;
 
     void ReprojectTo3D(const cv::Mat &image, cv::Mat &point_cloud,const std::vector<cv::Vec2i> &connected_region) const ;
-
+    cv::Vec3f ReprojectPointTo3D(const cv::Point2i &left, const cv::Point2i &right);
     cv::Mat GetP1() { return P1(cv::Range(0,3),cv::Range(0,3));}
 
     void InitRectified() {

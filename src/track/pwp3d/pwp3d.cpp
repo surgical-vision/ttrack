@@ -3,14 +3,19 @@
 #include <boost/math/special_functions/fpclassify.hpp>
 using namespace ttrk;
 
-void PWP3D::ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose){
+void PWP3D::ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const int step){
+
+  cv::Mat scaled_jacobian;
+  jacobian.copyTo(scaled_jacobian);
+
+  ScaleJacobian(scaled_jacobian,step);
 
   //update the translation
-  cv::Vec3f translation = jacobian(cv::Range(0,3),cv::Range::all());
+  cv::Vec3f translation = scaled_jacobian(cv::Range(0,3),cv::Range::all());
   pose.translation_ = pose.translation_ + translation;
 
   //update the rotation
-  sv::Quaternion rotation((float)jacobian.at<double>(3,0),cv::Vec3f((float)jacobian.at<double>(4,0),(float)jacobian.at<double>(5,0),(float)jacobian.at<double>(6,0)));
+  sv::Quaternion rotation((float)scaled_jacobian.at<double>(3,0),cv::Vec3f((float)scaled_jacobian.at<double>(4,0),(float)scaled_jacobian.at<double>(5,0),(float)scaled_jacobian.at<double>(6,0)));
   pose.rotation_ = pose.rotation_ + rotation;
   pose.rotation_ = pose.rotation_.Normalize();
 

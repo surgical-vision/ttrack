@@ -6,6 +6,7 @@
 #include <opencv2/ml/ml.hpp>
 #include <opencv2/nonfree/features2d.hpp>
 #include <opencv2/legacy/legacy.hpp>
+#include <numeric>
 
 using namespace ttrk;
 #define SAVEDEBUG
@@ -41,7 +42,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   
 
   frame_ = frame;
-  const int NUM_STEPS = 25;
+  const int NUM_STEPS = 125;
   cv::Vec3f initial_translation = current_model.CurrentPose().translation_;
 
 #ifdef DEBUG
@@ -68,7 +69,8 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   //ComputeDescriptorsForPointTracking(frame_,current_model);
 
   //store a vector of Pose values. check std. dev. of these values, if this is small enough, assume convergence.
-  std::vector<Pose> convergence_test_values;
+  //std::vector<Pose> convergence_test_values;
+  std::vector<cv::Mat> convergence_test_values;
   bool converged = false;
 
   //values to hold the 'best' pwp3d estimate
@@ -138,23 +140,25 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 #endif
     
     if(energy < min_energy) {
-      std::cerr << "New minimum energy at step " << step << "\n";
-      std::cerr << "Energy is " << energy << "\n";
       min_energy = energy;
       pwp3d_best_pose = current_model.CurrentPose();
     }
-    //else break;
-
-    ScaleJacobian(jacobian,step);
-    ApplyGradientDescentStep(jacobian,current_model.CurrentPose());
     
-
+    //update the pose estimate
+    ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step);
+    
+    //save the step estimate
 #ifdef SAVEDEBUG
     cv::Mat canvas = frame_->Mat().clone();
     DrawModelOnFrame(current_model,canvas);
     std::stringstream ss_2; ss_2 << "step_" << step << ".png";
     cv::imwrite(ss.str()+"/"+ss_2.str(),canvas);
 #endif
+
+  //test for convergence
+    //converged = HasGradientDescentConverged(convergence_test_values, current_model.CurrentPose() );
+    converged = HasGradientDescentConverged__new(convergence_test_values, jacobian );
+
 
   }
 
@@ -167,9 +171,10 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
   Pose point_registration_pose = ApplyPointBasedRegistration(frame,current_model);
   
+  //test if the point based regisration was better than the region based alignment
   double point_energy = 0.0;
   {
-    current_model.CurrentPose() = p;
+    current_model.CurrentPose() = point_registration_pose;
     cv::Mat sdf_image = ProjectShapeToSDF(current_model);
 
     //compute the normalization values n_f and n_b
@@ -177,7 +182,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     ComputeNormalization(norm_foreground,norm_background,sdf_image);
     if(norm_foreground == 0) {
       std::cerr << "Error, the point tracking gave a terrible result!\n";
-      return pwp3d_pose;
+      return pwp3d_best_pose;
     }
 
     //compute the derivates of the sdf images
@@ -237,6 +242,127 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   current_model.CurrentPose().translational_velocity_ = translational_velocity;
   return current_model.CurrentPose();
 
+}
+
+bool StereoPWP3D::HasGradientDescentConverged__new(std::vector<cv::Mat> &convergence_test_values, cv::Mat &current_estimate) const {
+
+  convergence_test_values.push_back(current_estimate);
+
+  if (current_estimate.type() != CV_64FC1 ) throw(std::runtime_error("Set Jacobian values to double!\n"));
+  if (current_estimate.cols != 1) throw(std::runtime_error("Error, jacobian should be Nx1 vector!\n"));
+
+  if(convergence_test_values.size() < 6) 
+    return false;
+
+  std::vector<cv::Mat> last_5_values(convergence_test_values.end()-5,convergence_test_values.end());
+  cv::Mat sum_vals = cv::Mat::zeros(current_estimate.size(),current_estimate.type());
+  
+  for(auto jac = last_5_values.begin() ; jac!=last_5_values.end() ; jac++){
+
+    sum_vals = sum_vals + *jac;
+
+  }
+
+  double jac_l2_norm = 0.0;
+  for(int r=0;r<sum_vals.rows;r++){
+    jac_l2_norm += (sum_vals.at<double>(r)*sum_vals.at<double>(r));
+  }
+
+  jac_l2_norm = sqrt(jac_l2_norm);
+
+  std::cerr << "Jacobian L2 Norm = " << jac_l2_norm << "\n";
+
+  if(jac_l2_norm < 3.8e6){
+    std::cerr << "Convergence reached!\n";
+    return true;
+  }
+
+  return false;
+
+}
+
+bool StereoPWP3D::HasGradientDescentConverged(std::vector<Pose> &convergence_test_values, Pose &current_estimate) const {
+
+  convergence_test_values.push_back(current_estimate);
+
+  //if (current_estimate.type() != CV_64FC1 ) throw(std::runtime_error("Set Jacobian values to double!\n"));
+  //if (current_estimate.cols != 1) throw(std::runtime_error("Error, jacobian should be Nx1 vector!\n"));
+
+  if(convergence_test_values.size() < 6) 
+    return false;
+
+  std::vector<double> rotation_change_between_iterations;
+  std::vector<double>  translation_change_between_iterations;
+  for(std::vector<Pose>::iterator pose_1 = convergence_test_values.begin(),pose_2 = convergence_test_values.begin()+1;
+    pose_2 != convergence_test_values.end(); pose_1++,pose_2++) {
+       
+      const double rotational_distance = pose_1->rotation_.AngularDistanceToQuaternion(pose_2->rotation_);
+      const cv::Vec3f translation_distance = (pose_1->translation_ - pose_2->translation_);
+      const double translation_magnitude = sqrt(translation_distance[0]*translation_distance[0] + translation_distance[1]*translation_distance[1] + translation_distance[2]*translation_distance[2]);
+  
+      rotation_change_between_iterations.push_back(rotational_distance);
+      translation_change_between_iterations.push_back(translation_magnitude);
+
+  }
+
+  rotation_change_between_iterations = std::vector<double>(rotation_change_between_iterations.end()-5,rotation_change_between_iterations.end());
+  translation_change_between_iterations = std::vector<double>(translation_change_between_iterations.end()-5,translation_change_between_iterations.end());
+
+  if(rotation_change_between_iterations.size() != 5 && rotation_change_between_iterations.size() != translation_change_between_iterations.size()){
+    throw(std::runtime_error("Error, here!\n"));
+  }
+
+  //if(rotation_change_between_iterations.size() < 6) throw(std::runtime_error("Error, too few values in rotational change vector!\n"));
+
+  double rot_sum = std::accumulate(rotation_change_between_iterations.begin(),
+                                   rotation_change_between_iterations.end(),
+                                   0.0);
+  double rot_mean = rot_sum/rotation_change_between_iterations.size();
+  //subtract the mean from the past 5 values and then sum them. if the values is sufficiently small, conclude convergence
+  
+  double rot_sq_sum = std::inner_product(rotation_change_between_iterations.begin(), rotation_change_between_iterations.end(), rotation_change_between_iterations.begin(), 0.0);
+  double rot_stdev = std::sqrt(rot_sq_sum / rotation_change_between_iterations.size() - rot_mean * rot_mean);  
+
+  double trans_sum = std::accumulate(translation_change_between_iterations.begin(),
+                                   translation_change_between_iterations.end(),
+                                   0.0);
+  double trans_mean = trans_sum/translation_change_between_iterations.size();  
+  double trans_sq_sum = std::inner_product(translation_change_between_iterations.begin(), translation_change_between_iterations.end(), translation_change_between_iterations.begin(), 0.0);
+  double trans_stdev = std::sqrt(trans_sq_sum / translation_change_between_iterations.size() - trans_mean * trans_mean);
+  
+  //std::cerr << "A set of rotational values:\n";
+  //for(auto r=rotation_change_between_iterations.begin();r!=rotation_change_between_iterations.end();r++){
+    //std::cerr << *r << " --> ";
+    //*r = *r - rot_mean;
+    //std::cerr << *r << "\n";
+  //}
+
+  //\rot_sum = std::accumulate(rotation_change_between_iterations.begin(),rotation_change_between_iterations.end(),0.0);
+
+  std::cerr << "Rotation sum is " << rot_sum << std::endl;
+  //std::cerr << "A set of translational values:\n";
+  for(auto t=translation_change_between_iterations.begin();t!=translation_change_between_iterations.end();t++){
+    //std::cerr << *t << " --> ";
+    *t = *t - trans_mean;
+    //std::cerr << *t << "\n";
+  }
+
+  
+  trans_sum = std::accumulate(translation_change_between_iterations.begin(),translation_change_between_iterations.end(),0.0);
+
+  
+  //std::cerr << "Translation sum is " << trans_sum << std::endl;
+
+  /*if(rot_stdev < 0.0013 && trans_stdev < 0.013){
+    std::cerr << "Convergence reached!\n" << rot_stdev << " and " << trans_stdev << "\n";
+  }*/
+
+  if(std::abs(rot_sum) < 1e-19 && std::abs(trans_sum) < 0.012){
+    std::cerr << "\n\n";
+    std::cerr << "Convergence reached!\n" << rot_stdev << " and " << trans_stdev << "\n";
+    std::cerr << "\n\n";
+  }
+  return false;
 }
 
 

@@ -95,8 +95,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
     if(energy < min_energy) min_energy = energy;
     //else break;
 
-    ScaleJacobian(jacobian,step);
-    ApplyGradientDescentStep(jacobian,current_model.CurrentPose());
+    ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step);
   
     cv::Mat canvas = frame_->Mat().clone();
     DrawModelOnFrame(current_model,canvas);

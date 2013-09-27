@@ -59,7 +59,7 @@ namespace ttrk {
     * Applys one step of gradient descent to the pose. 
     * @param[in]    jacobian The pose update of the target object.
     */    
-    void ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose);
+    void ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const int step);
 
     /**
     * Experimental! Finds and sets a ROI image around the target object. This is to reduce the tracking cost of computing the value of the energy function on pixels which are far from the object contour.

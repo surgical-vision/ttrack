@@ -158,8 +158,73 @@ void StereoToolTracker::ProcessFrame(){
 
 }
 
-void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, KalmanTracker &tracked_model) {
+const cv::Vec2i StereoToolTracker::FindCenterOfMass__test(const std::vector<cv::Vec2i> &connected_region) const {
 
+  cv::Vec2f com(0,0);
+
+  for(auto pt = connected_region.begin() ; pt != connected_region.end() ; pt++ ){
+
+    com += *pt;
+
+  }
+  
+  com[0] = com[0]/connected_region.size();
+  com[1] = com[1]/connected_region.size();
+
+  return com;
+
+}
+
+void StereoToolTracker::InitIn2D__test(const std::vector<cv::Vec2i> &connected_region, KalmanTracker &tracked_model) {
+
+  const cv::Vec2i center_of_mass = FindCenterOfMass__test(connected_region);
+  cv::Mat moi_tensor = cv::Mat::zeros(2,2,CV_32FC1);
+  float *data = (float *)moi_tensor.data;
+  
+  /* moi [ xx , xy ; yx , yy ] */
+  for(int r=0;r<2;r++){
+    for(int c=0;c<2;c++){
+      if(r==1 && c== 0) {
+	      //symmetric...
+	      data[r*2 + c] = data[c*2 + r];
+	      continue;
+      }
+      
+      for(size_t i=0;i<connected_region.size();i++){
+
+        cv::Vec2i p = connected_region[i] - center_of_mass;
+        int p_i = p[0]*(1-r) + p[1]*r;
+        int p_j = p[0]*(1-c) + p[1]*c;
+
+        data[r*2 + c] +=  (( (p[0]*p[0]+p[1]*p[1])*(r==c)) 
+          - (p_i*p_j) );
+      }
+    }
+  }
+
+  cv::Mat eigenvals = cv::Mat::zeros(2,1,CV_32FC1);
+  cv::Mat eigenvecs = cv::Mat::zeros(2,2,CV_32FC1);
+  cv::eigen(moi_tensor,eigenvals,eigenvecs);
+
+  float *e = (float *)eigenvecs.data;
+  float *v = (float *)eigenvals.data;
+
+  cv::Vec2f central_axis(e[2],e[3]);
+  cv::Vec2f horizontal_axis(e[0],e[1]);
+
+  //cv::Vec3f central_axis_3d(central_axis[0],central_axis[1],0);
+  cv::Vec3f central_axis_3d = cv::Vec3f(camera_->rectified_left_eye()->UnProjectPoint(cv::Point2f(central_axis)));
+  cv::Vec3f normalized_central_axis_3d;
+  cv::normalize(central_axis_3d,normalized_central_axis_3d);
+   
+  cv::Vec3f center_of_mass_3d = cv::Vec3f(camera_->rectified_left_eye()->UnProjectPoint(cv::Point2f(center_of_mass)));
+  center_of_mass_3d = center_of_mass_3d * 70;
+  tracked_model.SetPose(center_of_mass_3d,normalized_central_axis_3d);
+}
+
+void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, KalmanTracker &tracked_model) {
+  InitIn2D__test(region,tracked_model);
+  return;
   //create the point cloud used to initialize the pose
   CreateDisparityImage();
   camera_->ReprojectTo3D(*(StereoFrame()->PtrToDisparityMap()),*(StereoFrame()->PtrToPointCloud()),region);
@@ -175,7 +240,8 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   //find the central axis of the point cloud
   cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->PtrToPointCloud());
   
-  central_axis = cv::Vec3f(-1,-0.18,1.05); //GOOD VALUE
+  central_axis = cv::Vec3f(-1,0.1,1.05);
+  //central_axis = cv::Vec3f(-1,-0.18,1.05); //GOOD VALUE FOR VIDEO 2
   //central_axis = cv::Vec3f(-1,0.24,1.22);
   //central_axis += cv::Vec3f(-0.3,-0.1,-0.2);
   

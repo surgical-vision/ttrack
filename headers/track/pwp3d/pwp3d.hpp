@@ -45,15 +45,15 @@ namespace ttrk {
     void ScaleJacobian(cv::Mat &jacobian, const int step_number) const;
 
     double DeltaFunction(float x){
-      double std = 0.08; // ----0.05
+      double std = 4.5; // ----0.05
       return (1.0/(std*sqrt(2*M_PI)))*exp(-((x*x)/(2*std*std)));
     }
 
-    double HeavisideFunction(float x){
+    /*double HeavisideFunction(float x){
       const double a = 0.4; //equates to blur between -25 and 25 ---- 0.3
       double r = 1.0/(exp(-a*x) + 1);
       return r;
-    }
+    }*/
 
     /**
     * Applys one step of gradient descent to the pose. 

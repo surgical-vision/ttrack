@@ -9,7 +9,7 @@
 #include <numeric>
 
 using namespace ttrk;
-#define SAVEDEBUG
+//#define SAVEDEBUG
 
 /*** REMOVE THIS ***/
 
@@ -39,10 +39,12 @@ void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat c
 
 
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
-  
+#ifdef SAVEDEBUG
+//#undef SAVEDEBUG
+#endif
 
   frame_ = frame;
-  const int NUM_STEPS = 125;
+  const int NUM_STEPS = 40;
   cv::Vec3f initial_translation = current_model.CurrentPose().translation_;
 
 #ifdef DEBUG
@@ -103,13 +105,18 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     
     //setup values to get the
     double energy = 0.0;
-    
+    //cv::Mat skip_im =cv::Mat::zeros(sdf_image.size(),CV_8UC1);
 
     for(int r=0;r<ROI_left_.rows;r++){
       for(int c=0;c<ROI_left_.cols;c++){
 
         if(!stereo_frame->InsideRectifiedRegion(r,c)) continue;
-        
+        double skip = Heaviside(sdf_image.at<float>(r,c));
+        if( skip < 0.0001 || skip > 0.99999 ){
+          //skip_im.at<unsigned char>(r,c) = 255;
+          continue;
+        }
+
         //compute the energy value for this pixel - not used for pose jacobian, just for assessing minima/progress
         energy += GetEnergy(r,c,sdf_image.at<float>(r,c), norm_foreground, norm_background);
 
@@ -125,11 +132,17 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
         //update the jacobian
         for(int i=0;i<pose_derivatives.rows;i++){
           double pp = (region_agreement*pose_derivatives.at<double>(i,0));
-          if (pp != pp)
-            continue;
+          if (pp != pp) continue;
           jacobian.at<double>(i,0) += -1 * (region_agreement*pose_derivatives.at<double>(i,0)) + regularized_depth.at<double>(i,0);
         }
        
+        //update the jacobian with point derivatives
+        //for(auto pnp;pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
+
+          //
+
+        //}
+
       }
     }
 
@@ -138,7 +151,8 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     ENERGY_FILE.flush();
     //std::cout << "ENERGY IS : " << energy << std::endl;
 #endif
-    
+    //std::cerr << "Jacobian = " << jacobian << "\n";
+    //cv::imwrite("skipImage.png",skip_im);
     if(energy < min_energy) {
       min_energy = energy;
       pwp3d_best_pose = current_model.CurrentPose();
@@ -157,7 +171,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
   //test for convergence
     //converged = HasGradientDescentConverged(convergence_test_values, current_model.CurrentPose() );
-    converged = HasGradientDescentConverged__new(convergence_test_values, jacobian );
+    //converged = HasGradientDescentConverged__new(convergence_test_values, jacobian );
 
 
   }
@@ -168,7 +182,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   
   
   /********************************************************************/
-
+  /*
   Pose point_registration_pose = ApplyPointBasedRegistration(frame,current_model);
   
   //test if the point based regisration was better than the region based alignment
@@ -201,7 +215,11 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
       for(int c=0;c<ROI_left_.cols;c++){
 
         if(!stereo_frame->InsideRectifiedRegion(r,c)) continue;
-
+        double skip = Heaviside(sdf_image.at<float>(r,c));
+        if( skip < 0.0001 || skip > 0.99999 ){
+          //skip_im.at<unsigned char>(r,c) = 255;
+          continue;
+        }
         //compute the energy value for this pixel - not used for pose jacobian, just for assessing minima/progress
         point_energy += GetEnergy(r,c,sdf_image.at<float>(r,c), norm_foreground, norm_background);
 
@@ -216,24 +234,24 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
 
   }
+  */
+  //if (min_energy < point_energy){
 
-  if (min_energy < point_energy){
-    
-    current_model.CurrentPose() = pwp3d_best_pose;
-    
-    std::cerr << "MIN_ENERGY = " << min_energy << "\n";
-    std::cerr << "POINT ENERGY = " << point_energy << "\n";
-    std::cerr << "Returning pwp3d energy!\n";
-    
-  }else{
-    
-    current_model.CurrentPose() = point_registration_pose;
+  current_model.CurrentPose() = pwp3d_best_pose;
 
-    std::cerr << "MIN_ENERGY = " << min_energy << "\n";
-    std::cerr << "POINT ENERGY = " << point_energy << "\n";
-    std::cerr << "Retuing point energy!\n";
+  std::cerr << "MIN_ENERGY = " << min_energy << "\n";
+  //std::cerr << "POINT ENERGY = " << point_energy << "\n";
+  std::cerr << "Returning pwp3d energy!\n";
+
+  //}else{
+
+  //  current_model.CurrentPose() = point_registration_pose;
+
+  //  std::cerr << "MIN_ENERGY = " << min_energy << "\n";
+  //  std::cerr << "POINT ENERGY = " << point_energy << "\n";
+   // std::cerr << "Retuing point energy!\n";
     
-  }
+  //}
 
   /**********************************************************************/
   
@@ -273,7 +291,7 @@ bool StereoPWP3D::HasGradientDescentConverged__new(std::vector<cv::Mat> &converg
   std::cerr << "Jacobian L2 Norm = " << jac_l2_norm << "\n";
 
   if(jac_l2_norm < 3.8e6){
-    std::cerr << "Convergence reached!\n";
+    std::cerr << "Convergence reached in " << convergence_test_values.size() << "!\n";
     return true;
   }
 

@@ -35,6 +35,12 @@ void Detect::ClassifyFrame(){
   assert(Loaded());
   assert(frame_->Mat().type() == CV_8UC3);
   
+  /*** DEBUG SAVE ****/
+
+  //boost::filesystem::
+
+  /*******************/
+
   NDImage nd_image(frame_->Mat());
   const int rows = frame_->rows();
   const int cols = frame_->cols();
@@ -60,7 +66,7 @@ void Detect::ClassifyFrame(){
     }
   }
 
-  if(pixel_count > (0.04*rows*cols)) found_ = true;
+  if(pixel_count > (0.02*rows*cols)) found_ = true;
   else found_ = false;
 
 }

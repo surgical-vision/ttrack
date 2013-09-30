@@ -55,9 +55,10 @@ bool SurgicalToolTracker::FindConnectedRegions(const cv::Mat &image,std::vector<
     std::vector<cv::Vec2i> connected_region;
     FindSingleRegionFromContour(contours[i],connected_region);
     
-    if(connected_region.size() > 0.005*image.rows*image.cols) connected_regions.push_back(connected_region);
+    if(connected_region.size() > 0.028*image.rows*image.cols) connected_regions.push_back(connected_region);
       
   } 
+
 
   //did we find any that were big enough?
   return connected_regions.size() > 0;

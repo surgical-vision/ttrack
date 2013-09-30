@@ -14,10 +14,12 @@ int main(int argc, char **argv){
 #if defined(_WIN32) || defined(_WIN64)
      _chdir("../");
 #endif
+     
      //construct the helper classes and train the classifier
      //t.SetUp("./data/test_video/",ttrk::RF,ttrk::STEREO);
      t.SetUp("./data/new_video/",ttrk::RF,ttrk::STEREO);
      //t.SetUp("./data/test_video/",ttrk::RF,ttrk::MONOCULAR);
+     
      //t.RunVideo("video.avi");
      //t.RunVideo("short2.avi");
      t.RunVideo("left.avi","right.avi");

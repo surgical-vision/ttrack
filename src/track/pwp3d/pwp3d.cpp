@@ -32,7 +32,7 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number) const {
   //if( step_number > 6) scale = scales[6];
   //else scale = scales[step_number];
   
-  //jacobian = (float)0.00000001 * jacobian;
+  //jacobian =     (float)0.00000001 * jacobian;
   jacobian =   (float)0.000000001 * jacobian;
   
   //std::cerr << "jacobian = " << jacobian << std::endl;
@@ -102,10 +102,13 @@ double PWP3D::GetEnergy(const int r, const int c, const float sdf, const double 
 
 double PWP3D::GetRegionAgreement(const int r, const int c, const float sdf, const double norm_foreground, const double norm_background) {
   
+  const double alpha = 1.0;//0.3; // DEBUGGING TEST !!!!
+  const double beta = 1.0;//0.7; // DEBUGGING TEST !!!!
+
   const double pixel_probability = (double)frame_->ClassificationMap().at<unsigned char>(r,c)/255.0;
   const double norm = (norm_foreground*pixel_probability) + (norm_background*(1.0-pixel_probability));
-  const double foreground_probability = pixel_probability/norm;
-  const double background_probability = (1-pixel_probability)/norm;
+  const double foreground_probability = alpha * (pixel_probability/norm); // DEBUGGING TEST!!!
+  const double background_probability = beta * ((1-pixel_probability)/norm); // DEBUGGING TEST!!! 
   const double region_agreement = (foreground_probability - background_probability)/ (Heaviside(sdf)*foreground_probability + (1.0-Heaviside(sdf))*background_probability);
   if(region_agreement == std::numeric_limits<double>::infinity())
     return 0.0;
@@ -129,7 +132,7 @@ void PWP3D::ComputeNormalization(double &norm_foreground, double &norm_backgroun
     }
   }
 
-
+  
 }
 
 
@@ -226,13 +229,18 @@ const cv::Mat PWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
   cv::Canny(intersection_image,edge_image,1,100);
   distanceTransform(~edge_image,sdf_image,CV_DIST_L2,CV_DIST_MASK_PRECISE);
   
+  cv::Mat delta = cv::Mat::zeros(frame_->Mat().size(),CV_8UC1);
+  cv::Mat heaviside = cv::Mat::zeros(frame_->Mat().size(),CV_8UC1);
   for(int r=0;r<sdf_image.rows;r++){
     for(int c=0;c<sdf_image.cols;c++){
       if(intersection_image.at<unsigned char>(r,c) != 255)
         sdf_image.at<float>(r,c) *= -1;
+      delta.at<unsigned char>(r,c) = 255 * DeltaFunction(sdf_image.at<float>(r,c));
+      heaviside.at<unsigned char>(r,c) = 255 * Heaviside(sdf_image.at<float>(r,c));
     }
   }
-
+  //cv::imwrite("Heaviside.png",heaviside);
+  //cv::imwrite("DElta.png",delta);
   return sdf_image;
   
 /*

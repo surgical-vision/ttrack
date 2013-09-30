@@ -31,6 +31,12 @@ StereoVideoHandler::StereoVideoHandler(const std::string &left_input_url,const s
     throw std::runtime_error("Unable to open videofile: " + right_input_url + "\nPlease enter a new filename.\n");
   }
 
+  /*cv::Mat skip;
+  for(int i=0;i<40;i++){
+    //VideoHandler::GetPtrToNewFrame(); CALLED BY STEREO::GET...
+    GetPtrToNewFrame();
+  }*/
+
 }
 
   
@@ -136,7 +142,7 @@ void ImageHandler::SavePtrToFrame(boost::shared_ptr<cv::Mat> image){
 
 void VideoHandler::SavePtrToFrame(const boost::shared_ptr<cv::Mat> image){
   
-  /*******/
+  /******* DEBUG CODE - SAVE TO IMAGE FILE AS WELL */
   static int frame_num = 0;
   /*******/
 

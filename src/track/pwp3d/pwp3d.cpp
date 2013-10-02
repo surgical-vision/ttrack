@@ -32,8 +32,8 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number) const {
   //if( step_number > 6) scale = scales[6];
   //else scale = scales[step_number];
   
-  //jacobian =     (float)0.00000001 * jacobian;
-  jacobian =   (float)0.000000001 * jacobian;
+  //jacobian = (float)0.00000001 * jacobian;
+  jacobian = (float)0.000000001 * jacobian;
   
   //std::cerr << "jacobian = " << jacobian << std::endl;
   //for(int i=0;i<3;i++) jacobian.at<double>(i,0) *= 80 * scale;

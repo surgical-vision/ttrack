@@ -184,6 +184,7 @@ void StereoToolTracker::InitIn2D__test(const std::vector<cv::Vec2i> &connected_r
   /* moi [ xx , xy ; yx , yy ] */
   for(int r=0;r<2;r++){
     for(int c=0;c<2;c++){
+      
       if(r==1 && c== 0) {
 	      //symmetric...
 	      data[r*2 + c] = data[c*2 + r];
@@ -213,18 +214,23 @@ void StereoToolTracker::InitIn2D__test(const std::vector<cv::Vec2i> &connected_r
   cv::Vec2f horizontal_axis(e[0],e[1]);
 
   //cv::Vec3f central_axis_3d(central_axis[0],central_axis[1],0);
-  cv::Vec3f central_axis_3d = cv::Vec3f(camera_->rectified_left_eye()->UnProjectPoint(cv::Point2f(central_axis)));
+  cv::Vec2f point = cv::Vec2f(center_of_mass) + central_axis;
+  
+  cv::Vec3f unp_point = cv::Vec3f(camera_->rectified_left_eye()->UnProjectPoint(cv::Point2f(central_axis)));
+  cv::Vec3f center_of_mass_3d = cv::Vec3f(camera_->rectified_left_eye()->UnProjectPoint(cv::Point2f(center_of_mass)));
+  
+  cv::Vec3f central_axis_3d = unp_point - center_of_mass_3d;//cv::Vec3f(camera_->rectified_left_eye()->UnProjectPoint(cv::Point2f(central_axis)));
   cv::Vec3f normalized_central_axis_3d;
   cv::normalize(central_axis_3d,normalized_central_axis_3d);
    
-  cv::Vec3f center_of_mass_3d = cv::Vec3f(camera_->rectified_left_eye()->UnProjectPoint(cv::Point2f(center_of_mass)));
+  
   center_of_mass_3d = center_of_mass_3d * 70;
   tracked_model.SetPose(center_of_mass_3d,normalized_central_axis_3d);
 }
 
 void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, KalmanTracker &tracked_model) {
-  InitIn2D__test(region,tracked_model);
-  return;
+  //InitIn2D__test(region,tracked_model);
+  //return;
   //create the point cloud used to initialize the pose
   CreateDisparityImage();
   camera_->ReprojectTo3D(*(StereoFrame()->PtrToDisparityMap()),*(StereoFrame()->PtrToPointCloud()),region);
@@ -235,15 +241,15 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
 
   center_of_mass = cv::Vec3f(9.7,-0.6,48); //GOOD VALUE
   //center_of_mass = cv::Vec3f(1.0,-2.5,23);
-  //center_of_mass += cv::Vec3f(-3.1,-2.0,4.1);
+  center_of_mass += cv::Vec3f(-3.1,-2.0,4.1);
   
   //find the central axis of the point cloud
   cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->PtrToPointCloud());
   
-  central_axis = cv::Vec3f(-1,0.1,1.05);
-  //central_axis = cv::Vec3f(-1,-0.18,1.05); //GOOD VALUE FOR VIDEO 2
+  //central_axis = cv::Vec3f(-1,0.1,1.05);
+  central_axis = cv::Vec3f(-1,-0.18,1.05); //GOOD VALUE FOR VIDEO 2
   //central_axis = cv::Vec3f(-1,0.24,1.22);
-  //central_axis += cv::Vec3f(-0.3,-0.1,-0.2);
+  central_axis += cv::Vec3f(-0.3,-0.1,-0.2);
   
   
   cv::Vec3f t_central_axis = central_axis;

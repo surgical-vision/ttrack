@@ -45,7 +45,7 @@ namespace ttrk {
     void ScaleJacobian(cv::Mat &jacobian, const int step_number) const;
 
     double DeltaFunction(float x){
-      double std = 4.5; // ----0.05
+      double std = 0.1; // ----0.05
       return (1.0/(std*sqrt(2*M_PI)))*exp(-((x*x)/(2*std*std)));
     }
 

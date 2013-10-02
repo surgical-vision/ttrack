@@ -14,6 +14,31 @@ using namespace ttrk;
 /*** REMOVE THIS ***/
 
 
+void FindTransformationToImagePlane(std::vector<DescriptorMatches> matches,cv::Mat &rotation, cv::Mat &translation,  boost::shared_ptr<StereoCamera> cam, Pose current_pose);
+void GetDescriptors(const cv::Mat &frame, std::vector<Descriptor> &ds);
+void MatchDescriptorsToModel(std::vector<Descriptor> &d1, std::vector<Descriptor> &d2, std::vector<DescriptorMatches> &dm);
+void ReadKeypoints(const std::string filename, std::vector<Descriptor> &descriptors, int count);
+
+inline double l2_norm(const cv::Mat &a, const cv::Mat &b) {
+
+  double ret = 0.0;
+  if(a.size() != b.size()) throw(std::runtime_error("Error, a & b must have same dimensions in l2 norm!\n"));
+
+  for(int r=0;r<a.rows;r++){
+    for(int c=0;c<a.cols;c++){
+      if(a.type() == CV_64FC1) ret += (a.at<double>(r,c) - b.at<double>(r,c))*(a.at<double>(r,c) - b.at<double>(r,c));
+      else if(a.type() == CV_32FC1) ret += (a.at<float>(r,c) - b.at<float>(r,c))*(a.at<float>(r,c) - b.at<float>(r,c));
+      else throw(std::runtime_error("Error, unsupported matrix type in l2 norm!\n"));
+    }
+  }
+
+  return std::sqrt(ret);
+}
+
+const int NUM_DESCRIPTOR = 60;
+const int MATCHING_DISTANCE_THRESHOLD = 40;
+const double DESCRIPTOR_SIMILARITY_THRESHOLD = 200.0;
+
 void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const {
 
   std::vector<SimplePoint<> > transformed_points = tracked_model.ModelPointsAtCurrentPose();
@@ -44,7 +69,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 #endif
 
   frame_ = frame;
-  const int NUM_STEPS = 40;
+  const int NUM_STEPS = 10;
   cv::Vec3f initial_translation = current_model.CurrentPose().translation_;
 
 #ifdef DEBUG
@@ -135,32 +160,42 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
           if (pp != pp) continue;
           jacobian.at<double>(i,0) += -1 * (region_agreement*pose_derivatives.at<double>(i,0)) + regularized_depth.at<double>(i,0);
         }
-       
+        
         //update the jacobian with point derivatives
-        //for(auto pnp;pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
-
-          //
-
-        //}
+       
 
       }
-    }
-
+    }   
+    
 #ifdef SAVEDEBUG
     ENERGY_FILE << energy << " ";
     ENERGY_FILE.flush();
-    //std::cout << "ENERGY IS : " << energy << std::endl;
+    std::cout << "ENERGY IS : " << energy << std::endl;
 #endif
-    //std::cerr << "Jacobian = " << jacobian << "\n";
-    //cv::imwrite("skipImage.png",skip_im);
-    if(energy < min_energy) {
-      min_energy = energy;
-      pwp3d_best_pose = current_model.CurrentPose();
-    }
+    
+    //if(energy < min_energy) {
+     min_energy = energy;
+     pwp3d_best_pose = current_model.CurrentPose();
+    //}
     
     //update the pose estimate
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step);
     
+
+    //do point based registration
+    std::vector<MatchedPair> pnp_pairs;
+    //FindPointCorrespondences(frame_,pnp_pairs);
+    FindPointCorrespondencesWithPose(frame_,pnp_pairs,current_model.CurrentPose());
+    std::cerr << "Matching to " << pnp_pairs.size() << " points\n";
+    for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
+      cv::Mat pnp_jacobian = GetPointDerivative(cv::Point3f(current_model.CurrentPose().Transform(pnp->learned_point)),cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
+      for(int i=0;i<jacobian.rows;i++){
+        //continue;
+        jacobian.at<double>(i,0) += 0.05 * pnp_jacobian.at<double>(i,0);
+      }
+    }
+
+
     //save the step estimate
 #ifdef SAVEDEBUG
     cv::Mat canvas = frame_->Mat().clone();
@@ -261,6 +296,115 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   return current_model.CurrentPose();
 
 }
+
+void StereoPWP3D::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &pnp, const Pose &pose){
+
+  //load the ground truth points from the file
+  std::vector<Descriptor> ground_truth_descriptors;
+  ReadKeypoints("Keypoints.xml",ground_truth_descriptors,NUM_DESCRIPTOR); 
+  //transform them to the current coordinate system
+  for(auto kp = ground_truth_descriptors.begin(); kp != ground_truth_descriptors.end(); kp++){
+
+    kp->coordinate = pose.Transform(kp->coordinate);
+
+  }
+  
+  //search the image plane for features to match
+  std::vector<Descriptor> frame_descriptors;
+  GetDescriptors(frame->Mat(),frame_descriptors);
+  
+  //for each keypoint
+  for(auto kp=ground_truth_descriptors.begin(); kp != ground_truth_descriptors.end(); kp++){
+
+    std::vector<std::pair<Descriptor, double> > matching_queue;
+    //project them to the image plane
+    cv::Point2f projected_pt = stereo_camera_->rectified_left_eye()->ProjectPointToPixel(cv::Point3f(kp->coordinate));
+    
+    //iterate over the found features
+    for(auto frame_descriptor = frame_descriptors.begin(); frame_descriptor != frame_descriptors.end(); frame_descriptor++){
+
+      cv::Point2f pt_to_match(frame_descriptor->coordinate[0],frame_descriptor->coordinate[1]);
+      
+      //if the euclidean distance is < threshold then add this point to matching vector
+      double euclidean_distance = std::sqrt((projected_pt.x - pt_to_match.x)*(projected_pt.x - pt_to_match.x) + (projected_pt.y - pt_to_match.y)*(projected_pt.y - pt_to_match.y));
+      if(euclidean_distance < MATCHING_DISTANCE_THRESHOLD) matching_queue.push_back(std::pair<Descriptor,double>(*frame_descriptor,0.0));
+
+    }
+    
+    if( !matching_queue.size() ) continue; //no matches found :(
+    
+    for(auto mq=matching_queue.begin(); mq != matching_queue.end(); mq++){
+
+      mq->second = l2_norm(kp->descriptor,mq->first.descriptor);
+
+    }
+
+    std::sort(matching_queue.begin(),matching_queue.end(),[](const std::pair<Descriptor,double>& before, const std::pair<Descriptor,double>& after) -> bool
+    {
+      return before.second < after.second;
+    });
+    //run l2 norm based matching between learned point and points in this vector. is the matching score is good enough, add to the matches
+    
+    double size_of_best = matching_queue.front().second;//l2_norm( matching_queue.front().first.descriptor, cv::Mat::zeros(matching_queue.front().first.descriptor.size(),matching_queue.front().first.descriptor.type()));
+    //std::cerr << "Size of best match is = " << size_of_best << "\n";
+
+    //if (matching_queue.size() > 1){
+    //  double size_of_best_2 = matching_queue.front().second;//l2_norm( matching_queue[1].first.descriptor, cv::Mat::zeros(matching_queue.front().first.descriptor.size(),matching_queue.front().first.descriptor.type()));
+    //  std::cerr << "Size of second best match was " << size_of_best_2 << "\n";
+    //}
+    
+    
+    if(size_of_best < DESCRIPTOR_SIMILARITY_THRESHOLD){
+      cv::Point2f pt_to_match(matching_queue.front().first.coordinate[0],matching_queue.front().first.coordinate[1]);
+      if(std::abs(pt_to_match.x - projected_pt.x) < 2 && std::abs(pt_to_match.y - projected_pt.y) < 2)
+        cv::line(frame->Mat(),pt_to_match,projected_pt,cv::Scalar(244,0,10),3);
+      else
+        cv::circle(frame->Mat(),pt_to_match,4,cv::Scalar(244,0,10),2);
+      MatchedPair mp;
+      mp.learned_point = kp->coordinate;
+      mp.image_point = matching_queue.front().first.coordinate;
+      pnp.push_back( mp );
+    }
+
+  }
+  
+  //cv::imwrite("test_point.png",frame->Mat());
+  
+  
+  //return matched vector
+
+
+
+
+}
+
+cv::Mat StereoPWP3D::GetPointDerivative(const cv::Point3f &world, cv::Point2f &image, const Pose &pose) const{
+  
+  const int NUM_DERIVS = 7;
+  cv::Mat ret(NUM_DERIVS,1,CV_64FC1);
+  cv::Vec3f front_intersection(world);
+   
+  if(front_intersection[2] == 0.0) front_intersection[2] = 0.001;
+  double z_inv_sq = 1.0/front_intersection[2];
+  
+  cv::Point2f projected_world = stereo_camera_->rectified_left_eye()->ProjectPointToPixel(world);
+
+  for(int dof=0;dof<NUM_DERIVS;dof++){
+
+    const cv::Vec3f dof_derivatives = GetDOFDerivatives(dof,pose,cv::Vec3f(world));
+      
+    const double dXdL = stereo_camera_->rectified_left_eye()->Fx() * (z_inv_sq*((front_intersection[2]*dof_derivatives[0]) - (front_intersection[0]*dof_derivatives[2])));
+    const double dYdL = stereo_camera_->rectified_left_eye()->Fy() * (z_inv_sq*((front_intersection[2]*dof_derivatives[1]) - (front_intersection[1]*dof_derivatives[2])));
+    ret.at<double>(dof,0) = 2*((image.x - projected_world.x)*dXdL + (image.y - projected_world.y)*dYdL);
+      
+  }
+
+  return ret;
+
+
+
+}
+
 
 bool StereoPWP3D::HasGradientDescentConverged__new(std::vector<cv::Mat> &convergence_test_values, cv::Mat &current_estimate) const {
 
@@ -423,8 +567,6 @@ cv::Mat StereoPWP3D::GetRegularizedDepth(const int r, const int c, const KalmanT
 }
 
 
-
-
 void StereoPWP3D::FindROI(const std::vector<cv::Vec2i> &convex_hull) {
 
   ROI() = frame_->Mat(); //UNTIL I DO THIS FUNCTION
@@ -432,60 +574,11 @@ void StereoPWP3D::FindROI(const std::vector<cv::Vec2i> &convex_hull) {
   /*
   for(int r=0;r<frame_->rows();r++){
     for(int c=0;c<frame_->cols();c++){
-
-
-
-    }
+   }
   }*/
   
 }
 
-class MatchedPair {
-public:
-  cv::Vec3f image_point;
-  cv::Vec3f learned_point;
-};
-
-class Descriptor {
-  public:
-  void write(cv::FileStorage &ofs, int count) const{
-    cv::Mat t(3,1,CV_32FC1);
-    for(int i=0;i<3;i++)
-      t.at<float>(i) = coordinate[i];
-    std::stringstream ss1,ss2;
-    ss1 << "Coordinate" << count;
-    ss2 << "Descriptor" << count;
-    ofs << ss1.str() << t << ss2.str() << descriptor;
-  }
-  void read(cv::FileStorage &ifs, int count) {
-    std::stringstream ss1,ss2;
-    ss1 << "Coordinate" << count;
-    cv::Mat mcoord;
-    ifs[ss1.str()] >> mcoord;
-    
-    for(int i=0;i<3;i++)
-      coordinate[i] = mcoord.at<float>(i);
-    
-    ss2 << "Descriptor" << count;
-    ifs[ss2.str()] >> descriptor;
-  }
-  cv::Vec3f coordinate;
-  cv::Mat descriptor;
-};
-
-class DescriptorMatches{
-
-public:
-  Descriptor gt;
-  Descriptor left_image;
-  Descriptor right_image;
-};
-void FindTransformationToImagePlane(std::vector<DescriptorMatches> matches,cv::Mat &rotation, cv::Mat &translation,  boost::shared_ptr<StereoCamera> cam, Pose current_pose);
-void FindTransformation(std::vector<MatchedPair> &matched_pair, cv::Mat &rotation, cv::Mat &translation);
-void GetDescriptors(const cv::Mat &frame, std::vector<Descriptor> &ds);
-void MatchDescriptorsToModel(std::vector<Descriptor> &d1, std::vector<Descriptor> &d2, std::vector<DescriptorMatches> &dm,boost::shared_ptr<StereoCamera> cam,Pose &pose,cv::Mat &left);
-void FindCorrespondingMatches(std::vector<Descriptor> &right_ds, std::vector<DescriptorMatches> &matched_ds);
-void TriangulateMatches(std::vector<DescriptorMatches> &matches,std::vector<MatchedPair> &matched_3d_points, boost::shared_ptr<StereoCamera> cam, cv::Mat &left, cv::Mat &right);
 void ReadKeypoints(const std::string filename, std::vector<Descriptor> &descriptors, int count){
 
   cv::FileStorage ifs(filename, cv::FileStorage::READ);
@@ -507,11 +600,10 @@ void ReadKeypoints(const std::string filename, std::vector<Descriptor> &descript
   }
 }
 
-#define NUM_DESCRIPTOR 60
 
-Pose StereoPWP3D::ApplyPointBasedRegistration(boost::shared_ptr<sv::Frame> frame, KalmanTracker &current_model ){
 
-  
+void StereoPWP3D::FindPointCorrespondences(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &matched_pair){
+
   std::vector<Descriptor> ds;
   ReadKeypoints("Keypoints.xml",ds,NUM_DESCRIPTOR); 
   cv::Mat descriptors;
@@ -523,7 +615,36 @@ Pose StereoPWP3D::ApplyPointBasedRegistration(boost::shared_ptr<sv::Frame> frame
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
   GetDescriptors( stereo_frame->LeftMat() , left_ds);
   std::vector<DescriptorMatches> matches;
-  MatchDescriptorsToModel(ds,left_ds,matches,stereo_camera_,current_model.CurrentPose(),stereo_frame->LeftMat());
+  MatchDescriptorsToModel(ds,left_ds,matches);
+  for(auto dm = matches.begin();dm!=matches.end();dm++){
+
+    MatchedPair mp;
+    mp.image_point = dm->left_image.coordinate;
+    mp.learned_point = dm->gt.coordinate;
+    matched_pair.push_back( mp );
+
+  }
+
+
+}
+
+
+
+Pose StereoPWP3D::ApplyPointBasedRegistration(boost::shared_ptr<sv::Frame> frame, KalmanTracker &current_model ){
+
+
+  std::vector<Descriptor> ds;
+  ReadKeypoints("Keypoints.xml",ds,NUM_DESCRIPTOR); 
+  cv::Mat descriptors;
+  for(auto d = ds.begin(); d != ds.end() ; d++){
+    descriptors.push_back(d->descriptor);
+  }
+
+  std::vector<Descriptor> left_ds;
+  boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
+  GetDescriptors( stereo_frame->LeftMat() , left_ds);
+  std::vector<DescriptorMatches> matches;
+  MatchDescriptorsToModel(ds,left_ds,matches);
 
   //std::vector<Descriptor> right_ds;
   //GetDescriptors(stereo_frame->RightMat(), right_ds);
@@ -606,7 +727,7 @@ void GetDescriptors(const cv::Mat &frame, std::vector<Descriptor> &ds){
   }
 }
 
-void MatchDescriptorsToModel(std::vector<Descriptor> &model_descriptors, std::vector<Descriptor> &image_descriptors, std::vector<DescriptorMatches> &found_matches, boost::shared_ptr<StereoCamera> cam, Pose &pose, cv::Mat &left){
+void MatchDescriptorsToModel(std::vector<Descriptor> &model_descriptors, std::vector<Descriptor> &image_descriptors, std::vector<DescriptorMatches> &found_matches){
   
   cv::BruteForceMatcher<cv::L2<float> > matcher;
   std::vector<cv::DMatch> matches;

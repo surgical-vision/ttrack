@@ -54,17 +54,18 @@ bool StereoPWP3D::SetupEye(const int eye, Pose &pose){
     stereo_frame->SwapEyes();
     //also update the object pose so that it's relative to the right eye
     Pose extrinsic(cv::Vec3f(-stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
-    //Pose extrinsic(stereo_camera_->ExtrinsicTranslation(),sv::Quaternion(stereo_camera_->ExtrinsicRotation()));
     pose = CombinePoses(extrinsic, pose);
+ 
     return true;
 
   }else{
     
     //swap everything back
     stereo_frame->SwapEyes();
-    //Pose extrinsic(stereo_camera_->ExtrinsicTranslation(),sv::Quaternion(stereo_camera_->ExtrinsicRotation()));
+    
     Pose extrinsic(cv::Vec3f(-stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
     pose = CombinePoses(extrinsic.Inverse(),pose);
+
     return false;
 
   }
@@ -145,8 +146,8 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   boost::filesystem::create_directory(ss.str());
   boost::filesystem::create_directory(ss.str()+"/left");
   boost::filesystem::create_directory(ss.str()+"/right");
-  cv::imwrite(ss.str()+"/left/step_init.png",left_canvas);
-  cv::imwrite(ss.str()+"/right/step_init.png",right_canvas);
+  cv::imwrite(ss.str()+"/left/init.png",left_canvas);
+  cv::imwrite(ss.str()+"/right/init.png",right_canvas);
   frame_count++;
   
   DEBUG_DIR_ = ss.str() + "/debug/";
@@ -177,13 +178,6 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
       if(!SetupEye(eye,current_model.CurrentPose())) break; //sets the camera_ variable to left or right eye breaks after resetting everything back to initial state after right eye
   
-      std::string t;
-      if(eye == 0) t = "left.png";
-      else t = "right.png";
-      cv::imwrite("./debug/classified" + t,frame_->GetClassificationMapROI());
-      cv::imwrite("./debug/frame" + t,frame_->GetImageROI());
-
-      if(eye == 0) continue;
       cv::Mat sdf_image = ProjectShapeToSDF(current_model);
 
       //compute the normalization values n_f and n_b
@@ -238,7 +232,8 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     
     //if(energy < min_energy) {
      min_energy = energy;
-     pwp3d_best_pose = current_model.CurrentPose();
+     //pwp3d_best_pose = current_model.CurrentPose();
+     
     //}
     }   
     //update the pose estimate
@@ -338,8 +333,8 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   */
   //if (min_energy < point_energy){
 
-  current_model.CurrentPose() = pwp3d_best_pose;
-
+  //current_model.CurrentPose() = pwp3d_best_pose;
+  std::cerr << "Current pose = " << cv::Point3f(current_model.CurrentPose().translation_) << " -- " << current_model.CurrentPose().rotation_ << "\n";
   std::cerr << "MIN_ENERGY = " << min_energy << "\n";
   //std::cerr << "POINT ENERGY = " << point_energy << "\n";
   std::cerr << "Returning pwp3d energy!\n";

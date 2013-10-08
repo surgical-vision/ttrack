@@ -23,20 +23,14 @@ void PWP3D::ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const 
 
 void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number) const {
 
-  // experimental - SCALE THE STEP SIZE?
-  static float scales[7] = { (float)1.0 , (float)0.8 , (float)0.7 , (float)0.5, (float)0.4 , (float)0.3, (float)0.1 };
+  
 
   float scale = (float)3.0;
   scale = 1.0;
-  //scale = 1.0;
-  //if( step_number > 6) scale = scales[6];
-  //else scale = scales[step_number];
   
   //jacobian = (float)0.00000001 * jacobian;
   jacobian = (float)0.000000001 * jacobian;
   
-  //std::cerr << "jacobian = " << jacobian << std::endl;
-  //for(int i=0;i<3;i++) jacobian.at<double>(i,0) *= 80 * scale;
   for(int i=0;i<3;i++) jacobian.at<double>(i,0) *= 350 * scale;
   for(int i=3;i<7;i++) jacobian.at<double>(i,0) *= 1.0 * scale;
 

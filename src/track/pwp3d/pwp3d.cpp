@@ -87,7 +87,7 @@ cv::Vec3f PWP3D::GetDOFDerivatives(const int dof, const Pose &pose, const cv::Ve
 
 double PWP3D::GetEnergy(const int r, const int c, const float sdf, const double norm_foreground, const double norm_background) const {
 
-  const double pixel_probability = (double)frame_->ClassificationMap().at<unsigned char>(r,c)/255.0;
+  const double pixel_probability = (double)frame_->GetClassificationMapROI().at<unsigned char>(r,c)/255.0;
   const double norm = (norm_foreground*pixel_probability) + (norm_background*(1.0-pixel_probability));
   const double foreground_probability = pixel_probability/norm;
   const double background_probability = (1-pixel_probability)/norm;
@@ -105,7 +105,7 @@ double PWP3D::GetRegionAgreement(const int r, const int c, const float sdf, cons
   const double alpha = 1.0;//0.3; // DEBUGGING TEST !!!!
   const double beta = 1.0;//0.7; // DEBUGGING TEST !!!!
 
-  const double pixel_probability = (double)frame_->ClassificationMap().at<unsigned char>(r,c)/255.0;
+  const double pixel_probability = (double)frame_->GetClassificationMapROI().at<unsigned char>(r,c)/255.0;
   const double norm = (norm_foreground*pixel_probability) + (norm_background*(1.0-pixel_probability));
   const double foreground_probability = alpha * (pixel_probability/norm); // DEBUGGING TEST!!!
   const double background_probability = beta * ((1-pixel_probability)/norm); // DEBUGGING TEST!!! 
@@ -180,25 +180,26 @@ bool PWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat &sdf,
 cv::Mat PWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model){
 
   const int NUM_DERIVS = 7;
-  //if(dSDFdx == 0.0f && dSDFdy == 0.0f) return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
-   
+     
    //find the (x,y,z) coordinates of the front and back intersection between the ray from the current pixel and the target object. return zero vector for no intersection.
   cv::Vec3f front_intersection;
   cv::Vec3f back_intersection;
   bool intersects = GetTargetIntersections(r,c,front_intersection,back_intersection,current_model);
   
+  //because the derivative only works for points which project to the target and we need it to be defined for points outside the contour, 'pretend' that a small region of these points actually hit the contour
   if(!intersects) {
     intersects = GetNearestIntersection(r,c,sdf,front_intersection,back_intersection,current_model);
     if(!intersects)
       return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
   }
 
-
+  //just in case...
   if(front_intersection[2] == 0) front_intersection[2] = 0.00000001;
   const double z_inv_sq = 1.0/(front_intersection[2]*front_intersection[2]);
   cv::Mat ret(NUM_DERIVS,1,CV_64FC1);
   for(int dof=0;dof<NUM_DERIVS;dof++){
 
+    //compute the derivative for each dof
     const cv::Vec3f dof_derivatives = GetDOFDerivatives(dof,current_model.CurrentPose(),front_intersection);
       
     const double dXdL = camera_->Fx() * (z_inv_sq*((front_intersection[2]*dof_derivatives[0]) - (front_intersection[0]*dof_derivatives[2])));
@@ -215,9 +216,9 @@ cv::Mat PWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, 
 
 const cv::Mat PWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
 
-  ROI() = frame_->Mat();
-  cv::Mat sdf_image(ROI().size(),CV_32FC1);
-  cv::Mat intersection_image(ROI().size(),CV_8UC1);
+  //find all the pixels which project to intersection points on the model
+  cv::Mat sdf_image(frame_->GetImageROI().size(),CV_32FC1);
+  cv::Mat intersection_image(frame_->GetImageROI().size(),CV_8UC1);
   for(int r=0;r<sdf_image.rows;r++){
     for(int c=0;c<sdf_image.cols;c++){
       cv::Vec3f ray = camera_->UnProjectPoint( cv::Point2i(c,r) );
@@ -225,51 +226,25 @@ const cv::Mat PWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
     }
   }
   
+  //take this binary image and find the outer contour of it. then make a distance image from that contour.
   cv::Mat edge_image(intersection_image.size(),CV_8UC1);
   cv::Canny(intersection_image,edge_image,1,100);
   distanceTransform(~edge_image,sdf_image,CV_DIST_L2,CV_DIST_MASK_PRECISE);
   
-  cv::Mat delta = cv::Mat::zeros(frame_->Mat().size(),CV_8UC1);
-  cv::Mat heaviside = cv::Mat::zeros(frame_->Mat().size(),CV_8UC1);
+  //flip the outside distances so they are negative
+  //cv::Mat delta = cv::Mat::zeros(frame_->GetImageROI().size(),CV_8UC1);
+  //cv::Mat heaviside = cv::Mat::zeros(frame_->GetImageROI().size(),CV_8UC1);
   for(int r=0;r<sdf_image.rows;r++){
     for(int c=0;c<sdf_image.cols;c++){
       if(intersection_image.at<unsigned char>(r,c) != 255)
         sdf_image.at<float>(r,c) *= -1;
-      delta.at<unsigned char>(r,c) = 255 * DeltaFunction(sdf_image.at<float>(r,c));
-      heaviside.at<unsigned char>(r,c) = 255 * Heaviside(sdf_image.at<float>(r,c));
+      //delta.at<unsigned char>(r,c) = 255 * DeltaFunction(sdf_image.at<float>(r,c));
+      //heaviside.at<unsigned char>(r,c) = 255 * Heaviside(sdf_image.at<float>(r,c));
     }
   }
   //cv::imwrite("Heaviside.png",heaviside);
   //cv::imwrite("DElta.png",delta);
   return sdf_image;
-  
-/*
-  //get the model points at the current pose and project them into the image
-  std::vector<SimplePoint<> > points = current_model.ModelPointsAtCurrentPose();
-  std::vector<cv::Vec2i > projected_points;
-  for(size_t i=0;i<points.size();i++){
-    cv::Point2f pt = camera_->rectified_left_eye().ProjectPoint(points[i].vertex_);
-    projected_points.push_back( cv::Vec2i( pt.x,pt.y) );
-  }
-
-  //find the convex hull of these points
-  std::vector<cv::Vec2i> convex_hull;
-  cv::convexHull(projected_points,convex_hull);
-  cv::Mat convex_hull_(convex_hull);
-
-  //POTENTIAL OPTIMIZATION: 
-  //find a ROI around the target object to not run tracking over whole image. Not yet implemented.
-  FindROI(convex_hull); 
- 
-  //find the distance between pixels and the convex hull - heaviside function is applied after this function as need to obtain derivatives of sdf
-  cv::Mat sdf_image(ROI_left_.size(),CV_32FC1);
-  for(int r=0;r<sdf_image.rows;r++){
-    for(int c=0;c<sdf_image.cols;c++){
-      //cv::pointpolygontest returns positive inside, negative outside
-      sdf_image.at<float>(r,c) = (float)pointPolygonTest(convex_hull_,cv::Point2f((float)c,(float)r),true);
-    }
-  }
-  return sdf_image;*/
 
 }
 

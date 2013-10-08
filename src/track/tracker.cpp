@@ -30,7 +30,7 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
   
     current_model_->UpdatePose(pose_measurement);
     
-    DrawModelOnFrame(*current_model_,frame_->Mat());
+    DrawModelOnFrame(*current_model_,frame_->GetImage());
   
   }
 }  

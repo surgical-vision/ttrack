@@ -12,7 +12,7 @@ MonocularToolTracker::MonocularToolTracker(const float radius, const float heigh
 bool MonocularToolTracker::Init(){
 
   std::vector<std::vector<cv::Vec2i> >connected_regions;
-  if(!FindConnectedRegions(*(frame_->PtrToClassificationMap()),connected_regions)) return false;
+  if(!FindConnectedRegions(frame_->GetClassificationMap(),connected_regions)) return false;
 
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 

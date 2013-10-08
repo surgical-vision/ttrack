@@ -33,7 +33,7 @@ void Detect::operator()(boost::shared_ptr<sv::Frame> image){
 void Detect::ClassifyFrame(){
 
   assert(Loaded());
-  assert(frame_->Mat().type() == CV_8UC3);
+  assert(frame_->GetImageROI().type() == CV_8UC3);
   
   /*** DEBUG SAVE ****/
 
@@ -41,15 +41,17 @@ void Detect::ClassifyFrame(){
 
   /*******************/
 
-  NDImage nd_image(frame_->Mat());
-  const int rows = frame_->rows();
-  const int cols = frame_->cols();
+  cv::Mat whole_frame = frame_->GetImage();
+  NDImage nd_image(whole_frame);
+  const int rows = whole_frame.rows;
+  const int cols = whole_frame.cols;
 
   static size_t frame_count = 0;
 
   size_t pixel_count = 0;
 
-  unsigned char *frame_data = (unsigned char *)frame_->PtrToClassificationMap()->data;
+  //unsigned char *frame_data = (unsigned char *)frame_->PtrToClassificationMap()->data;
+  unsigned char *frame_data = (unsigned char *)frame_->GetClassificationMap().data;
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
 

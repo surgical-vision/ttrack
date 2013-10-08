@@ -40,22 +40,27 @@ StereoVideoHandler::StereoVideoHandler(const std::string &left_input_url,const s
 }
 
   
-boost::shared_ptr<cv::Mat> StereoVideoHandler::GetPtrToNewFrame(){
+cv::Mat StereoVideoHandler::GetNewFrame(){
 
+  //create one big frame to return the image data in
   cv::Mat right_frame;
-  right_cap_ >> right_frame;
-  boost::shared_ptr<cv::Mat> m(new cv::Mat(right_frame.rows,2*right_frame.cols,right_frame.type()));
-  
-  cv::Mat lhs = (*m)(cv::Rect(0,0,right_frame.cols,right_frame.rows));
-  cv::Mat rhs = (*m)(cv::Rect(right_frame.cols,0,right_frame.cols,right_frame.rows));
+  right_cap_ >> right_frame; 
+  cv::Mat to_return(right_frame.rows,2*right_frame.cols,right_frame.type());
+
+  //load the left frame
+  cv::Mat lhs = to_return(cv::Rect(0,0,right_frame.cols,right_frame.rows));
+  VideoHandler::GetNewFrame().copyTo(lhs);
+
+  //load the right frame
+  cv::Mat rhs = to_return(cv::Rect(right_frame.cols,0,right_frame.cols,right_frame.rows));
   right_frame.copyTo(rhs);
-  VideoHandler::GetPtrToNewFrame()->copyTo(lhs);
   
-  if(m->data == 0x0) { 
+  
+  if(to_return.data == 0x0) { 
     done_ = true;
-    return boost::shared_ptr<cv::Mat>();
+    return cv::Mat();
   } else {
-    return m;
+    return to_return;
   }
 
 }
@@ -89,29 +94,27 @@ ImageHandler::ImageHandler(const std::string &input_url, const std::string &outp
 
 }
 
-boost::shared_ptr<cv::Mat> ImageHandler::GetPtrToNewFrame(){
+cv::Mat ImageHandler::GetNewFrame(){
 
   
   if(open_iter_ == paths_.end()) {
     done_ = true;
-    return boost::shared_ptr<cv::Mat>(); //return an empty shared ptr
+    return cv::Mat(); //return an empty shared ptr
   }
   
   //load next image in the list and return it
-  boost::shared_ptr<cv::Mat> m(new cv::Mat);
-  *m = cv::imread(input_url_ + "/" + *open_iter_);
-
+  cv::Mat to_return = cv::imread(input_url_ + "/" + *open_iter_);
   
   open_iter_++;
-  if(m->data == 0x0) std::cout << "Error, no data" << std::endl;
-  return m;
+  if(to_return.data == 0x0) std::cout << "Error, no data" << std::endl;
+  return to_return;
 
 }
 
-boost::shared_ptr<cv::Mat> VideoHandler::GetPtrToNewFrame(){
+cv::Mat VideoHandler::GetNewFrame(){
 
-  boost::shared_ptr<cv::Mat> m(new cv::Mat);
-  cap_ >> *m;
+  cv::Mat to_return;
+  cap_ >> to_return;
 
   /*static bool first = true;
   if(first){
@@ -120,27 +123,27 @@ boost::shared_ptr<cv::Mat> VideoHandler::GetPtrToNewFrame(){
     first = false;
   }*/
   
-  if(m->data == 0x0) { 
+  if(to_return.data == 0x0) { 
     done_ = true;
-    return boost::shared_ptr<cv::Mat>();
+    return cv::Mat();
   } else {
-    return m;
+    return to_return;
   }
 
 }
 
-void ImageHandler::SavePtrToFrame(boost::shared_ptr<cv::Mat> image){
+void ImageHandler::SaveFrame(const cv::Mat image){
 
   if(save_iter_ == paths_.end()) throw std::runtime_error("Error, attempt to save image with no file path available.\n");
   
-  if(!cv::imwrite(output_url_ + "/" + *save_iter_,*image)) 
+  if(!cv::imwrite(output_url_ + "/" + *save_iter_,image)) 
     throw std::runtime_error("Error, failed to write to path: " + output_url_ + "/" + *save_iter_ );
 
   save_iter_++;
 
 }
 
-void VideoHandler::SavePtrToFrame(const boost::shared_ptr<cv::Mat> image){
+void VideoHandler::SaveFrame(const cv::Mat image){
   
   /******* DEBUG CODE - SAVE TO IMAGE FILE AS WELL */
   static int frame_num = 0;
@@ -149,7 +152,7 @@ void VideoHandler::SavePtrToFrame(const boost::shared_ptr<cv::Mat> image){
   if(!writer_.isOpened()){  
   // open the writer to create the processed video
     writer_.open(output_url_,CV_FOURCC('D','I','B',' '), 25, 
-                 cv::Size(image->cols,image->rows));
+                 cv::Size(image.cols,image.rows));
     if(!writer_.isOpened()){
       throw std::runtime_error("Unable to open videofile: " + output_url_ + " for saving.\nPlease enter a new filename.\n");
     }
@@ -157,11 +160,11 @@ void VideoHandler::SavePtrToFrame(const boost::shared_ptr<cv::Mat> image){
   
   
   if(!writer_.isOpened()) throw std::runtime_error("Error, attempt to save frame without available video writer.\n");
-  writer_ << *image;
+  writer_ << image;
 
   /*******/
   std::stringstream ss; ss << "debug/frame_" << frame_num << ".png";
-  cv::imwrite(ss.str(),*image);
+  cv::imwrite(ss.str(),image);
   frame_num++;
   /*******/
 

@@ -15,8 +15,6 @@ namespace ttrk {
     boost::shared_ptr<MonocularCamera> &Camera() { return camera_; }
 
   protected:
-    
-    virtual cv::Mat &ROI() = 0;
 
     /**
     * Construct a signed distance function of the outer contour of the shape projected into the image plane.
@@ -60,14 +58,7 @@ namespace ttrk {
     * @param[in]    jacobian The pose update of the target object.
     */    
     void ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const int step);
-
-    /**
-    * Experimental! Finds and sets a ROI image around the target object. This is to reduce the tracking cost of computing the value of the energy function on pixels which are far from the object contour.
-    * @param[in] convex_hull The convex hull of the points which make up the shape.
-    */
-    virtual void FindROI(const std::vector<cv::Vec2i> &convex_hull) = 0;
-
-    
+   
      /**
     * Compute the first part of the derivative, getting a weight for each contribution based on the region agreements.
     * @param[in] r The row index of the current pixel.

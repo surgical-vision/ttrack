@@ -67,13 +67,7 @@ void TriangulateMatches(std::vector<DescriptorMatches> &matches,std::vector<Matc
 
   protected:   
 
-    virtual cv::Mat &ROI() { return ROI_left_; }
-
-    cv::Mat GetRegularizedDepth(const int r, const int c, const KalmanTracker &kalman_tracker) const;
-
-    virtual void FindROI(const std::vector<cv::Vec2i> &convex_hull);
-
-    void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const;
+    void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas_left, cv::Mat canvas_right) ;
     
     Pose ApplyPointBasedRegistration(boost::shared_ptr<sv::Frame> frame, KalmanTracker &current_model );
     void FindPointCorrespondences(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &matched_pair);
@@ -85,9 +79,11 @@ void TriangulateMatches(std::vector<DescriptorMatches> &matches,std::vector<Matc
     bool HasGradientDescentConverged(std::vector<Pose> &convergence_test_values, Pose &current_estimate) const;
     bool HasGradientDescentConverged__new(std::vector<cv::Mat> &convergence_test_values, cv::Mat &current_estimate) const;
 
+    bool SetupEye(const int eye, Pose &pose);
+
     boost::shared_ptr<StereoCamera> stereo_camera_;
-    cv::Mat ROI_left_; /**< Experimental feature. Instead of performing the level set tracking over the whole image, try to find a ROI around where the target of interest is located. */
-    cv::Mat ROI_right_; /**< Experimental feature. Instead of performing the level set tracking over the whole image, try to find a ROI around where the target of interest is located. */
+    //cv::Mat ROI_left_; /**< Experimental feature. Instead of performing the level set tracking over the whole image, try to find a ROI around where the target of interest is located. */
+    //cv::Mat ROI_right_; /**< Experimental feature. Instead of performing the level set tracking over the whole image, try to find a ROI around where the target of interest is located. */
 
   };
 

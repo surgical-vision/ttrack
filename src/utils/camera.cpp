@@ -248,13 +248,13 @@ void StereoCamera::RemapLeftFrame(cv::Mat &image) const {
 
   cv::Mat rectified;
   cv::remap(image,rectified,mapx_left_,mapy_left_,CV_INTER_CUBIC);
-  image = rectified;
+  rectified.copyTo(image);
 }
 
 void StereoCamera::RemapRightFrame(cv::Mat &image) const {
 
   cv::Mat rectified;
   cv::remap(image,rectified,mapx_right_,mapy_right_,CV_INTER_CUBIC);
-  image = rectified;
+  rectified.copyTo(image);
   
 }

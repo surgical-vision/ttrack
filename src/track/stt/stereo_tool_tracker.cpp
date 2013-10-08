@@ -21,7 +21,7 @@ StereoToolTracker::StereoToolTracker(const float radius, const float height, con
 
 void StereoToolTracker::CreateDisparityImage(){
 
-  boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
+  /*boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
   cv::Mat &left_image = stereo_frame->LeftMat();
   cv::Mat &right_image = stereo_frame->RightMat();
   
@@ -64,13 +64,13 @@ void StereoToolTracker::CreateDisparityImage(){
                       50,
                       1,
                       true);
-  /*,
+  
   //                    4, //disp12MaxDiff
   //                    50, //preFilterCap
   //                    10, //uniquenessRatio [5-15] 50
   //                    50, //speckleWindowSize [50-200] 4
   //                    1,//speckleRange
-  //                    true);*/
+  //                    true);
   
   sgbm(left_image,right_image,out_disparity);
   
@@ -100,6 +100,7 @@ void StereoToolTracker::CreateDisparityImage(){
 #if defined(SAVEDEBUG)
   cv::imwrite("debug/disparity.png", float_disp);
 #endif
+  */
 }
 
 
@@ -109,7 +110,7 @@ bool StereoToolTracker::Init() {
 
   //find the connected regions in the image
   std::vector<std::vector<cv::Vec2i> >connected_regions;
-  if(!FindConnectedRegions(*stereo_frame_->PtrToClassificationMap(),connected_regions)) {
+  if(!FindConnectedRegions(stereo_frame_->GetClassificationMapROI(),connected_regions)) {
 #if defined(_DEBUG) || defined( DEBUG )
     std::cerr << "Could not find any connected regions!\n";
 #endif
@@ -128,7 +129,7 @@ bool StereoToolTracker::Init() {
   return true;
 }
 
-cv::Vec3f StereoToolTracker::FindClusterMode(const boost::shared_ptr<cv::Mat> point_cloud, const boost::shared_ptr<cv::Mat> classification_map) const {
+cv::Vec3f StereoToolTracker::FindClusterMode(const cv::Mat &point_cloud, const cv::Mat &classification_map) const {
 
   cv::Vec3f cluster_mode(0,0,0);
 
@@ -154,7 +155,7 @@ cv::Vec3f StereoToolTracker::FindClusterMode(const boost::shared_ptr<cv::Mat> po
 void StereoToolTracker::ProcessFrame(){
 
   CreateDisparityImage();
-  camera_->ReprojectTo3D(*(StereoFrame()->PtrToDisparityMap()),*(StereoFrame()->PtrToPointCloud()),std::vector<cv::Vec2i>());
+  camera_->ReprojectTo3D(StereoFrame()->GetDisparityMap(),StereoFrame()->GetPointCloud(),std::vector<cv::Vec2i>());
 
 }
 
@@ -233,10 +234,10 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   //return;
   //create the point cloud used to initialize the pose
   CreateDisparityImage();
-  camera_->ReprojectTo3D(*(StereoFrame()->PtrToDisparityMap()),*(StereoFrame()->PtrToPointCloud()),region);
+  camera_->ReprojectTo3D(StereoFrame()->GetDisparityMap(),StereoFrame()->GetPointCloud(),region);
   
   //find the center of mass of the point cloud and shift it to the center of the shape rather than lie on the surface
-  cv::Vec3f center_of_mass = FindCenterOfMass(StereoFrame()->PtrToPointCloud());
+  cv::Vec3f center_of_mass = FindCenterOfMass(StereoFrame()->GetPointCloud());
   center_of_mass *= ((cv::norm(center_of_mass) + radius_)/cv::norm(center_of_mass));
 
   center_of_mass = cv::Vec3f(9.7,-0.6,48); //GOOD VALUE
@@ -244,8 +245,8 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   center_of_mass += cv::Vec3f(-3.1,-2.0,4.1);
   
   //find the central axis of the point cloud
-  cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->PtrToPointCloud());
-  
+  cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->GetPointCloud());
+
   //central_axis = cv::Vec3f(-1,0.1,1.05);
   central_axis = cv::Vec3f(-1,-0.18,1.05); //GOOD VALUE FOR VIDEO 2
   //central_axis = cv::Vec3f(-1,0.24,1.22);
@@ -264,23 +265,23 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   
 }
 
-cv::Vec3f StereoToolTracker::FindPrincipalAxisFromMOITensor(const cv::Vec3f center_of_mass_, const boost::shared_ptr<cv::Mat> point_cloud) const {
+cv::Vec3f StereoToolTracker::FindPrincipalAxisFromMOITensor(const cv::Vec3f center_of_mass_, const cv::Mat &point_cloud) const {
 
   cv::Matx<float,1,3> principal_axis(0,0,0);
   cv::Matx<float,1,3> center_of_mass(center_of_mass_[0],center_of_mass_[1],center_of_mass_[2]);
   cv::Matx<float,3,3> moi(3,3,CV_32FC1);
   cv::Matx<float,3,3> E = cv::Matx<float,3,3>::eye();
   
-  const int rows = point_cloud->rows;
-  const int cols = point_cloud->cols;
-  const int chans = point_cloud->channels();
-  assert(point_cloud->type() == CV_32FC3);
+  const int rows = point_cloud.rows;
+  const int cols = point_cloud.cols;
+  const int chans = point_cloud.channels();
+  assert(point_cloud.type() == CV_32FC3);
 
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
       
-      if( point_cloud->at<cv::Vec3f>(r,c) == cv::Vec3f(0,0,0) || point_cloud->at<cv::Vec3f>(r,c)[2] < 0 ) continue;
-      const cv::Matx<float,1,3> point = point_cloud->at<cv::Matx<float,1,3> >(r,c) - center_of_mass;
+      if( point_cloud.at<cv::Vec3f>(r,c) == cv::Vec3f(0,0,0) || point_cloud.at<cv::Vec3f>(r,c)[2] < 0 ) continue;
+      const cv::Matx<float,1,3> point = point_cloud.at<cv::Matx<float,1,3> >(r,c) - center_of_mass;
       moi = moi + ((point*point.t())(0,0)*E) - (point.t()*point);
       
     }
@@ -294,12 +295,12 @@ cv::Vec3f StereoToolTracker::FindPrincipalAxisFromMOITensor(const cv::Vec3f cent
 
 }
 
-cv::Vec3f StereoToolTracker::FindCenterOfMass(const boost::shared_ptr<cv::Mat> point_cloud) const {
+cv::Vec3f StereoToolTracker::FindCenterOfMass(const cv::Mat &point_cloud) const {
 
-  const int rows = point_cloud->rows;
-  const int cols = point_cloud->cols;
-  const int chans = point_cloud->channels();
-  assert(point_cloud->type() == CV_32FC3);
+  const int rows = point_cloud.rows;
+  const int cols = point_cloud.cols;
+  const int chans = point_cloud.channels();
+  assert(point_cloud.type() == CV_32FC3);
   
   cv::Vec3f com(0,0,0);
   size_t num_pts = 0;
@@ -309,7 +310,7 @@ cv::Vec3f StereoToolTracker::FindCenterOfMass(const boost::shared_ptr<cv::Mat> p
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
 
-      const cv::Vec3f &pt = point_cloud->at<cv::Vec3f>(r,c);
+      const cv::Vec3f &pt = point_cloud.at<cv::Vec3f>(r,c);
       
       //const cv::Point2i p = camera_->rectified_left_eye().ProjectPointToPixel(cv::Point3f(pt));
       
@@ -359,24 +360,22 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
    boost::shared_ptr<sv::StereoFrame> stereo_image = boost::dynamic_pointer_cast<sv::StereoFrame>(image);
    
 #if defined(SAVEDEBUG) 
-  cv::imwrite("debug/dist_left.png",stereo_image->LeftMat());
-  cv::imwrite("debug/dist_right.png",stereo_image->RightMat());
+  cv::imwrite("debug/dist_left.png",stereo_image->GetLeftImage());
+  cv::imwrite("debug/dist_right.png",stereo_image->GetRightImage());
 #endif
 
    //then rectify the camera and remap the images
-   if( !camera_->IsRectified() ) camera_->Rectify(stereo_image->LeftMat().size());
-   camera_->RemapLeftFrame(stereo_image->LeftMat());
-   camera_->RemapRightFrame(stereo_image->RightMat());
-   camera_->RemapLeftFrame(stereo_image->ClassificationMap());
-   
+   if( !camera_->IsRectified() ) camera_->Rectify(stereo_image->GetLeftImage().size());
+   camera_->RemapLeftFrame(stereo_image->GetLeftImage());
+   camera_->RemapRightFrame(stereo_image->GetRightImage());
+   camera_->RemapLeftFrame(stereo_image->GetLeftClassificationMap());
+   camera_->RemapRightFrame(stereo_image->GetRightClassificationMap());
+   //check this modifies correctly
 #if defined(SAVEDEBUG) 
-  cv::imwrite("debug/left.png",stereo_image->LeftMat());
-  cv::imwrite("debug/right.png",stereo_image->RightMat());
-  cv::imwrite("debug/classified.png",stereo_image->ClassificationMap());
+  cv::imwrite("debug/left.png",stereo_image->GetLeftImage());
+  cv::imwrite("debug/right.png",stereo_image->GetRightImage());
+  cv::imwrite("debug/classified.png",stereo_image->GetLeftClassificationMap());
 #endif
-
-   //save the roi around the good part of the image to speed up localization
-   stereo_image->rectified_region_ = camera_->ROILeft();
-     
+   
  }
  

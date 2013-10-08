@@ -37,7 +37,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
 
 
   std::cerr << "starting pose is: "<< current_model.CurrentPose().rotation_ << " + " << cv::Point3f(current_model.CurrentPose().translation_) << std::endl;
-  cv::Mat canvas = frame_->Mat().clone();
+  cv::Mat canvas = frame_->GetImageROI().clone();
   DrawModelOnFrame(current_model,canvas);
   static int frame_count = 0;
   std::stringstream ss; ss << "frame_" << frame_count;
@@ -73,8 +73,8 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
     //cv::Mat ENERGY_IMAGE = cv::Mat::zeros(ROI_left_.size(),CV_32FC1);
     double energy = 0.0;
     
-    for(int r=0;r<ROI_.rows;r++){
-      for(int c=0;c<ROI_.cols;c++){
+    for(int r=0;r<frame_->GetImageROI().rows;r++){
+      for(int c=0;c<frame_->GetImageROI().cols;c++){
     
         //compute the energy value for this pixel - not used for pose jacobian, just for assessing minima/progress
         energy += GetEnergy(r,c,sdf_image.at<float>(r,c), norm_foreground, norm_background);
@@ -97,7 +97,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
 
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step);
   
-    cv::Mat canvas = frame_->Mat().clone();
+    cv::Mat canvas = frame_->GetImageROI().clone();
     DrawModelOnFrame(current_model,canvas);
     std::stringstream ss_2; ss_2 << "step_" << step << ".png";
     cv::imwrite(ss.str()+"/"+ss_2.str(),canvas);
@@ -113,16 +113,3 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
 }
 
 
-void MonoPWP3D::FindROI(const std::vector<cv::Vec2i> &convex_hull) {
-
-  ROI() = frame_->Mat(); //UNTIL I DO THIS FUNCTION
-
-  /*for(int r=0;r<frame_->rows();r++){
-    for(int c=0;c<frame_->cols();c++){
-
-
-
-    }
-  }*/
-  
-}

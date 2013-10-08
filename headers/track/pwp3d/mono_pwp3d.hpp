@@ -14,15 +14,11 @@ namespace ttrk {
 
   protected:
 
-    virtual cv::Mat &ROI() { return ROI_; }
-
-    virtual void FindROI(const std::vector<cv::Vec2i> &convex_hull);
-
     void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const ;
 
   protected:
 
-    cv::Mat ROI_; /**< Experimental feature. Instead of performing the level set tracking over the whole image, try to find a ROI around where the target of interest is located. */
+    //cv::Mat ROI_; /**< Experimental feature. Instead of performing the level set tracking over the whole image, try to find a ROI around where the target of interest is located. */
 
   };
 

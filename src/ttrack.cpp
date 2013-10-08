@@ -102,7 +102,7 @@ void TTrack::SaveFrame(){
   boost::shared_ptr<sv::Frame> frame = tracker_->GetPtrToFinishedFrame();
 
   //request the handler to save it to a video/image
-  handler_->SavePtrToFrame(frame->PtrToROI());
+  handler_->SaveFrame(frame->GetImage());
 
 }
 
@@ -147,12 +147,12 @@ void TTrack::DrawModel(cv::Mat &frame) const {
 
 boost::shared_ptr<sv::Frame> TTrack::GetPtrToNewFrame(){
   
-  boost::shared_ptr<cv::Mat> test = handler_->GetPtrToNewFrame();
+  cv::Mat test = handler_->GetNewFrame();
   
   //if the input data has run out test will be empty, if this is so
   //reset the frame_ pointer to empty and return it. this will signal to 
   //the tracking/detect loop to stop
-  if (!test) {
+  if (test.data == 0x0) {
     frame_.reset();
     return frame_;
   }

@@ -26,13 +26,23 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number) const {
   
 
   float scale = (float)3.0;
-  scale = 1.0;
+  scale = 0.5;
+
+  scale *= 4;
+
   
   //jacobian = (float)0.00000001 * jacobian;
   jacobian = (float)0.000000001 * jacobian;
-  
-  for(int i=0;i<3;i++) jacobian.at<double>(i,0) *= 350 * scale;
-  for(int i=3;i<7;i++) jacobian.at<double>(i,0) *= 1.0 * scale;
+    
+  sv::Quaternion q(boost::math::quaternion<double>(jacobian.at<double>(3,0),jacobian.at<double>(4,0),jacobian.at<double>(5,0),jacobian.at<double>(6,0)));
+  const cv::Vec3f angle_axis = q.AngleAxis();
+  const double angle = sqrt(angle_axis[0]*angle_axis[0] + angle_axis[1]*angle_axis[1] + angle_axis[2]*angle_axis[2]);
+
+  const double q_scale = std::abs(0.5 / angle);
+
+  for(int i=0;i<3;i++) jacobian.at<double>(i,0) *= 150 * scale;
+  for(int i=3;i<7;i++) jacobian.at<double>(i,0) *= q_scale * scale;
+
 
 }
 
@@ -100,9 +110,13 @@ double PWP3D::GetRegionAgreement(const int r, const int c, const float sdf, cons
   const double beta = 1.0;//0.7; // DEBUGGING TEST !!!!
 
   const double pixel_probability = (double)frame_->GetClassificationMapROI().at<unsigned char>(r,c)/255.0;
-  const double norm = (norm_foreground*pixel_probability) + (norm_background*(1.0-pixel_probability));
-  const double foreground_probability = alpha * (pixel_probability/norm); // DEBUGGING TEST!!!
-  const double background_probability = beta * ((1-pixel_probability)/norm); // DEBUGGING TEST!!! 
+  //const double norm = (norm_foreground*pixel_probability) + (norm_background*(1.0-pixel_probability));
+  //const double foreground_probability = alpha * (pixel_probability/norm); // DEBUGGING TEST!!!
+  //const double background_probability = beta * ((1-pixel_probability)/norm); // DEBUGGING TEST!!! 
+
+  const double foreground_probability = pixel_probability;
+  const double background_probability = (1.0 - foreground_probability);
+
   const double region_agreement = (foreground_probability - background_probability)/ (Heaviside(sdf)*foreground_probability + (1.0-Heaviside(sdf))*background_probability);
   if(region_agreement == std::numeric_limits<double>::infinity())
     return 0.0;

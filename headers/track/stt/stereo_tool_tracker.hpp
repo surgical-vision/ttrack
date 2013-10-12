@@ -26,8 +26,9 @@ namespace ttrk {
   
   protected:
 
-    void InitIn2D__test(const std::vector<cv::Vec2i> &region, KalmanTracker &tracked_model);
-    const cv::Vec2i FindCenterOfMass__test(const std::vector<cv::Vec2i> &connected_region) const;
+    void CheckCentralAxisDirection(const cv::Vec2i &center_of_mass, cv::Vec2f &central_axis) const;
+    void InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3f &center_of_mass_3d, cv::Vec3f &central_axis_3d, boost::shared_ptr<MonocularCamera> cam);
+    const cv::Vec2i FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &connected_region) const;
 
     virtual void ProcessFrame();
 

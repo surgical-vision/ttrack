@@ -53,7 +53,7 @@ bool StereoPWP3D::SetupEye(const int eye, Pose &pose){
     //swap the roi over in the images so they refer to the right hand image
     stereo_frame->SwapEyes();
     //also update the object pose so that it's relative to the right eye
-    Pose extrinsic(cv::Vec3f(-stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
+    Pose extrinsic(cv::Vec3f(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
     pose = CombinePoses(extrinsic, pose);
  
     return true;
@@ -63,7 +63,7 @@ bool StereoPWP3D::SetupEye(const int eye, Pose &pose){
     //swap everything back
     stereo_frame->SwapEyes();
     
-    Pose extrinsic(cv::Vec3f(-stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
+    Pose extrinsic(cv::Vec3f(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
     pose = CombinePoses(extrinsic.Inverse(),pose);
 
     return false;
@@ -97,7 +97,7 @@ void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat l
   {
     KalmanTracker tracked_model_from_right = tracked_model;
     
-    Pose extrinsic(cv::Vec3f(-stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
+    Pose extrinsic(cv::Vec3f(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
     tracked_model_from_right.CurrentPose() = CombinePoses(extrinsic, tracked_model_from_right.CurrentPose());
     std::vector<SimplePoint<> > transformed_points = tracked_model_from_right.ModelPointsAtCurrentPose();
 
@@ -239,7 +239,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     //update the pose estimate
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step);
     
-    /* 
+     /*
     //do point based registration
     std::vector<MatchedPair> pnp_pairs;
     //FindPointCorrespondences(frame_,pnp_pairs);

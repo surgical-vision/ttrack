@@ -44,7 +44,7 @@ void KalmanTracker::Init() {
     filter_.measurementMatrix.at<float>(i,i) = 1;
   
 
-  cv::setIdentity(filter_.processNoiseCov, cv::Scalar::all(1e-2)); //uncertainty in the model
+  cv::setIdentity(filter_.processNoiseCov, cv::Scalar::all(8e-3)); //uncertainty in the model
   cv::setIdentity(filter_.measurementNoiseCov, cv::Scalar::all(1e-3)); //uncertainty in the measurement
   cv::setIdentity(filter_.errorCovPost, cv::Scalar::all(1));
   

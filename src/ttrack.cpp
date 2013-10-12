@@ -101,8 +101,19 @@ void TTrack::SaveFrame(){
 
   boost::shared_ptr<sv::Frame> frame = tracker_->GetPtrToFinishedFrame();
 
+  //blend frame with classification map
+  cv::Mat blended;
+  cv::Mat classification_3channel;
+  std::vector<cv::Mat> chans;
+  chans.push_back(frame->GetClassificationMapROI());
+  chans.push_back(cv::Mat::zeros( frame->GetClassificationMapROI().size(),CV_8UC1) );
+  chans.push_back(cv::Mat::zeros( frame->GetClassificationMapROI().size(),CV_8UC1) );
+  cv::merge(chans,classification_3channel);
+  cv::addWeighted(frame->GetImageROI(),0.55,classification_3channel,0.45,0,blended);
+
   //request the handler to save it to a video/image
-  handler_->SaveFrame(frame->GetImage());
+  //handler_->SaveFrame(frame->GetImage());
+  handler_->SaveFrame(blended);
 
 }
 

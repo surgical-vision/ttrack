@@ -15,7 +15,7 @@ namespace ttrk{
   * @ The smoothed heaviside value. Will be between 0-1.
   */
 
-  inline double Heaviside(double x, double a=0.4){
+  inline double Heaviside(double x, double a=0.3){
     return 1.0/(1.0 + exp(-a*x));
   }
 

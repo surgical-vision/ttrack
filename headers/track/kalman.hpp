@@ -17,7 +17,7 @@ namespace ttrk {
 
   public:
     
-    KalmanTracker() : save_file_(new std::ofstream) {}
+    //KalmanTracker() : save_file_(new std::ofstream), model_(new Model {}
     KalmanTracker(boost::shared_ptr<Model> model):save_file_(new std::ofstream),model_(model),filter_(14,7,0,CV_32F){}   
     KalmanTracker(const KalmanTracker &that);
 
@@ -46,6 +46,9 @@ namespace ttrk {
 
     Pose pose_; /**< The pose of the model. */
 
+  private:
+
+    KalmanTracker() : save_file_(new std::ofstream) {}
   };
 
 

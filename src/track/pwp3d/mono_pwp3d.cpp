@@ -72,7 +72,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
     
     //cv::Mat ENERGY_IMAGE = cv::Mat::zeros(ROI_left_.size(),CV_32FC1);
     double energy = 0.0;
-    
+    size_t num_pixels = 0;
     for(int r=0;r<frame_->GetImageROI().rows;r++){
       for(int c=0;c<frame_->GetImageROI().cols;c++){
     
@@ -85,6 +85,9 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
         //dH / dL
         const cv::Mat pose_derivatives = GetPoseDerivatives(r, c, sdf_image, dSDFdx.at<float>(r,c), dSDFdy.at<float>(r,c), current_model);
       
+
+        num_pixels++;
+
         //update the jacobian
         for(int i=0;i<pose_derivatives.rows;i++)
           jacobian.at<double>(i,0) += -1 * (region_agreement*pose_derivatives.at<double>(i,0));
@@ -95,7 +98,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
     if(energy < min_energy) min_energy = energy;
     //else break;
 
-    ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step);
+    ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step,num_pixels);
   
     cv::Mat canvas = frame_->GetImageROI().clone();
     DrawModelOnFrame(current_model,canvas);

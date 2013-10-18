@@ -11,6 +11,9 @@ namespace ttrk {
   public:
 
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame) = 0;
+    
+    virtual bool ModelInFrame(const KalmanTracker &tracked_model, const cv::Mat &detect_image) const = 0;
+
 
   };
 

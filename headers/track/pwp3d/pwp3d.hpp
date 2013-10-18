@@ -12,7 +12,10 @@ namespace ttrk {
   public: 
     
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame) = 0;
-    boost::shared_ptr<MonocularCamera> &Camera() { return camera_; }
+    boost::shared_ptr<MonocularCamera> &Camera() { return camera_; } //references to shared pointers are nasty!
+
+    bool PWP3D::ModelInFrame( const KalmanTracker &tracked_model, const cv::Mat &detect_image) const;
+
 
   protected:
 
@@ -40,11 +43,12 @@ namespace ttrk {
     * @param[in] jacobian The pose derivatives.
     * @param[in] step_id The number of steps done. Used for scaling down the step size.
     */
-    void ScaleJacobian(cv::Mat &jacobian, const int step_number) const;
+    void ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pixel_count) const;
 
     double DeltaFunction(float x){
-      double std = 0.1; // ----0.05
-      return (1.0/(std*sqrt(2*M_PI)))*exp(-((x*x)/(2*std*std)));
+      return (1.0f / float(M_PI)) * (1 / (x * x + 1.0f) + float(1e-3));
+      //double std = 0.3; // ----0.05
+     //return (1.0/(std*sqrt(2*M_PI)))*exp(-((x*x)/(2*std*std)));
     }
 
     /*double HeavisideFunction(float x){
@@ -57,7 +61,7 @@ namespace ttrk {
     * Applys one step of gradient descent to the pose. 
     * @param[in]    jacobian The pose update of the target object.
     */    
-    void ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const int step);
+    void ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const int step,  const int pixel_count);
    
      /**
     * Compute the first part of the derivative, getting a weight for each contribution based on the region agreements.

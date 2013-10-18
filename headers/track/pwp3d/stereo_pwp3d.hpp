@@ -67,8 +67,9 @@ void TriangulateMatches(std::vector<DescriptorMatches> &matches,std::vector<Matc
 
   protected:   
 
-    void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas_left, cv::Mat canvas_right) ;
-    
+    void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) ;
+    void DrawModelOnBothFrames(const KalmanTracker &tracked_model, cv::Mat left_canvas, cv::Mat right_canvas);
+
     Pose ApplyPointBasedRegistration(boost::shared_ptr<sv::Frame> frame, KalmanTracker &current_model );
     void FindPointCorrespondences(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &matched_pair);
     void FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &pnp, const Pose &pose);    
@@ -76,9 +77,13 @@ void TriangulateMatches(std::vector<DescriptorMatches> &matches,std::vector<Matc
     cv::Mat GetPointDerivative(const cv::Point3f &world, cv::Point2f &image, const Pose &pose) const;
 
     void ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame> frame, KalmanTracker current_model );
-    bool HasGradientDescentConverged(std::vector<Pose> &convergence_test_values, Pose &current_estimate) const;
+    //bool HasGradientDescentConverged(std::vector<Pose> &convergence_test_values, Pose &current_estimate) const;
+    bool HasGradientDescentConverged(const cv::Mat &jacobian, const Pose &pose) const ;
+    bool HasGradientDescentConverged_UsingEnergy(std::vector<double> &energy_values) const ;
     bool HasGradientDescentConverged__new(std::vector<cv::Mat> &convergence_test_values, cv::Mat &current_estimate) const;
-
+    cv::Vec3f GetDOFDerivativesRightEye(const int dof, const Pose &pose, const cv::Vec3f &point_) ;
+    cv::Mat StereoPWP3D::GetPoseDerivativesRightEye(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model);
+    
     bool SetupEye(const int eye, Pose &pose);
 
     boost::shared_ptr<StereoCamera> stereo_camera_;

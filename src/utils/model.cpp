@@ -117,9 +117,9 @@ bool MISTool::GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f 
 bool MISTool::GetIntersectionTip(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const {
 
   //cv::Mat top,bottom;
-  cv::Vec3f top((float)-height_/2 + (float)height_tip_,0.15*radius_tip_*2,0.0);
+  cv::Vec3f top((float)-height_/2 + (float)height_tip_,-0.15*radius_tip_*2,0.0);
   top = pose.Transform(top);
-  cv::Vec3f bottom((float)-height_/2,0.15*radius_tip_*2,0.0);
+  cv::Vec3f bottom((float)-height_/2,-0.15*radius_tip_*2,0.0);
   bottom = pose.Transform(bottom);
 
   cv::Vec3f dP = top - bottom;

@@ -85,7 +85,7 @@ namespace ttrk{
 
     virtual cv::Vec3f PrincipalAxis() const = 0;
 
-    virtual double Radius() = 0;
+    virtual float Radius() = 0;
 
   protected:
   
@@ -130,7 +130,8 @@ namespace ttrk{
     
     virtual cv::Vec3f PrincipalAxis() const { return cv::Vec3f(1,0,0); }
 
-    virtual double Radius() { return radius_; }
+    virtual float Radius() { return radius_; }
+    float HeightFraction() { return height_fraction_; }
 
   private:
 

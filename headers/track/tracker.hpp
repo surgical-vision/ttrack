@@ -81,8 +81,6 @@ namespace ttrk{
     * @return Whether the tracker was able to initialise successfully.  
     */
     virtual bool Init() = 0;
-    
-      
 
     //StereoCamera camera_; /**< A camera model for projecting points onto the image plane. */
     std::vector<KalmanTracker> tracked_models_; /**< a vector of tracked models. TODO: switch this out for point cloud mesh or some better data structure. */

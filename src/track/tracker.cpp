@@ -1,13 +1,12 @@
 #include "../../headers/track/tracker.hpp"
 #include "../../headers/utils/helpers.hpp"
+#include "../../headers/utils/camera.hpp"
 
 using namespace ttrk;
 
 void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
   
   SetHandleToFrame(image);
-
-  //ProcessFrame();
 
   if(!found){
     //tracking_ = false;
@@ -16,7 +15,9 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
 
   if(!tracking_){
 
+    //need this as init constructs new tracking models
     tracked_models_.clear(); //get rid of anything we were tracking before
+
     if(!Init() || !InitKalmanFilter()) //do any custom initalisation in the virtual Init function
       return;
     tracking_ = true;
@@ -27,10 +28,13 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
   for(current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++ ){
     
     Pose pose_measurement = localizer_->TrackTargetInFrame(*current_model_,image);
-  
+    //pose_measurement.translation_ += cv::Vec3f(0.5,0.5,0);
     current_model_->UpdatePose(pose_measurement);
-    
-    DrawModelOnFrame(*current_model_,frame_->GetImage());
+
+    //if( localizer_->ModelInFrame( *current_model_, frame_->GetClassificationMapROI() ))
+      DrawModelOnFrame(*current_model_,frame_->GetImage());
+    //else
+      //tracking_ = false;
   
   }
 }  

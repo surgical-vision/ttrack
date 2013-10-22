@@ -228,7 +228,7 @@ void StereoCamera::Rectify(const cv::Size image_size) {
                     cv::Size(), &roi1, &roi2); 
 
   InitRectified();
-  
+
   //store ROI1/2 in the stereo image class and then write method to extract these roi's whenever
   //useful image area methods are needed
   cv::initUndistortRectifyMap(left_eye_->intrinsic_matrix_,

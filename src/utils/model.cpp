@@ -8,8 +8,8 @@ using namespace ttrk;
 MISTool::MISTool(float radius, float height):radius_(radius),height_(height){
   radius_fraction_ = 0.8;
   height_fraction_ = 1.28;
-  radius_tip_ = radius_fraction_ * radius_;
-  height_tip_ = height_fraction_  * height_;
+  radius_tip_ = 2.5;//radius_fraction_ * radius_;
+  height_tip_ = 70;//height_fraction_  * height_;
 }
 
 

@@ -31,40 +31,38 @@ void PWP3D::ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const 
 
 void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pixel_count) const {
     
-  static bool swap = true;
-
+  static bool swap = false;
+  std::cerr << "Start Jacobian = " << jacobian << "\n";
   std::cerr << "Pixel count = " << pixel_count << "\n";
 
-  const double SCALE_FACTOR =  (1.0/(pixel_count));
+  const double SCALE_FACTOR =  (1.0/(pixel_count)) * 3;
     
-  const double XY_scale = 0.2 * 0.005 * swap * SCALE_FACTOR ;
-  const double Z_scale = 0.5 * 0.005 * swap * SCALE_FACTOR ;
-  const double R_SCALE = 10 * 0.000008 * !swap * SCALE_FACTOR / 25;
+  const double XY_scale = 0.2 * 0.005 * swap * SCALE_FACTOR * 1.0/4;
+  const double Z_scale = 0.5 * 0.005 * swap * SCALE_FACTOR * 1.0/4;
+  double R_SCALE = 10 * 0.00008 * !swap;
+  std::cerr << "R scale = " << R_SCALE << "\n";
 
   jacobian.at<double>(0,0) *= XY_scale;
   jacobian.at<double>(1,0) *= XY_scale;
   jacobian.at<double>(2,0) *= Z_scale;
-  for(int i=3;i<7;i++) jacobian.at<double>(i,0) = R_SCALE * jacobian.at<double>(i,0);
-
-  double T_SIZE = 0;
-  for(int i=0;i<3;i++) T_SIZE = jacobian.at<double>(i,0)*jacobian.at<double>(i,0);
-  T_SIZE = sqrt(T_SIZE);
-
-  //if(T_SIZE > 5)
-  //  for(int i=0;i<3;i++) jacobian.at<double>(i,0)/=T_SIZE;
-
-  double R_SIZE = 0;
-  for(int i=3;i<7;i++) R_SIZE = jacobian.at<double>(i,0)*jacobian.at<double>(i,0);
-  R_SIZE = sqrt(R_SIZE);
-
-  std::cerr << "R_SIZE = " << R_SIZE << "\n";
-  if(R_SIZE > 1.0)
-    for(int i=3;i<7;i++) {
-      //std::cerr << jacobian.at<double>(i,0) << "\n";
-      //jacobian.at<double>(i,0)/=R_SIZE;
-      //std::cerr << jacobian.at<double>(i,0) << "\n";
-    }
   
+  
+  if( R_SCALE > 0.0 ){
+    sv::Quaternion q(boost::math::quaternion<double>(jacobian.at<double>(3,0),jacobian.at<double>(4,0),jacobian.at<double>(5,0),jacobian.at<double>(6,0)));
+    q = q.Normalize();
+    
+    R_SCALE = sqrt((1.0/cos(0.01)) - 1) * !swap;
+
+    jacobian.at<double>(3,0) = q.W() * R_SCALE;
+    jacobian.at<double>(4,0) = q.X() * R_SCALE;
+    jacobian.at<double>(5,0) = q.Y() * R_SCALE;
+    jacobian.at<double>(6,0) = q.Z() * R_SCALE;
+
+    //for(int i=3;i<7;i++) jacobian.at<double>(i,0) = jacobian.at<double>(i,0) * (TARGET_ANGLE)/angle;
+  }else{
+    for(int i=3;i<7;i++) jacobian.at<double>(i,0) = R_SCALE * jacobian.at<double>(i,0);
+  }
+
 
   std::cerr << "Jacobian = " << jacobian << "\n";
   swap = !swap;

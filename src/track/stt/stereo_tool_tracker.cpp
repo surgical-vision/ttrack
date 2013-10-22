@@ -307,18 +307,21 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   cv::Vec3f center_of_mass_3d = left_center_of_mass;//camera_->ReprojectPointTo3D( camera_->rectified_left_eye()->ProjectPointToPixel(cv::Point3f(left_center_of_mass)), camera_->rectified_right_eye()->ProjectPointToPixel(cv::Point3f(right_center_of_mass)) );
 
   ShiftToTip(left_central_axis,center_of_mass_3d);
-
+  left_central_axis[2] = -0.5*left_central_axis[0];
   
   //center_of_mass_3d = cv::Vec3f(17.5,-9.5,65); //GOOD VALUE FOR TEST_VIDEO
   //use these two parameters to set the initial pose of the object
 
-  /*center_of_mass_3d = cv::Vec3f(9.7,-0.6,48); //GOOD VALUE FOR NEW_VIDEO
-  center_of_mass_3d += cv::Vec3f(-3.1,-2.0,4.1);
-  left_central_axis = cv::Vec3f(-1,-0.18,1.05); //GOOD VALUE FOR NEW_VIDEO
-  left_central_axis += cv::Vec3f(-0.3,-0.1,-0.2);*/
+  //center_of_mass_3d = cv::Vec3f(9.7,-0.6,48); //GOOD VALUE FOR NEW_VIDEO
+  center_of_mass_3d = cv::Vec3f(6.4-1.5,0.1,52.5); //GOOD VALUE FOR NEW_VIDEO
+  center_of_mass_3d = cv::Vec3f(6.4-1.8,0.1,53.5);
+  //center_of_mass_3d += cv::Vec3f(-3.1,-2.0,4.1);
+  left_central_axis = cv::Vec3f(-1.24,-0.205,1.122); //GOOD VALUE FOR NEW_VIDEO
+  //left_central_axis += cv::Vec3f(-0.3,-0.1,-0.2);*/
 
-  left_central_axis[2] = -0.5*left_central_axis[0];
-  //left_central_axis = cv::Vec3f(-1.9,-0.38,-1.85); 
+  
+  
+  
   tracked_model.SetPose(center_of_mass_3d,left_central_axis);
 
   return;

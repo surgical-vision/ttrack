@@ -340,7 +340,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   Pose pwp3d_best_pose = current_model.CurrentPose();
 
   //iterate until convergence
-  for(int step=0; step < NUM_STEPS /*&& !converged*/; step++){
+  for(int step=0; step < NUM_STEPS && !converged; step++){
 
 #ifdef SAVEDEBUG
 
@@ -375,7 +375,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
         cv::imwrite(ss.str()+"/right/"+step_dir.str()+"/previous.png",right_canvas);
       }
 #endif
-      if(eye == 0) continue;
+
       //compute the normalization values n_f and n_b
       double norm_foreground,norm_background;
       ComputeNormalization(norm_foreground,norm_background,sdf_image);
@@ -402,20 +402,19 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
       cv::Mat energy_image = cv::Mat::zeros(sdf_image.size(),CV_8UC1);
 #endif
 
-      
+      std::cerr << "\n\nCurrently subsampling frame!\n\n";
 
-      for(int r=0;r<frame_->GetImageROI().rows;r++){
-        for(int c=0;c<frame_->GetImageROI().cols;c++){
-
+      //for(int r=0;r<frame_->GetImageROI().rows;r++){
+      //  for(int c=0;c<frame_->GetImageROI().cols;c++){
+      for(int r=0;r<frame_->GetImageROI().rows;r+=3){
+        for(int c=0;c<frame_->GetImageROI().cols;c+=3){
+                  
           //if( c < 548 || c > 1390 ) continue;
           //if( r < 20  || r > 482  ) continue;
-          if(r == 540 && c == 1365) 
-            int STOP = 0;
-          if(r == 703 && c == 954) 
-            int STOP = 0;
+
           //speedup tests by checking if we need to evaluate the cost function in this region
           const double skip = Heaviside(sdf_image.at<float>(r,c));
-          if( skip < 0.0001 || skip > 0.99999 ) continue;
+          if( skip < 0.00001 || skip > 0.99999 ) continue;
 
           //compute the energy value for this pixel - not used for pose jacobian, just for assessing minima/          
           energy += GetEnergy(r,c,sdf_image.at<float>(r,c), norm_foreground, norm_background); 
@@ -441,7 +440,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
           }
 
           pixel_count++ ;
-
+          
 #ifdef SAVEDEBUG
           if(jacobian.at<double>(0,0) > 0)
             jacobian_x.at<cv::Vec3b>(r,c) = cv::Vec3b(255,0,0); //blue right
@@ -460,7 +459,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 #endif
         }
       }
-
+#ifdef SAVEDEBUG
       cv::Mat heaviside(jacobian_x.size(),CV_8UC1);
       cv::Mat delta(jacobian_x.size(),CV_8UC1);
       cv::Mat dSDFdx_save(jacobian_x.size(),CV_8UC3);
@@ -493,8 +492,9 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
         cv::imwrite(ss.str() + "/right/" + step_dir.str() + "/dsf_dx.png",dSDFdx_save);
         cv::imwrite(ss.str() + "/right/" + step_dir.str() + "/dsf_dy.png",dSDFdy_save);
       }
+      
 
-#ifdef SAVEDEBUG
+
       ENERGY_FILE << energy << " ";
       ENERGY_FILE.flush();
       std::cout << "ENERGY IS : " << energy << std::endl;
@@ -542,6 +542,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     //converged = HasGradientDescentConverged__new(convergence_test_values, jacobian );
     //converged = HasGradientDescentConverged(jacobian, current_model.CurrentPose());
     converged = HasGradientDescentConverged_UsingEnergy(convergence_test_values);
+    std::cerr << "Current pose at end of gradient descent step " << step << " is:\n" << cv::Point3f(current_model.CurrentPose().translation_) << " -- " << current_model.CurrentPose().rotation_ << "\n";
   }
 
 #ifdef SAVEDEBUG
@@ -788,19 +789,23 @@ bool StereoPWP3D::HasGradientDescentConverged(const cv::Mat &jacobian, const Pos
 
 bool StereoPWP3D::HasGradientDescentConverged_UsingEnergy(std::vector<double> &energy_values) const {
 
-
-  if(energy_values.size() < 6) return false;
+  const int NUM_VALUES_TO_USE = 7;
+  if(energy_values.size() < NUM_VALUES_TO_USE ) return false;
 
 
   double energy_change = 0.0;
-  for(auto value = energy_values.end()-6; value != energy_values.end()-1; value++ ){
+  for(auto value = energy_values.end()-(NUM_VALUES_TO_USE); value != energy_values.end()-1; value++ ){
 
-    energy_change += *value - *(value+1);
+    energy_change += *(value+1) - *(value);
 
   }
 
-  return false;
-  return energy_change > 0;
+  energy_change /= NUM_VALUES_TO_USE - 1;
+
+  std::cerr << "Current ratio is: " <<  energy_change/energy_values.back() << "\n";
+  std::cerr << "Target ratio for convergence is: " << 1.0/1000 << "\n";
+
+  return !(energy_change/energy_values.back() > 1.0/1000);
 
 }
 

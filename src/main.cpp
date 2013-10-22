@@ -22,6 +22,7 @@ int main(int argc, char **argv){
      
      //t.RunVideo("video.avi");
      //t.RunVideo("short2.avi");
+     //t.RunVideo("left.avi","right.avi");
      t.RunVideo("left.avi","right.avi");
 
 

@@ -33,6 +33,8 @@ build/ttrack.suo
 *.stl
 frame_*
 all_frames
-images.py
 deps
 deps/*
+deps/quaternion
+deps/quaternion/*
+deps/image

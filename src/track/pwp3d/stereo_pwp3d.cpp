@@ -329,7 +329,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   if(!ENERGY_FILE.is_open()) throw(std::runtime_error("Error, could not open energy file!\n"));
 #endif
 
-  ComputeDescriptorsForPointTracking(frame_,current_model);
+  //ComputeDescriptorsForPointTracking(frame_,current_model);
 
   //store a vector of Pose values. check std. dev. of these values, if this is small enough, assume convergence.
   std::vector<double> convergence_test_values;
@@ -505,26 +505,29 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
       //  pwp3d_best_pose = current_model.CurrentPose();
       //}
     }   
-    //update the pose estimate
-    ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step,pixel_count);
-
-    convergence_test_values.push_back(energy);
-
+    
+    
     //do point based registration
 
-    /*
+    
     std::vector<MatchedPair> pnp_pairs;
     //FindPointCorrespondences(frame_,pnp_pairs);
     FindPointCorrespondencesWithPose(frame_,pnp_pairs,current_model.CurrentPose());
     std::cerr << "Matching to " << pnp_pairs.size() << " points\n";
     for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
-    cv::Mat pnp_jacobian = GetPointDerivative(cv::Point3f(current_model.CurrentPose().Transform(pnp->learned_point)),cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
-    for(int i=0;i<jacobian.rows;i++){
-    //continue;
-    jacobian.at<double>(i,0) += 0.05 * pnp_jacobian.at<double>(i,0);
+      cv::Mat pnp_jacobian = GetPointDerivative(cv::Point3f(current_model.CurrentPose().Transform(pnp->learned_point)),cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
+      for(int i=0;i<jacobian.rows;i++){
+        //continue;
+        jacobian.at<double>(i,0) += 0.05 * pnp_jacobian.at<double>(i,0);
+      }
     }
-    }
-    */
+    
+    //update the pose estimate
+    ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step,pixel_count);
+
+    convergence_test_values.push_back(energy);
+
+
 
     //save the step estimate
 #ifdef SAVEDEBUG
@@ -635,7 +638,7 @@ void StereoPWP3D::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> 
 
   //load the ground truth points from the file
   std::vector<Descriptor> ground_truth_descriptors;
-  ReadKeypoints("Keypoints.xml",ground_truth_descriptors,NUM_DESCRIPTOR); 
+  ReadKeypoints(config_dir_ + "/Keypoints.xml",ground_truth_descriptors,NUM_DESCRIPTOR); 
   //transform them to the current coordinate system
   for(auto kp = ground_truth_descriptors.begin(); kp != ground_truth_descriptors.end(); kp++){
 
@@ -835,7 +838,7 @@ void ReadKeypoints(const std::string filename, std::vector<Descriptor> &descript
 void StereoPWP3D::FindPointCorrespondences(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &matched_pair){
 
   std::vector<Descriptor> ds;
-  ReadKeypoints("Keypoints.xml",ds,NUM_DESCRIPTOR); 
+  ReadKeypoints(config_dir_ + "/Keypoints.xml",ds,NUM_DESCRIPTOR); 
   cv::Mat descriptors;
   for(auto d = ds.begin(); d != ds.end() ; d++){
     descriptors.push_back(d->descriptor);
@@ -864,7 +867,7 @@ Pose StereoPWP3D::ApplyPointBasedRegistration(boost::shared_ptr<sv::Frame> frame
 
 
   std::vector<Descriptor> ds;
-  ReadKeypoints("Keypoints.xml",ds,NUM_DESCRIPTOR); 
+  ReadKeypoints(config_dir_ + "/Keypoints.xml",ds,NUM_DESCRIPTOR); 
   cv::Mat descriptors;
   for(auto d = ds.begin(); d != ds.end() ; d++){
     descriptors.push_back(d->descriptor);
@@ -1062,7 +1065,7 @@ void TriangulateMatches(std::vector<DescriptorMatches> &matches, std::vector<Mat
 
   //cv::imwrite("LeftMatch.png",left);
   //cv::imwrite("RIghtMatch.png",right);
-  cv::imwrite("BOTH.png",both);
+  //cv::imwrite("BOTH.png",both);
 
 }
 
@@ -1092,7 +1095,7 @@ void StereoPWP3D::ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame
       return a.response > b.response;
   });
   
-  cv::FileStorage fs("KeyPoints.xml",cv::FileStorage::WRITE);
+  cv::FileStorage fs(config_dir_ + "/KeyPoints.xml",cv::FileStorage::WRITE);
   //collect descriptors in the image plane
   //cv::SurfDescriptorExtractor extractor;
   cv::SiftDescriptorExtractor extractor;

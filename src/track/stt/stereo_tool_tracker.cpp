@@ -10,98 +10,15 @@ using namespace ttrk;
 #define STEREO_SGBM
 #undef QUASI
 
-StereoToolTracker::StereoToolTracker(const float radius, const float height, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_( new StereoCamera(calibration_filename)){
+StereoToolTracker::StereoToolTracker(const float radius, const float height, const std::string &config_dir, const std::string &calibration_file):SurgicalToolTracker(radius,height),camera_( new StereoCamera(config_dir + "/" + calibration_file)){
 
-  localizer_.reset(new StereoPWP3D);
+  localizer_.reset(new StereoPWP3D(config_dir));
   boost::shared_ptr<StereoPWP3D> stereo_pwp3d = boost::dynamic_pointer_cast<StereoPWP3D>(localizer_);
   stereo_pwp3d->GetStereoCamera() = camera_; //MOVE THESE TO CONSTRUCTOR
   stereo_pwp3d->Camera() = stereo_pwp3d->GetStereoCamera()->rectified_left_eye();
 
 }
 
-void StereoToolTracker::CreateDisparityImage(){
-
-  /*boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
-  cv::Mat &left_image = stereo_frame->LeftMat();
-  cv::Mat &right_image = stereo_frame->RightMat();
-  
-  cv::Mat out_disparity(left_image.rows,left_image.cols,CV_8UC3);
-
-#ifdef QUASI
-  QuasiDenseStereo qds;
-
-  qds.initialise( cvSize( left_image.cols, left_image.rows ) );
-  qds.Param.BorderX = 15;				// borders around the image
-  qds.Param.BorderY = 15;
-  qds.Param.N = 5;						// neighbours
-  qds.Param.Ct = 0.3;					// corre threshold for seeds
-  qds.Param.Dg = 0.5;					// disparity gradient
-  qds.Param.WinSizeX = 6;				// corr window size
-  qds.Param.WinSizeY = 6;	
-  qds.Param.Tt = 100;
-
-  IplImage left = (IplImage)left_image;
-  IplImage right = (IplImage)right_image;
-  qds.process(&left,&right);
-  IplImage disparity = (IplImage)out_disparity;
-  qds.getDisparityImage(&disparity);
-  
-#endif
-  
-#ifdef STEREO_SGBM
-  const int min_disp = 0;
-  const int max_disp = 48; //must be exactly divisible by 16
-  const int sad_win_size = 12;
-  const int smoothness = left_image.channels()*sad_win_size*sad_win_size;
-  cv::StereoSGBM sgbm(min_disp,
-                      max_disp-min_disp,
-                      sad_win_size,
-                      8*smoothness,
-                      32*smoothness,
-                      4,
-                      50,
-                      10,
-                      50,
-                      1,
-                      true);
-  
-  //                    4, //disp12MaxDiff
-  //                    50, //preFilterCap
-  //                    10, //uniquenessRatio [5-15] 50
-  //                    50, //speckleWindowSize [50-200] 4
-  //                    1,//speckleRange
-  //                    true);
-  
-  sgbm(left_image,right_image,out_disparity);
-  
-#endif
-
-  cv::Mat float_disp(out_disparity.size(),CV_32FC1);
-  for(int r=0;r<out_disparity.rows;r++){
-    for(int c=0;c<out_disparity.cols;c++){
-
-#ifdef QUASI
-      float_disp.at<float>(r,c) = ((float)out_disparity.at<cv::Vec3b>(r,c)[0]);
-      if(float_disp.at<float>(r,c) <= 0 || (float)out_disparity.at<cv::Vec3b>(r,c)[0] == 200){
-        float_disp.at<float>(r,c) = 0;
-      }
-#elif defined STEREO_SGBM
-      float_disp.at<float>(r,c) = static_cast<float>(out_disparity.at<int16_t>(r,c));///16.0f;
-      if(float_disp.at<float>(r,c) <= 0){
-        float_disp.at<float>(r,c) = 0;
-      }
-#endif
-    }
-  }
-
-  //opencv sgbm multiplies each val by 16 so scale down to floating point array
-  *(StereoFrame()->PtrToDisparityMap()) = float_disp;
-  //*(StereoFrame()->PtrToDisparityMap()) = out_disparity;
-#if defined(SAVEDEBUG)
-  cv::imwrite("debug/disparity.png", float_disp);
-#endif
-  */
-}
 
 
 bool StereoToolTracker::Init() {
@@ -129,33 +46,11 @@ bool StereoToolTracker::Init() {
   return true;
 }
 
-cv::Vec3f StereoToolTracker::FindClusterMode(const cv::Mat &point_cloud, const cv::Mat &classification_map) const {
-
-  cv::Vec3f cluster_mode(0,0,0);
-
-  //mean shift used to find cluster mode
-  //weighted average of all points in region
-  //start with initial estimate
-  //iterate over all points and score by distance from current start point
-  //if most of the points are distributed unevenly around the start point
-  //the new mean will be estiamted 
-
-  //
-  //1) kernel density estimation to find a di
-  //sum over 3d region for each voxel estimate a density as --
-  //  sum over the image pixels for each point (r,c) ---
-  //    create weight w_{i} according to the class probability for (r,c)
-  //    compute L1 norm of vector between backprojection of (r,c) and 3d point (x,y,z)
-  //    nroamlize by bandwidth 
-
-  return cluster_mode;
-  
-}
 
 void StereoToolTracker::ProcessFrame(){
 
-  CreateDisparityImage();
-  camera_->ReprojectTo3D(StereoFrame()->GetDisparityMap(),StereoFrame()->GetPointCloud(),std::vector<cv::Vec2i>());
+  //CreateDisparityImage();
+  //camera_->ReprojectTo3D(StereoFrame()->GetDisparityMap(),StereoFrame()->GetPointCloud(),std::vector<cv::Vec2i>());
 
 }
 
@@ -294,7 +189,7 @@ void StereoToolTracker::ShiftToTip(const cv::Vec3f &central_axis, cv::Vec3f &cen
 
 
 void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, KalmanTracker &tracked_model) {
-  
+
   cv::Vec3f left_center_of_mass,left_central_axis,right_center_of_mass,right_central_axis;
   InitIn2D(region,left_center_of_mass,left_central_axis,camera_->rectified_left_eye());
 
@@ -313,10 +208,10 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   //use these two parameters to set the initial pose of the object
 
   //center_of_mass_3d = cv::Vec3f(9.7,-0.6,48); //GOOD VALUE FOR NEW_VIDEO
-  center_of_mass_3d = cv::Vec3f(6.4-1.5,0.1,52.5); //GOOD VALUE FOR NEW_VIDEO
-  center_of_mass_3d = cv::Vec3f(6.4-1.8,0.1,53.5);
+  center_of_mass_3d = cv::Vec3f(7.0,0.3,42); // aligns left image correctly
+  //center_of_mass_3d = cv::Vec3f(6.4-1.0,0.3,40.5); //aligns right image coorectly
   //center_of_mass_3d += cv::Vec3f(-3.1,-2.0,4.1);
-  left_central_axis = cv::Vec3f(-1.24,-0.205,1.122); //GOOD VALUE FOR NEW_VIDEO
+  left_central_axis = cv::Vec3f(-1.15,-0.18,1.1); //GOOD VALUE FOR NEW_VIDEO (+y > clockwise, +z > counter clockwise
   //left_central_axis += cv::Vec3f(-0.3,-0.1,-0.2);*/
 
   
@@ -325,36 +220,7 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   tracked_model.SetPose(center_of_mass_3d,left_central_axis);
 
   return;
-  //create the point cloud used to initialize the pose
-  //CreateDisparityImage();
-  //camera_->ReprojectTo3D(StereoFrame()->GetDisparityMap(),StereoFrame()->GetPointCloud(),region);
-  
-  //find the center of mass of the point cloud and shift it to the center of the shape rather than lie on the surface
-  /*cv::Vec3f center_of_mass = FindCenterOfMass(StereoFrame()->GetPointCloud());
-  center_of_mass *= ((cv::norm(center_of_mass) + radius_)/cv::norm(center_of_mass));
 
-  center_of_mass = cv::Vec3f(9.7,-0.6,48); //GOOD VALUE FOR NEW_VIDEO
-  center_of_mass = cv::Vec3f(12.5,-1.5,67); //GOOD VALUE FOR TEST_VIDEO
-  center_of_mass += cv::Vec3f(-3.1,-2.0,4.1);
-  
-  //find the central axis of the point cloud
-  cv::Vec3f central_axis = FindPrincipalAxisFromMOITensor(center_of_mass,StereoFrame()->GetPointCloud());
-
-  central_axis = cv::Vec3f(-1,-0.18,1.05); //GOOD VALUE FOR NEW_VIDEO
-  central_axis = cv::Vec3f(-1,0.24,1.22);
-  central_axis += cv::Vec3f(-0.3,-0.1,-0.2);
-  
-  
-  cv::Vec3f t_central_axis = central_axis;
-  cv::normalize(t_central_axis,central_axis);
-
-  std::cerr << "center of mass = " << cv::Point3f(center_of_mass) << std::endl;
-  std::cerr << "central axis = " << cv::Point3f(central_axis) << std::endl;
-
-
-  //use these two parameters to set the initial pose of the object
-  tracked_model.SetPose(center_of_mass,central_axis);
-  */
 }
 
 cv::Vec3f StereoToolTracker::FindPrincipalAxisFromMOITensor(const cv::Vec3f center_of_mass_, const cv::Mat &point_cloud) const {
@@ -452,21 +318,24 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
    boost::shared_ptr<sv::StereoFrame> stereo_image = boost::dynamic_pointer_cast<sv::StereoFrame>(image);
    
 #if defined(SAVEDEBUG) 
-  cv::imwrite("debug/dist_left.png",stereo_image->GetLeftImage());
-  cv::imwrite("debug/dist_right.png",stereo_image->GetRightImage());
+  cv::imwrite("debug/distorted_left.png",stereo_image->GetLeftImage());
+  cv::imwrite("debug/distorted_right.png",stereo_image->GetRightImage());
 #endif
 
    //then rectify the camera and remap the images
    if( !camera_->IsRectified() ) camera_->Rectify(stereo_image->GetLeftImage().size());
+
    camera_->RemapLeftFrame(stereo_image->GetLeftImage());
    camera_->RemapRightFrame(stereo_image->GetRightImage());
    camera_->RemapLeftFrame(stereo_image->GetLeftClassificationMap());
    camera_->RemapRightFrame(stereo_image->GetRightClassificationMap());
-   //check this modifies correctly
+
+
 #if defined(SAVEDEBUG) 
-  cv::imwrite("debug/left.png",stereo_image->GetLeftImage());
-  cv::imwrite("debug/right.png",stereo_image->GetRightImage());
-  cv::imwrite("debug/classified.png",stereo_image->GetLeftClassificationMap());
+   //check this modifies correctly
+   cv::imwrite("debug/left.png",stereo_image->GetLeftImage());
+   cv::imwrite("debug/right.png",stereo_image->GetRightImage());
+   cv::imwrite("debug/classified.png",stereo_image->GetLeftClassificationMap());
 #endif
    
  }

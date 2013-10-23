@@ -250,12 +250,12 @@ void StereoPWP3D::DrawModelOnBothFrames(const KalmanTracker &tracked_model, cv::
 
     for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
 
-      cv::Vec2f projected = camera_->ProjectPoint(point->vertex_);
+      cv::Vec2f projected =  GetStereoCamera()->rectified_left_eye()->ProjectPoint(point->vertex_);
 
       for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
 
         const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
-        cv::Vec2f projected_neighbour = camera_->ProjectPoint( neighbour.vertex_ );
+        cv::Vec2f projected_neighbour = GetStereoCamera()->rectified_left_eye()->ProjectPoint( neighbour.vertex_ );
 
         if(left_canvas.channels() == 3)
           line(left_canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),1,CV_AA);
@@ -278,7 +278,7 @@ void StereoPWP3D::DrawModelOnBothFrames(const KalmanTracker &tracked_model, cv::
       for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
 
         const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
-        cv::Vec2f projected_neighbour = camera_->ProjectPoint( neighbour.vertex_ );
+        cv::Vec2f projected_neighbour = GetStereoCamera()->rectified_right_eye()->ProjectPoint( neighbour.vertex_ );
 
         if(right_canvas.channels() == 3)
           line(right_canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),1,CV_AA);
@@ -329,7 +329,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   if(!ENERGY_FILE.is_open()) throw(std::runtime_error("Error, could not open energy file!\n"));
 #endif
 
-  //ComputeDescriptorsForPointTracking(frame_,current_model);
+  ComputeDescriptorsForPointTracking(frame_,current_model);
 
   //store a vector of Pose values. check std. dev. of these values, if this is small enough, assume convergence.
   std::vector<double> convergence_test_values;
@@ -1091,7 +1091,7 @@ void StereoPWP3D::ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame
     [](const cv::KeyPoint &a, const cv::KeyPoint &b) -> bool {
       return a.response > b.response;
   });
-
+  
   cv::FileStorage fs("KeyPoints.xml",cv::FileStorage::WRITE);
   //collect descriptors in the image plane
   //cv::SurfDescriptorExtractor extractor;

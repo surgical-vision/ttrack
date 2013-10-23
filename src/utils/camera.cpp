@@ -223,7 +223,7 @@ void StereoCamera::Rectify(const cv::Size image_size) {
                     extrinsic_matrix_(cv::Range(0,3),cv::Range(0,3)),
                     extrinsic_matrix_(cv::Range(0,3),cv::Range(3,4)),
                     R1, R2, P1, P2, reprojection_matrix_,
-                    CV_CALIB_ZERO_DISPARITY, // 0 || CV_CALIB_ZERO_DISPARITY
+                    0,//CV_CALIB_ZERO_DISPARITY, // 0 || CV_CALIB_ZERO_DISPARITY
                     0,  // -1 = default scaling, 0 = no black pixels, 1 = no source pixels lost
                     cv::Size(), &roi1, &roi2); 
 

@@ -62,6 +62,8 @@ void TriangulateMatches(std::vector<DescriptorMatches> &matches,std::vector<Matc
 
   public: 
 
+    StereoPWP3D(const std::string &config_dir) : PWP3D(config_dir) {}
+
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame);
     boost::shared_ptr<StereoCamera> &GetStereoCamera() { return stereo_camera_; } //* Probably this shouldn't be a reference. Change it so it is not. */
 

@@ -8,8 +8,8 @@ using namespace ttrk;
 MISTool::MISTool(float radius, float height):radius_(radius),height_(height){
   radius_fraction_ = 0.8;
   height_fraction_ = 1.28;
-  radius_tip_ = 2.5;//radius_fraction_ * radius_;
-  height_tip_ = 70;//height_fraction_  * height_;
+  radius_tip_ = 2;//radius_fraction_ * radius_;
+  height_tip_ = height_ + 18;//height_fraction_  * height_;
 }
 
 
@@ -31,7 +31,6 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
 
 
   }
-
 
   for(int i=0;i<precision/2;i++){
     points[i].AddNeighbour(Wrap(i-1,0,(precision/2)-1));
@@ -59,6 +58,9 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
 
 
   }
+
+  
+  std::cerr << "Tip point is at " << cv::Point3f(pose.Transform(cv::Vec3f(-(float)height_/2 + (float)(height_tip_),0,0))) << "\n";
 
   for(int i=0;i<precision/2;i++){
     test_points[i].AddNeighbour(precision+Wrap(i-1,0,(precision/2)-1));

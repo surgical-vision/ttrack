@@ -11,6 +11,8 @@ namespace ttrk {
   class PWP3D : public Localizer {
   public: 
     
+    PWP3D(const std::string &config_dir) : config_dir_(config_dir) {}
+
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame) = 0;
     boost::shared_ptr<MonocularCamera> &Camera() { return camera_; } //references to shared pointers are nasty!
 
@@ -101,6 +103,7 @@ namespace ttrk {
     
     std::string DEBUG_DIR_;
     boost::shared_ptr<MonocularCamera> camera_;
+    std::string config_dir_;
 
   };
 

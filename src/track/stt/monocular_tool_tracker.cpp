@@ -3,8 +3,8 @@
 
 using namespace ttrk;
 
-MonocularToolTracker::MonocularToolTracker(const float radius, const float height, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_(new MonocularCamera(calibration_filename)){
-  localizer_.reset(new MonoPWP3D);
+MonocularToolTracker::MonocularToolTracker(const float radius, const float height, const std::string &config_dir, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_(new MonocularCamera(config_dir + "/" + calibration_filename)){
+  localizer_.reset(new MonoPWP3D(config_dir));
   boost::shared_ptr<MonoPWP3D> mono_pwp3d = boost::dynamic_pointer_cast<MonoPWP3D>(localizer_);
   mono_pwp3d->Camera() = camera_;
 }

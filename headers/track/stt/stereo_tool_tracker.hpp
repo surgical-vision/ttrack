@@ -9,7 +9,7 @@ namespace ttrk {
 
   public:
 
-    StereoToolTracker(const float  radius, const float  height, const std::string &calibration_filename);
+    StereoToolTracker(const float  radius, const float  height, const std::string &config_dir, const std::string &calibration_filename);
 
     virtual ~StereoToolTracker(){}
 
@@ -35,12 +35,12 @@ namespace ttrk {
 
     virtual void SetHandleToFrame(boost::shared_ptr<sv::Frame> image);
 
-    void CreateDisparityImage();
+    //void CreateDisparityImage();
 
     void Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, KalmanTracker &tracked_model);
 
     cv::Vec3f FindCenterOfMass(const cv::Mat &point_cloud) const ; 
-    cv::Vec3f FindClusterMode(const cv::Mat &point_cloud, const cv::Mat &classification_map) const ;
+    //cv::Vec3f FindClusterMode(const cv::Mat &point_cloud, const cv::Mat &classification_map) const ;
     cv::Vec3f FindPrincipalAxisFromMOITensor(const cv::Vec3f center_of_mass, const cv::Mat &point_cloud) const ;
    
     boost::shared_ptr<StereoCamera> camera_;

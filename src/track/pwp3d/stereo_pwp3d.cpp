@@ -435,7 +435,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
           //update the jacobian
           for(int i=0;i<pose_derivatives.rows;i++){
             double pp = (region_agreement*pose_derivatives.at<double>(i,0));
-            if (pp != pp) continue;
+            if (pp != pp) { std::cerr << "Alert! Bad derivatives\n"; continue; }
             jacobian.at<double>(i,0) += -1 * (region_agreement*pose_derivatives.at<double>(i,0));
           }
 
@@ -515,7 +515,8 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     FindPointCorrespondencesWithPose(frame_,pnp_pairs,current_model.CurrentPose());
     std::cerr << "Matching to " << pnp_pairs.size() << " points\n";
     for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
-      cv::Mat pnp_jacobian = GetPointDerivative(cv::Point3f(current_model.CurrentPose().Transform(pnp->learned_point)),cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
+      //cv::Mat pnp_jacobian = GetPointDerivative(cv::Point3f(current_model.CurrentPose().Transform(pnp->learned_point)),cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
+      cv::Mat pnp_jacobian = GetPointDerivative(pnp->learned_point,cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
       for(int i=0;i<jacobian.rows;i++){
         //continue;
         jacobian.at<double>(i,0) += 0.05 * pnp_jacobian.at<double>(i,0);
@@ -544,7 +545,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     //converged = HasGradientDescentConverged(convergence_test_values, current_model.CurrentPose() );
     //converged = HasGradientDescentConverged__new(convergence_test_values, jacobian );
     //converged = HasGradientDescentConverged(jacobian, current_model.CurrentPose());
-    converged = HasGradientDescentConverged_UsingEnergy(convergence_test_values);
+    //converged = HasGradientDescentConverged_UsingEnergy(convergence_test_values);
     std::cerr << "Current pose at end of gradient descent step " << step << " is:\n" << cv::Point3f(current_model.CurrentPose().translation_) << " -- " << current_model.CurrentPose().rotation_ << "\n";
   }
 
@@ -710,6 +711,8 @@ void StereoPWP3D::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> 
 
 cv::Mat StereoPWP3D::GetPointDerivative(const cv::Point3f &world, cv::Point2f &image, const Pose &pose) const{
 
+  std::cerr << "WOrld to image points is " << world << " --> " << image << "\n";
+
   const int NUM_DERIVS = 7;
   cv::Mat ret(NUM_DERIVS,1,CV_64FC1);
   cv::Vec3f front_intersection(world);
@@ -799,7 +802,9 @@ bool StereoPWP3D::HasGradientDescentConverged_UsingEnergy(std::vector<double> &e
   double energy_change = 0.0;
   for(auto value = energy_values.end()-(NUM_VALUES_TO_USE); value != energy_values.end()-1; value++ ){
 
+    std::cerr << "Energy change is: " << *(value+1) - *(value) << "\n";
     energy_change += *(value+1) - *(value);
+    std::cerr << "New energy is: " << energy_change << "\n";
 
   }
 

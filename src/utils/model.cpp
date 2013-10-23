@@ -59,9 +59,6 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
 
   }
 
-  
-  std::cerr << "Tip point is at " << cv::Point3f(pose.Transform(cv::Vec3f(-(float)height_/2 + (float)(height_tip_),0,0))) << "\n";
-
   for(int i=0;i<precision/2;i++){
     test_points[i].AddNeighbour(precision+Wrap(i-1,0,(precision/2)-1));
     test_points[i].AddNeighbour(precision+Wrap(i+1,0,(precision/2)-1));

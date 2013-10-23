@@ -30,23 +30,39 @@ void PWP3D::ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const 
 }
 
 void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pixel_count) const {
-    
-  static bool swap = false;
-  std::cerr << "Start Jacobian = " << jacobian << "\n";
-  std::cerr << "Pixel count = " << pixel_count << "\n";
+  
+  double sum_jacobian = 0.0;
+  for(int r=0;r<jacobian.rows;r++){
+    sum_jacobian += std::abs(jacobian.at<double>(r,0));
+  }
 
+  std::cerr << "Sum of Jacobian is: " << sum_jacobian << "\n";
+  
+  static bool swap = true;
+  std::cerr << "Start Jacobian = " << jacobian << "\n";
+  
   const double SCALE_FACTOR =  (1.0/(pixel_count)) * 3;
     
   const double XY_scale = 0.2 * 0.005 * swap * SCALE_FACTOR * 1.0/4;
   const double Z_scale = 0.5 * 0.005 * swap * SCALE_FACTOR * 1.0/4;
-  double R_SCALE = 10 * 0.00008 * !swap;
-  std::cerr << "R scale = " << R_SCALE << "\n";
-
+  double R_SCALE = 10 * 0.00008 * swap;
+  
   jacobian.at<double>(0,0) *= XY_scale;
   jacobian.at<double>(1,0) *= XY_scale;
   jacobian.at<double>(2,0) *= Z_scale;
   
+  std::cerr << "Translation jacobian before scale = " << jacobian.at<double>(0,0) << ", " << jacobian.at<double>(1,0) << ", " << jacobian.at<double>(2,0) << "\n";
+
+  for(int i=0;i<2;i++){
+    if(std::abs(jacobian.at<double>(i,0)) > 0.2)
+      jacobian.at<double>(i,0) = (jacobian.at<double>(i,0)*0.2)/std::abs(jacobian.at<double>(i,0));
+  }
   
+  if(std::abs(jacobian.at<double>(2,0)) > 0.5)
+      jacobian.at<double>(2,0) = (jacobian.at<double>(2,0)*0.5)/std::abs(jacobian.at<double>(2,0));
+  
+  std::cerr << "Translation jacobian = " << jacobian.at<double>(0,0) << ", " << jacobian.at<double>(1,0) << ", " << jacobian.at<double>(2,0) << "\n";
+
   if( R_SCALE > 0.0 ){
     sv::Quaternion q(boost::math::quaternion<double>(jacobian.at<double>(3,0),jacobian.at<double>(4,0),jacobian.at<double>(5,0),jacobian.at<double>(6,0)));
     q = q.Normalize();
@@ -65,7 +81,7 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pi
 
 
   std::cerr << "Jacobian = " << jacobian << "\n";
-  swap = !swap;
+  //swap = !swap;
   return;
 
   /*static bool swap = false;

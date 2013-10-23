@@ -212,7 +212,7 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   //center_of_mass_3d = cv::Vec3f(6.4-1.0,0.3,40.5); //aligns right image coorectly
   //center_of_mass_3d += cv::Vec3f(-3.1,-2.0,4.1);
   left_central_axis = cv::Vec3f(-1.15,-0.18,1.1); //GOOD VALUE FOR NEW_VIDEO (+y > clockwise, +z > counter clockwise
-  //left_central_axis += cv::Vec3f(-0.3,-0.1,-0.2);*/
+  //left_central_axis += cv::Vec3f(-0.3,-0.1,-0.2);
 
   
   

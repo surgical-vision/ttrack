@@ -509,6 +509,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     
     //do point based registration
 
+    std::cerr << "\n\n\nJacobian before adding points: " << jacobian << "\n\n\n";
     
     std::vector<MatchedPair> pnp_pairs;
     //FindPointCorrespondences(frame_,pnp_pairs);
@@ -519,10 +520,12 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
       cv::Mat pnp_jacobian = GetPointDerivative(pnp->learned_point,cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
       for(int i=0;i<jacobian.rows;i++){
         //continue;
-        jacobian.at<double>(i,0) += 0.05 * pnp_jacobian.at<double>(i,0);
+        jacobian.at<double>(i,0) += pnp_jacobian.at<double>(i,0);
       }
     }
     
+    std::cerr << "\n\n\nJacobian after adding points: " << jacobian << "\n\n\n";
+
     //update the pose estimate
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step,pixel_count);
 
@@ -543,7 +546,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
     //test for convergence
     //converged = HasGradientDescentConverged(convergence_test_values, current_model.CurrentPose() );
-    //converged = HasGradientDescentConverged__new(convergence_test_values, jacobian );
+    //converged = HasGradientDescentConverged__new(std::vector<cv::Mat>(), jacobian );
     //converged = HasGradientDescentConverged(jacobian, current_model.CurrentPose());
     //converged = HasGradientDescentConverged_UsingEnergy(convergence_test_values);
     std::cerr << "Current pose at end of gradient descent step " << step << " is:\n" << cv::Point3f(current_model.CurrentPose().translation_) << " -- " << current_model.CurrentPose().rotation_ << "\n";
@@ -743,36 +746,12 @@ bool StereoPWP3D::HasGradientDescentConverged__new(std::vector<cv::Mat> &converg
 
   convergence_test_values.push_back(current_estimate);
 
-  if (current_estimate.type() != CV_64FC1 ) throw(std::runtime_error("Set Jacobian values to double!\n"));
-  if (current_estimate.cols != 1) throw(std::runtime_error("Error, jacobian should be Nx1 vector!\n"));
-
-  if(convergence_test_values.size() < 6) 
-    return false;
-
-  std::vector<cv::Mat> last_5_values(convergence_test_values.end()-5,convergence_test_values.end());
-  cv::Mat sum_vals = cv::Mat::zeros(current_estimate.size(),current_estimate.type());
-
-  for(auto jac = last_5_values.begin() ; jac!=last_5_values.end() ; jac++){
-
-    sum_vals = sum_vals + *jac;
-
+  double sum_jacobian = 0;
+  for(int i=0;i<current_estimate.rows;i++){
+    sum_jacobian += std::abs(current_estimate.at<double>(i,0));
   }
 
-  double jac_l2_norm = 0.0;
-  for(int r=0;r<sum_vals.rows;r++){
-    jac_l2_norm += (sum_vals.at<double>(r)*sum_vals.at<double>(r));
-  }
-
-  jac_l2_norm = sqrt(jac_l2_norm);
-
-  std::cerr << "Jacobian L2 Norm = " << jac_l2_norm << "\n";
-
-  if(jac_l2_norm < 3.8e6){
-    std::cerr << "Convergence reached in " << convergence_test_values.size() << "!\n";
-    return true;
-  }
-
-  return false;
+  return sum_jacobian < 9e8;
 
 }
 

@@ -36,40 +36,92 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pi
     sum_jacobian += std::abs(jacobian.at<double>(r,0));
   }
 
-  std::cerr << "Sum of Jacobian is: " << sum_jacobian << "\n";
+  //std::cerr << "Sum of Jacobian is: " << sum_jacobian << "\n";
   
   static bool swap = true;
-  std::cerr << "Start Jacobian = " << jacobian << "\n";
+  //std::cerr << "Start Jacobian = " << jacobian << "\n";
   
   const double SCALE_FACTOR =  (1.0/(pixel_count)) * 3;
     
-  const double XY_scale = 0.2 * 0.005 * swap * SCALE_FACTOR * 1.0/4;
-  const double Z_scale = 0.5 * 0.005 * swap * SCALE_FACTOR * 1.0/4;
-  double R_SCALE = 10 * 0.00008 * swap;
+  const double XY_scale = 0.2 * 0.005 * swap * SCALE_FACTOR;
+  const double Z_scale = 0.5 * 0.005 * swap * SCALE_FACTOR;
+  double R_SCALE = 10 * 0.00008 * swap * SCALE_FACTOR;
   
-  jacobian.at<double>(0,0) *= XY_scale;
-  jacobian.at<double>(1,0) *= XY_scale;
-  jacobian.at<double>(2,0) *= Z_scale;
+  jacobian.at<double>(0,0) *= XY_scale ;
+  jacobian.at<double>(1,0) *= XY_scale ;
+  jacobian.at<double>(2,0) *= Z_scale ;
   
-  std::cerr << "Translation jacobian before scale = " << jacobian.at<double>(0,0) << ", " << jacobian.at<double>(1,0) << ", " << jacobian.at<double>(2,0) << "\n";
+  //std::cerr << "Translation jacobian before scale = " << jacobian.at<double>(0,0) << ", " << jacobian.at<double>(1,0) << ", " << jacobian.at<double>(2,0) << "\n";
+  
+  double largest = std::abs(jacobian.at<double>(0,0));
+  if( largest < std::abs(jacobian.at<double>(1,0)) ) largest = std::abs(jacobian.at<double>(1,0));
+  if( largest < std::abs(jacobian.at<double>(2,0)) ) largest = std::abs(jacobian.at<double>(2,0));
 
-  for(int i=0;i<2;i++){
-    if(std::abs(jacobian.at<double>(i,0)) > 0.2)
-      jacobian.at<double>(i,0) = (jacobian.at<double>(i,0)*0.2)/std::abs(jacobian.at<double>(i,0));
+  jacobian.at<double>(0,0) = (jacobian.at<double>(0,0)*0.2)/largest;
+  jacobian.at<double>(1,0) = (jacobian.at<double>(1,0)*0.2)/largest;
+  jacobian.at<double>(2,0) = (jacobian.at<double>(2,0)*0.5)/largest;
+  
+  //std::cerr << "Translation jacobian = " << jacobian.at<double>(0,0) << ", " << jacobian.at<double>(1,0) << ", " << jacobian.at<double>(2,0) << "\n";
+
+  jacobian.at<double>(5,0) *= 40;
+
+  largest = std::abs(jacobian.at<double>(3,0));
+  if( largest < std::abs(jacobian.at<double>(4,0)) ) largest = std::abs(jacobian.at<double>(4,0));
+  if( largest < std::abs(jacobian.at<double>(5,0)) ) largest = std::abs(jacobian.at<double>(5,0));
+  if( largest < std::abs(jacobian.at<double>(6,0)) ) largest = std::abs(jacobian.at<double>(6,0));
+
+  for(int i=3;i<7;i++){
+    //if( i == 5 ) jacobian.at<double>(i,0) *= (0.2 / largest);
+    jacobian.at<double>(i,0) *= (0.03 / largest);
   }
-  
-  if(std::abs(jacobian.at<double>(2,0)) > 0.5)
-      jacobian.at<double>(2,0) = (jacobian.at<double>(2,0)*0.5)/std::abs(jacobian.at<double>(2,0));
-  
-  std::cerr << "Translation jacobian = " << jacobian.at<double>(0,0) << ", " << jacobian.at<double>(1,0) << ", " << jacobian.at<double>(2,0) << "\n";
 
+
+  //sv::Quaternion q(boost::math::quaternion<double>(jacobian.at<double>(3,0),jacobian.at<double>(4,0),jacobian.at<double>(5,0),jacobian.at<double>(6,0)));
+  //q = q.Normalize();
+
+  //R_SCALE = sqrt((1.0/cos(0.01)) - 1) * swap;
+
+  /*jacobian.at<double>(3,0) /= jacobian.at<double>(3,0);//q.W();
+  jacobian.at<double>(4,0) /= jacobian.at<double>(3,0);//q.X();
+  jacobian.at<double>(5,0) /= jacobian.at<double>(3,0);//q.Y();
+  jacobian.at<double>(6,0) /= jacobian.at<double>(3,0);//q.Z();
+  //jacobian.at<double>(5,0) *= 40;
+
+  double &q_w = jacobian.at<double>(3,0);
+  double &q_x = jacobian.at<double>(4,0);
+  double &q_y = jacobian.at<double>(5,0);
+  double &q_z = jacobian.at<double>(6,0);
+
+  if(q_w > 1.0 || q_w < -1.0){
+    std::cerr << "q_w = " << q_w << "\n";
+    throw(std::runtime_error("Error, uh-oh!\n"));
+  }
+
+  double norm = ( sin ( acos ( q_w ) ) );
+  if(!norm) norm = 0.001;
+  q_x = q_x / norm;
+  q_y = q_y / norm;
+  q_z = q_z / norm;
+  
+
+  const double TARGET_ANGLE = 0.01; 
+  q_w = cos(TARGET_ANGLE * 0.5 );
+  q_x = sin(TARGET_ANGLE * 0.5 ) * q_x;
+  q_y = sin(TARGET_ANGLE * 0.5 ) * q_y;
+  q_z = sin(TARGET_ANGLE * 0.5 ) * q_z;
+  */
+
+  /*
   if( R_SCALE > 0.0 ){
+    
+    
+
     sv::Quaternion q(boost::math::quaternion<double>(jacobian.at<double>(3,0),jacobian.at<double>(4,0),jacobian.at<double>(5,0),jacobian.at<double>(6,0)));
     q = q.Normalize();
     
-    R_SCALE = sqrt((1.0/cos(0.01)) - 1) * !swap;
+    R_SCALE = sqrt((1.0/cos(0.01)) - 1) * swap;
 
-    jacobian.at<double>(3,0) = q.W() * R_SCALE;
+    jacobian.at<double>(3,0) = (-1 + 2*(jacobian.at<double>(3,0) > 0)) * 0.01;//q.W() * R_SCALE;
     jacobian.at<double>(4,0) = q.X() * R_SCALE;
     jacobian.at<double>(5,0) = q.Y() * R_SCALE;
     jacobian.at<double>(6,0) = q.Z() * R_SCALE;
@@ -78,7 +130,7 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pi
   }else{
     for(int i=3;i<7;i++) jacobian.at<double>(i,0) = R_SCALE * jacobian.at<double>(i,0);
   }
-
+  */
 
   std::cerr << "Jacobian = " << jacobian << "\n";
   //swap = !swap;

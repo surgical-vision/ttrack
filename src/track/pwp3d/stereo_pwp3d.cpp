@@ -332,7 +332,8 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   //ComputeDescriptorsForPointTracking(frame_,current_model);
 
   //store a vector of Pose values. check std. dev. of these values, if this is small enough, assume convergence.
-  std::vector<double> convergence_test_values;
+  //std::vector<double> convergence_test_values;
+  std::deque<Pose> convergence_test_values;
   bool converged = false;
 
   //values to hold the 'best' pwp3d estimate
@@ -509,12 +510,12 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     
     //do point based registration
 
-    std::cerr << "\n\n\nJacobian before adding points: " << jacobian << "\n\n\n";
+   // std::cerr << "\n\n\nJacobian before adding points: " << jacobian << "\n\n\n";
     
     std::vector<MatchedPair> pnp_pairs;
     //FindPointCorrespondences(frame_,pnp_pairs);
-    FindPointCorrespondencesWithPose(frame_,pnp_pairs,current_model.CurrentPose());
-    std::cerr << "Matching to " << pnp_pairs.size() << " points\n";
+   // FindPointCorrespondencesWithPose(frame_,pnp_pairs,current_model.CurrentPose());
+    //std::cerr << "Matching to " << pnp_pairs.size() << " points\n";
     for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
       //cv::Mat pnp_jacobian = GetPointDerivative(cv::Point3f(current_model.CurrentPose().Transform(pnp->learned_point)),cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
       cv::Mat pnp_jacobian = GetPointDerivative(pnp->learned_point,cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
@@ -524,12 +525,12 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
       }
     }
     
-    std::cerr << "\n\n\nJacobian after adding points: " << jacobian << "\n\n\n";
+   // std::cerr << "\n\n\nJacobian after adding points: " << jacobian << "\n\n\n";
 
     //update the pose estimate
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step,pixel_count);
 
-    convergence_test_values.push_back(energy);
+    //convergence_test_values.push_back(energy);
 
 
 
@@ -547,9 +548,9 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     //test for convergence
     //converged = HasGradientDescentConverged(convergence_test_values, current_model.CurrentPose() );
     //converged = HasGradientDescentConverged__new(std::vector<cv::Mat>(), jacobian );
-    //converged = HasGradientDescentConverged(jacobian, current_model.CurrentPose());
+    converged = HasGradientDescentConverged(convergence_test_values, current_model.CurrentPose());
     //converged = HasGradientDescentConverged_UsingEnergy(convergence_test_values);
-    std::cerr << "Current pose at end of gradient descent step " << step << " is:\n" << cv::Point3f(current_model.CurrentPose().translation_) << " -- " << current_model.CurrentPose().rotation_ << "\n";
+    //std::cerr << "Current pose at end of gradient descent step " << step << " is:\n" << cv::Point3f(current_model.CurrentPose().translation_) << " -- " << current_model.CurrentPose().rotation_ << "\n";
   }
 
 #ifdef SAVEDEBUG
@@ -714,8 +715,6 @@ void StereoPWP3D::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> 
 
 cv::Mat StereoPWP3D::GetPointDerivative(const cv::Point3f &world, cv::Point2f &image, const Pose &pose) const{
 
-  std::cerr << "WOrld to image points is " << world << " --> " << image << "\n";
-
   const int NUM_DERIVS = 7;
   cv::Mat ret(NUM_DERIVS,1,CV_64FC1);
   cv::Vec3f front_intersection(world);
@@ -755,21 +754,60 @@ bool StereoPWP3D::HasGradientDescentConverged__new(std::vector<cv::Mat> &converg
 
 }
 
-bool StereoPWP3D::HasGradientDescentConverged(const cv::Mat &jacobian, const Pose &pose) const {
+bool StereoPWP3D::HasGradientDescentConverged(std::deque<Pose> &previous_poses, const Pose &pose) const {
 
-  double mag_pose = 0;
-  for(int i=0;i<3;i++) mag_pose += pose.translation_[i]*pose.translation_[i];
-  mag_pose += pose.rotation_.W()*pose.rotation_.W();
-  mag_pose += pose.rotation_.X()*pose.rotation_.X();
-  mag_pose += pose.rotation_.Y()*pose.rotation_.Y();
-  mag_pose += pose.rotation_.Z()*pose.rotation_.Z();
-  mag_pose = sqrt(mag_pose);
+  const int NUM_VALUES_TO_USE = 10;
 
-  double mag_jac = 0;
-  for(int i=0;i<jacobian.rows;i++) mag_jac += jacobian.at<double>(i,0)*jacobian.at<double>(i,0);
-  mag_jac = sqrt(mag_jac);
+  previous_poses.push_back(pose);
+  if(previous_poses.size() < NUM_VALUES_TO_USE) return false;
+  previous_poses.pop_front();
 
-  return mag_pose > mag_jac * 15;
+  cv::Mat sum = cv::Mat::zeros(7,1,CV_64FC1);
+  cv::Mat sum_sqrs = cv::Mat::zeros(7,1,CV_64FC1);
+  cv::Mat std_dev(7,1,CV_64FC1);
+  for(auto val = previous_poses.begin(); val != previous_poses.end(); val++ ){
+
+    int N = 0;
+    sum.at<double>(N,0) += val->translation_[0];
+    sum_sqrs.at<double>(N,0) += (val->translation_[0]*val->translation_[0]);
+
+    N++;
+    sum.at<double>(N,0) += val->translation_[1];
+    sum_sqrs.at<double>(N,0) += (val->translation_[1]*val->translation_[1]);
+
+    N++;
+    sum.at<double>(N,0) += val->translation_[2];
+    sum_sqrs.at<double>(N,0) += (val->translation_[2]*val->translation_[2]);
+
+    N++;
+    sum.at<double>(N,0) += val->rotation_.W();
+    sum_sqrs.at<double>(N,0) += (val->rotation_.W()*val->rotation_.W());
+
+    N++;
+    sum.at<double>(N,0) += val->rotation_.X();
+    sum_sqrs.at<double>(N,0) += (val->rotation_.X()*val->rotation_.X());
+
+    N++;
+    sum.at<double>(N,0) += val->rotation_.Y();
+    sum_sqrs.at<double>(N,0) += (val->rotation_.Y()*val->rotation_.Y());
+
+    N++;
+    sum.at<double>(N,0) += val->rotation_.Z();
+    sum_sqrs.at<double>(N,0) +=  (val->rotation_.Z()*val->rotation_.Z());
+
+  }
+
+  for(int i=0;i<std_dev.rows;i++){
+
+    std_dev.at<double>(i,0) = sqrt((sum_sqrs.at<double>(i,0) - (sum.at<double>(i,0)*sum.at<double>(i,0))/previous_poses.size())/(previous_poses.size() - 1));
+    
+
+  }
+
+  std::cerr << "Std Devs are " << std_dev << "\n";
+  
+  return false;
+  
 }
 
 bool StereoPWP3D::HasGradientDescentConverged_UsingEnergy(std::vector<double> &energy_values) const {

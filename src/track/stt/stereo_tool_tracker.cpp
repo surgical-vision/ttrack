@@ -127,8 +127,8 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
 
   //cv::circle(frame_->GetImageROI(),cv::Point2i(point),10,cv::Scalar(244,25,30),4);
 
-  center_of_mass_3d = center_of_mass_3d * 60;
-  unp_point = unp_point * 60;
+  center_of_mass_3d = center_of_mass_3d * 70;
+  unp_point = unp_point * 70;
   central_axis_3d = unp_point - center_of_mass_3d;
 
  
@@ -201,7 +201,7 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
 
   cv::Vec3f center_of_mass_3d = left_center_of_mass;//camera_->ReprojectPointTo3D( camera_->rectified_left_eye()->ProjectPointToPixel(cv::Point3f(left_center_of_mass)), camera_->rectified_right_eye()->ProjectPointToPixel(cv::Point3f(right_center_of_mass)) );
 
-  ShiftToTip(left_central_axis,center_of_mass_3d);
+  //ShiftToTip(left_central_axis,center_of_mass_3d);
   left_central_axis[2] = -0.5*left_central_axis[0];
   //left_central_axis[1] += 0.15;
   //center_of_mass_3d = cv::Vec3f(17.5,-9.5,65); //GOOD VALUE FOR TEST_VIDEO

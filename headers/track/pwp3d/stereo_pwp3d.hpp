@@ -80,7 +80,7 @@ void TriangulateMatches(std::vector<DescriptorMatches> &matches,std::vector<Matc
 
     void ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame> frame, KalmanTracker current_model );
     //bool HasGradientDescentConverged(std::vector<Pose> &convergence_test_values, Pose &current_estimate) const;
-    bool HasGradientDescentConverged(const cv::Mat &jacobian, const Pose &pose) const ;
+    bool HasGradientDescentConverged(std::deque<Pose> &previous_poses, const Pose &pose) const ;
     bool HasGradientDescentConverged_UsingEnergy(std::vector<double> &energy_values) const ;
     bool HasGradientDescentConverged__new(std::vector<cv::Mat> &convergence_test_values, cv::Mat &current_estimate) const;
     cv::Vec3f GetDOFDerivativesRightEye(const int dof, const Pose &pose, const cv::Vec3f &point_) ;

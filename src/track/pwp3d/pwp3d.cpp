@@ -25,7 +25,7 @@ void PWP3D::ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const 
   pose.rotation_ = pose.rotation_ + rotation;
   pose.rotation_ = pose.rotation_.Normalize();
 
-  std::cerr << "Current translation = " << cv::Point3f(pose.translation_) << "\n";
+  //std::cerr << "Current translation = " << cv::Point3f(pose.translation_) << "\n";
 
 }
 
@@ -63,7 +63,7 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pi
   
   //std::cerr << "Translation jacobian = " << jacobian.at<double>(0,0) << ", " << jacobian.at<double>(1,0) << ", " << jacobian.at<double>(2,0) << "\n";
 
-  jacobian.at<double>(5,0) *= 40;
+  jacobian.at<double>(5,0) *= 5;
 
   largest = std::abs(jacobian.at<double>(3,0));
   if( largest < std::abs(jacobian.at<double>(4,0)) ) largest = std::abs(jacobian.at<double>(4,0));
@@ -72,8 +72,11 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pi
 
   for(int i=3;i<7;i++){
     //if( i == 5 ) jacobian.at<double>(i,0) *= (0.2 / largest);
-    jacobian.at<double>(i,0) *= (0.03 / largest);
+    jacobian.at<double>(i,0) *= (0.003 / largest);
   }
+  
+  //if(jacobian.at<double>(5,0) < 0) std::cerr << "Rotation in y is the right way!\n";
+  
 
 
   //sv::Quaternion q(boost::math::quaternion<double>(jacobian.at<double>(3,0),jacobian.at<double>(4,0),jacobian.at<double>(5,0),jacobian.at<double>(6,0)));

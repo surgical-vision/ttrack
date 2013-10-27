@@ -353,13 +353,72 @@ const cv::Mat PWP3D::ProjectShapeToSDF(KalmanTracker &current_model) {
   //find all the pixels which project to intersection points on the model
   cv::Mat sdf_image(frame_->GetImageROI().size(),CV_32FC1);
   cv::Mat intersection_image(frame_->GetImageROI().size(),CV_8UC1);
+
+
+
+  cv::Mat canvas = cv::Mat::zeros(frame_->GetImageROI().size(),CV_8UC1);
+  std::vector<SimplePoint<> > transformed_points = current_model.ModelPointsAtCurrentPose();
+  for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
+
+    cv::Vec2f projected = camera_->ProjectPoint(point->vertex_);
+
+    for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
+
+      const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
+      cv::Vec2f projected_neighbour = camera_->ProjectPoint( neighbour.vertex_ ); 
+      line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,1,CV_AA);
+    }
+  }
+  
+  std::vector<cv::Point2i> set_of_points;
   for(int r=0;r<sdf_image.rows;r++){
     for(int c=0;c<sdf_image.cols;c++){
-      cv::Vec3f ray = camera_->UnProjectPoint( cv::Point2i(c,r) );
-      intersection_image.at<unsigned char>(r,c) = 255 * current_model.PtrToModel()->GetIntersection(ray, cv::Vec3f() , cv::Vec3f() ,current_model.CurrentPose());
+      if(canvas.at<unsigned char>(r,c) == 255) set_of_points.push_back(cv::Point2i(c,r));
     }
   }
 
+  std::vector<cv::Point2i> convex_hull;
+  cv::convexHull(set_of_points,convex_hull);
+  cv::Mat canvas_2 = cv::Mat::zeros(frame_->GetImageROI().size(),CV_8UC1);
+  for(auto point=convex_hull.begin();point!=(convex_hull.end());){
+    
+    cv::Point a = *point;
+    point++;
+    if(point == convex_hull.end())break;
+    cv::Point b = *point;
+    
+    cv::line(canvas_2,a,b,255,2);
+    
+  }
+  cv::line(canvas_2,*convex_hull.begin(),*(convex_hull.end()-1),255,2);
+  
+
+  std::vector<cv::Point2i> contour;
+  cv::Vec2i center(0,0);
+  for(int r=0;r<sdf_image.rows;r++){
+    for(int c=0;c<sdf_image.cols;c++){
+      if(canvas_2.at<unsigned char>(r,c) == 255) {
+        contour.push_back(cv::Point2i(c,r));
+        center += cv::Vec2i(c,r);
+      }
+    }
+  }
+  center[0] = center[0]/contour.size();
+  center[1] = center[1]/contour.size();
+
+  cv::floodFill(canvas_2,cv::Point(center),255);
+  {
+    boost::progress_timer t;
+    for(int r=0;r<sdf_image.rows;r++){
+      for(int c=0;c<sdf_image.cols;c++){
+        //if(cv::pointPolygonTest(contour,cv::Point2f(c,r),false) == -1) continue;
+        if(canvas_2.at<unsigned char>(r,c) != 255) continue;
+        cv::Vec3f ray = camera_->UnProjectPoint( cv::Point2i(c,r) );
+        intersection_image.at<unsigned char>(r,c) = 255 * current_model.PtrToModel()->GetIntersection(ray, cv::Vec3f() , cv::Vec3f() ,current_model.CurrentPose());
+      }
+    }
+  }
+ 
   //take this binary image and find the outer contour of it. then make a distance image from that contour.
   cv::Mat edge_image(intersection_image.size(),CV_8UC1);
   cv::Canny(intersection_image,edge_image,1,100);

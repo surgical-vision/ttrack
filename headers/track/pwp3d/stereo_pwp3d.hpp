@@ -84,7 +84,7 @@ void TriangulateMatches(std::vector<DescriptorMatches> &matches,std::vector<Matc
     bool HasGradientDescentConverged_UsingEnergy(std::vector<double> &energy_values) const ;
     bool HasGradientDescentConverged__new(std::vector<cv::Mat> &convergence_test_values, cv::Mat &current_estimate) const;
     cv::Vec3f GetDOFDerivativesRightEye(const int dof, const Pose &pose, const cv::Vec3f &point_) ;
-    cv::Mat StereoPWP3D::GetPoseDerivativesRightEye(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model);
+    cv::Mat StereoPWP3D::GetPoseDerivativesRightEye(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image);
     
     bool SetupEye(const int eye, Pose &pose);
 

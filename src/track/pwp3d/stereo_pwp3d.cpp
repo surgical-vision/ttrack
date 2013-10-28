@@ -76,18 +76,18 @@ bool StereoPWP3D::SetupEye(const int eye, Pose &pose){
 
 }
 
-cv::Mat StereoPWP3D::GetPoseDerivativesRightEye(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model){
+cv::Mat StereoPWP3D::GetPoseDerivativesRightEye(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image){
 
   const int NUM_DERIVS = 7;
      
    //find the (x,y,z) coordinates of the front and back intersection between the ray from the current pixel and the target object. return zero vector for no intersection.
   cv::Vec3f front_intersection;
   cv::Vec3f back_intersection;
-  bool intersects = GetTargetIntersections(r,c,front_intersection,back_intersection,current_model);
+  bool intersects = GetTargetIntersections(r,c,front_intersection,back_intersection,current_model, front_intersection_image, back_intersection_image);
   
   //because the derivative only works for points which project to the target and we need it to be defined for points outside the contour, 'pretend' that a small region of these points actually hit the contour
   if(!intersects) {
-    intersects = GetNearestIntersection(r,c,sdf,front_intersection,back_intersection,current_model);
+    intersects = GetNearestIntersection(r,c,sdf,front_intersection,back_intersection,current_model, front_intersection_image, back_intersection_image);
     if(!intersects)
       throw(std::runtime_error("Error, should not miss point on the border. Check GetNearestIntesection::search_range and continue values!\n"));
       //return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
@@ -360,7 +360,8 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
       if(!SetupEye(eye,current_model.CurrentPose())) break; //sets the camera_ variable to left or right eye breaks after resetting everything back to initial state after right eye
       
-      cv::Mat sdf_image = ProjectShapeToSDF(current_model);
+      cv::Mat sdf_image,front_intersection_image,back_intersection_image;
+      GetSDFAndIntersectionImage(current_model,sdf_image,front_intersection_image,back_intersection_image);
 
 #ifdef SAVEDEBUG
       if(eye == 0){
@@ -376,18 +377,6 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
         cv::imwrite(ss.str()+"/right/"+step_dir.str()+"/previous.png",right_canvas);
       }
 #endif
-
-      //compute the normalization values n_f and n_b
-      double norm_foreground,norm_background;
-      ComputeNormalization(norm_foreground,norm_background,sdf_image);
-      if(norm_foreground == 0) {
-#ifdef DEBUG
-        std::cerr << "The object is not in view!\n"; 
-#endif
-        return current_model.CurrentPose();
-      }
-
-
 
       //compute the derivates of the sdf images
       cv::Mat dSDFdx, dSDFdy;
@@ -418,18 +407,18 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
           if( skip < 0.00001 || skip > 0.99999 ) continue;
 
           //compute the energy value for this pixel - not used for pose jacobian, just for assessing minima/          
-          energy += GetEnergy(r,c,sdf_image.at<float>(r,c), norm_foreground, norm_background); 
-          energy_image.at<unsigned char>(r,c) = 255 * GetEnergy(r,c,sdf_image.at<float>(r,c), norm_foreground, norm_background);
+          energy += GetEnergy(r,c,sdf_image.at<float>(r,c)); 
+          energy_image.at<unsigned char>(r,c) = 255 * GetEnergy(r,c,sdf_image.at<float>(r,c));
 
           //P_f - P_b / (H * P_f + (1 - H) * P_b)
-          const double region_agreement = GetRegionAgreement(r, c, sdf_image.at<float>(r,c), norm_foreground, norm_background);
+          const double region_agreement = GetRegionAgreement(r, c, sdf_image.at<float>(r,c));
 
           //dH / dL
           cv::Mat pose_derivatives;
           if(eye == 0)
-            pose_derivatives = GetPoseDerivatives(r, c, sdf_image, dSDFdx.at<float>(r,c), dSDFdy.at<float>(r,c), current_model);
+            pose_derivatives = GetPoseDerivatives(r, c, sdf_image, dSDFdx.at<float>(r,c), dSDFdy.at<float>(r,c), current_model, front_intersection_image, back_intersection_image);
           else if(eye == 1)
-            pose_derivatives = GetPoseDerivativesRightEye(r, c, sdf_image, dSDFdx.at<float>(r,c), dSDFdy.at<float>(r,c), current_model);
+            pose_derivatives = GetPoseDerivativesRightEye(r, c, sdf_image, dSDFdx.at<float>(r,c), dSDFdy.at<float>(r,c), current_model, front_intersection_image, back_intersection_image);
           else
             throw(std::runtime_error("Error, bad stereo thing.\n"));
 
@@ -437,7 +426,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
           for(int i=0;i<pose_derivatives.rows;i++){
             double pp = (region_agreement*pose_derivatives.at<double>(i,0));
             if (pp != pp) { std::cerr << "Alert! Bad derivatives\n"; continue; }
-            jacobian.at<double>(i,0) += -1 * (region_agreement*pose_derivatives.at<double>(i,0));
+            jacobian.at<double>(i,0) += -1 * pp;
           }
 
           pixel_count++ ;
@@ -1096,7 +1085,9 @@ void StereoPWP3D::ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame
   //make a descriptor finder
   cv::Mat image_gray;
   cv::cvtColor(frame_->GetImageROI(),image_gray,CV_RGB2GRAY);
-  cv::Mat shape_image = ProjectShapeToSDF(current_model);
+
+  cv::Mat shape_image;
+  GetSDFAndIntersectionImage(current_model,shape_image,cv::Mat(),cv::Mat());
 
   cv::SiftFeatureDetector detector;//(400);
   std::vector<cv::KeyPoint> keypoints;

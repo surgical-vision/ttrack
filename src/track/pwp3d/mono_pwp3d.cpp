@@ -50,18 +50,9 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
   double min_energy = std::numeric_limits<double>::max();
   for(int step=0; step < NUM_STEPS; step++){
 
-    cv::Mat sdf_image = ProjectShapeToSDF(current_model);
-    cv::imwrite("sdf_image.png",sdf_image);
-    //compute the normalization values n_f and n_b
-    double norm_foreground,norm_background;
-    ComputeNormalization(norm_foreground,norm_background,sdf_image);
-    if(norm_foreground == 0) {
-#ifdef DEBUG
-      std::cerr << "The object is not in view!\n"; 
-#endif
-      return current_model.CurrentPose();
-    }
-
+    cv::Mat sdf_image,front_intersection_image,back_intersection_image;
+    GetSDFAndIntersectionImage(current_model,sdf_image,front_intersection_image,back_intersection_image);
+    
     //compute the derivates of the sdf images
     cv::Mat dSDFdx, dSDFdy;
     cv::Sobel(sdf_image,dSDFdx,CV_32FC1,1,0,1);
@@ -77,15 +68,14 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
       for(int c=0;c<frame_->GetImageROI().cols;c++){
     
         //compute the energy value for this pixel - not used for pose jacobian, just for assessing minima/progress
-        energy += GetEnergy(r,c,sdf_image.at<float>(r,c), norm_foreground, norm_background);
+        energy += GetEnergy(r,c,sdf_image.at<float>(r,c));
 
         //P_f - P_b / (H * P_f + (1 - H) * P_b)
-        const double region_agreement = GetRegionAgreement(r, c, sdf_image.at<float>(r,c), norm_foreground, norm_background);
+        const double region_agreement = GetRegionAgreement(r, c, sdf_image.at<float>(r,c));
 
         //dH / dL
-        const cv::Mat pose_derivatives = GetPoseDerivatives(r, c, sdf_image, dSDFdx.at<float>(r,c), dSDFdy.at<float>(r,c), current_model);
+        const cv::Mat pose_derivatives = GetPoseDerivatives(r, c, sdf_image, dSDFdx.at<float>(r,c), dSDFdy.at<float>(r,c), current_model, front_intersection_image, back_intersection_image);
       
-
         num_pixels++;
 
         //update the jacobian

@@ -6,6 +6,9 @@
 #include "../../../deps/image/image/image.hpp"
 #include "../pose.hpp"
 
+#define SAVEDEBUG_1
+#define SAVEDEBUG_2
+
 namespace ttrk {
 
   class PWP3D : public Localizer {
@@ -89,6 +92,8 @@ namespace ttrk {
     bool GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model , const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const ;
     
     double GetEnergy(const int r, const int c, const float sdf) const;
+
+    void DrawModelOnFrame(const std::vector<SimplePoint<> > &transformed_points, cv::Mat canvas);
 
     boost::shared_ptr<sv::Frame> frame_;
     

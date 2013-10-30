@@ -22,10 +22,9 @@ void PWP3D::ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const 
                               (float)scaled_jacobian.at<double>(6,0)
                             )
                 );
+
   pose.rotation_ = pose.rotation_ + rotation;
   pose.rotation_ = pose.rotation_.Normalize();
-
-  //std::cerr << "Current translation = " << cv::Point3f(pose.translation_) << "\n";
 
 }
 
@@ -36,10 +35,7 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pi
     sum_jacobian += std::abs(jacobian.at<double>(r,0));
   }
 
-  //std::cerr << "Sum of Jacobian is: " << sum_jacobian << "\n";
-  
   static bool swap = true;
-  //std::cerr << "Start Jacobian = " << jacobian << "\n";
   
   const double SCALE_FACTOR =  (1.0/(pixel_count)) * 3;
     
@@ -51,19 +47,15 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pi
   jacobian.at<double>(1,0) *= XY_scale ;
   jacobian.at<double>(2,0) *= Z_scale ;
   
-  //std::cerr << "Translation jacobian before scale = " << jacobian.at<double>(0,0) << ", " << jacobian.at<double>(1,0) << ", " << jacobian.at<double>(2,0) << "\n";
-  
   double largest = std::abs(jacobian.at<double>(0,0));
   if( largest < std::abs(jacobian.at<double>(1,0)) ) largest = std::abs(jacobian.at<double>(1,0));
   if( largest < std::abs(jacobian.at<double>(2,0)) ) largest = std::abs(jacobian.at<double>(2,0));
 
   jacobian.at<double>(0,0) = (jacobian.at<double>(0,0)*0.2)/largest;
-  jacobian.at<double>(1,0) = (jacobian.at<double>(1,0)*0.2)/largest;
-  jacobian.at<double>(2,0) = (jacobian.at<double>(2,0)*0.5)/largest;
-  
-  //std::cerr << "Translation jacobian = " << jacobian.at<double>(0,0) << ", " << jacobian.at<double>(1,0) << ", " << jacobian.at<double>(2,0) << "\n";
+  jacobian.at<double>(1,0) = (jacobian.at<double>(1,0)*0.1)/largest;
+  jacobian.at<double>(2,0) = (jacobian.at<double>(2,0)*0.6)/largest;
 
-  jacobian.at<double>(5,0) *= 5;
+  jacobian.at<double>(5,0) *= 10;
 
   largest = std::abs(jacobian.at<double>(3,0));
   if( largest < std::abs(jacobian.at<double>(4,0)) ) largest = std::abs(jacobian.at<double>(4,0));
@@ -71,101 +63,11 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pi
   if( largest < std::abs(jacobian.at<double>(6,0)) ) largest = std::abs(jacobian.at<double>(6,0));
 
   for(int i=3;i<7;i++){
-    //if( i == 5 ) jacobian.at<double>(i,0) *= (0.2 / largest);
     jacobian.at<double>(i,0) *= (0.003 / largest);
   }
-  
-  //if(jacobian.at<double>(5,0) < 0) std::cerr << "Rotation in y is the right way!\n";
-  
 
-
-  //sv::Quaternion q(boost::math::quaternion<double>(jacobian.at<double>(3,0),jacobian.at<double>(4,0),jacobian.at<double>(5,0),jacobian.at<double>(6,0)));
-  //q = q.Normalize();
-
-  //R_SCALE = sqrt((1.0/cos(0.01)) - 1) * swap;
-
-  /*jacobian.at<double>(3,0) /= jacobian.at<double>(3,0);//q.W();
-  jacobian.at<double>(4,0) /= jacobian.at<double>(3,0);//q.X();
-  jacobian.at<double>(5,0) /= jacobian.at<double>(3,0);//q.Y();
-  jacobian.at<double>(6,0) /= jacobian.at<double>(3,0);//q.Z();
-  //jacobian.at<double>(5,0) *= 40;
-
-  double &q_w = jacobian.at<double>(3,0);
-  double &q_x = jacobian.at<double>(4,0);
-  double &q_y = jacobian.at<double>(5,0);
-  double &q_z = jacobian.at<double>(6,0);
-
-  if(q_w > 1.0 || q_w < -1.0){
-    std::cerr << "q_w = " << q_w << "\n";
-    throw(std::runtime_error("Error, uh-oh!\n"));
-  }
-
-  double norm = ( sin ( acos ( q_w ) ) );
-  if(!norm) norm = 0.001;
-  q_x = q_x / norm;
-  q_y = q_y / norm;
-  q_z = q_z / norm;
-  
-
-  const double TARGET_ANGLE = 0.01; 
-  q_w = cos(TARGET_ANGLE * 0.5 );
-  q_x = sin(TARGET_ANGLE * 0.5 ) * q_x;
-  q_y = sin(TARGET_ANGLE * 0.5 ) * q_y;
-  q_z = sin(TARGET_ANGLE * 0.5 ) * q_z;
-  */
-
-  /*
-  if( R_SCALE > 0.0 ){
-    
-    
-
-    sv::Quaternion q(boost::math::quaternion<double>(jacobian.at<double>(3,0),jacobian.at<double>(4,0),jacobian.at<double>(5,0),jacobian.at<double>(6,0)));
-    q = q.Normalize();
-    
-    R_SCALE = sqrt((1.0/cos(0.01)) - 1) * swap;
-
-    jacobian.at<double>(3,0) = (-1 + 2*(jacobian.at<double>(3,0) > 0)) * 0.01;//q.W() * R_SCALE;
-    jacobian.at<double>(4,0) = q.X() * R_SCALE;
-    jacobian.at<double>(5,0) = q.Y() * R_SCALE;
-    jacobian.at<double>(6,0) = q.Z() * R_SCALE;
-
-    //for(int i=3;i<7;i++) jacobian.at<double>(i,0) = jacobian.at<double>(i,0) * (TARGET_ANGLE)/angle;
-  }else{
-    for(int i=3;i<7;i++) jacobian.at<double>(i,0) = R_SCALE * jacobian.at<double>(i,0);
-  }
-  */
-
-  std::cerr << "Jacobian = " << jacobian << "\n";
-  //swap = !swap;
   return;
 
-  /*static bool swap = false;
-  if(!step_number % 5) swap = !swap;
-
-  const int Z_SCALE_FACTOR = 15;
-
-  const double SCALER = 0.9/(1 + exp(-0.15 * (-step_number + 40) )) + 0.1;
-
-  const double T_SCALER = SCALER * 5;
-  const double translation_scale = 1.0/(T_SCALER * sqrt( jacobian.at<double>(0,0)*jacobian.at<double>(0,0) + jacobian.at<double>(1,0)*jacobian.at<double>(1,0) + jacobian.at<double>(2,0)*jacobian.at<double>(2,0)));
-  for(int i=3;i<7;i++) jacobian.at<double>(i,0) = (float)0.000000002 * jacobian.at<double>(i,0);
-  jacobian.at<double>(6,0) *= Z_SCALE_FACTOR;
-  
-  sv::Quaternion q(boost::math::quaternion<double>(jacobian.at<double>(3,0),jacobian.at<double>(4,0),jacobian.at<double>(5,0),jacobian.at<double>(6,0)));
-  const cv::Vec3f angle_axis = q.AngleAxis();
-  const double angle = sqrt(angle_axis[0]*angle_axis[0] + angle_axis[1]*angle_axis[1] + angle_axis[2]*angle_axis[2]);
-  const double rotation_scale = std::abs(0.8 * SCALER / angle);
-
-
-  for(int i=0;i<3;i++) jacobian.at<double>(i,0) *= translation_scale * !swap;
-  jacobian.at<double>(2,0) *= Z_SCALE_FACTOR ;
-  
-  jacobian.at<double>(3,0) = rotation_scale * q.W() * swap;
-  jacobian.at<double>(4,0) = rotation_scale * q.X() * swap;
-  jacobian.at<double>(5,0) = rotation_scale * q.Y() * swap;
-  jacobian.at<double>(6,0) = rotation_scale * q.Z() * swap;
-
-  swap = !swap;*/
   
 }
 
@@ -248,15 +150,8 @@ bool PWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3f &front_in
 
   front_intersection = front_intersection_image.at<cv::Vec3f>(r,c);
   back_intersection = back_intersection_image.at<cv::Vec3f>(r,c);
-  /*
-  cv::Vec3f ray = camera_->UnProjectPoint( cv::Point2i(c,r) ); 
-  bool xx = current_model.PtrToModel()->GetIntersection(ray, front_intersection, back_intersection,current_model.CurrentPose());
-  
-  if( f_intersection != front_intersection && b_intersection != back_intersection )
-    std::cerr << "Error in target intersectionsp! " << cv::Point3f(f_intersection) << " != " << cv::Point3f(front_intersection) << " -- " <<  cv::Point3f(b_intersection) << " != " <<  cv::Point3f(back_intersection) << "\n";
-    */
-  return  front_intersection != cv::Vec3f(0,0,0);
 
+  return  front_intersection != cv::Vec3f(0,0,0);
 
 }
 
@@ -292,12 +187,6 @@ bool PWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat &sdf,
   front_intersection = front_intersection_image.at<cv::Vec3f>(min_point.y,min_point.x);
   back_intersection = back_intersection_image.at<cv::Vec3f>(min_point.y,min_point.x);
 
-  /*
-  cv::Vec3f ray = camera_->UnProjectPoint( cv::Point2i(min_point.x,min_point.y) ); 
-  bool xx = current_model.PtrToModel()->GetIntersection(ray, front_intersection,back_intersection,current_model.CurrentPose());
-  if( f_intersection != front_intersection && b_intersection != back_intersection )
-    std::cerr << "Error in nearest intersection! " << cv::Point3f(f_intersection) << " != " << cv::Point3f(front_intersection) << " -- " <<  cv::Point3f(b_intersection) << " != " <<  cv::Point3f(back_intersection) << "\n";
-  */
   return  front_intersection != cv::Vec3f(0,0,0);
 }
 
@@ -352,14 +241,7 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
   //first draw the model at the current pose
   cv::Mat canvas = cv::Mat::zeros(frame_->GetImageROI().size(),CV_8UC1);
   std::vector<SimplePoint<> > transformed_points = current_model.ModelPointsAtCurrentPose();
-  for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
-    cv::Vec2f projected = camera_->ProjectPoint(point->vertex_);
-    for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
-      const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
-      cv::Vec2f projected_neighbour = camera_->ProjectPoint( neighbour.vertex_ ); 
-      line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,1,CV_AA);
-    }
-  }
+  DrawModelOnFrame(transformed_points,canvas);
   
   //find the set of pixels which correspond to the drawn object
   std::vector<cv::Point2i> set_of_points;
@@ -452,4 +334,127 @@ bool PWP3D::ModelInFrame( const KalmanTracker &tracked_model, const cv::Mat &det
 
 }
 
+
+inline bool PointInImage(const cv::Point &point, const cv::Size &image_size){
+  return cv::Rect(0,0,image_size.width,image_size.height).contains(point);
+}
+
+
+inline bool IsHorizontal(const cv::Point &a, const cv::Point &b){
+  return a.y == b.y;
+}
+
+inline bool IsVertical(const cv::Point &a, const cv::Point &b){
+  return a.x == b.x;
+}
+
+
+inline double Gradient(const cv::Point &a, const cv::Point &b){
+  return (float)(a.y - b.y)/(a.x - b.x);
+}
+
+inline double YIntersect(const cv::Point &a, const double gradient){
+  return a.y - (gradient*a.x);
+}
+
+bool FindHorizontalIntersection(const cv::Point &horizontal_start, const cv::Point &horizontal_end, const cv::Point &line_start, const cv::Point &line_end, cv::Point &intersection){
+  
+  const double gradient = Gradient(line_start,line_end);
+  double intersect_x = (horizontal_start.y/gradient) - YIntersect(line_start,gradient);
+  intersection = cv::Point(intersect_x,horizontal_start.y);
+  //do max-min checks as the start and end points might be the wrong way around
+  return ( intersection.x >= std::min(horizontal_start.x,horizontal_end.x) && intersection.x <= std::max(horizontal_start.x,horizontal_end.x) && intersection.x >= std::min(line_start.x,line_end.x) && intersection.x <= std::max(line_end.x,line_end.x) );
+  
+}
+
+bool FindVerticalIntersection(const cv::Point &vertical_start, const cv::Point &vertical_end, const cv::Point &line_start, const cv::Point &line_end, cv::Point &intersection){
+
+  const double gradient = Gradient(line_start,line_end);
+  double intersect_y = gradient*vertical_start.x + YIntersect(line_start,gradient);
+  intersection = cv::Point(vertical_start.x,intersect_y);
+  //do max-min checks as the start and end points might be the wrong way around
+  return ( intersection.y >= std::min(vertical_end.y, vertical_start.y) && intersection.y <= std::max(vertical_end.y,vertical_start.y)  && intersection.y >= std::min(line_start.y,line_end.y) && intersection.y <= std::max(line_end.y,line_start.y) );
+
+}
+
+
+
+bool FindIntersection(const cv::Point &a1, const cv::Point &a2, const cv::Point &b1, const cv::Point &b2, cv::Point &intersection){
+
+  if( IsHorizontal(a1,a2) && !IsHorizontal(b1,b2)){
+
+    return FindHorizontalIntersection(a1,a2,b1,b2,intersection);
+
+  }
+
+  if( IsVertical(a1,a2) && !IsVertical(b1,b2) ) {
+
+    return FindVerticalIntersection(a1,a2,b1,b2,intersection);
+
+  }
+
+  if( IsHorizontal(b1,b2) && !IsHorizontal(a1,a2) ){
+
+    return FindHorizontalIntersection(b1,b2,a1,a2,intersection);
+
+  }
+
+  if( IsVertical(b1,b2) && !IsVertical(a1,a2) ){
+
+    return FindVerticalIntersection(b1,b2,a1,a2,intersection);
+
+  }
+
+  return false;
+
+}
+
+bool CheckEdgesForIntersection(const cv::Point &a, const cv::Point &b, const cv::Size &image_size, cv::Point &intersection){
+  if(FindIntersection(a, b, cv::Point2i(0,0), cv::Point(0,image_size.height-1),intersection)){
+    std::cerr << "probably a bug A\n";
+    return true;
+  }else if(FindIntersection(a, b, cv::Point2i(0,0), cv::Point(image_size.width-1,0) ,intersection)){
+    std::cerr << "propably a bugB\n";
+    return true;
+  }else if(FindIntersection(a, b, cv::Point2i(0,image_size.height-1), cv::Point(image_size.width-1,image_size.height-1),intersection)){
+    return true;
+  }else if(FindIntersection(a, b, cv::Point2i(image_size.width-1,0), cv::Point(image_size.width-1,image_size.height-1),intersection)){
+    return true;
+  }
+  return false;
+}
+
+void PWP3D::DrawModelOnFrame(const std::vector<SimplePoint<> > &transformed_points, cv::Mat canvas) {
+
+  for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
+
+    cv::Vec2f projected = camera_->ProjectPoint(point->vertex_);
+
+    for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
+
+      const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
+      cv::Vec2f projected_neighbour = camera_->ProjectPoint( neighbour.vertex_ );
+
+      if(!PointInImage(cv::Point2i(projected),canvas.size()) || !PointInImage(cv::Point2i(projected_neighbour),canvas.size())){
+        cv::Point intersection;
+        bool intersected = CheckEdgesForIntersection(cv::Point2i(projected),cv::Point2i(projected_neighbour),canvas.size(),intersection);
+        if(intersected && !PointInImage(cv::Point2i(projected),canvas.size()) && PointInImage(cv::Point2i(projected_neighbour),canvas.size())){
+          projected = cv::Vec2i(intersection);          
+        } 
+        else if(intersected && PointInImage(cv::Point2i(projected),canvas.size()) && !PointInImage(cv::Point2i(projected_neighbour),canvas.size())){
+          projected_neighbour = cv::Vec2i(intersection);
+        }
+        else if(!PointInImage(cv::Point2i(projected),canvas.size()) && !PointInImage(cv::Point2i(projected_neighbour),canvas.size())){
+          continue;
+        }
+      }
+
+      if(canvas.channels() == 3)
+        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),1,CV_AA);
+      if(canvas.channels() == 1)
+        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,1,CV_AA);
+    }
+  }
+
+}
 

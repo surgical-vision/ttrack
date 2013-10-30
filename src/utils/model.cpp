@@ -12,6 +12,13 @@ MISTool::MISTool(float radius, float height):radius_(radius),height_(height){
   height_tip_ = height_ + 18;//height_fraction_  * height_;
 }
 
+cv::Vec3f MISTool::GetTrackedPoint() const {
+
+  return cv::Vec3f (-(float)height_/2 + (float)(height_tip_), 
+                     (float) - 0.15*radius_*2,
+                     0);
+
+}
 
 std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
 

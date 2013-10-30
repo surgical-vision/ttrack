@@ -85,6 +85,8 @@ namespace ttrk{
 
     virtual cv::Vec3f PrincipalAxis() const = 0;
 
+    virtual cv::Vec3f GetTrackedPoint() const = 0;
+
     virtual float Radius() = 0;
 
   protected:
@@ -132,7 +134,8 @@ namespace ttrk{
 
     virtual float Radius() { return radius_; }
     float HeightFraction() { return height_fraction_; }
-
+    virtual cv::Vec3f GetTrackedPoint() const;
+  
   private:
 
     bool GetIntersectionShaft(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const;

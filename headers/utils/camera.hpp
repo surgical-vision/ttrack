@@ -127,8 +127,7 @@ namespace ttrk{
 
     cv::Mat ExtrinsicRotation() const { return extrinsic_matrix_(cv::Rect(0,0,3,3)); }
     cv::Vec3f ExtrinsicTranslation() const { return cv::Vec3f(extrinsic_matrix_.at<double>(0,3), extrinsic_matrix_.at<double>(1,3),extrinsic_matrix_.at<double>(2,3)); }
-
-
+    
   protected:
 
     bool rectified_;

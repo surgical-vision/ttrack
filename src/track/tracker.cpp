@@ -32,7 +32,7 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
     current_model_->UpdatePose(pose_measurement);
 
     //if( localizer_->ModelInFrame( *current_model_, frame_->GetClassificationMapROI() ))
-      DrawModelOnFrame(*current_model_,frame_->GetImage());
+    DrawModelOnFrame(*current_model_,frame_->GetImage());
     //else
       //tracking_ = false;
   

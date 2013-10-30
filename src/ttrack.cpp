@@ -47,7 +47,6 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
     std::cerr << "Exiting...\n";
     SAFE_EXIT();
   }
-
   
 }
 
@@ -112,8 +111,8 @@ void TTrack::SaveFrame(){
   cv::addWeighted(frame->GetImageROI(),0.55,classification_3channel,0.45,0,blended);
 
   //request the handler to save it to a video/image
-  //handler_->SaveFrame(frame->GetImage());
-  handler_->SaveFrame(blended);
+  handler_->SaveFrame(frame->GetImageROI());
+  //handler_->SaveFrame(blended);
 
 }
 
@@ -137,8 +136,9 @@ void TTrack::SaveResults() const {
 
     cv::Vec3f angle_axis = model.CurrentPose().rotation_.AngleAxis();
     cv::Vec3f translation = model.CurrentPose().translation_;
+    cv::Vec3f point_of_interest = model.CurrentPose().Transform(model.PtrToModel()->GetTrackedPoint());
 
-    *results_file << translation[0] << "," << translation[1] << "," << translation[2] << "," << angle_axis[0] << "," << angle_axis[1] << "," << angle_axis[2] << "\n" ;
+    *results_file << translation[0] << "," << translation[1] << "," << translation[2] << "," << angle_axis[0] << "," << angle_axis[1] << "," << angle_axis[2] << ", " << point_of_interest[0] << ", " << point_of_interest[1] << ", " << point_of_interest[2] << "\n" ;
     results_file->flush();
 
   }

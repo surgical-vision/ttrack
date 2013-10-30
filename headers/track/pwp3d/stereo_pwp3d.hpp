@@ -69,7 +69,6 @@ void TriangulateMatches(std::vector<DescriptorMatches> &matches,std::vector<Matc
 
   protected:   
 
-    void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) ;
     void DrawModelOnBothFrames(const KalmanTracker &tracked_model, cv::Mat left_canvas, cv::Mat right_canvas);
 
     Pose ApplyPointBasedRegistration(boost::shared_ptr<sv::Frame> frame, KalmanTracker &current_model );

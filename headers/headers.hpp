@@ -18,6 +18,7 @@
   #define DEBUG
 #endif
 
-#define SAVEDEBUG
+//#define SAVEDEBUG_1
+//#define SAVEDEBUG_2
   
 #endif //_HEADERS_H_

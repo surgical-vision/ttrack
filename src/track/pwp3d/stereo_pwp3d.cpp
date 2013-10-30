@@ -9,8 +9,6 @@
 #include <numeric>
 
 using namespace ttrk;
-//#define SAVEDEBUG
-
 /*** REMOVE THIS ***/
 
 
@@ -219,82 +217,23 @@ cv::Vec3f StereoPWP3D::GetDOFDerivativesRightEye(const int dof, const Pose &pose
 
 }
 
-void StereoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) {
-
-  std::vector<SimplePoint<> > transformed_points = tracked_model.ModelPointsAtCurrentPose();
-
-  for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
-
-    cv::Vec2f projected = camera_->ProjectPoint(point->vertex_);
-
-    for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
-
-      const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
-      cv::Vec2f projected_neighbour = camera_->ProjectPoint( neighbour.vertex_ );
-
-      if(canvas.channels() == 3)
-        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),1,CV_AA);
-      if(canvas.channels() == 1)
-        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,1,CV_AA);
-    }
-  }
-}
-
-
-
-
 void StereoPWP3D::DrawModelOnBothFrames(const KalmanTracker &tracked_model, cv::Mat left_canvas, cv::Mat right_canvas) {
 
-  {
-    std::vector<SimplePoint<> > transformed_points = tracked_model.ModelPointsAtCurrentPose();
-
-    for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
-
-      cv::Vec2f projected =  GetStereoCamera()->rectified_left_eye()->ProjectPoint(point->vertex_);
-
-      for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
-
-        const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
-        cv::Vec2f projected_neighbour = GetStereoCamera()->rectified_left_eye()->ProjectPoint( neighbour.vertex_ );
-
-        if(left_canvas.channels() == 3)
-          line(left_canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),1,CV_AA);
-        if(left_canvas.channels() == 1)
-          line(left_canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,1,CV_AA);
-      }
-    }
-  }
-  {
-    KalmanTracker tracked_model_from_right = tracked_model;
-
-    Pose extrinsic(cv::Vec3f(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
-    tracked_model_from_right.CurrentPose() = CombinePoses(extrinsic, tracked_model_from_right.CurrentPose());
-    std::vector<SimplePoint<> > transformed_points = tracked_model_from_right.ModelPointsAtCurrentPose();
-
-    for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
-
-      cv::Vec2f projected = GetStereoCamera()->rectified_right_eye()->ProjectPoint(point->vertex_);
-
-      for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
-
-        const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
-        cv::Vec2f projected_neighbour = GetStereoCamera()->rectified_right_eye()->ProjectPoint( neighbour.vertex_ );
-
-        if(right_canvas.channels() == 3)
-          line(right_canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),1,CV_AA);
-        if(right_canvas.channels() == 1)
-          line(right_canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,1,CV_AA);
-      }
-    }
-
-  }
+  DrawModelOnFrame(tracked_model.ModelPointsAtCurrentPose(),left_canvas);
+  
+  KalmanTracker tracked_model_from_right = tracked_model;
+  Pose extrinsic;
+  if(stereo_camera_->IsRectified())
+    extrinsic = Pose(cv::Vec3f(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
+  else
+    extrinsic = Pose(stereo_camera_->ExtrinsicTranslation(),sv::Quaternion(stereo_camera_->ExtrinsicRotation()));
+  
+  tracked_model_from_right.CurrentPose() = CombinePoses(extrinsic, tracked_model_from_right.CurrentPose());
+  DrawModelOnFrame(tracked_model_from_right.ModelPointsAtCurrentPose(),right_canvas);
 
 }
 
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
-#ifdef SAVEDEBUG
-  //#undef SAVEDEBUG
-#endif
 
   frame_ = frame;
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
@@ -306,7 +245,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 #endif
 
 
-#ifdef SAVEDEBUG
+#ifdef SAVEDEBUG_1
   std::cerr << "starting pose is: "<< current_model.CurrentPose().rotation_ << " + " << cv::Point3f(current_model.CurrentPose().translation_) << std::endl;
   cv::Mat left_canvas = stereo_frame->GetLeftImage().clone();
   cv::Mat right_canvas = stereo_frame->GetRightImage().clone();
@@ -337,13 +276,15 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   bool converged = false;
 
   //values to hold the 'best' pwp3d estimate
-  double min_energy = std::numeric_limits<double>::max();
+  double max_energy = 0;
   Pose pwp3d_best_pose = current_model.CurrentPose();
+  cv::Mat best_image;
+  std::vector<double> energy_vals;
 
   //iterate until convergence
   for(int step=0; step < NUM_STEPS && !converged; step++){
 
-#ifdef SAVEDEBUG
+#ifdef SAVEDEBUG_1
 
     std::stringstream step_dir; step_dir << "step" << step;
     boost::filesystem::create_directory(ss.str()+"/left/"+step_dir.str());
@@ -363,36 +304,36 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
       cv::Mat sdf_image,front_intersection_image,back_intersection_image;
       GetSDFAndIntersectionImage(current_model,sdf_image,front_intersection_image,back_intersection_image);
 
-#ifdef SAVEDEBUG
+#ifdef SAVEDEBUG_2
       if(eye == 0){
         cv::imwrite(ss.str() + "/left/" + step_dir.str() + "/sdf.png",sdf_image);
         cv::Mat left_canvas = stereo_frame->GetLeftImage().clone();
-        DrawModelOnFrame(current_model,left_canvas);
+        DrawModelOnFrame(current_model.ModelPointsAtCurrentPose(),left_canvas);
         cv::imwrite(ss.str()+"/left/"+step_dir.str()+"/previous.png",left_canvas);
       }
       if(eye == 1) {
         cv::imwrite(ss.str() + "/right/" + step_dir.str() + "/sdf.png",sdf_image);
         cv::Mat right_canvas = stereo_frame->GetRightImage().clone();
-        DrawModelOnFrame(current_model,right_canvas);
+        DrawModelOnFrame(current_model.ModelPointsAtCurrentPose(),right_canvas);
         cv::imwrite(ss.str()+"/right/"+step_dir.str()+"/previous.png",right_canvas);
       }
 #endif
 
       //compute the derivates of the sdf images
       cv::Mat dSDFdx, dSDFdy;
-      //cv::Sobel(sdf_image,dSDFdx,CV_32FC1,1,0,1); // (src,dst,dtype,dx,dy,size) size = 1 ==> 3x1 finite difference kernel
-      //cv::Sobel(sdf_image,dSDFdy,CV_32FC1,0,1,1);
-      cv::Scharr(sdf_image,dSDFdx,CV_32FC1,1,0);
-      cv::Scharr(sdf_image,dSDFdy,CV_32FC1,0,1);
+      cv::Sobel(sdf_image,dSDFdx,CV_32FC1,1,0,1); // (src,dst,dtype,dx,dy,size) size = 1 ==> 3x1 finite difference kernel
+      cv::Sobel(sdf_image,dSDFdy,CV_32FC1,0,1,1);
+      //cv::Scharr(sdf_image,dSDFdx,CV_32FC1,1,0);
+      //cv::Scharr(sdf_image,dSDFdy,CV_32FC1,0,1);
 
-#ifdef SAVEDEBUG
+#ifdef SAVEDEBUG_2
       cv::Mat jacobian_x = cv::Mat::zeros(sdf_image.size(),CV_8UC3);
       cv::Mat jacobian_y = cv::Mat::zeros(sdf_image.size(),CV_8UC3);
       cv::Mat jacobian_z = cv::Mat::zeros(sdf_image.size(),CV_8UC3);
       cv::Mat energy_image = cv::Mat::zeros(sdf_image.size(),CV_8UC1);
 #endif
 
-      std::cerr << "\n\nCurrently subsampling frame!\n\n";
+      //std::cerr << "\n\nCurrently subsampling frame!\n\n";
 
       //for(int r=0;r<frame_->GetImageROI().rows;r++){
       //  for(int c=0;c<frame_->GetImageROI().cols;c++){
@@ -408,8 +349,9 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
           //compute the energy value for this pixel - not used for pose jacobian, just for assessing minima/          
           energy += GetEnergy(r,c,sdf_image.at<float>(r,c)); 
+#ifdef SAVEDEBUG_2
           energy_image.at<unsigned char>(r,c) = 255 * GetEnergy(r,c,sdf_image.at<float>(r,c));
-
+#endif
           //P_f - P_b / (H * P_f + (1 - H) * P_b)
           const double region_agreement = GetRegionAgreement(r, c, sdf_image.at<float>(r,c));
 
@@ -431,7 +373,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
           pixel_count++ ;
           
-#ifdef SAVEDEBUG
+#ifdef SAVEDEBUG_2
           if(jacobian.at<double>(0,0) > 0)
             jacobian_x.at<cv::Vec3b>(r,c) = cv::Vec3b(255,0,0); //blue right
           else
@@ -449,7 +391,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 #endif
         }
       }
-#ifdef SAVEDEBUG
+#ifdef SAVEDEBUG_2
       cv::Mat heaviside(jacobian_x.size(),CV_8UC1);
       cv::Mat delta(jacobian_x.size(),CV_8UC1);
       cv::Mat dSDFdx_save(jacobian_x.size(),CV_8UC3);
@@ -487,44 +429,26 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
       ENERGY_FILE << energy << " ";
       ENERGY_FILE.flush();
-      std::cout << "ENERGY IS : " << energy << std::endl;
+      //std::cout << "ENERGY IS : " << energy << std::endl;
 #endif
 
-      //if(energy < min_energy) {
-      //  min_energy = energy;
-      //  pwp3d_best_pose = current_model.CurrentPose();
-      //}
     }   
     
-    
-    //do point based registration
-
-   // std::cerr << "\n\n\nJacobian before adding points: " << jacobian << "\n\n\n";
+    energy_vals.push_back(energy);
     
     std::vector<MatchedPair> pnp_pairs;
-    //FindPointCorrespondences(frame_,pnp_pairs);
-   // FindPointCorrespondencesWithPose(frame_,pnp_pairs,current_model.CurrentPose());
-    //std::cerr << "Matching to " << pnp_pairs.size() << " points\n";
+    FindPointCorrespondencesWithPose(frame_,pnp_pairs,current_model.CurrentPose());
     for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
-      //cv::Mat pnp_jacobian = GetPointDerivative(cv::Point3f(current_model.CurrentPose().Transform(pnp->learned_point)),cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
       cv::Mat pnp_jacobian = GetPointDerivative(pnp->learned_point,cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
       for(int i=0;i<jacobian.rows;i++){
-        //continue;
         jacobian.at<double>(i,0) += pnp_jacobian.at<double>(i,0);
       }
     }
     
-   // std::cerr << "\n\n\nJacobian after adding points: " << jacobian << "\n\n\n";
-
-    //update the pose estimate
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step,pixel_count);
 
-    //convergence_test_values.push_back(energy);
-
-
-
     //save the step estimate
-#ifdef SAVEDEBUG
+#ifdef SAVEDEBUG_2
     cv::Mat left_canvas = stereo_frame->GetLeftImage().clone();
     cv::Mat right_canvas = stereo_frame->GetRightImage().clone();
     DrawModelOnBothFrames(current_model,left_canvas,right_canvas);
@@ -537,89 +461,25 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     //test for convergence
     //converged = HasGradientDescentConverged(convergence_test_values, current_model.CurrentPose() );
     //converged = HasGradientDescentConverged__new(std::vector<cv::Mat>(), jacobian );
-    converged = HasGradientDescentConverged(convergence_test_values, current_model.CurrentPose());
-    //converged = HasGradientDescentConverged_UsingEnergy(convergence_test_values);
-    //std::cerr << "Current pose at end of gradient descent step " << step << " is:\n" << cv::Point3f(current_model.CurrentPose().translation_) << " -- " << current_model.CurrentPose().rotation_ << "\n";
+    //converged = HasGradientDescentConverged(convergence_test_values, current_model.CurrentPose());
+    converged = HasGradientDescentConverged_UsingEnergy(energy_vals);
+    
+    if(energy>max_energy){
+      //std::cerr << "new max energy = " << energy << "\n";
+      max_energy = energy;
+      pwp3d_best_pose = current_model.CurrentPose();
+#ifdef SAVEDEBUG_2
+      best_image = left_canvas.clone();
+#endif
+    }
+
   }
 
-#ifdef SAVEDEBUG
+#ifdef SAVEDEBUG_1
   ENERGY_FILE.close();
 #endif
 
-
-  /********************************************************************/
-  /*
-  Pose point_registration_pose = ApplyPointBasedRegistration(frame,current_model);
-
-  //test if the point based regisration was better than the region based alignment
-  double point_energy = 0.0;
-  {
-  current_model.CurrentPose() = point_registration_pose;
-  cv::Mat sdf_image = ProjectShapeToSDF(current_model);
-
-  //compute the normalization values n_f and n_b
-  double norm_foreground,norm_background;
-  ComputeNormalization(norm_foreground,norm_background,sdf_image);
-  if(norm_foreground == 0) {
-  std::cerr << "Error, the point tracking gave a terrible result!\n";
-  return pwp3d_best_pose;
-  }
-
-  //compute the derivates of the sdf images
-  cv::Mat dSDFdx, dSDFdy;
-  cv::Sobel(sdf_image,dSDFdx,CV_32FC1,1,0,1);
-  cv::Sobel(sdf_image,dSDFdy,CV_32FC1,0,1,1);
-
-  //(x,y,z,w,r1,r2,r3)
-  cv::Mat jacobian = cv::Mat::zeros(7,1,CV_64FC1);
-  boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
-
-  //cv::Mat ENERGY_IMAGE = cv::Mat::zeros(ROI_left_.size(),CV_32FC1);
-
-
-  for(int r=0;r<ROI_left_.rows;r++){
-  for(int c=0;c<ROI_left_.cols;c++){
-
-  if(!stereo_frame->InsideRectifiedRegion(r,c)) continue;
-  double skip = Heaviside(sdf_image.at<float>(r,c));
-  if( skip < 0.0001 || skip > 0.99999 ){
-  //skip_im.at<unsigned char>(r,c) = 255;
-  continue;
-  }
-  //compute the energy value for this pixel - not used for pose jacobian, just for assessing minima/progress
-  point_energy += GetEnergy(r,c,sdf_image.at<float>(r,c), norm_foreground, norm_background);
-
-  }
-  }
-
-  #ifdef SAVEDEBUG
-  cv::Mat canvas = frame_->Mat().clone();
-  DrawModelOnFrame(current_model,canvas);
-  cv::imwrite(ss.str()+"/point_registration.png",canvas);
-  #endif
-
-
-  }
-  */
-  //if (min_energy < point_energy){
-
-  //current_model.CurrentPose() = pwp3d_best_pose;
-  std::cerr << "Current pose = " << cv::Point3f(current_model.CurrentPose().translation_) << " -- " << current_model.CurrentPose().rotation_ << "\n";
-  std::cerr << "MIN_ENERGY = " << min_energy << "\n";
-  //std::cerr << "POINT ENERGY = " << point_energy << "\n";
-  std::cerr << "Returning pwp3d energy!\n";
-
-  //}else{
-
-  //  current_model.CurrentPose() = point_registration_pose;
-
-  //  std::cerr << "MIN_ENERGY = " << min_energy << "\n";
-  //  std::cerr << "POINT ENERGY = " << point_energy << "\n";
-  // std::cerr << "Retuing point energy!\n";
-
-  //}
-
-  /**********************************************************************/
+  current_model.CurrentPose() = pwp3d_best_pose;
 
   //update the velocity model... a bit crude
   cv::Vec3f translational_velocity = current_model.CurrentPose().translation_ - initial_translation;
@@ -650,6 +510,7 @@ void StereoPWP3D::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> 
     std::vector<std::pair<Descriptor, double> > matching_queue;
     //project them to the image plane
     cv::Point2f projected_pt = stereo_camera_->rectified_left_eye()->ProjectPointToPixel(cv::Point3f(kp->coordinate));
+    //cv::circle(frame->GetImageROI(),cv::Point(projected_pt),3,cv::Scalar(255,12,52),2);
 
     //iterate over the found features
     for(auto frame_descriptor = frame_descriptors.begin(); frame_descriptor != frame_descriptors.end(); frame_descriptor++){
@@ -680,10 +541,10 @@ void StereoPWP3D::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> 
 
     if(size_of_best < DESCRIPTOR_SIMILARITY_THRESHOLD){
       cv::Point2f pt_to_match(matching_queue.front().first.coordinate[0],matching_queue.front().first.coordinate[1]);
-      if(std::abs(pt_to_match.x - projected_pt.x) < 2 && std::abs(pt_to_match.y - projected_pt.y) < 2)
-        cv::line(frame->GetImageROI(),pt_to_match,projected_pt,cv::Scalar(244,0,10),3);
-      else
-        cv::circle(frame->GetImageROI(),pt_to_match,4,cv::Scalar(244,0,10),2);
+      
+      //cv::line(frame->GetImageROI(),pt_to_match,projected_pt,cv::Scalar(244,0,10),3);
+      //cv::circle(frame->GetImageROI(),pt_to_match,4,cv::Scalar(24,241,52),2);
+
       MatchedPair mp;
       mp.learned_point = kp->coordinate;
       mp.image_point = matching_queue.front().first.coordinate;
@@ -691,14 +552,6 @@ void StereoPWP3D::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> 
     }
 
   }
-
-  //cv::imwrite("test_point.png",frame->Mat());
-
-
-  //return matched vector
-
-
-
 
 }
 
@@ -801,6 +654,7 @@ bool StereoPWP3D::HasGradientDescentConverged(std::deque<Pose> &previous_poses, 
 
 bool StereoPWP3D::HasGradientDescentConverged_UsingEnergy(std::vector<double> &energy_values) const {
 
+  std::cerr << "Energy for this step is " << energy_values.back() << "\n";
   const int NUM_VALUES_TO_USE = 7;
   if(energy_values.size() < NUM_VALUES_TO_USE ) return false;
 
@@ -808,9 +662,9 @@ bool StereoPWP3D::HasGradientDescentConverged_UsingEnergy(std::vector<double> &e
   double energy_change = 0.0;
   for(auto value = energy_values.end()-(NUM_VALUES_TO_USE); value != energy_values.end()-1; value++ ){
 
-    std::cerr << "Energy change is: " << *(value+1) - *(value) << "\n";
+    //std::cerr << "Energy change is: " << *(value+1) - *(value) << "\n";
     energy_change += *(value+1) - *(value);
-    std::cerr << "New energy is: " << energy_change << "\n";
+    //std::cerr << "New energy is: " << energy_change << "\n";
 
   }
 

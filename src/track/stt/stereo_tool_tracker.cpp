@@ -316,7 +316,7 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
    Tracker::SetHandleToFrame(image);
    boost::shared_ptr<sv::StereoFrame> stereo_image = boost::dynamic_pointer_cast<sv::StereoFrame>(image);
    
-#if defined(SAVEDEBUG) 
+#if defined(SAVEDEBUG_2) 
   cv::imwrite("debug/distorted_left.png",stereo_image->GetLeftImage());
   cv::imwrite("debug/distorted_right.png",stereo_image->GetRightImage());
 #endif
@@ -330,7 +330,7 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
    camera_->RemapRightFrame(stereo_image->GetRightClassificationMap());
 
 
-#if defined(SAVEDEBUG) 
+#if defined(SAVEDEBUG_2) 
    //check this modifies correctly
    cv::imwrite("debug/left.png",stereo_image->GetLeftImage());
    cv::imwrite("debug/right.png",stereo_image->GetRightImage());

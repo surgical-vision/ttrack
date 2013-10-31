@@ -6,8 +6,6 @@
 #include "../../../deps/image/image/image.hpp"
 #include "../pose.hpp"
 
-#define SAVEDEBUG_1
-#define SAVEDEBUG_2
 
 namespace ttrk {
 

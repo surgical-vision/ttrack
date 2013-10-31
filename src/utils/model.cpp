@@ -8,8 +8,10 @@ using namespace ttrk;
 MISTool::MISTool(float radius, float height):radius_(radius),height_(height){
   radius_fraction_ = 0.8;
   height_fraction_ = 1.28;
-  radius_tip_ = 2;//radius_fraction_ * radius_;
-  height_tip_ = height_ + 18;//height_fraction_  * height_;
+  radius_tip_ = 2;
+  height_tip_ = height_ + 18;
+  height_curve_ = height_ + 9;
+  angle_curve_ = M_PI/9;
 }
 
 cv::Vec3f MISTool::GetTrackedPoint() const {
@@ -26,6 +28,9 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
   std::vector< SimplePoint<> > points;
   points.reserve(precision);
 
+
+  //////////////////////////////
+  //shaft 
   for(size_t i=0;i<precision;i++){
 
     cv::Vec3f point(-(float)height_/2 + (float)(height_)*(i>=(precision/2)), 
@@ -52,34 +57,77 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
   for(int i=0;i<precision;i++)
     points[i].AddNeighbour(Wrap(i+(precision/2),0,precision-1));
 
-  std::vector<SimplePoint<> > test_points;
+  //////////////////////////////
+  //straight tip
+  std::vector<SimplePoint<> > clasper_points_bottom;
   for(size_t i=0;i<precision;i++){
     //needs to start from height_ so the bases line up 
-    cv::Vec3f point(-(float)height_/2 + (float)(height_tip_)*(i>=(precision/2)), 
-                     (float)(radius_tip_ * cos(i * 4*M_PI/precision)) - 0.15*radius_*2,//((0.5 - (radius_fraction_/2))*radius_*2), 
+    cv::Vec3f point(-(float)height_/2 + (float)(height_curve_)*(i>=(precision/2)), 
+                     (float)(radius_tip_ * cos(i * 4*M_PI/precision)) - 0.15*radius_*2,
                      (float)(radius_tip_ * sin(i * 4*M_PI/precision)));
 
     point = pose.Transform(point);
     //transform point
-    test_points.push_back( SimplePoint<>(point) );
+    clasper_points_bottom.push_back( SimplePoint<>(point) );
 
 
   }
 
   for(int i=0;i<precision/2;i++){
-    test_points[i].AddNeighbour(precision+Wrap(i-1,0,(precision/2)-1));
-    test_points[i].AddNeighbour(precision+Wrap(i+1,0,(precision/2)-1));
+    clasper_points_bottom[i].AddNeighbour(precision+Wrap(i-1,0,(precision/2)-1));
+    clasper_points_bottom[i].AddNeighbour(precision+Wrap(i+1,0,(precision/2)-1));
   }
 
   for(int i=precision/2;i<precision;i++){
-    test_points[i].AddNeighbour(precision+Wrap(i-1,precision/2,precision-1));
-    test_points[i].AddNeighbour(precision+Wrap(i+1,precision/2,precision-1));
+    clasper_points_bottom[i].AddNeighbour(precision+Wrap(i-1,precision/2,precision-1));
+    clasper_points_bottom[i].AddNeighbour(precision+Wrap(i+1,precision/2,precision-1));
   }
 
   for(int i=0;i<precision;i++)
-    test_points[i].AddNeighbour(precision+Wrap(i+(precision/2),0,precision-1));
+    clasper_points_bottom[i].AddNeighbour(precision+Wrap(i+(precision/2),0,precision-1));
   
-  points.insert(points.end(),test_points.begin(),test_points.end());
+  points.insert(points.end(),clasper_points_bottom.begin(),clasper_points_bottom.end());
+
+  //////////////////////////////
+  //curved tip
+  std::vector<SimplePoint<> > clasper_points_top;
+  
+  //THE ORDERING OF ADDING THESE POINTS IS ESSENTIAL - IF CHANGES ARE MADE, THE NEIGHBOR ADDING & INTERSECTION TESTS NEED TO BE UPDATED
+
+  //four tip points which are rotated slightly off axis
+  clasper_points_top.push_back(SimplePoint<>(cv::Point3f( (height_tip_-height_curve_/2),radius_tip_,radius_tip_)));
+  clasper_points_top.push_back(SimplePoint<>(cv::Point3f( (height_tip_-height_curve_/2),-radius_tip_,radius_tip_)));
+  clasper_points_top.push_back(SimplePoint<>(cv::Point3f( (height_tip_-height_curve_/2),-radius_tip_,-radius_tip_)));
+  clasper_points_top.push_back(SimplePoint<>(cv::Point3f( (height_tip_-height_curve_/2),radius_tip_,-radius_tip_)));
+  
+  //rotate them out of the plane
+  const cv::Vec3f axis(0,1,0);
+  const float angle = M_PI/18;
+  Pose t_pose(cv::Vec3f(0,0,0),sv::Quaternion(angle,axis));
+  for(auto point = clasper_points_top.begin();point!=clasper_points_top.end();point++){
+    point->vertex_ = t_pose.Transform(point->vertex_);
+  }
+
+  //first four points which anchor to the cylinder
+  clasper_points_top.push_back(SimplePoint<>(cv::Point3f( -(height_tip_-height_curve_/2),radius_tip_,radius_tip_)));
+  clasper_points_top.push_back(SimplePoint<>(cv::Point3f( -(height_tip_-height_curve_/2),-radius_tip_,radius_tip_)));
+  clasper_points_top.push_back(SimplePoint<>(cv::Point3f( -(height_tip_-height_curve_/2),-radius_tip_,-radius_tip_)));
+  clasper_points_top.push_back(SimplePoint<>(cv::Point3f( -(height_tip_-height_curve_/2),radius_tip_,-radius_tip_)));
+  
+  for(auto point = clasper_points_top.begin();point!=clasper_points_top.end();point++){
+    point->vertex_ = pose.Transform(point->vertex_);
+  }
+
+  for(size_t i=0;i<clasper_points_top.size()/2;i++){
+    clasper_points_top[i].AddNeighbour(Wrap(i-1,0,clasper_points_top.size()/2));
+    clasper_points_top[i].AddNeighbour(i+clasper_points_top.size()/2);
+  }
+  for(size_t i=clasper_points_top.size()/2;i<clasper_points_top.size();i++){
+    clasper_points_top[i].AddNeighbour(Wrap(i-1,clasper_points_top.size()/2,clasper_points_top.size()));
+    clasper_points_top[i].AddNeighbour(i-clasper_points_top.size()/2);
+  }
+
+  points.insert(points.end(),clasper_points_top.begin(),clasper_points_top.end());
 
   return points;
 }

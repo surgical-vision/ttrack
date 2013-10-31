@@ -150,6 +150,8 @@ namespace ttrk{
 
     float radius_fraction_;
     float height_fraction_;
+    float height_curve_;
+    float angle_curve_;
 
   };
 

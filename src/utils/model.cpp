@@ -12,6 +12,7 @@ MISTool::MISTool(float radius, float height):radius_(radius),height_(height){
   height_tip_ = height_ + 18;
   height_curve_ = height_ + 9;
   angle_curve_ = M_PI/9;
+  //tip_offset_ = 0.3;
 }
 
 cv::Vec3f MISTool::GetTrackedPoint() const {
@@ -37,7 +38,9 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
                      (float)(radius_ * cos(i * 4*M_PI/precision)), 
                      (float)(radius_ * sin(i * 4*M_PI/precision)));
 
+    
     point = pose.Transform(point);
+    
     //transform point
     points.push_back( SimplePoint<>(point) );
 
@@ -63,9 +66,8 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
   for(size_t i=0;i<precision;i++){
     //needs to start from height_ so the bases line up 
     cv::Vec3f point(-(float)height_/2 + (float)(height_curve_)*(i>=(precision/2)), 
-                     (float)(radius_tip_ * cos(i * 4*M_PI/precision)) - 0.15*radius_*2,
+                     (float)(radius_tip_ * cos(i * 4*M_PI/precision)) - (radius_ - radius_tip_),
                      (float)(radius_tip_ * sin(i * 4*M_PI/precision)));
-
     point = pose.Transform(point);
     //transform point
     clasper_points_bottom.push_back( SimplePoint<>(point) );
@@ -88,48 +90,232 @@ std::vector<SimplePoint<> > MISTool::Points(const Pose &pose) const {
   
   points.insert(points.end(),clasper_points_bottom.begin(),clasper_points_bottom.end());
 
-  //////////////////////////////
-  //curved tip
-  std::vector<SimplePoint<> > clasper_points_top;
-  
-  //THE ORDERING OF ADDING THESE POINTS IS ESSENTIAL - IF CHANGES ARE MADE, THE NEIGHBOR ADDING & INTERSECTION TESTS NEED TO BE UPDATED
-
-  //four tip points which are rotated slightly off axis
-  clasper_points_top.push_back(SimplePoint<>(cv::Point3f( (height_tip_-height_curve_/2),radius_tip_,radius_tip_)));
-  clasper_points_top.push_back(SimplePoint<>(cv::Point3f( (height_tip_-height_curve_/2),-radius_tip_,radius_tip_)));
-  clasper_points_top.push_back(SimplePoint<>(cv::Point3f( (height_tip_-height_curve_/2),-radius_tip_,-radius_tip_)));
-  clasper_points_top.push_back(SimplePoint<>(cv::Point3f( (height_tip_-height_curve_/2),radius_tip_,-radius_tip_)));
-  
-  //rotate them out of the plane
-  const cv::Vec3f axis(0,1,0);
-  const float angle = M_PI/18;
-  Pose t_pose(cv::Vec3f(0,0,0),sv::Quaternion(angle,axis));
-  for(auto point = clasper_points_top.begin();point!=clasper_points_top.end();point++){
-    point->vertex_ = t_pose.Transform(point->vertex_);
+  std::vector< std::vector<SimplePoint<> > > clasper_top_polygons = GetClasperPolygons(pose);
+  int num_points = precision;
+  for(auto i=clasper_top_polygons.begin(); i != clasper_top_polygons.end() ; i++){
+    for(auto point=i->begin();point!=i->end();point++){
+      for(auto neighbor=point->neighbours_.begin();neighbor!=point->neighbours_.end();neighbor++){
+        *neighbor = *neighbor + points.size();
+      }
+    }
+    points.insert(points.end(),i->begin(),i->end());
   }
-
-  //first four points which anchor to the cylinder
-  clasper_points_top.push_back(SimplePoint<>(cv::Point3f( -(height_tip_-height_curve_/2),radius_tip_,radius_tip_)));
-  clasper_points_top.push_back(SimplePoint<>(cv::Point3f( -(height_tip_-height_curve_/2),-radius_tip_,radius_tip_)));
-  clasper_points_top.push_back(SimplePoint<>(cv::Point3f( -(height_tip_-height_curve_/2),-radius_tip_,-radius_tip_)));
-  clasper_points_top.push_back(SimplePoint<>(cv::Point3f( -(height_tip_-height_curve_/2),radius_tip_,-radius_tip_)));
-  
-  for(auto point = clasper_points_top.begin();point!=clasper_points_top.end();point++){
-    point->vertex_ = pose.Transform(point->vertex_);
-  }
-
-  for(size_t i=0;i<clasper_points_top.size()/2;i++){
-    clasper_points_top[i].AddNeighbour(Wrap(i-1,0,clasper_points_top.size()/2));
-    clasper_points_top[i].AddNeighbour(i+clasper_points_top.size()/2);
-  }
-  for(size_t i=clasper_points_top.size()/2;i<clasper_points_top.size();i++){
-    clasper_points_top[i].AddNeighbour(Wrap(i-1,clasper_points_top.size()/2,clasper_points_top.size()));
-    clasper_points_top[i].AddNeighbour(i-clasper_points_top.size()/2);
-  }
-
-  points.insert(points.end(),clasper_points_top.begin(),clasper_points_top.end());
 
   return points;
+}
+
+void AddPolygonPoints(std::vector<SimplePoint<> >&points, const Pose &rigid_t, const Pose &shift_head, const Pose &curve_head){
+    
+  for(size_t i=0;i<points.size();i++){
+
+    points[i].AddNeighbour(Wrap(i-1,0,points.size()-1));
+    points[i].AddNeighbour(Wrap(i+1,0,points.size()-1));
+
+    if(points[i].vertex_[0] < 0) {
+      points[i].vertex_ = rigid_t.Transform(shift_head.Transform(points[i].vertex_));
+      continue;
+    }
+    points[i].vertex_ = curve_head.Transform(points[i].vertex_);
+    points[i].vertex_ = rigid_t.Transform(shift_head.Transform(points[i].vertex_));
+
+  }
+  
+  
+
+}
+
+std::vector<std::vector<SimplePoint<> > > MISTool::GetClasperPolygons(const Pose &pose) const {
+
+  //////////////////////////////
+  //curved tip
+  std::vector<std::vector<SimplePoint<> > > clasper_top_polygons; //there will be a few repeated points
+  std::vector<SimplePoint<> > polygon_A; //large segment front
+  std::vector<SimplePoint<> > polygon_B; //large segment back
+  std::vector<SimplePoint<> > polygon_C; //bottom
+  std::vector<SimplePoint<> > polygon_D; //top
+  std::vector<SimplePoint<> > polygon_E; //face
+  std::vector<SimplePoint<> > polygon_F; //angled bit
+
+  //THE ORDERING OF ADDING THESE POINTS IS ESSENTIAL - IF CHANGES ARE MADE, THE NEIGHBOR ADDING & INTERSECTION TESTS NEED TO BE UPDATED
+  sv::Quaternion q = sv::Quaternion::FromVectorToVector(cv::Vec3f(1,0,0),cv::Vec3f(0.9,0.1,0.20));
+  Pose rotate_pose(cv::Vec3f(0,0,0),q);
+  Pose translate_to_front(cv::Vec3f(-(float)height_/2 + (float)(height_curve_) + (height_tip_-height_curve_)/2, 
+                                    - 0.15*radius_*2, //need to shift center down
+                                     0),
+                          sv::Quaternion());
+
+  //four tip points which are rotated slightly off axis
+  const float top_fraction = 0.6;
+  const float height_fraction = 0.0;
+  
+  polygon_A.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , -(radius_tip_/1.0) , (radius_tip_/1.0))));
+  polygon_A.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) * top_fraction  , -(radius_tip_/1.0) , (radius_tip_/1.0))));
+  polygon_A.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) * height_fraction, (radius_tip_/1.0))));
+  polygon_A.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , (radius_tip_/1.0))));
+  polygon_A.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , (radius_tip_/1.0))));
+ 
+  AddPolygonPoints(polygon_A,pose,translate_to_front,rotate_pose);
+  clasper_top_polygons.push_back(polygon_A);
+
+  polygon_B.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , -(radius_tip_/1.0) , -(radius_tip_/1.0))));
+  polygon_B.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) * top_fraction  , -(radius_tip_/1.0) , -(radius_tip_/1.0))));
+  polygon_B.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) * height_fraction, -(radius_tip_/1.0))));
+  polygon_B.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , -(radius_tip_/1.0))));
+  polygon_B.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , -(radius_tip_/1.0))));
+  
+  AddPolygonPoints(polygon_B,pose,translate_to_front,rotate_pose);
+  clasper_top_polygons.push_back(polygon_B);
+  
+  polygon_C.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2)* top_fraction , -(radius_tip_/1.0) , (radius_tip_/1.0))));
+  polygon_C.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , -(radius_tip_/1.0) , (radius_tip_/1.0))));
+  polygon_C.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , -(radius_tip_/1.0) , -(radius_tip_/1.0))));
+  polygon_C.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2)* top_fraction, -(radius_tip_/1.0) , -(radius_tip_/1.0))));
+  
+  AddPolygonPoints(polygon_C,pose,translate_to_front,rotate_pose);
+  clasper_top_polygons.push_back(polygon_C);
+
+  polygon_D.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , (radius_tip_/1.0))));
+  polygon_D.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , (radius_tip_/1.0))));
+  polygon_D.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , -(radius_tip_/1.0))));
+  polygon_D.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , -(radius_tip_/1.0))));
+ 
+  AddPolygonPoints(polygon_D,pose,translate_to_front,rotate_pose);
+  clasper_top_polygons.push_back(polygon_D);
+
+  polygon_E.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) * height_fraction, (radius_tip_/1.0))));
+  polygon_E.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , (radius_tip_/1.0))));  
+  polygon_E.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , -(radius_tip_/1.0))));
+  polygon_E.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) * height_fraction, -(radius_tip_/1.0))));
+
+  AddPolygonPoints(polygon_E,pose,translate_to_front,rotate_pose);
+  clasper_top_polygons.push_back(polygon_E);
+
+  polygon_F.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) * top_fraction  , -(radius_tip_/1.0) , (radius_tip_/1.0))));
+  polygon_F.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) * height_fraction, (radius_tip_/1.0))));
+  polygon_F.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) * height_fraction, -(radius_tip_/1.0))));
+  polygon_F.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) * top_fraction  , -(radius_tip_/1.0) , -(radius_tip_/1.0))));
+  
+  AddPolygonPoints(polygon_F,pose,translate_to_front,rotate_pose);
+  clasper_top_polygons.push_back(polygon_F);
+
+  return clasper_top_polygons;
+}
+
+bool MISTool::GetIntersectionPlane(const std::vector<SimplePoint<> >&points_in_plane, const cv::Vec3f &ray, cv::Vec3f &intersection) const {
+
+  //find normal to plane and flip for direction with ray
+  if(points_in_plane.size() < 3) throw(std::runtime_error("Error, must be at least 3 points to use this function!\n"));
+
+  cv::Vec3f a,b,c;
+  a = points_in_plane[0].vertex_;
+  b = points_in_plane[1].vertex_;
+  c = points_in_plane[2].vertex_;
+
+  const cv::Vec3f ba = a - b;
+  const cv::Vec3f bc = c - b;
+
+  cv::Vec3f normal = ba.cross(bc);
+
+  //cv::normalize(normal,n_normal);
+
+  float dot = normal.dot(ray);
+  if(dot < 0) normal *= -1; //normal should point towards ray
+
+  const double denom = ray.dot(normal);
+  if(denom == 0.0) return false; //only if parallel
+
+  double distance_along_ray =  b.dot(normal)/denom;
+  intersection = distance_along_ray * ray;
+  return true; 
+
+}
+
+
+bool MISTool::IntersectionInConvexHull(const std::vector<SimplePoint<> >&convex_hull, const cv::Vec3f &intersection) const {
+
+  if(convex_hull.size() < 3) throw(std::runtime_error("Error, must be at least 3 points to use this function!\n"));
+
+  cv::Vec3f mean_point(0,0,0);
+  for( auto hull_pt = convex_hull.begin(); hull_pt != convex_hull.end(); hull_pt++ ){
+      mean_point += hull_pt->vertex_;
+  }
+  
+  int c = convex_hull.size();
+  while( mean_point/c == intersection ) { //ensure that the mean point is not the same coordiantes as point
+    for( auto hull_pt = convex_hull.begin()+2; hull_pt != convex_hull.end(); hull_pt++ ){
+      mean_point += hull_pt->vertex_;
+    }
+  }
+  mean_point /= c;
+  
+  
+  cv::Vec3f line_segment =  mean_point - intersection; 
+  line_segment *= 5000;  //make the line huge
+  
+  std::vector<std::pair<cv::Vec3f,cv::Vec3f> >edges;
+  for(auto point = convex_hull.begin(); point != convex_hull.end() - 1; point++ ){
+
+    cv::Vec3f a = point->vertex_;
+    cv::Vec3f b = (point + 1)->vertex_;
+
+    edges.push_back( std::make_pair<>(a,b) );
+
+  }
+  edges.push_back( std::make_pair<>((convex_hull.end()-1)->vertex_,convex_hull.begin()->vertex_) );
+
+  int num_intersections = 0;
+  
+  for(auto line = edges.begin(); line != edges.end(); line++){
+    cv::Point2f a(line->first[0]/line->first[2],line->first[1]/line->first[2]),
+                b(line->second[0]/line->second[2],line->second[1]/line->second[2]),
+                c(intersection[0]/intersection[2],intersection[1]/intersection[2]),
+                d(line_segment[0]/line_segment[2],line_segment[1]/line_segment[2]);
+    num_intersections += FindIntersection<float>(a,b,c,d, cv::Point2f());
+  }
+
+  return num_intersections == 1; //if both mean_point and point are inside polygon this will equal 
+  
+}
+
+bool MISTool::GetIntersectionPolygons(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const {
+
+  std::vector< std::vector<SimplePoint<> > > clasper_top_polygons = GetClasperPolygons(pose);
+  
+  std::vector<cv::Vec3f> intersections;
+  for(auto polygon = clasper_top_polygons.begin(); polygon != clasper_top_polygons.end(); polygon++ ){
+
+    cv::Vec3f intersection;
+    if(!GetIntersectionPlane(*polygon,ray,intersection)) continue;
+    
+    if(IntersectionInConvexHull(*polygon,intersection))
+      intersections.push_back(intersection);
+    
+  }
+
+  if(!intersections.size()) return false;
+
+  //sort intersections by distance 
+  double largest = 0, smallest = std::numeric_limits<double>::max();
+  for(auto intersection = intersections.begin(); intersection != intersections.end(); intersection++){
+
+    double distance = norm2(*intersection);
+    if(distance < smallest){
+      smallest = distance;
+      front = *intersection;
+    }else if(distance > largest){
+      largest = distance;
+      back = *intersection;
+    }
+  }
+
+  //if(intersections.size() > 0 && intersections.size() != 2) //you should only intersection 1 polygon for occasional cases
+  //  std::cerr << "This should not happen too often!\n";
+  
+  //if(intersections.size() > 2)
+  //    throw(std::runtime_error("Error, 3 intersections not possible with convex shape!\n"));
+
+  return true;
+
 }
 
 bool MISTool::GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const {
@@ -137,6 +323,7 @@ bool MISTool::GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f 
   cv::Vec3f tip_front,shaft_front,tip_back,shaft_back;
   bool tip = GetIntersectionTip(ray,tip_front,tip_back,pose);
   bool shaft = GetIntersectionShaft(ray,shaft_front,shaft_back,pose);
+ 
   if(shaft && !tip){
     front = shaft_front;
     back = shaft_back;
@@ -148,7 +335,15 @@ bool MISTool::GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f 
     return true;
   }
   if(!tip && !shaft){
-    return false;
+    cv::Vec3f polygons_front,polygons_back;
+    bool polygons = GetIntersectionPolygons(ray,polygons_front,polygons_back,pose);
+    if(polygons) {
+      front = polygons_front;
+      back = polygons_back;
+      return true;
+    }else{
+      return false;
+    }
   }
 
   float mag_tip = (tip_front[0]*tip_front[0]) + (tip_front[1]*tip_front[1]) + (tip_front[2]*tip_front[2]);
@@ -171,9 +366,9 @@ bool MISTool::GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f 
 bool MISTool::GetIntersectionTip(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const {
 
   //cv::Mat top,bottom;
-  cv::Vec3f top((float)-height_/2 + (float)height_tip_,-0.15*radius_tip_*2,0.0);
+  cv::Vec3f top((float)-height_/2 + (float)height_curve_,-(radius_-radius_tip_),0.0);
   top = pose.Transform(top);
-  cv::Vec3f bottom((float)-height_/2,-0.15*radius_tip_*2,0.0);
+  cv::Vec3f bottom((float)-height_/2,-(radius_ - radius_tip_),0.0);
   bottom = pose.Transform(bottom);
 
   cv::Vec3f dP = top - bottom;

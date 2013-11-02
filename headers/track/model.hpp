@@ -138,6 +138,10 @@ namespace ttrk{
   
   private:
 
+    bool IntersectionInConvexHull(const std::vector<SimplePoint<> >&convex_hull, const cv::Vec3f &point) const;
+    bool GetIntersectionPlane(const std::vector<SimplePoint<> >&points_in_plane, const cv::Vec3f &ray, cv::Vec3f &intersection) const;
+    bool GetIntersectionPolygons(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const;
+    std::vector<std::vector<SimplePoint<> > > GetClasperPolygons(const Pose &pose) const;
     bool GetIntersectionShaft(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const;
     bool GetIntersectionTip(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const;
 
@@ -152,6 +156,7 @@ namespace ttrk{
     float height_fraction_;
     float height_curve_;
     float angle_curve_;
+    float tip_offset_;
 
   };
 

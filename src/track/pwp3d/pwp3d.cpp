@@ -284,7 +284,6 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
   cv::Mat pixels_intersect = cv::Mat::zeros(canvas_2_dilated.size(),CV_8UC1);
   for(int r=0;r<sdf_image.rows;r++){
     for(int c=0;c<sdf_image.cols;c++){
-
       if(canvas_2_dilated.at<unsigned char>(r,c) != 255) continue;
       cv::Vec3f ray = camera_->UnProjectPoint( cv::Point2i(c,r) );
       cv::Vec3f front_intersection(0,0,0),back_intersection(0,0,0);
@@ -335,86 +334,11 @@ bool PWP3D::ModelInFrame( const KalmanTracker &tracked_model, const cv::Mat &det
 }
 
 
-inline bool PointInImage(const cv::Point &point, const cv::Size &image_size){
-  return cv::Rect(0,0,image_size.width,image_size.height).contains(point);
-}
-
-
-inline bool IsHorizontal(const cv::Point &a, const cv::Point &b){
-  return a.y == b.y;
-}
-
-inline bool IsVertical(const cv::Point &a, const cv::Point &b){
-  return a.x == b.x;
-}
-
-
-inline double Gradient(const cv::Point &a, const cv::Point &b){
-  return (float)(a.y - b.y)/(a.x - b.x);
-}
-
-inline double YIntersect(const cv::Point &a, const double gradient){
-  return a.y - (gradient*a.x);
-}
-
-bool FindHorizontalIntersection(const cv::Point &horizontal_start, const cv::Point &horizontal_end, const cv::Point &line_start, const cv::Point &line_end, cv::Point &intersection){
-  
-  const double gradient = Gradient(line_start,line_end);
-  double intersect_x = (horizontal_start.y/gradient) - YIntersect(line_start,gradient);
-  intersection = cv::Point(intersect_x,horizontal_start.y);
-  //do max-min checks as the start and end points might be the wrong way around
-  return ( intersection.x >= std::min(horizontal_start.x,horizontal_end.x) && intersection.x <= std::max(horizontal_start.x,horizontal_end.x) && intersection.x >= std::min(line_start.x,line_end.x) && intersection.x <= std::max(line_end.x,line_end.x) );
-  
-}
-
-bool FindVerticalIntersection(const cv::Point &vertical_start, const cv::Point &vertical_end, const cv::Point &line_start, const cv::Point &line_end, cv::Point &intersection){
-
-  const double gradient = Gradient(line_start,line_end);
-  double intersect_y = gradient*vertical_start.x + YIntersect(line_start,gradient);
-  intersection = cv::Point(vertical_start.x,intersect_y);
-  //do max-min checks as the start and end points might be the wrong way around
-  return ( intersection.y >= std::min(vertical_end.y, vertical_start.y) && intersection.y <= std::max(vertical_end.y,vertical_start.y)  && intersection.y >= std::min(line_start.y,line_end.y) && intersection.y <= std::max(line_end.y,line_start.y) );
-
-}
-
-
-
-bool FindIntersection(const cv::Point &a1, const cv::Point &a2, const cv::Point &b1, const cv::Point &b2, cv::Point &intersection){
-
-  if( IsHorizontal(a1,a2) && !IsHorizontal(b1,b2)){
-
-    return FindHorizontalIntersection(a1,a2,b1,b2,intersection);
-
-  }
-
-  if( IsVertical(a1,a2) && !IsVertical(b1,b2) ) {
-
-    return FindVerticalIntersection(a1,a2,b1,b2,intersection);
-
-  }
-
-  if( IsHorizontal(b1,b2) && !IsHorizontal(a1,a2) ){
-
-    return FindHorizontalIntersection(b1,b2,a1,a2,intersection);
-
-  }
-
-  if( IsVertical(b1,b2) && !IsVertical(a1,a2) ){
-
-    return FindVerticalIntersection(b1,b2,a1,a2,intersection);
-
-  }
-
-  return false;
-
-}
 
 bool CheckEdgesForIntersection(const cv::Point &a, const cv::Point &b, const cv::Size &image_size, cv::Point &intersection){
   if(FindIntersection(a, b, cv::Point2i(0,0), cv::Point(0,image_size.height-1),intersection)){
-    std::cerr << "probably a bug A\n";
     return true;
   }else if(FindIntersection(a, b, cv::Point2i(0,0), cv::Point(image_size.width-1,0) ,intersection)){
-    std::cerr << "propably a bugB\n";
     return true;
   }else if(FindIntersection(a, b, cv::Point2i(0,image_size.height-1), cv::Point(image_size.width-1,image_size.height-1),intersection)){
     return true;

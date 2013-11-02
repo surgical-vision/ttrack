@@ -8,6 +8,110 @@
 
 namespace ttrk{
 
+
+  inline bool PointInImage(const cv::Point &point, const cv::Size &image_size){
+    return cv::Rect(0,0,image_size.width,image_size.height).contains(point);
+  }
+
+  template<typename Precision> 
+  inline bool IsHorizontal(const cv::Point_<Precision> &a, const cv::Point_<Precision> &b){
+    return a.y == b.y;
+  }
+
+  template<typename Precision> 
+  inline bool IsVertical(const cv::Point_<Precision> &a, const cv::Point_<Precision> &b){
+    return a.x == b.x;
+  }
+
+  template<typename Precision> 
+  inline double Gradient(const cv::Point_<Precision> &a, const cv::Point_<Precision> &b){
+    return (float)(a.y - b.y)/(a.x - b.x);
+  }
+
+  template<typename Precision> 
+  inline double YIntersect(const cv::Point_<Precision> &a, const double gradient){
+    return a.y - (gradient*a.x);
+  }
+
+  inline double norm2(const cv::Vec3f n){
+    return n[0]*n[0] + n[1]*n[1] + n[2]*n[2];
+  }
+
+  template<typename Precision>
+  bool FindGeneralIntersection(const cv::Point_<Precision> &a, const cv::Point_<Precision> &b, const cv::Point_<Precision> &c, const cv::Point_<Precision> &d, cv::Point_<Precision> &intersection){
+
+    const double gradient_ab = Gradient<Precision>(a,b);
+    const double yintersect_ab = YIntersect<Precision>(a,gradient_ab);
+    const double gradient_cd = Gradient<Precision>(c,d);
+    const double yintersect_cd = YIntersect<Precision>(c,gradient_cd);
+
+    double intersection_x = (yintersect_cd - yintersect_ab)/(gradient_ab - gradient_cd);
+    double intersection_y = (gradient_ab*intersection_x) + yintersect_ab;
+    
+    intersection=cv::Point_<Precision>((Precision)intersection_x,(Precision)intersection_y);
+
+    bool i1 = intersection.x >= std::min(a.x,b.x) && intersection_x <= std::max(a.x,b.x) && intersection_y >= std::min(a.y,b.y) && intersection_y <= std::max(a.y,b.y) ;
+    bool i2 = intersection.x >= std::min(c.x,d.x) && intersection_x <= std::max(c.x,d.x) && intersection_y >= std::min(c.y,d.y) && intersection_y <= std::max(c.y,d.y) ;
+
+    return i1 && i2;
+
+  }
+
+  template<typename Precision>
+  inline bool FindHorizontalIntersection(const cv::Point_<Precision> &horizontal_start, const cv::Point_<Precision> &horizontal_end, const cv::Point_<Precision> &line_start, const cv::Point_<Precision> &line_end, cv::Point_<Precision> &intersection){
+
+    const double gradient = Gradient<Precision>(line_start,line_end);
+    double intersect_x = (horizontal_start.y/gradient) - YIntersect<Precision>(line_start,gradient);
+    intersection = cv::Point_<Precision>(intersect_x,horizontal_start.y);
+    //do max-min checks as the start and end points might be the wrong way around
+    return ( intersection.x >= std::min(horizontal_start.x,horizontal_end.x) && intersection.x <= std::max(horizontal_start.x,horizontal_end.x) && intersection.x >= std::min(line_start.x,line_end.x) && intersection.x <= std::max(line_end.x,line_end.x) );
+
+  }
+
+  template<typename Precision>
+  inline bool FindVerticalIntersection(const cv::Point_<Precision> &vertical_start, const cv::Point_<Precision> &vertical_end, const cv::Point_<Precision> &line_start, const cv::Point_<Precision> &line_end, cv::Point_<Precision> &intersection){
+
+    const double gradient = Gradient<Precision>(line_start,line_end);
+    double intersect_y = gradient*vertical_start.x + YIntersect<Precision>(line_start,gradient);
+    intersection = cv::Point_<Precision>(vertical_start.x,intersect_y);
+    //do max-min checks as the start and end points might be the wrong way around
+    return ( intersection.y >= std::min(vertical_end.y, vertical_start.y) && intersection.y <= std::max(vertical_end.y,vertical_start.y)  && intersection.y >= std::min(line_start.y,line_end.y) && intersection.y <= std::max(line_end.y,line_start.y) );
+
+  }
+
+
+  template<typename Precision>
+  inline bool FindIntersection(const cv::Point_<Precision> &a1, const cv::Point_<Precision> &a2, const cv::Point_<Precision> &b1, const cv::Point_<Precision> &b2, cv::Point_<Precision> &intersection){
+
+    if( IsHorizontal(a1,a2) && !IsHorizontal(b1,b2)){
+
+      return FindHorizontalIntersection<Precision>(a1,a2,b1,b2,intersection);
+
+    }
+
+    if( IsVertical(a1,a2) && !IsVertical(b1,b2) ) {
+
+      return FindVerticalIntersection<Precision>(a1,a2,b1,b2,intersection);
+
+    }
+
+    if( IsHorizontal(b1,b2) && !IsHorizontal(a1,a2) ){
+
+      return FindHorizontalIntersection<Precision>(b1,b2,a1,a2,intersection);
+
+    }
+
+    if( IsVertical(b1,b2) && !IsVertical(a1,a2) ){
+
+      return FindVerticalIntersection<Precision>(b1,b2,a1,a2,intersection);
+
+    }
+
+    return FindGeneralIntersection<Precision>(a1,a2,b1,b2,intersection);
+
+  }
+
+
   /**
   * Computes a smoothed heaviside function.
   * @param[in] x The value on the x-axis.

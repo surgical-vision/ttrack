@@ -10,6 +10,7 @@
 
 using namespace ttrk;
 /*** REMOVE THIS ***/
+#define SAVEDEBUG_1
 
 
 void FindTransformationToImagePlane(std::vector<DescriptorMatches> matches,cv::Mat &rotation, cv::Mat &translation,  boost::shared_ptr<StereoCamera> cam, Pose current_pose);
@@ -234,11 +235,12 @@ void StereoPWP3D::DrawModelOnBothFrames(const KalmanTracker &tracked_model, cv::
 }
 
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
-
+ 
   frame_ = frame;
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
   const int NUM_STEPS = 115;
   cv::Vec3f initial_translation = current_model.CurrentPose().translation_;
+
 
 #ifdef DEBUG
   boost::progress_timer t; //timer prints time when it goes out of scope
@@ -448,7 +450,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step,pixel_count);
 
     //save the step estimate
-#ifdef SAVEDEBUG_2
+#ifdef SAVEDEBUG_1
     cv::Mat left_canvas = stereo_frame->GetLeftImage().clone();
     cv::Mat right_canvas = stereo_frame->GetRightImage().clone();
     DrawModelOnBothFrames(current_model,left_canvas,right_canvas);

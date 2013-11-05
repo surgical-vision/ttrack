@@ -11,28 +11,12 @@
 using namespace ttrk;
 /*** REMOVE THIS ***/
 #define SAVEDEBUG_1
-
+#define SAVEDEBUG_2
 
 void FindTransformationToImagePlane(std::vector<DescriptorMatches> matches,cv::Mat &rotation, cv::Mat &translation,  boost::shared_ptr<StereoCamera> cam, Pose current_pose);
 void GetDescriptors(const cv::Mat &frame, std::vector<Descriptor> &ds);
 void MatchDescriptorsToModel(std::vector<Descriptor> &d1, std::vector<Descriptor> &d2, std::vector<DescriptorMatches> &dm);
 void ReadKeypoints(const std::string filename, std::vector<Descriptor> &descriptors, int count);
-
-inline double l2_norm(const cv::Mat &a, const cv::Mat &b) {
-
-  double ret = 0.0;
-  if(a.size() != b.size()) throw(std::runtime_error("Error, a & b must have same dimensions in l2 norm!\n"));
-
-  for(int r=0;r<a.rows;r++){
-    for(int c=0;c<a.cols;c++){
-      if(a.type() == CV_64FC1) ret += (a.at<double>(r,c) - b.at<double>(r,c))*(a.at<double>(r,c) - b.at<double>(r,c));
-      else if(a.type() == CV_32FC1) ret += (a.at<float>(r,c) - b.at<float>(r,c))*(a.at<float>(r,c) - b.at<float>(r,c));
-      else throw(std::runtime_error("Error, unsupported matrix type in l2 norm!\n"));
-    }
-  }
-
-  return std::sqrt(ret);
-}
 
 const int NUM_DESCRIPTOR = 60;
 const int MATCHING_DISTANCE_THRESHOLD = 40;
@@ -54,7 +38,12 @@ bool StereoPWP3D::SetupEye(const int eye, Pose &pose){
     //swap the roi over in the images so they refer to the right hand image
     stereo_frame->SwapEyes();
     //also update the object pose so that it's relative to the right eye
-    Pose extrinsic(cv::Vec3f(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
+    Pose extrinsic;
+    if(stereo_camera_->IsRectified())
+      extrinsic = Pose(cv::Vec3f(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
+    else
+      extrinsic = Pose(stereo_camera_->ExtrinsicTranslation(),sv::Quaternion(stereo_camera_->ExtrinsicRotation()));
+    
     pose = CombinePoses(extrinsic, pose);
 
     return true;
@@ -66,7 +55,12 @@ bool StereoPWP3D::SetupEye(const int eye, Pose &pose){
     //swap everything back
     stereo_frame->SwapEyes();
 
-    Pose extrinsic(cv::Vec3f(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
+    Pose extrinsic;
+    if(stereo_camera_->IsRectified())
+      extrinsic = Pose(cv::Vec3f(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
+    else
+      extrinsic = Pose(stereo_camera_->ExtrinsicTranslation(),sv::Quaternion(stereo_camera_->ExtrinsicRotation()));
+
     pose = CombinePoses(extrinsic.Inverse(),pose);
 
     return false;
@@ -119,102 +113,19 @@ cv::Mat StereoPWP3D::GetPoseDerivativesRightEye(const int r, const int c, const 
 cv::Vec3f StereoPWP3D::GetDOFDerivativesRightEye(const int dof, const Pose &pose, const cv::Vec3f &point_) {
 
   //derivatives use the (x,y,z) from the initial reference frame not the transformed one so inverse the transformation
-  //cv::Vec3f point = point_ - pose.translation_;
-  //point = pose.rotation_.Inverse().RotateVector(point);
-  Pose extrinsic(cv::Vec3f(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
-  cv::Vec3f point = CombinePoses(extrinsic.Inverse(),pose).Transform(point_);
-
-  cv::Mat extrinsic_rotation = cv::Mat::eye(3,3,CV_64FC1);
-
-  switch(dof){
-
-  case 0: //x
-    return cv::Vec3f(
-      extrinsic_rotation.at<double>(0,0),
-      0,
-      0
-      );
-  case 1: //y
-    return cv::Vec3f(
-      0,
-      extrinsic_rotation.at<double>(1,1),
-      0
-      );
-  case 2: //z
-    return cv::Vec3f(
-      0,
-      0,
-      extrinsic_rotation.at<double>(2,2)
-      );
+  
+  Pose extrinsic;
+  if(stereo_camera_->IsRectified())
+    extrinsic = Pose(cv::Vec3f(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
+  else
+    extrinsic = Pose(stereo_camera_->ExtrinsicTranslation(),sv::Quaternion(stereo_camera_->ExtrinsicRotation()));
 
 
-  case 3: //qw
-    return cv::Vec3f(
-      extrinsic_rotation.at<double>(0,0)*((2*pose.rotation_.Y()*point[2])-(2*pose.rotation_.Z()*point[1])) + 
-      extrinsic_rotation.at<double>(0,1)*((2*pose.rotation_.Z()*point[0])-(2*pose.rotation_.X()*point[2])) + 
-      extrinsic_rotation.at<double>(0,2)*((2*pose.rotation_.X()*point[1])-(2*pose.rotation_.Y()*point[0])),
+  const cv::Vec3f point = extrinsic.InverseTransform(point_);
 
-      extrinsic_rotation.at<double>(1,0)*((2*pose.rotation_.Y()*point[2])-(2*pose.rotation_.Z()*point[1])) + 
-      extrinsic_rotation.at<double>(1,1)*((2*pose.rotation_.Z()*point[0])-(2*pose.rotation_.X()*point[2])) + 
-      extrinsic_rotation.at<double>(1,2)*((2*pose.rotation_.X()*point[1])-(2*pose.rotation_.Y()*point[0])),
-      
-      extrinsic_rotation.at<double>(2,0)*((2*pose.rotation_.Y()*point[2])-(2*pose.rotation_.Z()*point[1])) + 
-      extrinsic_rotation.at<double>(2,1)*((2*pose.rotation_.Z()*point[0])-(2*pose.rotation_.X()*point[2])) + 
-      extrinsic_rotation.at<double>(2,2)*((2*pose.rotation_.X()*point[1])-(2*pose.rotation_.Y()*point[0]))
-      );
+  cv::Vec3f derivs = PWP3D::GetDOFDerivatives(dof,CombinePoses(extrinsic.Inverse(),pose),point);
 
-  case 4: //qx
-    return cv::Vec3f(
-      
-      extrinsic_rotation.at<double>(0,0)*((2*pose.rotation_.Y()*point[1])+(2*pose.rotation_.Z()*point[2])) +
-      extrinsic_rotation.at<double>(0,1)*((2*pose.rotation_.Y()*point[0])-(4*pose.rotation_.X()*point[1])-(2*pose.rotation_.W()*point[2])) + 
-      extrinsic_rotation.at<double>(0,2)*((2*pose.rotation_.Z()*point[0])+(2*pose.rotation_.W()*point[1])-(4*pose.rotation_.X()*point[2])),
-
-      extrinsic_rotation.at<double>(1,0)*((2*pose.rotation_.Y()*point[1])+(2*pose.rotation_.Z()*point[2])) +
-      extrinsic_rotation.at<double>(1,1)*((2*pose.rotation_.Y()*point[0])-(4*pose.rotation_.X()*point[1])-(2*pose.rotation_.W()*point[2])) + 
-      extrinsic_rotation.at<double>(1,2)*((2*pose.rotation_.Z()*point[0])+(2*pose.rotation_.W()*point[1])-(4*pose.rotation_.X()*point[2])),
-
-      extrinsic_rotation.at<double>(2,0)*((2*pose.rotation_.Y()*point[1])+(2*pose.rotation_.Z()*point[2])) +
-      extrinsic_rotation.at<double>(2,1)*((2*pose.rotation_.Y()*point[0])-(4*pose.rotation_.X()*point[1])-(2*pose.rotation_.W()*point[2])) + 
-      extrinsic_rotation.at<double>(2,2)*((2*pose.rotation_.Z()*point[0])+(2*pose.rotation_.W()*point[1])-(4*pose.rotation_.X()*point[2]))
-      
-      );
-
-  case 5: //qy
-    return cv::Vec3f(
-       extrinsic_rotation.at<double>(0,0)*((2*pose.rotation_.X()*point[1])-(4*pose.rotation_.Y()*point[0])+(2*pose.rotation_.W()*point[2])) +
-       extrinsic_rotation.at<double>(0,1)*((2*pose.rotation_.X()*point[0])+(2*pose.rotation_.Z()*point[2])) +
-       extrinsic_rotation.at<double>(0,2)*((2*pose.rotation_.Z()*point[1])+(2*pose.rotation_.W()*point[0])-(4*pose.rotation_.Y()*point[2])),
-      
-       extrinsic_rotation.at<double>(1,0)*((2*pose.rotation_.X()*point[1])-(4*pose.rotation_.Y()*point[0])+(2*pose.rotation_.W()*point[2])) +
-       extrinsic_rotation.at<double>(1,1)*((2*pose.rotation_.X()*point[0])+(2*pose.rotation_.Z()*point[2])) +
-       extrinsic_rotation.at<double>(1,2)*((2*pose.rotation_.Z()*point[1])+(2*pose.rotation_.W()*point[0])-(4*pose.rotation_.Y()*point[2])),
-       
-       extrinsic_rotation.at<double>(2,0)*((2*pose.rotation_.X()*point[1])-(4*pose.rotation_.Y()*point[0])+(2*pose.rotation_.W()*point[2])) +
-       extrinsic_rotation.at<double>(2,1)*((2*pose.rotation_.X()*point[0])+(2*pose.rotation_.Z()*point[2])) +
-       extrinsic_rotation.at<double>(2,2)*((2*pose.rotation_.Z()*point[1])+(2*pose.rotation_.W()*point[0])-(4*pose.rotation_.Y()*point[2]))
-      );
-
-  case 6: //qz
-    return cv::Vec3f(
-      extrinsic_rotation.at<double>(0,0)*((2*pose.rotation_.X()*point[2])-(2*pose.rotation_.W()*point[1])-(4*pose.rotation_.Z()*point[0])) + 
-      extrinsic_rotation.at<double>(0,1)*((2*pose.rotation_.W()*point[0])-(4*pose.rotation_.X()*point[1])+(2*pose.rotation_.Y()*point[2])) +
-      extrinsic_rotation.at<double>(0,2)*((2*pose.rotation_.X()*point[0])+(2*pose.rotation_.Y()*point[1])),
-
-      extrinsic_rotation.at<double>(1,0)*((2*pose.rotation_.X()*point[2])-(2*pose.rotation_.W()*point[1])-(4*pose.rotation_.Z()*point[0])) + 
-      extrinsic_rotation.at<double>(1,1)*((2*pose.rotation_.W()*point[0])-(4*pose.rotation_.X()*point[1])+(2*pose.rotation_.Y()*point[2])) +
-      extrinsic_rotation.at<double>(1,2)*((2*pose.rotation_.X()*point[0])+(2*pose.rotation_.Y()*point[1])),
-
-      extrinsic_rotation.at<double>(2,0)*((2*pose.rotation_.X()*point[2])-(2*pose.rotation_.W()*point[1])-(4*pose.rotation_.Z()*point[0])) + 
-      extrinsic_rotation.at<double>(2,1)*((2*pose.rotation_.W()*point[0])-(4*pose.rotation_.X()*point[1])+(2*pose.rotation_.Y()*point[2])) +
-      extrinsic_rotation.at<double>(2,2)*((2*pose.rotation_.X()*point[0])+(2*pose.rotation_.Y()*point[1]))
-      
-      );
-
-  default:
-    throw std::runtime_error("Error, a value in the range 0-6 must be supplied");
-  }
-
+  return extrinsic.rotation_.RotateVector(derivs);
 
 }
 
@@ -323,10 +234,10 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
       //compute the derivates of the sdf images
       cv::Mat dSDFdx, dSDFdy;
-      cv::Sobel(sdf_image,dSDFdx,CV_32FC1,1,0,1); // (src,dst,dtype,dx,dy,size) size = 1 ==> 3x1 finite difference kernel
-      cv::Sobel(sdf_image,dSDFdy,CV_32FC1,0,1,1);
-      //cv::Scharr(sdf_image,dSDFdx,CV_32FC1,1,0);
-      //cv::Scharr(sdf_image,dSDFdy,CV_32FC1,0,1);
+      //cv::Sobel(sdf_image,dSDFdx,CV_32FC1,1,0,1); // (src,dst,dtype,dx,dy,size) size = 1 ==> 3x1 finite difference kernel
+      //cv::Sobel(sdf_image,dSDFdy,CV_32FC1,0,1,1);
+      cv::Scharr(sdf_image,dSDFdx,CV_32FC1,1,0);
+      cv::Scharr(sdf_image,dSDFdy,CV_32FC1,0,1);
 
 #ifdef SAVEDEBUG_2
       cv::Mat jacobian_x = cv::Mat::zeros(sdf_image.size(),CV_8UC3);
@@ -440,10 +351,11 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     
     std::vector<MatchedPair> pnp_pairs;
     FindPointCorrespondencesWithPose(frame_,pnp_pairs,current_model.CurrentPose());
+    std::cerr << "Found " << pnp_pairs.size() << " matches!\n";
     for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
       cv::Mat pnp_jacobian = GetPointDerivative(pnp->learned_point,cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
       for(int i=0;i<jacobian.rows;i++){
-        jacobian.at<double>(i,0) += pnp_jacobian.at<double>(i,0);
+        //jacobian.at<double>(i,0) += pnp_jacobian.at<double>(i,0);
       }
     }
     
@@ -464,7 +376,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     //converged = HasGradientDescentConverged(convergence_test_values, current_model.CurrentPose() );
     //converged = HasGradientDescentConverged__new(std::vector<cv::Mat>(), jacobian );
     //converged = HasGradientDescentConverged(convergence_test_values, current_model.CurrentPose());
-    converged = HasGradientDescentConverged_UsingEnergy(energy_vals);
+    //converged = HasGradientDescentConverged_UsingEnergy(energy_vals);
     
     if(energy>max_energy){
       //std::cerr << "new max energy = " << energy << "\n";
@@ -492,6 +404,8 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
 void StereoPWP3D::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &pnp, const Pose &pose){
 
+  pnp.clear();
+
   //load the ground truth points from the file
   std::vector<Descriptor> ground_truth_descriptors;
   ReadKeypoints(config_dir_ + "/Keypoints.xml",ground_truth_descriptors,NUM_DESCRIPTOR); 
@@ -501,6 +415,8 @@ void StereoPWP3D::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> 
     kp->coordinate = pose.Transform(kp->coordinate);
 
   }
+
+  double average_distance = 0.0;
 
   //search the image plane for features to match
   std::vector<Descriptor> frame_descriptors;
@@ -521,7 +437,10 @@ void StereoPWP3D::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> 
 
       //if the euclidean distance is < threshold then add this point to matching vector
       double euclidean_distance = std::sqrt((projected_pt.x - pt_to_match.x)*(projected_pt.x - pt_to_match.x) + (projected_pt.y - pt_to_match.y)*(projected_pt.y - pt_to_match.y));
-      if(euclidean_distance < MATCHING_DISTANCE_THRESHOLD) matching_queue.push_back(std::pair<Descriptor,double>(*frame_descriptor,0.0));
+      if(euclidean_distance < MATCHING_DISTANCE_THRESHOLD) {
+        matching_queue.push_back(std::pair<Descriptor,double>(*frame_descriptor,0.0));
+        matching_queue.back().first.TEST_DISTANCE = euclidean_distance;
+      }
 
     }
 
@@ -542,6 +461,9 @@ void StereoPWP3D::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> 
     double size_of_best = matching_queue.front().second;//l2_norm( matching_queue.front().first.descriptor, cv::Mat::zeros(matching_queue.front().first.descriptor.size(),matching_queue.front().first.descriptor.type()));  
 
     if(size_of_best < DESCRIPTOR_SIMILARITY_THRESHOLD){
+
+      average_distance += matching_queue.front().first.TEST_DISTANCE;
+
       cv::Point2f pt_to_match(matching_queue.front().first.coordinate[0],matching_queue.front().first.coordinate[1]);
       
       //cv::line(frame->GetImageROI(),pt_to_match,projected_pt,cv::Scalar(244,0,10),3);
@@ -554,6 +476,10 @@ void StereoPWP3D::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> 
     }
 
   }
+
+  if(pnp.size())
+    std::cout << "The average distance is " << average_distance/pnp.size() << "\n";
+
 
 }
 

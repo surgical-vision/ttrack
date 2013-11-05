@@ -37,6 +37,7 @@ public:
   }
   cv::Vec3f coordinate;
   cv::Mat descriptor;
+  double TEST_DISTANCE;
 };
 
 

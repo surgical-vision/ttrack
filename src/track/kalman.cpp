@@ -12,6 +12,7 @@ void KalmanTracker::SetPose(const cv::Vec3f translation, const cv::Vec3f rotated
 
   pose_.translation_ = translation;
   pose_.rotation_ = sv::Quaternion::FromVectorToVector(model_->PrincipalAxis(),rotated_principal_axis);
+  pose_.rotation_ = pose_.rotation_ + sv::Quaternion(boost::math::quaternion<double>(0.01,-0.011*rotated_principal_axis[0],-0.01*rotated_principal_axis[1],-0.01*rotated_principal_axis[2]));
   pose_.translational_velocity_ = cv::Vec3f(0,0,0);
 
 }

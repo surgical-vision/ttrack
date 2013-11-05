@@ -23,7 +23,7 @@ void PWP3D::ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const 
                             )
                 );
 
-  pose.rotation_ = pose.rotation_ + rotation;
+  pose.rotation_ = pose.rotation_ - rotation;
   pose.rotation_ = pose.rotation_.Normalize();
 
 }
@@ -51,11 +51,11 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pi
   if( largest < std::abs(jacobian.at<double>(1,0)) ) largest = std::abs(jacobian.at<double>(1,0));
   if( largest < std::abs(jacobian.at<double>(2,0)) ) largest = std::abs(jacobian.at<double>(2,0));
 
-  jacobian.at<double>(0,0) = (jacobian.at<double>(0,0)*0.2)/largest;
-  jacobian.at<double>(1,0) = (jacobian.at<double>(1,0)*0.1)/largest;
-  jacobian.at<double>(2,0) = (jacobian.at<double>(2,0)*0.6)/largest;
+  jacobian.at<double>(0,0) = (jacobian.at<double>(0,0)*0.4)/largest;
+  jacobian.at<double>(1,0) = (jacobian.at<double>(1,0)*0.4)/largest;
+  jacobian.at<double>(2,0) = (jacobian.at<double>(2,0)*0.8)/largest;
 
-  jacobian.at<double>(5,0) *= 10;
+  jacobian.at<double>(5,0) *= 3;
 
   largest = std::abs(jacobian.at<double>(3,0));
   if( largest < std::abs(jacobian.at<double>(4,0)) ) largest = std::abs(jacobian.at<double>(4,0));
@@ -63,8 +63,10 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pi
   if( largest < std::abs(jacobian.at<double>(6,0)) ) largest = std::abs(jacobian.at<double>(6,0));
 
   for(int i=3;i<7;i++){
-    jacobian.at<double>(i,0) *= (0.003 / largest);
+    jacobian.at<double>(i,0) *= (0.015 / largest);
   }
+
+  std::cerr << "Jacobian = " << jacobian << "\n";
 
   return;
 

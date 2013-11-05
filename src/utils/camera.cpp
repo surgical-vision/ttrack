@@ -51,9 +51,16 @@ cv::Point2f MonocularCamera::ProjectPoint(const cv::Point3f &point) const {
   static cv::Mat rot = cv::Mat::eye(3,3,CV_64FC1);
   static cv::Mat tran = cv::Mat::zeros(3,1,CV_64FC1);
   
+  //std::cerr << intrinsic_matrix_ << "\n" << distortion_params_ << "\n";
+
+  //std::cerr << "Point = " << point << " --> ";
+  //cv::Mat dst = cv::Mat::zeros(1,5,CV_64FC1);
   cv::projectPoints(std::vector<cv::Point3f>(1,point),rot,tran,intrinsic_matrix_,distortion_params_,projected_point);
+  //cv::projectPoints(std::vector<cv::Point3f>(1,point),rot,tran,intrinsic_matrix_,dst,projected_point);
   if(projected_point.size() != 1) throw(std::runtime_error("Error, projected points size != 1.\n"));
   
+  //std::cerr << projected_point.front() << "\n";
+
   return projected_point.front();
 
 }
@@ -81,15 +88,28 @@ StereoCamera::StereoCamera(const std::string &calibration_filename):rectified_(f
 
     cv::Mat rotation(3,3,CV_64FC1),translation(3,1,CV_64FC1);
     fs["Extrinsic_Camera_Rotation"] >> rotation;
+    
+    
+
+    cv::Mat nrot = -cv::Mat::eye(3,3,CV_64FC1);
+    nrot.at<double>(2,2) = 1; 
+    rotation = nrot * rotation * nrot;
     fs["Extrinsic_Camera_Translation"] >> translation;
+   
+
     for(int r=0;r<3;r++){
       for(int c=0;c<3;c++){
         extrinsic_matrix_.at<double>(r,c) = rotation.at<double>(r,c);
       }
-      extrinsic_matrix_.at<double>(r,3) = translation.at<double>(r,0);
+      if(r < 2)
+        extrinsic_matrix_.at<double>(r,3) = -1 * translation.at<double>(r,0);
+      else
+        extrinsic_matrix_.at<double>(r,3) = translation.at<double>(r,0);
     }
+
     extrinsic_matrix_(cv::Range(3,4),cv::Range::all()) = 0.0;
     extrinsic_matrix_.at<double>(3,3) = 1.0;
+
 
   }catch(cv::Exception& e){
 
@@ -114,9 +134,7 @@ void TestReproject(const cv::Mat &disparity_map, cv::Mat &reprojected_point_clou
       cv::Mat dp = reprojection_matrix * p;
       const double denom = dp.at<double>(3);
       point = cv::Vec3f( dp.at<double>(0)/denom, dp.at<double>(1)/denom, dp.at<double>(2)/denom);
-      //if(data[2] == 14.0){
-      //  std::cerr << cv::Point3f(point) << "\n";
-      //}
+
     }
   }
   

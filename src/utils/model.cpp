@@ -148,52 +148,52 @@ std::vector<std::vector<SimplePoint<> > > MISTool::GetClasperPolygons(const Pose
   const float top_fraction = 0.6;
   const float height_fraction = 0.0;
   
-  polygon_A.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , -(radius_tip_/1.0) , (radius_tip_/1.0))));
-  polygon_A.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) * top_fraction  , -(radius_tip_/1.0) , (radius_tip_/1.0))));
-  polygon_A.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) * height_fraction, (radius_tip_/1.0))));
-  polygon_A.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , (radius_tip_/1.0))));
-  polygon_A.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , (radius_tip_/1.0))));
+  polygon_A.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , -(radius_tip_/sqrt(2.0)) , (radius_tip_/sqrt(2.0)))));
+  polygon_A.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) * top_fraction  , -(radius_tip_/sqrt(2.0)) , (radius_tip_/sqrt(2.0)))));
+  polygon_A.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/sqrt(2.0)) * height_fraction, (radius_tip_/sqrt(2.0)))));
+  polygon_A.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/sqrt(2.0)) , (radius_tip_/sqrt(2.0)))));
+  polygon_A.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , (radius_tip_/sqrt(2.0)) , (radius_tip_/sqrt(2.0)))));
  
   AddPolygonPoints(polygon_A,pose,translate_to_front,rotate_pose);
   clasper_top_polygons.push_back(polygon_A);
 
-  polygon_B.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , -(radius_tip_/1.0) , -(radius_tip_/1.0))));
-  polygon_B.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) * top_fraction  , -(radius_tip_/1.0) , -(radius_tip_/1.0))));
-  polygon_B.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) * height_fraction, -(radius_tip_/1.0))));
-  polygon_B.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , -(radius_tip_/1.0))));
-  polygon_B.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , -(radius_tip_/1.0))));
+  polygon_B.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , -(radius_tip_/sqrt(2.0)) , -(radius_tip_/sqrt(2.0)))));
+  polygon_B.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) * top_fraction  , -(radius_tip_/sqrt(2.0)) , -(radius_tip_/sqrt(2.0)))));
+  polygon_B.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/sqrt(2.0)) * height_fraction, -(radius_tip_/sqrt(2.0)))));
+  polygon_B.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/sqrt(2.0)) , -(radius_tip_/sqrt(2.0)))));
+  polygon_B.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , (radius_tip_/sqrt(2.0)) , -(radius_tip_/sqrt(2.0)))));
   
   AddPolygonPoints(polygon_B,pose,translate_to_front,rotate_pose);
   clasper_top_polygons.push_back(polygon_B);
   
-  polygon_C.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2)* top_fraction , -(radius_tip_/1.0) , (radius_tip_/1.0))));
-  polygon_C.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , -(radius_tip_/1.0) , (radius_tip_/1.0))));
-  polygon_C.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , -(radius_tip_/1.0) , -(radius_tip_/1.0))));
-  polygon_C.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2)* top_fraction, -(radius_tip_/1.0) , -(radius_tip_/1.0))));
+  polygon_C.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2)* top_fraction , -(radius_tip_/sqrt(2.0)) , (radius_tip_/sqrt(2.0)))));
+  polygon_C.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , -(radius_tip_/sqrt(2.0)) , (radius_tip_/sqrt(2.0)))));
+  polygon_C.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , -(radius_tip_/sqrt(2.0)) , -(radius_tip_/sqrt(2.0)))));
+  polygon_C.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2)* top_fraction, -(radius_tip_/sqrt(2.0)) , -(radius_tip_/sqrt(2.0)))));
   
   AddPolygonPoints(polygon_C,pose,translate_to_front,rotate_pose);
   clasper_top_polygons.push_back(polygon_C);
 
-  polygon_D.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , (radius_tip_/1.0))));
-  polygon_D.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , (radius_tip_/1.0))));
-  polygon_D.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , -(radius_tip_/1.0))));
-  polygon_D.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , -(radius_tip_/1.0))));
+  polygon_D.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/sqrt(2.0)) , (radius_tip_/sqrt(2.0)))));
+  polygon_D.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , (radius_tip_/sqrt(2.0)) , (radius_tip_/sqrt(2.0)))));
+  polygon_D.push_back(SimplePoint<>(cv::Point3f( -((height_tip_-height_curve_)/2) , (radius_tip_/sqrt(2.0)) , -(radius_tip_/sqrt(2.0)))));
+  polygon_D.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/sqrt(2.0)) , -(radius_tip_/sqrt(2.0)))));
  
   AddPolygonPoints(polygon_D,pose,translate_to_front,rotate_pose);
   clasper_top_polygons.push_back(polygon_D);
 
-  polygon_E.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) * height_fraction, (radius_tip_/1.0))));
-  polygon_E.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , (radius_tip_/1.0))));  
-  polygon_E.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) , -(radius_tip_/1.0))));
-  polygon_E.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) * height_fraction, -(radius_tip_/1.0))));
+  polygon_E.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/sqrt(2.0)) * height_fraction, (radius_tip_/sqrt(2.0)))));
+  polygon_E.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/sqrt(2.0)) , (radius_tip_/sqrt(2.0)))));  
+  polygon_E.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/sqrt(2.0)) , -(radius_tip_/sqrt(2.0)))));
+  polygon_E.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/sqrt(2.0)) * height_fraction, -(radius_tip_/sqrt(2.0)))));
 
   AddPolygonPoints(polygon_E,pose,translate_to_front,rotate_pose);
   clasper_top_polygons.push_back(polygon_E);
 
-  polygon_F.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) * top_fraction  , -(radius_tip_/1.0) , (radius_tip_/1.0))));
-  polygon_F.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) * height_fraction, (radius_tip_/1.0))));
-  polygon_F.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/1.0) * height_fraction, -(radius_tip_/1.0))));
-  polygon_F.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) * top_fraction  , -(radius_tip_/1.0) , -(radius_tip_/1.0))));
+  polygon_F.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) * top_fraction  , -(radius_tip_/sqrt(2.0)) , (radius_tip_/sqrt(2.0)))));
+  polygon_F.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/sqrt(2.0)) * height_fraction, (radius_tip_/sqrt(2.0)))));
+  polygon_F.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) , (radius_tip_/sqrt(2.0)) * height_fraction, -(radius_tip_/sqrt(2.0)))));
+  polygon_F.push_back(SimplePoint<>(cv::Point3f( ((height_tip_-height_curve_)/2) * top_fraction  , -(radius_tip_/sqrt(2.0)) , -(radius_tip_/sqrt(2.0)))));
   
   AddPolygonPoints(polygon_F,pose,translate_to_front,rotate_pose);
   clasper_top_polygons.push_back(polygon_F);

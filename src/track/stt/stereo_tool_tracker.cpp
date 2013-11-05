@@ -14,9 +14,9 @@ StereoToolTracker::StereoToolTracker(const float radius, const float height, con
 
   localizer_.reset(new StereoPWP3D(config_dir));
   boost::shared_ptr<StereoPWP3D> stereo_pwp3d = boost::dynamic_pointer_cast<StereoPWP3D>(localizer_);
+  //if(!camera_->IsRectified()) camera_->Rectify(cv::Size(1920,1080));
   stereo_pwp3d->GetStereoCamera() = camera_; //MOVE THESE TO CONSTRUCTOR
   stereo_pwp3d->Camera() = stereo_pwp3d->GetStereoCamera()->rectified_left_eye();
-
 }
 
 
@@ -208,13 +208,13 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   //use these two parameters to set the initial pose of the object
 
   
-  center_of_mass_3d = cv::Vec3f(7.0,0.3,100); // aligns left image correctly
+  center_of_mass_3d = cv::Vec3f(10.9,0.35,45); // aligns left image correctly
   //center_of_mass_3d = cv::Vec3f(6.4-1.0,0.3,40.5); //aligns right image coorectly
   //center_of_mass_3d += cv::Vec3f(-3.1,-2.0,4.1);
-  left_central_axis = cv::Vec3f(-1.15,-0.18,-0.2); //GOOD VALUE FOR NEW_VIDEO (+y > clockwise, +z > counter clockwise
+  left_central_axis = cv::Vec3f(-3.06 - 0.165,-0.471 + 0.04, 1.53 + 0.875); //GOOD VALUE FOR NEW_VIDEO (+y > clockwise, +z > counter clockwise
   //left_central_axis += cv::Vec3f(-0.3,-0.1,-0.2);
 
-  //left_central_axis = cv::Vec3f(-1,0,0.1);
+  //left_central_axis = cv::Vec3f(0.23,-0.928,-0.285);
   //std::cerr << "central axis = " << cv::Point3f(left_central_axis) << "\n";
   tracked_model.SetPose(center_of_mass_3d,left_central_axis);
 
@@ -321,15 +321,18 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
   cv::imwrite("debug/distorted_right.png",stereo_image->GetRightImage());
 #endif
 
+  
+
    //then rectify the camera and remap the images
-   if( !camera_->IsRectified() ) camera_->Rectify(stereo_image->GetLeftImage().size());
+   /*if( !camera_->IsRectified() ) camera_->Rectify(stereo_image->GetLeftImage().size());
 
    camera_->RemapLeftFrame(stereo_image->GetLeftImage());
    camera_->RemapRightFrame(stereo_image->GetRightImage());
    camera_->RemapLeftFrame(stereo_image->GetLeftClassificationMap());
    camera_->RemapRightFrame(stereo_image->GetRightClassificationMap());
+   */
 
-
+   
 #if defined(SAVEDEBUG_2) 
    //check this modifies correctly
    cv::imwrite("debug/left.png",stereo_image->GetLeftImage());

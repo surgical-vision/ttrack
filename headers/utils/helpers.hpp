@@ -8,6 +8,22 @@
 
 namespace ttrk{
 
+  
+  inline double l2_norm(const cv::Mat &a, const cv::Mat &b) {
+
+    double ret = 0.0;
+    if(a.size() != b.size()) throw(std::runtime_error("Error, a & b must have same dimensions in l2 norm!\n"));
+
+    for(int r=0;r<a.rows;r++){
+      for(int c=0;c<a.cols;c++){
+        if(a.type() == CV_64FC1) ret += (a.at<double>(r,c) - b.at<double>(r,c))*(a.at<double>(r,c) - b.at<double>(r,c));
+        else if(a.type() == CV_32FC1) ret += (a.at<float>(r,c) - b.at<float>(r,c))*(a.at<float>(r,c) - b.at<float>(r,c));
+        else throw(std::runtime_error("Error, unsupported matrix type in l2 norm!\n"));
+      }
+    }
+
+    return std::sqrt(ret);
+  }
 
   inline bool PointInImage(const cv::Point &point, const cv::Size &image_size){
     return cv::Rect(0,0,image_size.width,image_size.height).contains(point);

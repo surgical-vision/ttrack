@@ -99,13 +99,13 @@ namespace ttrk{
     * @return The left eye of the camera.
     */
     boost::shared_ptr<MonocularCamera> left_eye() const { return left_eye_; }
-    boost::shared_ptr<MonocularCamera> rectified_left_eye() const { return rectified_left_eye_; }
+    boost::shared_ptr<MonocularCamera> rectified_left_eye() const { if(IsRectified()) return rectified_left_eye_; else  return left_eye_; }
     /**
     * Get a reference to the right eye of the camera.
     * @return The right eye of the camera.
     */
     boost::shared_ptr<MonocularCamera> right_eye() const { return right_eye_; }
-    boost::shared_ptr<MonocularCamera> rectified_right_eye() const { return rectified_right_eye_; }
+    boost::shared_ptr<MonocularCamera> rectified_right_eye() const { if(IsRectified()) return rectified_right_eye_; else return right_eye_;}
 
     void Rectify(const cv::Size image_size);
     bool IsRectified() const { return rectified_; }

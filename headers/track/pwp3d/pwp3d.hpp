@@ -50,9 +50,9 @@ namespace ttrk {
     void ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pixel_count) const;
 
     double DeltaFunction(float x){
-      return (1.0f / float(M_PI)) * (1 / (x * x + 1.0f) + float(1e-3));
-      //double std = 0.3; // ----0.05
-     //return (1.0/(std*sqrt(2*M_PI)))*exp(-((x*x)/(2*std*std)));
+      //return (1.0f / float(M_PI)) * (1 / (x * x + 1.0f) + float(1e-3));
+      double std = 4.5; // ----0.05
+      return (1.0/(std*sqrt(2*M_PI)))*exp(-((x*x)/(2*std*std)));
     }
 
     /*double HeavisideFunction(float x){

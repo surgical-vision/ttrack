@@ -22,6 +22,7 @@ namespace ttrk {
     KalmanTracker(const KalmanTracker &that);
 
     void SetPose(const cv::Vec3f translation, const cv::Vec3f rotated_principal_axis); 
+    void SetPose(const Pose &p);
     void UpdatePose(const Pose &pose_measurement) ;
     void Init();
     /**

@@ -72,44 +72,43 @@ StereoCamera::StereoCamera(const std::string &calibration_filename):rectified_(f
 
   try{
 
-    cv::Mat temp_intrinsic, temp_distortion;
-
+    cv::Mat l_intrinsic, l_distortion;
+    cv::Mat r_intrinsic, r_distortion;
     fs.open(calibration_filename,cv::FileStorage::READ); 
 
-    fs["Left_Camera_Matrix"] >> temp_intrinsic;
-    fs["Left_Distortion_Coefficients"] >> temp_distortion;
-    left_eye_.reset( new MonocularCamera(temp_intrinsic, temp_distortion) );
+    fs["Left_Camera_Matrix"] >> l_intrinsic;
+    fs["Left_Distortion_Coefficients"] >> l_distortion;
+    left_eye_.reset( new MonocularCamera(l_intrinsic, l_distortion) );
     rectified_left_eye_.reset( new MonocularCamera );
 
-    fs["Right_Camera_Matrix"] >> temp_intrinsic;
-    fs["Right_Distortion_Coefficients"] >> temp_distortion;
-    right_eye_.reset( new MonocularCamera(temp_intrinsic, temp_distortion) );
+    fs["Right_Camera_Matrix"] >> r_intrinsic;
+    fs["Right_Distortion_Coefficients"] >> r_distortion;
+    right_eye_.reset( new MonocularCamera(r_intrinsic, r_distortion) );
     rectified_right_eye_.reset( new MonocularCamera );
 
     cv::Mat rotation(3,3,CV_64FC1),translation(3,1,CV_64FC1);
     fs["Extrinsic_Camera_Rotation"] >> rotation;
-    
-    
 
+    /*
     cv::Mat nrot = -cv::Mat::eye(3,3,CV_64FC1);
     nrot.at<double>(2,2) = 1; 
     rotation = nrot * rotation * nrot;
+    */
+    
     fs["Extrinsic_Camera_Translation"] >> translation;
-   
 
     for(int r=0;r<3;r++){
       for(int c=0;c<3;c++){
         extrinsic_matrix_.at<double>(r,c) = rotation.at<double>(r,c);
       }
-      if(r < 2)
-        extrinsic_matrix_.at<double>(r,3) = -1 * translation.at<double>(r,0);
-      else
-        extrinsic_matrix_.at<double>(r,3) = translation.at<double>(r,0);
+      //if(r < 2)
+      //  extrinsic_matrix_.at<double>(r,3) = -1 * translation.at<double>(r,0);
+      //else
+      extrinsic_matrix_.at<double>(r,3) = translation.at<double>(r,0);
     }
 
     extrinsic_matrix_(cv::Range(3,4),cv::Range::all()) = 0.0;
     extrinsic_matrix_.at<double>(3,3) = 1.0;
-
 
   }catch(cv::Exception& e){
 
@@ -167,7 +166,6 @@ cv::Vec3f StereoCamera::ReprojectPointTo3D(const cv::Point2i &left, const cv::Po
 
 }
 
-
 void StereoCamera::ReprojectTo3D(const cv::Mat &disparity_image, cv::Mat &point_cloud, const std::vector<cv::Vec2i> &connected_region) const {
 
   if(point_cloud.data == 0x0) point_cloud.create(disparity_image.size(),CV_32FC3);
@@ -189,22 +187,9 @@ void StereoCamera::ReprojectTo3D(const cv::Mat &disparity_image, cv::Mat &point_
 
  
 
- /* for (int r = 0; r < disparity_image.rows; r++){
-    for (int c =0;c < disparity_image.cols; c++ ){
-      
-      disp_image.at<int16_t>(r,c) *= (mask.at<unsigned char>(r,c) == 255);
-      
-    }
-  }*/
-
-  //cv::imwrite("mask.png",mask);
-  //cv::reprojectImageTo3D(disp_image,point_cloud,reprojection_matrix_,true,-1);
   TestReproject(disp_image,point_cloud,reprojection_matrix_);
 
-  //cv::Mat z = cv::Mat::zeros(disp_image.size(),CV_8UC1);
-  //std::cerr << reprojection_matrix_ << "\n";
 
-  //std::ofstream ofs("points.xyz");  
   for (int r = 0; r < point_cloud.rows; r++){
     for (int c =0; c < point_cloud.cols; c++ ){
       
@@ -217,10 +202,7 @@ void StereoCamera::ReprojectTo3D(const cv::Mat &disparity_image, cv::Mat &point_
  
       cv::Point3f point(point_cloud.at<cv::Vec3f>(r,c) );
       if(point != cv::Point3f(0,0,0)){
-        //std::cerr << disp_image.at<float>(r,c) << "-->" << point << "\n";
-        //if(point.z < 0 || point.z > 100) point.z = 50;
-        //ofs << point.x << " " << point.y << " " << point.z << "\n";
-        //z.at<unsigned char>(r,c) = 255;
+ 
         
       }
      
@@ -235,11 +217,18 @@ void StereoCamera::ReprojectTo3D(const cv::Mat &disparity_image, cv::Mat &point_
 
 void StereoCamera::Rectify(const cv::Size image_size) {
 
+  cv::Mat inverse_ext;// = extrinsic_matrix_.clone();
+  cv::invert(extrinsic_matrix_,inverse_ext);
+
   cv::stereoRectify(left_eye_->intrinsic_matrix_,left_eye_->distortion_params_,
                     right_eye_->intrinsic_matrix_,right_eye_->distortion_params_,
                     image_size,
+                    inverse_ext(cv::Range(0,3),cv::Range(0,3)),
+                    inverse_ext(cv::Range(0,3),cv::Range(3,4)),
+                    /*
                     extrinsic_matrix_(cv::Range(0,3),cv::Range(0,3)),
                     extrinsic_matrix_(cv::Range(0,3),cv::Range(3,4)),
+                    */
                     R1, R2, P1, P2, reprojection_matrix_,
                     0,//CV_CALIB_ZERO_DISPARITY, // 0 || CV_CALIB_ZERO_DISPARITY
                     0,  // -1 = default scaling, 0 = no black pixels, 1 = no source pixels lost

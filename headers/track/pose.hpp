@@ -40,6 +40,8 @@ namespace ttrk {
     
     }
 
+ 
+
     inline operator cv::Mat() const;
 
     cv::Vec3f translation_;
@@ -50,6 +52,11 @@ namespace ttrk {
     //cv::Vec3f rotational_velocity;
 
   };
+
+  inline std::ostream &operator<<(std::ostream &os, const Pose &p){
+    os << "[" << p.rotation_ << ", " << p.translation_[0] << ", " << p.translation_[1] << ", " << p.translation_[2] << "]";
+    return os;
+  }
 
   inline Pose CombinePoses(const Pose &a, const Pose &b) {
 

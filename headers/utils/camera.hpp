@@ -117,6 +117,7 @@ namespace ttrk{
     cv::Mat GetP1() { return P1(cv::Range(0,3),cv::Range(0,3));}
 
     void InitRectified() {
+      throw(std::runtime_error("Error,here"));
       rectified_left_eye_->intrinsic_matrix_ = P1(cv::Range(0,3),cv::Range(0,3));
       rectified_right_eye_->intrinsic_matrix_ = P2(cv::Range(0,3),cv::Range(0,3));
       rectified_left_eye_->distortion_params_ = cv::Mat::zeros(1,5,CV_64FC1);

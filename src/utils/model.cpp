@@ -308,12 +308,6 @@ bool MISTool::GetIntersectionPolygons(const cv::Vec3f &ray, cv::Vec3f &front, cv
     }
   }
 
-  //if(intersections.size() > 0 && intersections.size() != 2) //you should only intersection 1 polygon for occasional cases
-  //  std::cerr << "This should not happen too often!\n";
-  
-  //if(intersections.size() > 2)
-  //    throw(std::runtime_error("Error, 3 intersections not possible with convex shape!\n"));
-
   return true;
 
 }

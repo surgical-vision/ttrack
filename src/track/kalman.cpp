@@ -17,6 +17,12 @@ void KalmanTracker::SetPose(const cv::Vec3f translation, const cv::Vec3f rotated
 
 }
 
+void KalmanTracker::SetPose(const Pose &p){
+
+  pose_ = p;
+
+}
+
 void KalmanTracker::UpdatePose(const Pose &pose_measurement) {
 
   const cv::Mat prediction = filter_.predict(); //compute prior P(w_{t}|x_{1},...,x_{t-1}) (using Chapman-Kolomogorov e.q.)

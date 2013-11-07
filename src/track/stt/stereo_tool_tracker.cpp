@@ -208,16 +208,20 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
   //use these two parameters to set the initial pose of the object
 
   
-  center_of_mass_3d = cv::Vec3f(10.9,0.35,45); // aligns left image correctly
+  //center_of_mass_3d = cv::Vec3f(10.9 + 0.5,0.75,49); // aligns left image correctly
   //center_of_mass_3d = cv::Vec3f(6.4-1.0,0.3,40.5); //aligns right image coorectly
   //center_of_mass_3d += cv::Vec3f(-3.1,-2.0,4.1);
-  left_central_axis = cv::Vec3f(-3.06 - 0.165,-0.471 + 0.04, 1.53 + 0.875); //GOOD VALUE FOR NEW_VIDEO (+y > clockwise, +z > counter clockwise
+  //left_central_axis = cv::Vec3f(-3.06 - 0.165,-0.471 + 0.04, 1.53 + 0.875); //GOOD VALUE FOR NEW_VIDEO (+y > clockwise, +z > counter clockwise
   //left_central_axis += cv::Vec3f(-0.3,-0.1,-0.2);
 
   //left_central_axis = cv::Vec3f(0.23,-0.928,-0.285);
   //std::cerr << "central axis = " << cv::Point3f(left_central_axis) << "\n";
   tracked_model.SetPose(center_of_mass_3d,left_central_axis);
-
+  //sv::Quaternion q(boost::math::quaternion<double>(0.309,0.03218-0.025,-0.9324+0.05,-0.18433-0.01));
+  sv::Quaternion q(boost::math::quaternion<double>(0.328+0.07,0.0069+0.00185,-0.9243-0.145,-0.193904));
+  q = q.Normalize();
+  //tracked_model.SetPose( Pose(cv::Vec3f(9.3+0.525,0.76+0.8,44.9321-1.5),q));
+  tracked_model.SetPose( Pose(cv::Vec3f(10.349-1.5,1.822-0.3,43.498+1.2),q));
   return;
 
 }
@@ -324,13 +328,15 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
   
 
    //then rectify the camera and remap the images
-   /*if( !camera_->IsRectified() ) camera_->Rectify(stereo_image->GetLeftImage().size());
+   /*
+   if( !camera_->IsRectified() ) camera_->Rectify(stereo_image->GetLeftImage().size());
 
    camera_->RemapLeftFrame(stereo_image->GetLeftImage());
    camera_->RemapRightFrame(stereo_image->GetRightImage());
    camera_->RemapLeftFrame(stereo_image->GetLeftClassificationMap());
    camera_->RemapRightFrame(stereo_image->GetRightClassificationMap());
    */
+   
 
    
 #if defined(SAVEDEBUG_2) 

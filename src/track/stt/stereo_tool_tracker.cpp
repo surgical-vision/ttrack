@@ -127,9 +127,10 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
 
   //cv::circle(frame_->GetImageROI(),cv::Point2i(point),10,cv::Scalar(244,25,30),4);
 
-  center_of_mass_3d = center_of_mass_3d * 70;
-  unp_point = unp_point * 70;
   central_axis_3d = unp_point - center_of_mass_3d;
+  center_of_mass_3d = center_of_mass_3d * 55;
+  //unp_point = unp_point * 50;
+  
 
  
 }
@@ -158,7 +159,8 @@ void StereoToolTracker::ShiftToTip(const cv::Vec3f &central_axis, cv::Vec3f &cen
   //cv::circle(frame_->GetImageROI(),o_com,20,cv::Scalar(255,0,0),4);
   //std::cerr << "left com = " << cv::Point3f(original_center_of_mass) << "\n";
 
-  while (true) {
+  float length;
+  do{
     
     t.SetPose(center_of_mass,central_axis);
     cv::Vec3f tip_of_instrument = t.CurrentPose().Transform( cv::Vec3f(-this->height_/2 + this->height_*mis_tool->HeightFraction(),0,0) );
@@ -167,15 +169,15 @@ void StereoToolTracker::ShiftToTip(const cv::Vec3f &central_axis, cv::Vec3f &cen
     //cv::circle(frame_->GetImageROI(),p,10,cv::Scalar(0,244,23),2);
 
     cv::Vec3f com_to_tip = tip_of_instrument - original_center_of_mass;
-    const float length = sqrt( com_to_tip[0]*com_to_tip[0] + com_to_tip[1]*com_to_tip[1] + com_to_tip[2]*com_to_tip[2] );
+    length = sqrt( com_to_tip[0]*com_to_tip[0] + com_to_tip[1]*com_to_tip[1] + com_to_tip[2]*com_to_tip[2] );
 
-    if (length < length_of_central_axis) break;
+    //if () break;
 
     center_of_mass = center_of_mass - 0.05*central_axis;
     //cv::Point2i n_com = camera_->rectified_left_eye()->ProjectPointToPixel(cv::Point3f(center_of_mass));
     //cv::circle(frame_->GetImageROI(),n_com,15,cv::Scalar(255,125,23),6);
-
-  }
+    std::cerr << "length = " <<length << " > " << length_of_central_axis << "\n";
+  }while (length > length_of_central_axis);
 
   //cv::imwrite("point_moves.png",frame_->GetImageROI());
   //std::cerr << "final com = " << cv::Point3f(center_of_mass) << "\n";
@@ -203,25 +205,17 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
 
   //ShiftToTip(left_central_axis,center_of_mass_3d);
   left_central_axis[2] = -0.5*left_central_axis[0];
-  //left_central_axis[1] += 0.15;
-  //center_of_mass_3d = cv::Vec3f(17.5,-9.5,65); //GOOD VALUE FOR TEST_VIDEO
+  //std::cerr << "left_central_axis" << cv::Point3f(left_central_axis) << "\n";
+  //left_central_axis *= -1;
+
   //use these two parameters to set the initial pose of the object
-
-  
-  //center_of_mass_3d = cv::Vec3f(10.9 + 0.5,0.75,49); // aligns left image correctly
-  //center_of_mass_3d = cv::Vec3f(6.4-1.0,0.3,40.5); //aligns right image coorectly
-  //center_of_mass_3d += cv::Vec3f(-3.1,-2.0,4.1);
-  //left_central_axis = cv::Vec3f(-3.06 - 0.165,-0.471 + 0.04, 1.53 + 0.875); //GOOD VALUE FOR NEW_VIDEO (+y > clockwise, +z > counter clockwise
-  //left_central_axis += cv::Vec3f(-0.3,-0.1,-0.2);
-
-  //left_central_axis = cv::Vec3f(0.23,-0.928,-0.285);
-  //std::cerr << "central axis = " << cv::Point3f(left_central_axis) << "\n";
+  //std::cerr << "left_central_axis" << cv::Point3f(left_central_axis) << "\n";
   tracked_model.SetPose(center_of_mass_3d,left_central_axis);
-  //sv::Quaternion q(boost::math::quaternion<double>(0.309,0.03218-0.025,-0.9324+0.05,-0.18433-0.01));
-  sv::Quaternion q(boost::math::quaternion<double>(0.328+0.07,0.0069+0.00185,-0.9243-0.145,-0.193904));
-  q = q.Normalize();
-  //tracked_model.SetPose( Pose(cv::Vec3f(9.3+0.525,0.76+0.8,44.9321-1.5),q));
-  tracked_model.SetPose( Pose(cv::Vec3f(10.349-1.5,1.822-0.3,43.498+1.2),q));
+
+  //these values align well for the new_video dataset
+  //sv::Quaternion q(boost::math::quaternion<double>(0.309,0.03218,-0.9324,-0.18433));
+  //q = q.Normalize();
+  //tracked_model.SetPose( Pose(cv::Vec3f(10.349,1.822,43.498),q));
   return;
 
 }

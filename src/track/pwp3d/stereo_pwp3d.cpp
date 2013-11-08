@@ -82,8 +82,8 @@ cv::Mat StereoPWP3D::GetPoseDerivativesRightEye(const int r, const int c, const 
   if(!intersects) {
     intersects = GetNearestIntersection(r,c,sdf,front_intersection,back_intersection,current_model, front_intersection_image, back_intersection_image);
     if(!intersects)
-      throw(std::runtime_error("Error, should not miss point on the border. Check GetNearestIntesection::search_range and continue values!\n"));
-      //return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
+      //throw(std::runtime_error("Error, should not miss point on the border. Check GetNearestIntesection::search_range and continue values!\n"));
+      return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
   }
 
 
@@ -152,9 +152,9 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
  
   frame_ = frame;
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
-  const int NUM_STEPS = 115;
+  const int NUM_STEPS = 40;
   cv::Vec3f initial_translation = current_model.CurrentPose().translation_;
-
+  static bool first = true;
 
 #ifdef DEBUG
   boost::progress_timer t; //timer prints time when it goes out of scope
@@ -359,6 +359,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 #ifdef SAVEDEBUG_2
     std::cerr << "Found " << pnp_pairs.size() << " matches!\n";
 #endif
+    std::cerr << "Found " << pnp_pairs.size() << " matches!\n";
     for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
       cv::Mat pnp_jacobian = GetPointDerivative(pnp->learned_point,cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
       for(int i=0;i<jacobian.rows;i++){
@@ -386,9 +387,11 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     //converged = HasGradientDescentConverged(convergence_test_values, current_model.CurrentPose() );
     //converged = HasGradientDescentConverged__new(std::vector<cv::Mat>(), jacobian );
     //converged = HasGradientDescentConverged(convergence_test_values, current_model.CurrentPose());
-    converged = HasGradientDescentConverged_UsingEnergy(energy_vals);
+    if(!first)
+      converged = HasGradientDescentConverged_UsingEnergy(energy_vals);
     
-    if(energy>max_energy){
+    //if(energy>max_energy){
+    {
       //std::cerr << "new max energy = " << energy << "\n";
       max_energy = energy;
       pwp3d_best_pose = current_model.CurrentPose();
@@ -408,6 +411,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   //update the velocity model... a bit crude
   cv::Vec3f translational_velocity = current_model.CurrentPose().translation_ - initial_translation;
   current_model.CurrentPose().translational_velocity_ = translational_velocity;
+  first = false;
   return current_model.CurrentPose();
 
 }

@@ -49,7 +49,9 @@ namespace ttrk{
     bool ThresholdImage(const cv::Mat &image, std::vector<std::vector<cv::Point> > &contours) const;
     void FindSingleRegionFromContour(const std::vector<cv::Point> &contour,std::vector<cv::Vec2i> &connected_region) const;
     void GetContours(const cv::Mat &image, std::vector<std::vector<cv::Point> > &contours) const;
-    
+    void CheckCentralAxisDirection(const cv::Vec2f &center_of_mass, cv::Vec2f &horizontal_axis) const;
+
+
     template<typename T>
     T GetCenter(const std::vector<T> &contour) const ;
 

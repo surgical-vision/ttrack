@@ -6,12 +6,12 @@ using namespace ttrk;
 
 
 MISTool::MISTool(float radius, float height):radius_(radius),height_(height){
-  radius_fraction_ = 0.8;
-  height_fraction_ = 1.28;
-  radius_tip_ = 2;
+  radius_fraction_ = (float)0.8;
+  height_fraction_ = (float)1.28;
+  radius_tip_ = (float)2;
   height_tip_ = height_ + 18;
   height_curve_ = height_ + 9;
-  angle_curve_ = M_PI/9;
+  angle_curve_ = (float)M_PI/9;
   //tip_offset_ = 0.3;
 }
 
@@ -137,7 +137,7 @@ std::vector<std::vector<SimplePoint<> > > MISTool::GetClasperPolygons(const Pose
   std::vector<SimplePoint<> > polygon_F; //angled bit
 
   //THE ORDERING OF ADDING THESE POINTS IS ESSENTIAL - IF CHANGES ARE MADE, THE NEIGHBOR ADDING & INTERSECTION TESTS NEED TO BE UPDATED
-  sv::Quaternion q = sv::Quaternion::FromVectorToVector(cv::Vec3f(1,0,0),cv::Vec3f(0.9,0.1,0.20));
+  sv::Quaternion q = sv::Quaternion::FromVectorToVector(cv::Vec3f(1,0,0),cv::Vec3f((float)0.9,(float)0.1,(float)0.20));
   Pose rotate_pose(cv::Vec3f(0,0,0),q);
   Pose translate_to_front(cv::Vec3f(-(float)height_/2 + (float)(height_curve_) + (height_tip_-height_curve_)/2, 
                                     - 0.15*radius_*2, //need to shift center down

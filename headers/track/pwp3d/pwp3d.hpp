@@ -12,7 +12,7 @@ namespace ttrk {
   class PWP3D : public Localizer {
   public: 
     
-    PWP3D(const std::string &config_dir) : config_dir_(config_dir) {}
+    PWP3D(const std::string &config_dir) : config_dir_(config_dir), k_delta_function_std_(2.5), k_heaviside_width_(0.3) { }
 
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame) = 0;
     boost::shared_ptr<MonocularCamera> &Camera() { return camera_; } //references to shared pointers are nasty!
@@ -49,11 +49,17 @@ namespace ttrk {
     */
     void ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pixel_count) const;
 
-    double DeltaFunction(float x){
+
+    inline double DeltaFunction(double x,const double std){
       //return (1.0f / float(M_PI)) * (1 / (x * x + 1.0f) + float(1e-3));
-      double std = 4.5; // ----0.05
+      //double std = 2.5; // ----0.05
       return (1.0/(std*sqrt(2*M_PI)))*exp(-((x*x)/(2*std*std)));
     }
+
+    inline  void SetBlurringScaleFactor(const int image_width){
+      blurring_scale_factor_ = 0.3 + (0.7 * image_width/1900); 
+    }
+
 
     /*double HeavisideFunction(float x){
       const double a = 0.4; //equates to blur between -25 and 25 ---- 0.3
@@ -98,6 +104,9 @@ namespace ttrk {
     std::string DEBUG_DIR_;
     boost::shared_ptr<MonocularCamera> camera_;
     std::string config_dir_;
+    float blurring_scale_factor_;
+    const float k_delta_function_std_;
+    const float k_heaviside_width_;
 
   };
 

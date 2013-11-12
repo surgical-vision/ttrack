@@ -86,12 +86,17 @@ ImageHandler::ImageHandler(const std::string &input_url, const std::string &outp
   }
 
   //push the actual filenames into the paths_ vector
-  for(size_t i=0;i<images.size();i++)
+  for(size_t i=0;i<images.size();i++){
+    std::cout << images[i].filename().string() << "\n";
     paths_.push_back( images[i].filename().string() );
+  }
+  std::cout.flush();
 
   open_iter_ = save_iter_ = paths_.begin();
 
 }
+
+
 
 cv::Mat ImageHandler::GetNewFrame(){
 

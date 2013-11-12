@@ -134,20 +134,6 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
 
  
 }
-
-void StereoToolTracker::CheckCentralAxisDirection(const cv::Vec2i &center_of_mass, cv::Vec2f &central_axis) const {
-
-  const cv::Vec2i center_of_image(camera_->rectified_left_eye()->Px(),camera_->rectified_left_eye()->Py());
-  const cv::Vec2f center_of_mass_to_center_of_image = cv::Vec2f(center_of_image) - cv::Vec2f(center_of_mass);
-
-  const float cos_angle =  center_of_mass_to_center_of_image.dot(central_axis) ; //we don't care about scale factor so don't bother to normalize
-  const float cos_angle_reversed =  center_of_mass_to_center_of_image.dot(-central_axis) ;
-
-  if( cos_angle > cos_angle_reversed ) return; //we seek the smallest angle (largest cos(angle))
-  else central_axis *= -1;
-
-}
-
 void StereoToolTracker::ShiftToTip(const cv::Vec3f &central_axis, cv::Vec3f &center_of_mass) {//, KalmanTracker &tracked_model){
 
   KalmanTracker t(boost::shared_ptr<Model>(new MISTool(radius_,height_) ));
@@ -210,7 +196,11 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
 
   //use these two parameters to set the initial pose of the object
   //std::cerr << "left_central_axis" << cv::Point3f(left_central_axis) << "\n";
-  tracked_model.SetPose(center_of_mass_3d,left_central_axis);
+  //tracked_model.SetPose(center_of_mass_3d,left_central_axis);
+  sv::Quaternion q(boost::math::quaternion<double>(0.309,0.03218,-0.9324,-0.18433));
+  q = q.Normalize();
+  //tracked_model.SetPose(Pose(cv::Vec3f(-20,-20,100),q));
+  tracked_model.SetPose(Pose(cv::Vec3f(18,-18,90),q));//sv::Quaternion(0,cv::Vec3f(1,0,0))));
 
   //these values align well for the new_video dataset
   //sv::Quaternion q(boost::math::quaternion<double>(0.309,0.03218,-0.9324,-0.18433));

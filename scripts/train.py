@@ -38,10 +38,6 @@ for r in range(image.shape[0]):
       training_labels[r*image.shape[1] + c,0] = np.int32(0)
     else:
       raise Exception("Bad label: {0}\n".format( mask[r,c] ) )
-    #print "Sample:\n"
-    #print training_data[r*image.shape[1] + c,:]
-    #print "Label:\n"
-    #print training_labels[r*image.shape[1] + c,0]
     
 rf = cv2.RTrees()
 

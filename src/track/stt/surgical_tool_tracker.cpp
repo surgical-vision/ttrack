@@ -43,6 +43,20 @@ void SurgicalToolTracker::FindSingleRegionFromContour(const std::vector<cv::Poin
 
 }
 
+void SurgicalToolTracker::CheckCentralAxisDirection(const cv::Vec2f &center_of_mass, cv::Vec2f &central_axis) const {
+
+  
+  const cv::Vec2i center_of_image((float)frame_->GetImageROI().cols/2,(float)frame_->GetImageROI().rows/2);
+  const cv::Vec2f center_of_mass_to_center_of_image = cv::Vec2f(center_of_image) - cv::Vec2f(center_of_mass);
+
+  const float cos_angle =  center_of_mass_to_center_of_image.dot(central_axis) ; //we don't care about scale factor so don't bother to normalize
+  const float cos_angle_reversed =  center_of_mass_to_center_of_image.dot(-central_axis) ;
+
+  if( cos_angle > cos_angle_reversed ) return; //we seek the smallest angle (largest cos(angle))
+  else central_axis *= -1;
+
+}
+
 bool SurgicalToolTracker::FindConnectedRegions(const cv::Mat &image,std::vector<std::vector<cv::Vec2i> >&connected_regions){
 
   //draw contours around the connected regions returning a vector of each connected region

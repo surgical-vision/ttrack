@@ -71,8 +71,10 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
   cv::Vec2f central_axis(e[2],e[3]);
   cv::Vec2f horizontal_axis(e[0],e[1]);
 
-  cv::Vec2f top = cv::Vec2f(center_of_mass) + (0.5*width)*horizontal_axis;
-  cv::Vec2f bottom = cv::Vec2f(center_of_mass) - (0.5*width)*horizontal_axis;
+  CheckCentralAxisDirection(center_of_mass,central_axis);
+
+  cv::Vec2f top = cv::Vec2f(center_of_mass) + (0.5*width)*central_axis;
+  cv::Vec2f bottom = cv::Vec2f(center_of_mass) - (0.5*width)*central_axis;
 
   cv::Point3f top_unp = camera_->UnProjectPoint(cv::Point2i(top));
   cv::Point3f bottom_unp = camera_->UnProjectPoint(cv::Point2i(bottom));
@@ -82,13 +84,11 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
   
   float z = tracked_model.PtrToModel()->Radius()/abs_diff;
 
-  cv::Vec3f center = z*cv::Vec3f(center_unp);
+  cv::Vec3f center = 1.5*z*cv::Vec3f(center_unp);
   cv::Vec3f central_axis_3f(central_axis[0],central_axis[1],0);
-  tracked_model.SetPose(center,-central_axis_3f);
-  std::cerr << "center of mass " << cv::Point3f(center) << "\n";
-  std::cerr << "central axiS " << cv::Point3f(central_axis) << "\n";
+  tracked_model.SetPose(center,diff);
 
-}
+} 
 
 float MonocularToolTracker::ComputeWidth(float e1, float e2, size_t mass) const {
   float i_x = std::abs(e1);
@@ -97,7 +97,7 @@ float MonocularToolTracker::ComputeWidth(float e1, float e2, size_t mass) const 
   if(i_x < i_y)
     std::swap(i_x,i_y);
   
-  return sqrt( (2.0*i_y) / mass );
+  return (float)sqrt( (2.0*i_y) / mass );
 
 }
 

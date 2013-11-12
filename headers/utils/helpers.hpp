@@ -5,6 +5,7 @@
 #include "../headers.hpp"
 #include <unordered_map>
 #include <boost/functional/hash.hpp>
+//#include <math.h>
 
 namespace ttrk{
 
@@ -135,7 +136,7 @@ namespace ttrk{
   * @ The smoothed heaviside value. Will be between 0-1.
   */
 
-  inline double Heaviside(double x, double a=0.3){
+  inline double Heaviside(double x, double a){
     return 1.0/(1.0 + exp(-a*x));
   }
 

@@ -13,6 +13,8 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
     return;
   }
 
+  cv::imwrite("classification.png",image->GetClassificationMapROI());
+
   if(!tracking_){
 
     //need this as init constructs new tracking models

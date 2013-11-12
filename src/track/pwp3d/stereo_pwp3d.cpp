@@ -10,8 +10,6 @@
 
 using namespace ttrk;
 /*** REMOVE THIS ***/
-#define SAVEDEBUG_1
-//#define SAVEDEBUG_2
 
 void FindTransformationToImagePlane(std::vector<DescriptorMatches> matches,cv::Mat &rotation, cv::Mat &translation,  boost::shared_ptr<StereoCamera> cam, Pose current_pose);
 void GetDescriptors(const cv::Mat &frame, std::vector<Descriptor> &ds);
@@ -102,7 +100,7 @@ cv::Mat StereoPWP3D::GetPoseDerivativesRightEye(const int r, const int c, const 
 
     const double dXdL = camera_->Fx() * (z_inv_sq_front*((front_intersection[2]*dof_derivatives_front[0]) - (front_intersection[0]*dof_derivatives_front[2]))) + camera_->Fx() * (z_inv_sq_back*((back_intersection[2]*dof_derivatives_back[0]) - (back_intersection[0]*dof_derivatives_back[2])));
     const double dYdL = camera_->Fy() * (z_inv_sq_front*((front_intersection[2]*dof_derivatives_front[1]) - (front_intersection[1]*dof_derivatives_front[2]))) + camera_->Fy() * (z_inv_sq_back*((back_intersection[2]*dof_derivatives_back[1]) - (back_intersection[1]*dof_derivatives_back[2])));
-    ret.at<double>(dof,0) = DeltaFunction(sdf.at<float>(r,c)) * ((dSDFdx * dXdL) + (dSDFdy * dYdL));
+    ret.at<double>(dof,0) = DeltaFunction(sdf.at<float>(r,c), blurring_scale_factor_ * k_delta_function_std_ ) * ((dSDFdx * dXdL) + (dSDFdy * dYdL));
       
   }
   return ret;
@@ -152,6 +150,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
  
   frame_ = frame;
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
+  SetBlurringScaleFactor(stereo_frame->GetLeftImage().cols);
   const int NUM_STEPS = 40;
   cv::Vec3f initial_translation = current_model.CurrentPose().translation_;
   static bool first = true;
@@ -184,6 +183,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   std::ofstream ENERGY_FILE((DEBUG_DIR_ + "/energy_file.csv").c_str());
   if(!ENERGY_FILE.is_open()) throw(std::runtime_error("Error, could not open energy file!\n"));
 #endif
+
 
   //ComputeDescriptorsForPointTracking(frame_,current_model);
   //SAFE_EXIT();
@@ -239,6 +239,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
       //compute the derivates of the sdf images
       cv::Mat dSDFdx, dSDFdy;
+      
       //cv::Sobel(sdf_image,dSDFdx,CV_32FC1,1,0,1); // (src,dst,dtype,dx,dy,size) size = 1 ==> 3x1 finite difference kernel
       //cv::Sobel(sdf_image,dSDFdy,CV_32FC1,0,1,1);
       cv::Scharr(sdf_image,dSDFdx,CV_32FC1,1,0);
@@ -249,20 +250,21 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
       cv::Mat jacobian_y = cv::Mat::zeros(sdf_image.size(),CV_8UC3);
       cv::Mat jacobian_z = cv::Mat::zeros(sdf_image.size(),CV_8UC3);
       cv::Mat energy_image = cv::Mat::zeros(sdf_image.size(),CV_8UC1);
+      cv::Mat region_agreement_image = cv::Mat::zeros(sdf_image.size(),CV_8UC3);
 #endif
 
       //std::cerr << "\n\nCurrently subsampling frame!\n\n";
 
-      //for(int r=0;r<frame_->GetImageROI().rows;r++){
-      //  for(int c=0;c<frame_->GetImageROI().cols;c++){
-      for(int r=0;r<frame_->GetImageROI().rows;r+=3){
-        for(int c=0;c<frame_->GetImageROI().cols;c+=3){
+      for(int r=0;r<frame_->GetImageROI().rows;r++){
+        for(int c=0;c<frame_->GetImageROI().cols;c++){
+      //for(int r=0;r<frame_->GetImageROI().rows;r+=3){
+      //  for(int c=0;c<frame_->GetImageROI().cols;c+=3){
                   
           //if( c < 548 || c > 1390 ) continue;
           //if( r < 20  || r > 482  ) continue;
 
           //speedup tests by checking if we need to evaluate the cost function in this region
-          const double skip = Heaviside(sdf_image.at<float>(r,c));
+          const double skip = Heaviside(sdf_image.at<float>(r,c), k_heaviside_width_ * blurring_scale_factor_);
           if( skip < 0.00001 || skip > 0.99999 ) continue;
 
           //compute the energy value for this pixel - not used for pose jacobian, just for assessing minima/          
@@ -292,20 +294,27 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
           pixel_count++ ;
           
 #ifdef SAVEDEBUG_2
-          if(jacobian.at<double>(0,0) > 0)
-            jacobian_x.at<cv::Vec3b>(r,c) = cv::Vec3b(255,0,0); //blue right
-          else
-            jacobian_x.at<cv::Vec3b>(r,c) = cv::Vec3b(0,0,255); //red left
 
-          if(jacobian.at<double>(1,0) > 0)
-            jacobian_y.at<cv::Vec3b>(r,c) = cv::Vec3b(255,0,0); //blue down
-          else
-            jacobian_y.at<cv::Vec3b>(r,c) = cv::Vec3b(0,0,255); //red up
+        if(region_agreement > 0)
+          region_agreement_image.at<cv::Vec3b>(r,c) = cv::Vec3b(255,0,0);
+        else if(region_agreement < 0)
+          region_agreement_image.at<cv::Vec3b>(r,c) = cv::Vec3b(0,0,255);
 
-          if(jacobian.at<double>(2,0) > 0)
-            jacobian_z.at<cv::Vec3b>(r,c) = cv::Vec3b(255,0,0); //blue away
-          else
-            jacobian_z.at<cv::Vec3b>(r,c) = cv::Vec3b(0,0,255); //red towards
+        if(region_agreement*pose_derivatives.at<double>(0,0) > 0)
+          jacobian_x.at<cv::Vec3b>(r,c) = cv::Vec3b(255,0,0); //blue right
+        else if(region_agreement*pose_derivatives.at<double>(0,0) < 0)
+          jacobian_x.at<cv::Vec3b>(r,c) = cv::Vec3b(0,0,255); //red left
+
+        if(region_agreement*pose_derivatives.at<double>(1,0) > 0)
+          jacobian_y.at<cv::Vec3b>(r,c) = cv::Vec3b(255,0,0); //blue down
+        else if (region_agreement*pose_derivatives.at<double>(1,0) < 0)
+          jacobian_y.at<cv::Vec3b>(r,c) = cv::Vec3b(0,0,255); //red up
+
+        if(region_agreement*pose_derivatives.at<double>(2,0) > 0)
+          jacobian_z.at<cv::Vec3b>(r,c) = cv::Vec3b(255,0,0); //blue away
+        else if(region_agreement*pose_derivatives.at<double>(2,0) < 0)
+          jacobian_z.at<cv::Vec3b>(r,c) = cv::Vec3b(0,0,255); //red towards
+
 #endif
         }
       }
@@ -316,8 +325,8 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
       cv::Mat dSDFdy_save(jacobian_x.size(),CV_8UC3);
       for(int r=0;r<heaviside.rows;r++){
         for(int c=0;c<heaviside.cols;c++){
-          heaviside.at<unsigned char>(r,c) = 255 * Heaviside(sdf_image.at<float>(r,c));
-          delta.at<unsigned char>(r,c) = 255 * DeltaFunction(sdf_image.at<float>(r,c));
+          heaviside.at<unsigned char>(r,c) = 255 * Heaviside(sdf_image.at<float>(r,c), k_heaviside_width_ * blurring_scale_factor_ );
+          delta.at<unsigned char>(r,c) = 255 * DeltaFunction(sdf_image.at<float>(r,c), k_delta_function_std_ * blurring_scale_factor_ );
           dSDFdx_save.at<cv::Vec3b>(r,c) = cv::Vec3b((255 * (dSDFdx.at<float>(r,c) > 0)) * dSDFdx.at<float>(r,c),0,(255 * (dSDFdx.at<float>(r,c) < 0)) * -dSDFdx.at<float>(r,c));
           dSDFdy_save.at<cv::Vec3b>(r,c) = cv::Vec3b((255 * (dSDFdy.at<float>(r,c) > 0)) * dSDFdy.at<float>(r,c),0,(255 * (dSDFdy.at<float>(r,c) < 0)) * -dSDFdy.at<float>(r,c));
         }
@@ -332,6 +341,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
         cv::imwrite(ss.str() + "/left/" + step_dir.str() + "/energy.png",energy_image);
         cv::imwrite(ss.str() + "/left/" + step_dir.str() + "/dsf_dx.png",dSDFdx_save);
         cv::imwrite(ss.str() + "/left/" + step_dir.str() + "/dsf_dy.png",dSDFdy_save);
+        cv::imwrite(ss.str() + "/left/" + step_dir.str() + "/region_agreement.png",region_agreement_image);
       }else if(eye == 1) {
         cv::imwrite(ss.str() + "/right/" + step_dir.str() + "/heaviside.png",heaviside);
         cv::imwrite(ss.str() + "/right/" + step_dir.str() + "/delta.png",delta);
@@ -341,6 +351,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
         cv::imwrite(ss.str() + "/right/" + step_dir.str() + "/energy.png",energy_image);
         cv::imwrite(ss.str() + "/right/" + step_dir.str() + "/dsf_dx.png",dSDFdx_save);
         cv::imwrite(ss.str() + "/right/" + step_dir.str() + "/dsf_dy.png",dSDFdy_save);
+        cv::imwrite(ss.str() + "/right/" + step_dir.str() + "/region_agreement.png",region_agreement_image);
       }
       
 
@@ -364,9 +375,9 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
       cv::Mat pnp_jacobian = GetPointDerivative(pnp->learned_point,cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
       for(int i=0;i<jacobian.rows;i++){
         if(i < 3)
-          jacobian.at<double>(i,0) += -1 * pnp_jacobian.at<double>(i,0);
+          jacobian.at<double>(i,0) += 5 * -1 * pnp_jacobian.at<double>(i,0);
         else
-          jacobian.at<double>(i,0) += pnp_jacobian.at<double>(i,0);
+          jacobian.at<double>(i,0) += 5 * pnp_jacobian.at<double>(i,0);
       }
     }
     
@@ -554,7 +565,7 @@ bool StereoPWP3D::HasGradientDescentConverged(std::deque<Pose> &previous_poses, 
     int N = 0;
     sum.at<double>(N,0) += val->translation_[0];
     sum_sqrs.at<double>(N,0) += (val->translation_[0]*val->translation_[0]);
-
+        
     N++;
     sum.at<double>(N,0) += val->translation_[1];
     sum_sqrs.at<double>(N,0) += (val->translation_[1]*val->translation_[1]);

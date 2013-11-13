@@ -13,7 +13,7 @@ namespace ttrk {
 
     inline Pose(const cv::Vec3f &v, const sv::Quaternion &r):translation_(v),rotation_(r){}
 
-    inline Pose operator=(const cv::Mat &that);
+    Pose operator=(const cv::Mat &that);
 
     inline Pose(const Pose &that){
       translation_ = that.translation_;
@@ -40,9 +40,9 @@ namespace ttrk {
     
     }
 
- 
+    cv::Vec3f GetDOFDerivatives(const int dof, const cv::Vec3f &point) const ;
 
-    inline operator cv::Mat() const;
+    operator cv::Mat() const;
 
     cv::Vec3f translation_;
     sv::Quaternion rotation_;
@@ -67,42 +67,6 @@ namespace ttrk {
 
   }
 
-  Pose Pose::operator=(const cv::Mat &that){
-    if(that.size() == cv::Size(1,9)){
-
-      const cv::Vec3f translation(that(cv::Range(0,3),cv::Range::all()));     
-      const cv::Vec3f velocity(that(cv::Range(3,6),cv::Range::all()));
-      const cv::Vec3f rotation(that(cv::Range(6,9),cv::Range::all()));
-      this->rotation_ = sv::Quaternion(rotation);
-      this->translation_ = translation;
-      this->translational_velocity_ = velocity;
-
-    }else if(that.size() == cv::Size(9,1)){
-
-      const cv::Vec3f translation(that(cv::Range::all(),cv::Range(0,3)));
-      const cv::Vec3f velocity(that(cv::Range::all(),cv::Range(3,6)));
-      const cv::Vec3f rotation(that(cv::Range::all(),cv::Range(6,9)));
-      this->rotation_ = sv::Quaternion(rotation);
-      this->translation_ = translation;
-      this->translational_velocity_ = velocity;
-
-    }else{
-      throw(std::runtime_error("Error, invalid assignement to ttrk::Pose from cv::Mat. Dimensions do not match!\n"));
-    }
-    return *this;
-  }
-
-
-  Pose::operator cv::Mat() const {
-    cv::Mat r(9,1,CV_32FC1);
-    cv::Vec3f euler = rotation_.EulerAngles();    
-    for(int i=0;i<3;i++){
-      r.at<float>(i,0) = translation_[i];
-      r.at<float>(i+3,0) = translational_velocity_[i];      
-      r.at<float>(i+6,0) = euler[i];
-    }
-    return r;  
-  }
 
 }
 

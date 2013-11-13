@@ -10,7 +10,7 @@ namespace ttrk {
 
   public: 
 
-    MonoPWP3D(const std::string &config_dir) : PWP3D(config_dir) {}
+    MonoPWP3D(const std::string &config_dir,boost::shared_ptr<MonocularCamera> camera) : PWP3D(config_dir,camera) {}
 
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame);
 

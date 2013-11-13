@@ -302,7 +302,8 @@ bool MISTool::GetIntersectionPolygons(const cv::Vec3f &ray, cv::Vec3f &front, cv
     if(distance < smallest){
       smallest = distance;
       front = *intersection;
-    }else if(distance > largest){
+    }
+    if(distance > largest){
       largest = distance;
       back = *intersection;
     }

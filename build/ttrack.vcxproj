@@ -40,6 +40,7 @@
     <ClInclude Include="..\headers\track\pose.hpp" />
     <ClInclude Include="..\headers\track\pwp3d\mono_pwp3d.hpp" />
     <ClInclude Include="..\headers\track\pwp3d\pwp3d.hpp" />
+    <ClInclude Include="..\headers\track\pwp3d\register_points.hpp" />
     <ClInclude Include="..\headers\track\pwp3d\stereo_pwp3d.hpp" />
     <ClInclude Include="..\headers\track\stt\monocular_tool_tracker.hpp" />
     <ClInclude Include="..\headers\track\stt\stereo_tool_tracker.hpp" />
@@ -63,7 +64,9 @@
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\track\kalman.cpp" />
     <ClCompile Include="..\src\track\pwp3d\mono_pwp3d.cpp" />
+    <ClCompile Include="..\src\track\pwp3d\pose.cpp" />
     <ClCompile Include="..\src\track\pwp3d\pwp3d.cpp" />
+    <ClCompile Include="..\src\track\pwp3d\register_points.cpp" />
     <ClCompile Include="..\src\track\pwp3d\stereo_pwp3d.cpp" />
     <ClCompile Include="..\src\track\stt\monocular_tool_tracker.cpp" />
     <ClCompile Include="..\src\track\stt\stereo_tool_tracker.cpp" />

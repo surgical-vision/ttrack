@@ -4,9 +4,9 @@
 using namespace ttrk;
 
 MonocularToolTracker::MonocularToolTracker(const float radius, const float height, const std::string &config_dir, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_(new MonocularCamera(config_dir + "/" + calibration_filename)){
-  localizer_.reset(new MonoPWP3D(config_dir));
-  boost::shared_ptr<MonoPWP3D> mono_pwp3d = boost::dynamic_pointer_cast<MonoPWP3D>(localizer_);
-  mono_pwp3d->Camera() = camera_;
+  localizer_.reset(new MonoPWP3D(config_dir,camera_));
+  //boost::shared_ptr<MonoPWP3D> mono_pwp3d = boost::dynamic_pointer_cast<MonoPWP3D>(localizer_);
+  //mono_pwp3d->Camera() = camera_;
 }
 
 bool MonocularToolTracker::Init(){
@@ -73,8 +73,8 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
 
   CheckCentralAxisDirection(center_of_mass,central_axis);
 
-  cv::Vec2f top = cv::Vec2f(center_of_mass) + (0.5*width)*central_axis;
-  cv::Vec2f bottom = cv::Vec2f(center_of_mass) - (0.5*width)*central_axis;
+  cv::Vec2f top = cv::Vec2f(center_of_mass) + (width)*horizontal_axis;
+  cv::Vec2f bottom = cv::Vec2f(center_of_mass) - (width)*horizontal_axis;
 
   cv::Point3f top_unp = camera_->UnProjectPoint(cv::Point2i(top));
   cv::Point3f bottom_unp = camera_->UnProjectPoint(cv::Point2i(bottom));
@@ -82,9 +82,9 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
   cv::Vec3f diff = cv::Vec3f(top_unp) - cv::Vec3f(bottom_unp);
   float abs_diff = sqrt( static_cast<double>( diff[0]*diff[0] + diff[1]*diff[1] + diff[2]*diff[2] ) );
   
-  float z = tracked_model.PtrToModel()->Radius()/abs_diff;
+  float z = 2*tracked_model.PtrToModel()->Radius()/abs_diff;
 
-  cv::Vec3f center = 1.5*z*cv::Vec3f(center_unp);
+  cv::Vec3f center = z*cv::Vec3f(center_unp);
   cv::Vec3f central_axis_3f(central_axis[0],central_axis[1],0);
   tracked_model.SetPose(center,diff);
 

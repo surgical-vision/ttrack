@@ -173,7 +173,6 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
       }
     }
 
-    std::cerr << "jacobian = " << jacobian << "\n";
 #ifdef SAVEDEBUG_2
     cv::Mat heaviside(jacobian_x.size(),CV_8UC1);
     cv::Mat delta(jacobian_x.size(),CV_8UC1);
@@ -208,22 +207,22 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
     energy_vals.push_back(energy);
 
 
-    /*    std::vector<MatchedPair> pnp_pairs;
-    FindPointCorrespondencesWithPose(frame_,pnp_pairs,current_model.CurrentPose());
+    std::vector<MatchedPair> pnp_pairs;
+    register_points_.FindPointCorrespondencesWithPose(frame_,pnp_pairs,current_model.CurrentPose());
     #ifdef SAVEDEBUG_2
     std::cerr << "Found " << pnp_pairs.size() << " matches!\n";
     #endif
-    std::cerr << "Found " << pnp_pairs.size() << " matches!\n";
+
     for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
-    cv::Mat pnp_jacobian = GetPointDerivative(pnp->learned_point,cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
-    for(int i=0;i<jacobian.rows;i++){
-    if(i < 3)
-    jacobian.at<double>(i,0) += 5 * -1 * pnp_jacobian.at<double>(i,0);
-    else
-    jacobian.at<double>(i,0) += 5 * pnp_jacobian.at<double>(i,0);
+      cv::Mat pnp_jacobian = register_points_.GetPointDerivative(pnp->learned_point,cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
+      for(int i=0;i<jacobian.rows;i++){
+        if(i < 3)
+          jacobian.at<double>(i,0) += 5 * -1 * pnp_jacobian.at<double>(i,0);
+        else
+          jacobian.at<double>(i,0) += 5 * pnp_jacobian.at<double>(i,0);
+      }
     }
-    }
-    */  
+
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step,pixel_count);
 
     //save the step estimate

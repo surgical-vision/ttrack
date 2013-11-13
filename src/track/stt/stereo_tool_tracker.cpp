@@ -12,11 +12,11 @@ using namespace ttrk;
 
 StereoToolTracker::StereoToolTracker(const float radius, const float height, const std::string &config_dir, const std::string &calibration_file):SurgicalToolTracker(radius,height),camera_( new StereoCamera(config_dir + "/" + calibration_file)){
 
-  localizer_.reset(new StereoPWP3D(config_dir));
-  boost::shared_ptr<StereoPWP3D> stereo_pwp3d = boost::dynamic_pointer_cast<StereoPWP3D>(localizer_);
+  localizer_.reset(new StereoPWP3D(config_dir,camera_));
+  //boost::shared_ptr<StereoPWP3D> stereo_pwp3d = boost::dynamic_pointer_cast<StereoPWP3D>(localizer_);
   //if(!camera_->IsRectified()) camera_->Rectify(cv::Size(1920,1080));
-  stereo_pwp3d->GetStereoCamera() = camera_; //MOVE THESE TO CONSTRUCTOR
-  stereo_pwp3d->Camera() = stereo_pwp3d->GetStereoCamera()->rectified_left_eye();
+  //stereo_pwp3d->GetStereoCamera() = camera_; //MOVE THESE TO CONSTRUCTOR
+  //stereo_pwp3d->Camera() = stereo_pwp3d->GetStereoCamera()->rectified_left_eye();
 }
 
 
@@ -111,6 +111,12 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
 
   CheckCentralAxisDirection(center_of_mass,central_axis);
   
+  cv::Vec2f normed_central_axis,normed_horizontal_axis;
+  cv::normalize(central_axis,normed_central_axis);
+  cv::normalize(horizontal_axis,normed_horizontal_axis);
+  central_axis = normed_central_axis;
+  horizontal_axis = normed_horizontal_axis; 
+
   if(v[1] < v[0]){
     float tmp = v[1];
     v[1] = v[0];
@@ -120,15 +126,28 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
   const float radius = sqrt( (2.0*std::abs(v[0]))/connected_region.size() ); 
   const float length = sqrt( ((12.0*std::abs(v[1])) / connected_region.size())  - 3*radius*radius);
 
-  cv::Vec2f point = cv::Vec2f(center_of_mass) + 0.65*length*central_axis;
+  cv::Vec2f point = cv::Vec2f(center_of_mass) + 0.5*length*central_axis;
+  cv::Vec2f top = cv::Vec2f(center_of_mass) + (radius)*horizontal_axis;
+  cv::Vec2f bottom = cv::Vec2f(center_of_mass) - (radius)*horizontal_axis;
 
+  cv::Point3f top_unp = cam->UnProjectPoint(cv::Point2i(top));
+  cv::Point3f bottom_unp = cam->UnProjectPoint(cv::Point2i(bottom));
+  cv::Point3f center_unp = cam->UnProjectPoint(cv::Point2i(center_of_mass));
+  cv::Vec3f diff = cv::Vec3f(top_unp) - cv::Vec3f(bottom_unp);
+  float abs_diff = sqrt( static_cast<double>( diff[0]*diff[0] + diff[1]*diff[1] + diff[2]*diff[2] ) );
+
+  
+  float z = (2*tracked_models_.back().PtrToModel()->Radius())/abs_diff;
+  
   cv::Vec3f unp_point = cv::Vec3f(cam->UnProjectPoint(cv::Point2f(point)));
   center_of_mass_3d = cv::Vec3f(cam->UnProjectPoint(cv::Point2f(center_of_mass)));
 
-  //cv::circle(frame_->GetImageROI(),cv::Point2i(point),10,cv::Scalar(244,25,30),4);
-
+  cv::line(frame_->GetImageROI(),cv::Point2i(center_of_mass), cv::Point2i(point),cv::Scalar(244,25,30),10);
+  cv::circle(frame_->GetImageROI(), cv::Point2i(point),10, cv::Scalar(23,215,30),10);
+  //cv::imwrite("test_image.png",frame_->GetImageROI());
   central_axis_3d = unp_point - center_of_mass_3d;
-  center_of_mass_3d = center_of_mass_3d * 55;
+  center_of_mass_3d = center_of_mass_3d * z;
+  //std::cerr << cv::Point3f(central_axis_3d) <<"\n";
   //unp_point = unp_point * 50;
   
 
@@ -180,7 +199,7 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
 
   cv::Vec3f left_center_of_mass,left_central_axis,right_center_of_mass,right_central_axis;
   InitIn2D(region,left_center_of_mass,left_central_axis,camera_->rectified_left_eye());
-
+  
   cv::Mat right_classification_window = StereoFrame()->GetRightClassificationMap();
   std::vector<std::vector<cv::Vec2i> > connected_regions_right_frame;
   FindConnectedRegions(right_classification_window,connected_regions_right_frame);
@@ -191,21 +210,20 @@ void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &re
 
   //ShiftToTip(left_central_axis,center_of_mass_3d);
   left_central_axis[2] = -0.5*left_central_axis[0];
-  //std::cerr << "left_central_axis" << cv::Point3f(left_central_axis) << "\n";
-  //left_central_axis *= -1;
 
-  //use these two parameters to set the initial pose of the object
-  //std::cerr << "left_central_axis" << cv::Point3f(left_central_axis) << "\n";
-  //tracked_model.SetPose(center_of_mass_3d,left_central_axis);
-  sv::Quaternion q(boost::math::quaternion<double>(0.309,0.03218,-0.9324,-0.18433));
-  q = q.Normalize();
-  //tracked_model.SetPose(Pose(cv::Vec3f(-20,-20,100),q));
-  tracked_model.SetPose(Pose(cv::Vec3f(18,-18,90),q));//sv::Quaternion(0,cv::Vec3f(1,0,0))));
+  std::cerr << "Center of amass = " << cv::Point3f(center_of_mass_3d) << "\n";
+  tracked_model.SetPose(center_of_mass_3d,left_central_axis);
+
+  //sv::Quaternion q(boost::math::quaternion<double>(0.309,0.03218,-0.9324,-0.18433));
+  //q = q.Normalize();
+  //tracked_model.SetPose(Pose(cv::Vec3f(-18,-18,80),sv::Quaternion(0,cv::Vec3f(1,0,0))));//q));
+  //tracked_model.SetPose(Pose(cv::Vec3f(18,-18,90),q));//
 
   //these values align well for the new_video dataset
   //sv::Quaternion q(boost::math::quaternion<double>(0.309,0.03218,-0.9324,-0.18433));
   //q = q.Normalize();
   //tracked_model.SetPose( Pose(cv::Vec3f(10.349,1.822,43.498),q));
+
   return;
 
 }

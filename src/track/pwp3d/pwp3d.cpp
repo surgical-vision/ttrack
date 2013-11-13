@@ -18,7 +18,7 @@ void PWP3D::ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const 
   //update the rotation
   sv::Quaternion rotation( boost::math::quaternion<double>((float)scaled_jacobian.at<double>(3,0),(float)scaled_jacobian.at<double>(4,0),(float)scaled_jacobian.at<double>(5,0),(float)scaled_jacobian.at<double>(6,0)));
 
-  pose.rotation_ = pose.rotation_ - rotation;
+  pose.rotation_ = pose.rotation_ + rotation;
   pose.rotation_ = pose.rotation_.Normalize();
 #ifdef SAVEDEBUG_2
   std::cerr << "Pose is now: " << pose << "\n";
@@ -28,6 +28,7 @@ void PWP3D::ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const 
 
 void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pixel_count) const {
   
+  std::cerr << "Unscaled Jacobian = " << jacobian << "\n";
   double sum_jacobian = 0.0;
   for(int r=0;r<jacobian.rows;r++){
     sum_jacobian += std::abs(jacobian.at<double>(r,0));
@@ -41,9 +42,9 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pi
   const double Z_scale = 0.5 * 0.005 * swap * SCALE_FACTOR;
   double R_SCALE = 10 * 0.00008 * swap * SCALE_FACTOR;
   
-  jacobian.at<double>(0,0) *= XY_scale * 5;//* 25;
+  jacobian.at<double>(0,0) *= XY_scale;//* 25;
   jacobian.at<double>(1,0) *= XY_scale ;
-  jacobian.at<double>(2,0) *= -1 * Z_scale * camera_->Fx();
+  jacobian.at<double>(2,0) *= Z_scale ; //* camera_->Fx()/4;
   
   double largest = std::abs(jacobian.at<double>(0,0));
   if( largest < std::abs(jacobian.at<double>(1,0)) ) largest = std::abs(jacobian.at<double>(1,0));
@@ -51,7 +52,7 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pi
 
   jacobian.at<double>(0,0) = 0.5 * (jacobian.at<double>(0,0)*0.2)/largest;
   jacobian.at<double>(1,0) = 0.5 * (jacobian.at<double>(1,0)*0.2)/largest;
-  jacobian.at<double>(2,0) = 0.5 * (jacobian.at<double>(2,0)*0.8)/largest;
+  jacobian.at<double>(2,0) = 0.5 * (jacobian.at<double>(2,0)*0.4)/largest;
 
   //jacobian.at<double>(5,0) *= 3;
 
@@ -74,46 +75,6 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pi
 }
 
 
-cv::Vec3f PWP3D::GetDOFDerivatives(const int dof, const Pose &pose, const cv::Vec3f &point_) const {
-
-  //derivatives use the (x,y,z) from the initial reference frame not the transformed one so inverse the transformation
-  cv::Vec3f point = point_ - pose.translation_;
-  point = pose.rotation_.Inverse().RotateVector(point);
-
-  //return the (dx/dL,dy/dL,dz/dL) derivative for the degree of freedom
-  switch(dof){
-
-  case 0: //x
-    return cv::Vec3f(1,0,0);
-  case 1: //y
-    return cv::Vec3f(0,1,0);
-  case 2: //z
-    return cv::Vec3f(0,0,1);
-
-
-  case 3: //qw
-    return cv::Vec3f((2*pose.rotation_.Y()*point[2])-(2*pose.rotation_.Z()*point[1]),
-      (2*pose.rotation_.Z()*point[0])-(2*pose.rotation_.X()*point[2]),
-      (2*pose.rotation_.X()*point[1])-(2*pose.rotation_.Y()*point[0]));
-
-  case 4: //qx
-    return cv::Vec3f((2*pose.rotation_.Y()*point[1])+(2*pose.rotation_.Z()*point[2]),
-      (2*pose.rotation_.Y()*point[0])-(4*pose.rotation_.X()*point[1])-(2*pose.rotation_.W()*point[2]),
-      (2*pose.rotation_.Z()*point[0])+(2*pose.rotation_.W()*point[1])-(4*pose.rotation_.X()*point[2]));
-
-  case 5: //qy
-    return cv::Vec3f((2*pose.rotation_.X()*point[1])-(4*pose.rotation_.Y()*point[0])+(2*pose.rotation_.W()*point[2]),
-      (2*pose.rotation_.X()*point[0])+(2*pose.rotation_.Z()*point[2]),
-      (2*pose.rotation_.Z()*point[1])+(2*pose.rotation_.W()*point[0])-(4*pose.rotation_.Y()*point[2]));
-  case 6: //qz
-    return cv::Vec3f((2*pose.rotation_.X()*point[2])-(2*pose.rotation_.W()*point[1])-(4*pose.rotation_.Z()*point[0]),
-      (2*pose.rotation_.W()*point[0])-(4*pose.rotation_.X()*point[1])+(2*pose.rotation_.Y()*point[2]),
-      (2*pose.rotation_.X()*point[0])+(2*pose.rotation_.Y()*point[1]));
-
-  default:
-    throw std::runtime_error("Error, a value in the range 0-6 must be supplied");
-  }
-}
 
 
 double PWP3D::GetEnergy(const int r, const int c, const float sdf) const {
@@ -211,6 +172,8 @@ cv::Mat PWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, 
       return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
   }
 
+  if(front_intersection == cv::Vec3f(0,0,0) || back_intersection == cv::Vec3f(0,0,0)) throw(std::runtime_error("Error, this is a value we should not get!\n"));
+
 
   //just in case...
   if(front_intersection[2] == 0) front_intersection[2] = 0.00000001;
@@ -222,13 +185,13 @@ cv::Mat PWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, 
   for(int dof=0;dof<NUM_DERIVS;dof++){
     
     //compute the derivative for each dof
-    const cv::Vec3f dof_derivatives_front = GetDOFDerivatives(dof,current_model.CurrentPose(),front_intersection);
-    const cv::Vec3f dof_derivatives_back = GetDOFDerivatives(dof,current_model.CurrentPose(),back_intersection);
+    const cv::Vec3f dof_derivatives_front = current_model.CurrentPose().GetDOFDerivatives(dof,front_intersection);
+    const cv::Vec3f dof_derivatives_back = current_model.CurrentPose().GetDOFDerivatives(dof,back_intersection);
 
     const double dXdL = camera_->Fx() * (z_inv_sq_front*((front_intersection[2]*dof_derivatives_front[0]) - (front_intersection[0]*dof_derivatives_front[2]))) + camera_->Fx() * (z_inv_sq_back*((back_intersection[2]*dof_derivatives_back[0]) - (back_intersection[0]*dof_derivatives_back[2])));
     const double dYdL = camera_->Fy() * (z_inv_sq_front*((front_intersection[2]*dof_derivatives_front[1]) - (front_intersection[1]*dof_derivatives_front[2]))) + camera_->Fy() * (z_inv_sq_back*((back_intersection[2]*dof_derivatives_back[1]) - (back_intersection[1]*dof_derivatives_back[2])));
     ret.at<double>(dof,0) = DeltaFunction(sdf.at<float>(r,c), k_delta_function_std_ * blurring_scale_factor_ ) * ((dSDFdx * dXdL) + (dSDFdy * dYdL));
-      
+  
   }
   return ret;
 

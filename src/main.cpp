@@ -16,8 +16,8 @@ int main(int argc, char **argv){
 #endif
      
      //construct the helper classes and train the classifier     
-     t.SetUp("./data/new_video/",ttrk::RF,ttrk::STEREO);
-     //t.SetUp("./data/in_vivo/",ttrk::RF,ttrk::MONOCULAR);
+     //t.SetUp("./data/new_video/",ttrk::RF,ttrk::STEREO);
+     t.SetUp("./data/in_vivo/",ttrk::RF,ttrk::MONOCULAR);
      
      //t.RunVideo("left.avi","right.avi");
      //t.RunVideo("cropped.avi");

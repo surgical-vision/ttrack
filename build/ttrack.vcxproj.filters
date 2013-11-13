@@ -123,6 +123,9 @@
     <ClInclude Include="..\headers\utils\quasi_dense_stereo.hpp">
       <Filter>Header Files\utils</Filter>
     </ClInclude>
+    <ClInclude Include="..\headers\track\pwp3d\register_points.hpp">
+      <Filter>Header Files\track\pwp3d</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">
@@ -187,6 +190,12 @@
     </ClCompile>
     <ClCompile Include="..\src\utils\quasi_dense_stereo.cpp">
       <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\track\pwp3d\register_points.cpp">
+      <Filter>Source Files\track\pwp3d</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\track\pwp3d\pose.cpp">
+      <Filter>Source Files\track</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

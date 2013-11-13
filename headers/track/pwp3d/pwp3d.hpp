@@ -5,17 +5,19 @@
 #include "../../utils/camera.hpp"
 #include "../../../deps/image/image/image.hpp"
 #include "../pose.hpp"
+#include "register_points.hpp"
 
 
 namespace ttrk {
 
   class PWP3D : public Localizer {
   public: 
-    
-    PWP3D(const std::string &config_dir) : config_dir_(config_dir), k_delta_function_std_(2.5), k_heaviside_width_(0.3) { }
+
+    PWP3D(const std::string &config_dir, boost::shared_ptr<MonocularCamera> camera ) : camera_(camera), config_dir_(config_dir), register_points_(camera,config_dir), k_delta_function_std_(2.5), k_heaviside_width_(0.3) { }
 
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame) = 0;
-    boost::shared_ptr<MonocularCamera> &Camera() { return camera_; } //references to shared pointers are nasty!
+    
+    boost::shared_ptr<MonocularCamera> &Camera() { return camera_; } //references to shared pointers are nasty, change this!
 
     bool PWP3D::ModelInFrame( const KalmanTracker &tracked_model, const cv::Mat &detect_image) const;
 
@@ -40,7 +42,7 @@ namespace ttrk {
     * @return The pose derivitives as a vector.
     */
     cv::Mat GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image);
-    
+
 
     /**
     * Apply some scaling to the pose derivatives to modify the step size.
@@ -62,9 +64,9 @@ namespace ttrk {
 
 
     /*double HeavisideFunction(float x){
-      const double a = 0.4; //equates to blur between -25 and 25 ---- 0.3
-      double r = 1.0/(exp(-a*x) + 1);
-      return r;
+    const double a = 0.4; //equates to blur between -25 and 25 ---- 0.3
+    double r = 1.0/(exp(-a*x) + 1);
+    return r;
     }*/
 
     /**
@@ -72,17 +74,17 @@ namespace ttrk {
     * @param[in]    jacobian The pose update of the target object.
     */    
     void ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const int step,  const int pixel_count);
-   
-     /**
+
+    /**
     * Compute the first part of the derivative, getting a weight for each contribution based on the region agreements.
     * @param[in] r The row index of the current pixel.
     * @param[in] c The column index of the current pixel.
     * @param[in] sdf The signed distance function image.
     */
     double GetRegionAgreement(const int r, const int c, const float sdf) ;
-    
-    cv::Vec3f GetDOFDerivatives(const int dof, const Pose &pose, const cv::Vec3f &point) const ;
-    
+
+    static cv::Vec3f GetDOFDerivatives;
+
     /**
     * Finds an intersection between a ray cast from the current pixel through the tracked object.
     * @param[in] r The row index of the pixel.
@@ -92,17 +94,22 @@ namespace ttrk {
     * @return bool The success of the intersection test.
     */
     bool GetTargetIntersections(const int r, const int c, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const ;
-    
+
     bool GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model , const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const ;
-    
+
     double GetEnergy(const int r, const int c, const float sdf) const;
 
     void DrawModelOnFrame(const std::vector<SimplePoint<> > &transformed_points, cv::Mat canvas);
 
+
+
     boost::shared_ptr<sv::Frame> frame_;
-    
+
     std::string DEBUG_DIR_;
     boost::shared_ptr<MonocularCamera> camera_;
+
+    PointRegistration register_points_;
+
     std::string config_dir_;
     float blurring_scale_factor_;
     const float k_delta_function_std_;
@@ -111,8 +118,8 @@ namespace ttrk {
   };
 
 
-  
-  
+
+
 }
 
 

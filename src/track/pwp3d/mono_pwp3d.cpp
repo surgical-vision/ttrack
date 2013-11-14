@@ -4,31 +4,6 @@
 using namespace ttrk;
 
 
-/*** REMOVE THIS ***/
-
-void MonoPWP3D::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const {
-
-  std::vector<SimplePoint<> > transformed_points = tracked_model.ModelPointsAtCurrentPose();
-
-  for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
-
-    cv::Vec2f projected = camera_->ProjectPoint(point->vertex_);
-
-    for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
-
-      const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
-      cv::Vec2f projected_neighbour = camera_->ProjectPoint( neighbour.vertex_ );
-
-      if(canvas.channels() == 3)
-        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),1,CV_AA);
-      if(canvas.channels() == 1)
-        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,1,CV_AA);
-    }
-  }
-
-}
-
-
 Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
 
   frame_ = frame;
@@ -50,7 +25,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
   boost::filesystem::create_directory(ss.str()+"/mono");
   std::cerr << "starting pose is: "<< current_model.CurrentPose().rotation_ << " + " << cv::Point3f(current_model.CurrentPose().translation_) << std::endl;
   cv::Mat canvas = frame_->GetImageROI().clone();
-  DrawModelOnFrame(current_model,canvas);
+  DrawModelOnFrame(current_model.ModelPointsAtCurrentPose(),canvas);
   cv::imwrite(ss.str()+"/mono/init.png",canvas);
   cv::imwrite(ss.str()+"/mono/classification.png",frame_->GetClassificationMapROI());         
   frame_count++;
@@ -94,7 +69,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
 #ifdef SAVEDEBUG_2
     cv::imwrite(ss.str() + "/mono/" + step_dir.str() + "/sdf.png",sdf_image);
     cv::Mat canvas = frame_->GetImageROI().clone();
-    DrawModelOnFrame(current_model,canvas);
+    DrawModelOnFrame(current_model.ModelPointsAtCurrentPose(),canvas);
     cv::imwrite(ss.str()+"/mono/"+step_dir.str()+"/previous.png",canvas);
 #endif
 
@@ -228,7 +203,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
     //save the step estimate
 #ifdef SAVEDEBUG_1
     canvas = frame_->GetImageROI().clone();
-    DrawModelOnFrame(current_model,canvas);
+    DrawModelOnFrame(current_model.ModelPointsAtCurrentPose(),canvas);
     cv::imwrite(ss.str()+"/mono/"+step_dir.str()+"/update.png",canvas);
     cv::imwrite(ss.str()+"/mono/"+step_dir.str()+".png",canvas);
 #endif

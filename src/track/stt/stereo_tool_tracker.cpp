@@ -109,7 +109,7 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
   cv::Vec2f central_axis(e[2],e[3]);
   cv::Vec2f horizontal_axis(e[0],e[1]);
 
-  CheckCentralAxisDirection(center_of_mass,central_axis);
+  //CheckCentralAxisDirection(center_of_mass,central_axis);
   
   cv::Vec2f normed_central_axis,normed_horizontal_axis;
   cv::normalize(central_axis,normed_central_axis);
@@ -142,9 +142,6 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
   cv::Vec3f unp_point = cv::Vec3f(cam->UnProjectPoint(cv::Point2f(point)));
   center_of_mass_3d = cv::Vec3f(cam->UnProjectPoint(cv::Point2f(center_of_mass)));
 
-  cv::line(frame_->GetImageROI(),cv::Point2i(center_of_mass), cv::Point2i(point),cv::Scalar(244,25,30),10);
-  cv::circle(frame_->GetImageROI(), cv::Point2i(point),10, cv::Scalar(23,215,30),10);
-  //cv::imwrite("test_image.png",frame_->GetImageROI());
   central_axis_3d = unp_point - center_of_mass_3d;
   center_of_mass_3d = center_of_mass_3d * z;
   //std::cerr << cv::Point3f(central_axis_3d) <<"\n";

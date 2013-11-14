@@ -14,14 +14,6 @@ namespace ttrk {
 
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame);
 
-  protected:
-
-    void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const ;
-
-  protected:
-
-    //cv::Mat ROI_; /**< Experimental feature. Instead of performing the level set tracking over the whole image, try to find a ROI around where the target of interest is located. */
-
   };
 
 

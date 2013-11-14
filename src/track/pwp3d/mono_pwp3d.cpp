@@ -115,7 +115,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
         for(int i=0;i<pose_derivatives.rows;i++){
           double pp = (region_agreement*pose_derivatives.at<double>(i,0));
           if (pp != pp) { std::cerr << "Alert! Bad derivatives\n"; continue; }
-          jacobian.at<double>(i,0) += -1 * pp * 5;
+          //jacobian.at<double>(i,0) += -1 * pp * 5;
         }
       
         pixel_count++ ;
@@ -192,10 +192,16 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
       cv::Mat pnp_jacobian = register_points_.GetPointDerivative(pnp->learned_point,cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
       for(int i=0;i<jacobian.rows;i++){
         if(i < 3)
-          jacobian.at<double>(i,0) += 5 * -1 * pnp_jacobian.at<double>(i,0);
+          int p;//jacobian.at<double>(i,0) += 5 * -1 * pnp_jacobian.at<double>(i,0);
         else
-          jacobian.at<double>(i,0) += 5 * pnp_jacobian.at<double>(i,0);
+          int q;//jacobian.at<double>(i,0) += 5 * pnp_jacobian.at<double>(i,0);
       }
+    } 
+
+    
+    cv::Mat edge_jacobian = AlignObjectToEdges(current_model,frame_->GetClassificationMapROI() , sdf_image, front_intersection_image);
+    for(int i=0;i<jacobian.rows;i++){
+        jacobian.at<double>(i,0) += -1 * edge_jacobian.at<double>(i,0);
     }
 
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step,pixel_count);

@@ -316,7 +316,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
         }
       }
 
-
+      cv::Mat edge_jacobian = AlignObjectToEdges(current_model,frame_->GetImageROI(),sdf_image, front_intersection_image);
 #ifdef SAVEDEBUG_2
       cv::Mat heaviside(jacobian_x.size(),CV_8UC1);
       cv::Mat delta(jacobian_x.size(),CV_8UC1);
@@ -352,7 +352,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
         cv::imwrite(ss.str() + "/right/" + step_dir.str() + "/dsf_dy.png",dSDFdy_save);
         cv::imwrite(ss.str() + "/right/" + step_dir.str() + "/region_agreement.png",region_agreement_image);
       }
-      
+
 
 
       ENERGY_FILE << energy << " ";
@@ -361,15 +361,15 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 #endif
 
     }   
-    
+
     energy_vals.push_back(energy);
-    
+
     std::vector<MatchedPair> pnp_pairs;
     register_points_.FindPointCorrespondencesWithPose(frame_,pnp_pairs,current_model.CurrentPose());
 #ifdef SAVEDEBUG_2
     std::cerr << "Found " << pnp_pairs.size() << " matches!\n";
 #endif
-      for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
+    for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
       cv::Mat pnp_jacobian = register_points_.GetPointDerivative(pnp->learned_point,cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
       for(int i=0;i<jacobian.rows;i++){
         if(i < 3)
@@ -378,7 +378,9 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
           jacobian.at<double>(i,0) += 5 * pnp_jacobian.at<double>(i,0);
       }
     }
-    
+
+
+
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step,pixel_count);
 
     //save the step estimate
@@ -398,7 +400,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     //converged = HasGradientDescentConverged(convergence_test_values, current_model.CurrentPose());
     if(!first)
       converged = HasGradientDescentConverged_UsingEnergy(energy_vals);
-    
+
     //if(energy>max_energy){
     {
       //std::cerr << "new max energy = " << energy << "\n";

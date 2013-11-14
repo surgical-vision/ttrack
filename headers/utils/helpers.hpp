@@ -26,6 +26,15 @@ namespace ttrk{
     return std::sqrt(ret);
   }
 
+  inline double l2_distance(const cv::Vec2d &a, const cv::Vec2d &b){
+    return std::sqrt( (a[0]-b[0])*(a[0]-b[0]) + (a[1]-b[1])*(a[1]-b[1]) );
+  }
+
+
+  inline double l2_distance(const cv::Vec3d &a, const cv::Vec3d &b){
+    return std::sqrt( (a[0]-b[0])*(a[0]-b[0]) + (a[1]-b[1])*(a[1]-b[1]) + (a[2]-b[2])*(a[2]-b[2]) );
+  }
+
   inline bool PointInImage(const cv::Point &point, const cv::Size &image_size){
     return cv::Rect(0,0,image_size.width,image_size.height).contains(point);
   }

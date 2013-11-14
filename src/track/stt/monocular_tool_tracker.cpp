@@ -102,38 +102,6 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
 
   cv::Vec3f central_axis_3d = (z*unp_point) - (z*center_of_mass_3d);
   center_of_mass_3d = center_of_mass_3d * z;
-  
-  /*
-  float width = ComputeWidth(v[0],v[1],connected_region.size());
-
-  cv::Vec2f central_axis(e[2],e[3]);
-  cv::Vec2f horizontal_axis(e[0],e[1]);
-
-  CheckCentralAxisDirection(center_of_mass,central_axis);
-  cv::Vec2f top = cv::Vec2f(center_of_mass) + (width)*horizontal_axis;
-  cv::Vec2f bottom = cv::Vec2f(center_of_mass) - (width)*horizontal_axis;
-
-  cv::Point3f top_unp = camera_->UnProjectPoint(cv::Point2i(top));
-  cv::Point3f bottom_unp = camera_->UnProjectPoint(cv::Point2i(bottom));
-  cv::Point3f center_unp = camera_->UnProjectPoint(cv::Point2i(center_of_mass));
-  cv::Vec3f diff = cv::Vec3f(top_unp) - cv::Vec3f(bottom_unp);
-  float abs_diff = sqrt( static_cast<double>( diff[0]*diff[0] + diff[1]*diff[1] + diff[2]*diff[2] ) );
-  
-  float z = 2*tracked_model.PtrToModel()->Radius()/abs_diff;
-
-  cv::Vec3f center = z*cv::Vec3f(center_unp);
-  cv::Vec3f end = z*cv::Vec3f(camera_->UnProjectPoint(cv::Point2i(cv::Vec2f(center_of_mass) + (10*central_axis))));
-  cv::Vec3f central_axis_3d = end - center;
-
-  cv::Mat whatv = cv::Mat::zeros(cv::Size(614,524),CV_8UC1);
-  cv::line(whatv,cv::Point(camera_->ProjectPointToPixel(end)),cv::Point(camera_->ProjectPointToPixel(center)),cv::Scalar(255),2);
-  cv::imwrite("aghoa.png",whatv);
-  */
-
-  cv::line(frame_->GetImageROI(),cv::Point(camera_->ProjectPointToPixel(cv::Point3f(center_of_mass_3d))),cv::Point(camera_->ProjectPointToPixel(cv::Point3f(unp_point))),cv::Scalar(241,243,12),4);
-  cv::line(frame_->GetImageROI(),cv::Point(camera_->ProjectPointToPixel(cv::Point3f(top_unp))),cv::Point(camera_->ProjectPointToPixel(cv::Point3f(bottom_unp))),cv::Scalar(241,243,12),4); 
-
-  cv::imwrite("testiamgething.png",frame_->GetImageROI());
 
   tracked_model.SetPose(center_of_mass_3d,central_axis_3d);
 } 

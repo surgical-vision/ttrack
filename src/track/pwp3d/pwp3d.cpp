@@ -272,6 +272,7 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
   //take this binary image and find the outer contour of it. then make a distance image from that contour.
   cv::Mat edge_image(pixels_intersect.size(),CV_8UC1);
   cv::Canny(pixels_intersect,edge_image,1,100);
+  cv::imwrite("edegimage.png",edge_image);
   distanceTransform(~edge_image,sdf_image,CV_DIST_L2,CV_DIST_MASK_PRECISE);
 
   //flip the sign of the distance image for outside pixels
@@ -333,12 +334,133 @@ bool PWP3D::ModelInFrame( const KalmanTracker &tracked_model, const cv::Mat &det
 
 }
 
+cv::Point FindNearest(const int r, const int c, cv::Mat im){
 
+  float distance = std::numeric_limits<float>::max();
+  cv::Point best(-1,-1);
 
-bool CheckEdgesForIntersection(const cv::Point &a, const cv::Point &b, const cv::Size &image_size, cv::Point &intersection){
-  if(FindIntersection(a, b, cv::Point2i(0,0), cv::Point(0,image_size.height-1),intersection)){
-    return true;
-  }else if(FindIntersection(a, b, cv::Point2i(0,0), cv::Point(image_size.width-1,0) ,intersection)){
+  //std::cout << "MAtching to " << cv::Point(c,r) << std::endl;
+
+  for(int v=1;v<15;v++){
+
+    for( int y = (r-v) ; y < (r+v) ; y++ ){
+      for( int x = (c-v) ; x < c+(2*v)+1 ; x = x +(2*v) ){
+        
+        if(y < 0 || x < 0 || y > im.rows-1 || x > im.cols) continue;
+
+        if(im.at<unsigned char>(y,x) == 255) {
+
+          if(distance > l2_distance(cv::Vec2f(y,x),cv::Vec2f(r,c))){
+            distance = l2_distance(cv::Vec2f(y,x),cv::Vec2f(r,c));
+            best = cv::Point(x,y);
+          }
+
+        }
+      }
+    }
+
+    for(int x=(c-v);x<(c+v);x++){
+      for( int y = r-v; y<r+(2*v)+1; y = y+(2*v) ){
+
+        if(y < 0 || x < 0 || y > im.rows-1 || x > im.cols) continue;
+
+        if(im.at<unsigned char>(y,x) == 255) {
+
+          if(distance > l2_distance(cv::Vec2f(y,x),cv::Vec2f(r,c))){
+            distance = l2_distance(cv::Vec2f(y,x),cv::Vec2f(r,c));
+            best = cv::Point(x,y);
+          }
+
+        }
+      }
+    }
+
+    if(distance !=std::numeric_limits<float>::max()){
+      //std::cerr << "Matched to " << best << "\n";
+      return best;
+    }
+
+  }
+
+  return cv::Point(-1,-1);
+
+}
+
+ cv::Mat PWP3D::AlignObjectToEdges(KalmanTracker &current_model, const cv::Mat &frame, const cv::Mat &sdf_image, const cv::Mat &front_projection_image) {
+
+   cv::Mat edges;
+   cv::Canny(frame,edges,1,100);
+   cv::imwrite("Edgess.png",edges);
+   std::vector<cv::Vec4i> lines;
+   cv::HoughLinesP( edges, lines, 1, CV_PI/180, 60, 10, 10);
+   cv::Mat im = cv::Mat::zeros(frame.size(),CV_8UC1);
+   for( size_t i = 0; i < lines.size(); i++ ){
+     cv::line( im, cv::Point(lines[i][0], lines[i][1]),
+       cv::Point(lines[i][2], lines[i][3]), cv::Scalar(255), 1, 8 );
+   }
+
+   std::vector<cv::Point>object_points;
+   std::vector<std::pair<cv::Point,cv::Point> >nearest_points;
+   for(int r=0;r<sdf_image.rows;r+=2){
+     for(int c=0;c<sdf_image.cols;c+=2){
+       if(sdf_image.at<float>(r,c) < 1 && sdf_image.at<float>(r,c) > -1.0){
+         object_points.push_back(cv::Point(c,r));
+       }
+     }
+   }
+
+   cv::Mat canvas = frame_->GetImageROI().clone();
+   
+   std::random_shuffle(object_points.begin(),object_points.end());
+   for(auto point = object_points.begin(); point != object_points.end(); point++){
+     
+     cv::Point nearest = FindNearest(point->y,point->x,im);
+     if(nearest == cv::Point(-1,-1) || front_projection_image.at<cv::Vec3f>(point->y,point->x) == cv::Vec3f(0,0,0))
+      continue;
+
+     nearest_points.push_back(std::make_pair<>(*point,nearest));
+
+     cv::circle(canvas,*point,2,cv::Scalar(245,12,14),1);
+     cv::circle(canvas,nearest,2,cv::Scalar(16,21,212),1);
+     cv::line(canvas,*point,nearest,cv::Scalar(13,189,12),1);
+
+     if(nearest_points.size() > 200)
+       break;
+
+   }
+   static int count = 0;
+   std::stringstream ss; ss << "image" << count << ".png";
+   cv::imwrite(ss.str(),canvas);
+   count++;
+
+   cv::Mat drawim = cv::Mat::zeros(im.size(),CV_8UC3);
+   for(int r=0;r<sdf_image.rows;r+=2){
+     for(int c=0;c<sdf_image.cols;c+=2){
+       drawim.at<cv::Vec3b>(r,c) = cv::Vec3b(edges.at<unsigned char>(r,c),0,0);
+
+     }
+   }
+
+   cv::Mat derivs = cv::Mat::zeros(7,1,CV_64FC1);
+   
+   for(auto thing = nearest_points.begin(); thing != nearest_points.end(); thing++){
+
+     cv::Vec3f point_on_object = front_projection_image.at<cv::Vec3f>(thing->first.y,thing->first.x);
+      
+     if(point_on_object == cv::Vec3f(0,0,0))throw(std::runtime_error("Err, should not happen!\n"));
+
+     derivs += register_points_.GetPointDerivative(cv::Point3f(point_on_object),cv::Point2f(thing->second),current_model.CurrentPose());
+     //cv::line(drawim,thing->first,thing->second,cv::Scalar(12,100,18),1);
+
+   }
+   
+   return derivs;//cv::Mat();
+ }
+
+ bool CheckEdgesForIntersection(const cv::Point &a, const cv::Point &b, const cv::Size &image_size, cv::Point &intersection){
+   if(FindIntersection(a, b, cv::Point2i(0,0), cv::Point(0,image_size.height-1),intersection)){
+     return true;
+   }else if(FindIntersection(a, b, cv::Point2i(0,0), cv::Point(image_size.width-1,0) ,intersection)){
     return true;
   }else if(FindIntersection(a, b, cv::Point2i(0,image_size.height-1), cv::Point(image_size.width-1,image_size.height-1),intersection)){
     return true;

@@ -43,6 +43,8 @@ namespace ttrk {
     */
     cv::Mat GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image);
 
+    cv::Mat AlignObjectToEdges(KalmanTracker &current_model, const cv::Mat &frame, const cv::Mat &sdf_image, const cv::Mat &front_projection_image);
+
 
     /**
     * Apply some scaling to the pose derivatives to modify the step size.

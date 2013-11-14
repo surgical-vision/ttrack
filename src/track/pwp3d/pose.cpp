@@ -60,21 +60,25 @@ cv::Vec3f Pose::GetDOFDerivatives(const int dof, const cv::Vec3f &point_) const 
 
 
   case 3: //qw
-    return cv::Vec3f((2*rotation_.Y()*point[2])-(2*rotation_.Z()*point[1]),
+    return cv::Vec3f(
+      (2*rotation_.Y()*point[2])-(2*rotation_.Z()*point[1]),
       (2*rotation_.Z()*point[0])-(2*rotation_.X()*point[2]),
       (2*rotation_.X()*point[1])-(2*rotation_.Y()*point[0]));
 
   case 4: //qx
-    return cv::Vec3f((2*rotation_.Y()*point[1])+(2*rotation_.Z()*point[2]),
+    return cv::Vec3f(
+      (2*rotation_.Y()*point[1])+(2*rotation_.Z()*point[2]),
       (2*rotation_.Y()*point[0])-(4*rotation_.X()*point[1])-(2*rotation_.W()*point[2]),
       (2*rotation_.Z()*point[0])+(2*rotation_.W()*point[1])-(4*rotation_.X()*point[2]));
 
   case 5: //qy
-    return cv::Vec3f((2*rotation_.X()*point[1])-(4*rotation_.Y()*point[0])+(2*rotation_.W()*point[2]),
+    return cv::Vec3f(
+      (2*rotation_.X()*point[1])-(4*rotation_.Y()*point[0])+(2*rotation_.W()*point[2]),
       (2*rotation_.X()*point[0])+(2*rotation_.Z()*point[2]),
-      (2*rotation_.Z()*point[1])+(2*rotation_.W()*point[0])-(4*rotation_.Y()*point[2]));
+      (2*rotation_.Z()*point[1])-(2*rotation_.W()*point[0])-(4*rotation_.Y()*point[2]));
   case 6: //qz
-    return cv::Vec3f((2*rotation_.X()*point[2])-(2*rotation_.W()*point[1])-(4*rotation_.Z()*point[0]),
+    return cv::Vec3f(
+      (2*rotation_.X()*point[2])-(2*rotation_.W()*point[1])-(4*rotation_.Z()*point[0]),
       (2*rotation_.W()*point[0])-(4*rotation_.X()*point[1])+(2*rotation_.Y()*point[2]),
       (2*rotation_.X()*point[0])+(2*rotation_.Y()*point[1]));
 

@@ -115,7 +115,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
         for(int i=0;i<pose_derivatives.rows;i++){
           double pp = (region_agreement*pose_derivatives.at<double>(i,0));
           if (pp != pp) { std::cerr << "Alert! Bad derivatives\n"; continue; }
-          //jacobian.at<double>(i,0) += -1 * pp * 5;
+          jacobian.at<double>(i,0) += -1 * pp;
         }
       
         pixel_count++ ;
@@ -183,25 +183,26 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
 
 
     std::vector<MatchedPair> pnp_pairs;
-    register_points_.FindPointCorrespondencesWithPose(frame_,pnp_pairs,current_model.CurrentPose());
+    cv::Mat point_save_image = frame_->GetImageROI().clone();
+    register_points_.FindPointCorrespondencesWithPose(frame_,pnp_pairs,current_model.CurrentPose(),point_save_image);
     #ifdef SAVEDEBUG_2
+    cv::imwrite(ss.str()+"/mono/"+step_dir.str()+"/points.png",point_save_image);
     std::cerr << "Found " << pnp_pairs.size() << " matches!\n";
     #endif
 
     for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
       cv::Mat pnp_jacobian = register_points_.GetPointDerivative(pnp->learned_point,cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
       for(int i=0;i<jacobian.rows;i++){
-        if(i < 3)
-          int p;//jacobian.at<double>(i,0) += 5 * -1 * pnp_jacobian.at<double>(i,0);
-        else
-          int q;//jacobian.at<double>(i,0) += 5 * pnp_jacobian.at<double>(i,0);
+        jacobian.at<double>(i,0) += 5 * -1 * pnp_jacobian.at<double>(i,0);
       }
     } 
 
-    
-    cv::Mat edge_jacobian = AlignObjectToEdges(current_model,frame_->GetClassificationMapROI() , sdf_image, front_intersection_image);
+    cv::Mat save_edge_image = frame_->GetImageROI().clone();
+    cv::Mat edge_jacobian = AlignObjectToEdges(current_model,frame_->GetClassificationMapROI() , sdf_image, front_intersection_image,save_edge_image );
+    cv::imwrite(ss.str()+"/mono/"+step_dir.str()+"/edges.png",save_edge_image);
+
     for(int i=0;i<jacobian.rows;i++){
-        jacobian.at<double>(i,0) += -1 * edge_jacobian.at<double>(i,0);
+        jacobian.at<double>(i,0) += -20 * edge_jacobian.at<double>(i,0);
     }
 
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step,pixel_count);

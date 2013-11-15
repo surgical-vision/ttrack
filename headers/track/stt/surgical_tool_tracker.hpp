@@ -40,6 +40,8 @@ namespace ttrk{
     const float radius_; /**< The tool radius in metric units. Used for constructing new tool models. */
     const float height_; /**< The tool tool length in metric units. Used for constructing new tool models. */
 
+    void ShiftCenter(cv::Vec2f &center_of_mass,const cv::Vec2f &central_axis, double length) const;
+
     /**
     * Find connected regions in the classified image. Each blob is a candidate for a surgical instrument. 
     * @param[out] connected_regions All of the connected regions found in the image, sorted in descenting order by the number of pixels that make up the region.

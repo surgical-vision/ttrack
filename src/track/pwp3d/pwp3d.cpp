@@ -272,7 +272,6 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
   //take this binary image and find the outer contour of it. then make a distance image from that contour.
   cv::Mat edge_image(pixels_intersect.size(),CV_8UC1);
   cv::Canny(pixels_intersect,edge_image,1,100);
-  cv::imwrite("edegimage.png",edge_image);
   distanceTransform(~edge_image,sdf_image,CV_DIST_L2,CV_DIST_MASK_PRECISE);
 
   //flip the sign of the distance image for outside pixels
@@ -386,11 +385,10 @@ cv::Point FindNearest(const int r, const int c, cv::Mat im){
 
 }
 
- cv::Mat PWP3D::AlignObjectToEdges(KalmanTracker &current_model, const cv::Mat &frame, const cv::Mat &sdf_image, const cv::Mat &front_projection_image) {
+cv::Mat PWP3D::AlignObjectToEdges(KalmanTracker &current_model, const cv::Mat &frame, const cv::Mat &sdf_image, const cv::Mat &front_projection_image, cv::Mat &save_image) {
 
    cv::Mat edges;
    cv::Canny(frame,edges,1,100);
-   cv::imwrite("Edgess.png",edges);
    std::vector<cv::Vec4i> lines;
    cv::HoughLinesP( edges, lines, 1, CV_PI/180, 60, 10, 10);
    cv::Mat im = cv::Mat::zeros(frame.size(),CV_8UC1);
@@ -409,8 +407,6 @@ cv::Point FindNearest(const int r, const int c, cv::Mat im){
      }
    }
 
-   cv::Mat canvas = frame_->GetImageROI().clone();
-   
    std::random_shuffle(object_points.begin(),object_points.end());
    for(auto point = object_points.begin(); point != object_points.end(); point++){
      
@@ -420,18 +416,20 @@ cv::Point FindNearest(const int r, const int c, cv::Mat im){
 
      nearest_points.push_back(std::make_pair<>(*point,nearest));
 
-     cv::circle(canvas,*point,2,cv::Scalar(245,12,14),1);
-     cv::circle(canvas,nearest,2,cv::Scalar(16,21,212),1);
-     cv::line(canvas,*point,nearest,cv::Scalar(13,189,12),1);
+#ifdef SAVEDEBUG_2
+     cv::circle(save_image,*point,2,cv::Scalar(255,0,0),1); //point on object
+     cv::circle(save_image,nearest,2,cv::Scalar(0,0,255),1); //target in image
+     cv::line(save_image,*point,nearest,cv::Scalar(13,189,12),1);
+#endif
 
      if(nearest_points.size() > 200)
        break;
 
    }
-   static int count = 0;
-   std::stringstream ss; ss << "image" << count << ".png";
-   cv::imwrite(ss.str(),canvas);
-   count++;
+   //static int count = 0;
+   //std::stringstream ss; ss << "image" << count << ".png";
+   //cv::imwrite(ss.str(),canvas);
+   //count++;
 
    cv::Mat drawim = cv::Mat::zeros(im.size(),CV_8UC3);
    for(int r=0;r<sdf_image.rows;r+=2){
@@ -443,14 +441,13 @@ cv::Point FindNearest(const int r, const int c, cv::Mat im){
 
    cv::Mat derivs = cv::Mat::zeros(7,1,CV_64FC1);
    
-   for(auto thing = nearest_points.begin(); thing != nearest_points.end(); thing++){
+   for(auto matched_edge = nearest_points.begin(); matched_edge != nearest_points.end(); matched_edge++){
 
-     cv::Vec3f point_on_object = front_projection_image.at<cv::Vec3f>(thing->first.y,thing->first.x);
+     cv::Vec3f point_on_object = front_projection_image.at<cv::Vec3f>(matched_edge->first.y,matched_edge->first.x);
       
      if(point_on_object == cv::Vec3f(0,0,0))throw(std::runtime_error("Err, should not happen!\n"));
 
-     derivs += register_points_.GetPointDerivative(cv::Point3f(point_on_object),cv::Point2f(thing->second),current_model.CurrentPose());
-     //cv::line(drawim,thing->first,thing->second,cv::Scalar(12,100,18),1);
+     derivs += register_points_.GetPointDerivative(cv::Point3f(point_on_object),cv::Point2f(matched_edge->second),current_model.CurrentPose());
 
    }
    

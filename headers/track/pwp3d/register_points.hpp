@@ -59,7 +59,7 @@ namespace ttrk {
 
     cv::Mat GetPointDerivative(const cv::Point3f &world, cv::Point2f &image, const Pose &pose) const;
     
-    void FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &pnp, const Pose &pose);    
+    void FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &pnp, const Pose &pose, cv::Mat &save_image);    
   
     void ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame> frame, KalmanTracker current_model, const cv::Mat &shape_image );
 

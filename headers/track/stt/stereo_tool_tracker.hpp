@@ -28,7 +28,7 @@ namespace ttrk {
 
     void ShiftToTip(const cv::Vec3f &central_axis, cv::Vec3f &center_of_mass); 
     void InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3f &center_of_mass_3d, cv::Vec3f &central_axis_3d, boost::shared_ptr<MonocularCamera> cam);
-    const cv::Vec2i FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &connected_region) const;
+    cv::Vec2f FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &connected_region) const;
 
     virtual void ProcessFrame();
 

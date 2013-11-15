@@ -43,6 +43,38 @@ void SurgicalToolTracker::FindSingleRegionFromContour(const std::vector<cv::Poin
 
 }
 
+inline bool PointInImage(const cv::Point2i &image_coords, const cv::Size &image_size){
+  return cv::Rect(cv::Point(0,0),image_size).contains(image_coords);
+}
+
+void SurgicalToolTracker::ShiftCenter(cv::Vec2f &center_of_mass,const cv::Vec2f &central_axis, double length) const {
+  
+  const cv::Mat &ci = frame_->GetClassificationMapROI();
+  cv::Vec2f end = center_of_mass + 0.5*length*central_axis;
+
+  //if end off image
+  //iterate the length back until it is on the image
+  bool estimate_short = PointInImage(cv::Point(end[0],end[1]),ci.size()) && ci.at<unsigned char>(end[1],end[0]) > 127;
+  float update_direction = -0.05f;
+  if(estimate_short)
+    update_direction *= -1;
+  
+  bool new_estimate;
+  int step = -1;
+  float new_length = length;
+  do{
+
+    new_length = new_length*(1+update_direction);
+    end = center_of_mass + (0.5*new_length)*central_axis;
+    new_estimate = PointInImage(cv::Point(end[0],end[1]),ci.size()) && ci.at<unsigned char>(end[1],end[0]) > 127;
+    step++;
+
+  }while(estimate_short == new_estimate && step < 15);
+
+  center_of_mass = end - (0.5*length)*central_axis;
+
+}
+
 void SurgicalToolTracker::CheckCentralAxisDirection(const cv::Vec2f &center_of_mass, cv::Vec2f &central_axis) const {
 
   

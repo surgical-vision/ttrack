@@ -132,6 +132,7 @@ namespace ttrk{
     
     virtual cv::Vec3f PrincipalAxis() const { return cv::Vec3f(1,0,0); }
 
+    float Length() { return height_tip_; }
     virtual float Radius() { return radius_; }
     float HeightFraction() { return height_fraction_; }
     virtual cv::Vec3f GetTrackedPoint() const;

@@ -316,7 +316,19 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
         }
       }
 
-      cv::Mat edge_jacobian = AlignObjectToEdges(current_model,frame_->GetImageROI(),sdf_image, front_intersection_image);
+    cv::Mat save_edge_image = frame_->GetImageROI().clone();
+    cv::Mat edge_jacobian = AlignObjectToEdges(current_model,frame_->GetClassificationMapROI() , sdf_image, front_intersection_image,save_edge_image );
+#ifdef SAVEDEBUG_2
+    if(eye == 0)
+      cv::imwrite(ss.str()+"/left/"+step_dir.str()+"/edges.png",save_edge_image);
+    else
+      cv::imwrite(ss.str()+"/right/"+step_dir.str()+"/edges.png",save_edge_image);
+#endif
+
+    for(int i=0;i<jacobian.rows;i++){
+        jacobian.at<double>(i,0) += -20 * edge_jacobian.at<double>(i,0);
+    }
+
 #ifdef SAVEDEBUG_2
       cv::Mat heaviside(jacobian_x.size(),CV_8UC1);
       cv::Mat delta(jacobian_x.size(),CV_8UC1);
@@ -365,8 +377,10 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     energy_vals.push_back(energy);
 
     std::vector<MatchedPair> pnp_pairs;
-    register_points_.FindPointCorrespondencesWithPose(frame_,pnp_pairs,current_model.CurrentPose());
+    cv::Mat point_save_image = frame_->GetImageROI().clone();
+    register_points_.FindPointCorrespondencesWithPose(frame_,pnp_pairs,current_model.CurrentPose(),point_save_image);
 #ifdef SAVEDEBUG_2
+    cv::imwrite(ss.str()+"/left/"+step_dir.str()+"/points.png",point_save_image);
     std::cerr << "Found " << pnp_pairs.size() << " matches!\n";
 #endif
     for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){

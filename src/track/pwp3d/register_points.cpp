@@ -10,7 +10,7 @@
 
 using namespace ttrk;
 
-void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &pnp, const Pose &pose){
+void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &pnp, const Pose &pose, cv::Mat &save_image){
 
   pnp.clear();
 
@@ -74,20 +74,25 @@ void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::F
 
       cv::Point2f pt_to_match(matching_queue.front().first.coordinate[0],matching_queue.front().first.coordinate[1]);
 
-      //cv::line(frame->GetImageROI(),pt_to_match,projected_pt,cv::Scalar(244,0,10),3);
-      //cv::circle(frame->GetImageROI(),pt_to_match,4,cv::Scalar(24,241,52),2);
+#ifdef SAVEDEBUG_2
+      cv::circle(save_image,projected_pt,2,cv::Scalar(255,0,0),1); //point on object
+      cv::circle(save_image,pt_to_match,2,cv::Scalar(0,0,255),1); //target in image
+      cv::line(save_image,pt_to_match,projected_pt,cv::Scalar(244,0,10),1);
+#endif
 
       MatchedPair mp;
       mp.learned_point = kp->coordinate;
       mp.image_point = matching_queue.front().first.coordinate;
       pnp.push_back( mp );
+    
     }
 
   }
 
+#ifdef SAVEDEBUG_2
   if(pnp.size())
     std::cout << "The average distance is " << average_distance/pnp.size() << "\n";
-
+#endif
 
 }
 

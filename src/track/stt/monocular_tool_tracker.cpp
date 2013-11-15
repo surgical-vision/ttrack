@@ -1,5 +1,6 @@
 #include "../../../headers/track/stt/monocular_tool_tracker.hpp"
 #include "../../../headers/track/pwp3d/mono_pwp3d.hpp"
+#include "../../../headers/utils/helpers.hpp"
 
 using namespace ttrk;
 
@@ -32,7 +33,7 @@ bool MonocularToolTracker::Init(){
 
 void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> &connected_region, KalmanTracker &tracked_model){
 
-  const cv::Vec2i center_of_mass = FindCenterOfMass(connected_region);
+  cv::Vec2f center_of_mass = FindCenterOfMass(connected_region);
   cv::Mat moi_tensor = cv::Mat::zeros(2,2,CV_32FC1);
   float *data = (float *)moi_tensor.data;
   
@@ -47,7 +48,7 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
       
       for(size_t i=0;i<connected_region.size();i++){
 
-        cv::Vec2i p = connected_region[i] - center_of_mass;
+        cv::Vec2f p = cv::Vec2f(connected_region[i]) - center_of_mass;
         int p_i = p[0]*(1-r) + p[1]*r;
         int p_j = p[0]*(1-c) + p[1]*c;
 
@@ -84,6 +85,7 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
   const float radius = sqrt( (2.0*std::abs(v[0]))/connected_region.size() ); 
   const float length = sqrt( ((12.0*std::abs(v[1])) / connected_region.size())  - 3*radius*radius);
 
+
   cv::Vec2f point = cv::Vec2f(center_of_mass) + 0.5*length*central_axis;
   cv::Vec2f top = cv::Vec2f(center_of_mass) + (radius)*horizontal_axis;
   cv::Vec2f bottom = cv::Vec2f(center_of_mass) - (radius)*horizontal_axis;
@@ -104,6 +106,16 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
   center_of_mass_3d = center_of_mass_3d * z;
 
   tracked_model.SetPose(center_of_mass_3d,central_axis_3d);
+
+  boost::shared_ptr<MISTool> tool = boost::dynamic_pointer_cast<MISTool>(tracked_model.PtrToModel());
+
+  cv::Point2i tip = camera_->ProjectPointToPixel( tracked_model.CurrentPose().Transform(tool->GetTrackedPoint()));
+
+  ShiftCenter(center_of_mass,central_axis, 2 * l2_distance(cv::Vec2d(tip.x,tip.y),cv::Vec2d(center_of_mass)));
+  center_of_mass_3d = cv::Vec3f(camera_->UnProjectPoint(cv::Point2f(center_of_mass)));
+  center_of_mass_3d = center_of_mass_3d * z;
+  tracked_model.SetPose(center_of_mass_3d,central_axis_3d);
+
 } 
 
 float MonocularToolTracker::ComputeWidth(float e1, float e2, size_t mass) const {

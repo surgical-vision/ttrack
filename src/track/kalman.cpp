@@ -18,17 +18,13 @@ void KalmanTracker::SetPose(const cv::Vec3f translation, const cv::Vec3f rotated
     cv::Vec3f rotated_principal_axis_ = rotated_principal_axis;
     if(rotated_principal_axis_[2] == 0) rotated_principal_axis_[2] = 0.000001;
     pose_.rotation_ = sv::Quaternion::FromVectorToVector(model_->PrincipalAxis(),cv::Vec3f(0,0,rotated_principal_axis_[2]/std::abs(rotated_principal_axis_[2])));
-    std::cerr << pose_.rotation_ << "\n";
     pose_.rotation_.Normalize();
     pose_.rotation_ = sv::Quaternion::FromVectorToVector(cv::Vec3f(0,0,rotated_principal_axis_[2]/std::abs(rotated_principal_axis_[2])),cv::Vec3f(rotated_principal_axis_[0],0,0)) * pose_.rotation_;
-    std::cerr << pose_.rotation_ << "\n";
     pose_.rotation_.Normalize();
     pose_.rotation_ = sv::Quaternion::FromVectorToVector(cv::Vec3f(rotated_principal_axis_[0],0,0),rotated_principal_axis_) * pose_.rotation_;
-    std::cerr << pose_.rotation_ << "\n";
     pose_.rotation_.Normalize();
   }
 
-  std::cerr << "rotation = " << pose_.rotation_ << "\n";
   //pose_.rotation_ = pose_.rotation_ + sv::Quaternion(boost::math::quaternion<double>(0.01,-0.011*rotated_principal_axis[0],-0.01*rotated_principal_axis[1],-0.01*rotated_principal_axis[2]));
   pose_.translational_velocity_ = cv::Vec3f(0,0,0);
 

@@ -16,11 +16,11 @@ class Pose(object):
     return self.translations[2]
   
   def __str__(self):
-    if self.rotations == []
+    if self.rotations == []:
       return "[{0}, {1}, {2}]".format(self.tx(),self.ty(),self.tz())
-    elif self.translations == []
+    elif self.translations == []:
       return "[{0}, {1}, {2}]".format(self.tx(),self.ty(),self.tz())
-    if self.rotations == []
+    if self.rotations == []:
       return "[{0}, {1}, {2}]".format(self.tx(),self.ty(),self.tz())
   
 

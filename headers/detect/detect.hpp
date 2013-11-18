@@ -56,6 +56,8 @@ namespace ttrk{
      * @return a unique pointer to the classified frame.
      */
     boost::shared_ptr<sv::Frame> GetPtrToClassifiedFrame() const;
+    void ResetHandleToFrame();
+
 
   protected:
 
@@ -63,7 +65,7 @@ namespace ttrk{
 
     void SetHandleToFrame(boost::shared_ptr<sv::Image<unsigned char,3> > image);
 
-    void ResetHandleToFrame();
+    
     
     /**
      * Dynamically compute the directory being used for saving/loading the classifier. Uses the

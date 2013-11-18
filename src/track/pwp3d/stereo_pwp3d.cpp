@@ -138,7 +138,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   frame_ = frame;
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
   SetBlurringScaleFactor(stereo_frame->GetLeftImage().cols);
-  const int NUM_STEPS = 40;
+  const int NUM_STEPS = 26;
   cv::Vec3f initial_translation = current_model.CurrentPose().translation_;
   static bool first = true;
 
@@ -171,9 +171,10 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   if(!ENERGY_FILE.is_open()) throw(std::runtime_error("Error, could not open energy file!\n"));
 #endif
 
-
-  //register_points_.ComputeDescriptorsForPointTracking(frame_,current_model);
-  //SAFE_EXIT();
+  /*cv::Mat sdf_image,front_intersection_image,back_intersection_image;
+  GetSDFAndIntersectionImage(current_model,sdf_image,front_intersection_image,back_intersection_image);
+  register_points_.ComputeDescriptorsForPointTracking(frame_,current_model,sdf_image);
+  SAFE_EXIT();*/
 
   //store a vector of Pose values. check std. dev. of these values, if this is small enough, assume convergence.
   //std::vector<double> convergence_test_values;
@@ -204,8 +205,8 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
     for(int eye=0; ;eye++){
 
-      if(!SetupEye(eye,current_model.CurrentPose())) break; //sets the camera_ variable to left or right eye breaks after resetting everything back to initial state after right eye
-      
+      if(!SetupEye(eye,current_model.CurrentPose())) break; //sets the camera_ variable to left or right eye breaks after resetting everything back to initial state after right ey
+
       cv::Mat sdf_image,front_intersection_image,back_intersection_image;
       GetSDFAndIntersectionImage(current_model,sdf_image,front_intersection_image,back_intersection_image);
 
@@ -386,10 +387,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
       cv::Mat pnp_jacobian = register_points_.GetPointDerivative(pnp->learned_point,cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
       for(int i=0;i<jacobian.rows;i++){
-        if(i < 3)
-          jacobian.at<double>(i,0) += 5 * -1 * pnp_jacobian.at<double>(i,0);
-        else
-          jacobian.at<double>(i,0) += 5 * pnp_jacobian.at<double>(i,0);
+        jacobian.at<double>(i,0) += 5 * -1 * pnp_jacobian.at<double>(i,0);
       }
     }
 

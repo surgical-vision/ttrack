@@ -198,7 +198,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
     } 
 
     cv::Mat save_edge_image = frame_->GetImageROI().clone();
-    cv::Mat edge_jacobian = AlignObjectToEdges(current_model,frame_->GetClassificationMapROI() , sdf_image, front_intersection_image,save_edge_image );
+    cv::Mat edge_jacobian = AlignObjectToEdges(current_model,frame_->GetImageROI() , sdf_image, front_intersection_image,save_edge_image );
     cv::imwrite(ss.str()+"/mono/"+step_dir.str()+"/edges.png",save_edge_image);
 
     for(int i=0;i<jacobian.rows;i++){

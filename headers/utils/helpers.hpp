@@ -179,7 +179,7 @@ namespace ttrk{
   * @return If the function is an image or not.
   */
   inline bool IS_IMAGE(const std::string &extension){
-    return (extension == ".png" || extension == ".jpg");
+    return (extension == ".png" || extension == ".jpg" || extension == ".bmp");
   }
 
   cv::Mat &ConvertMatSingleToTriple(cv::Mat &im);

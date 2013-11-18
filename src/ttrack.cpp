@@ -178,7 +178,6 @@ boost::shared_ptr<sv::Frame> TTrack::GetPtrToNewFrame(){
   case MONOCULAR:
     frame_.reset( new sv::MonoFrame(test) );
     break;
-
   }
   
   return frame_;
@@ -188,6 +187,7 @@ boost::shared_ptr<sv::Frame> TTrack::GetPtrToNewFrame(){
 boost::shared_ptr<sv::Frame> TTrack::GetPtrToClassifiedFrame(){
 
   frame_ = detector_->GetPtrToClassifiedFrame();
+  detector_->ResetHandleToFrame(); //once classified detector has nothing to do with the old frame so it can forget about it
   return frame_;
 
 }

@@ -409,7 +409,7 @@ void PointRegistration::ComputeDescriptorsForPointTracking(boost::shared_ptr<sv:
       return a.response > b.response;
   });
 
-  cv::FileStorage fs(config_dir_ + "/KeyPoints.xml",cv::FileStorage::WRITE);
+  cv::FileStorage fs(config_dir_ + "/KeyPointsNEW.xml",cv::FileStorage::WRITE);
   //collect descriptors in the image plane
   //cv::SurfDescriptorExtractor extractor;
   cv::SiftDescriptorExtractor extractor;

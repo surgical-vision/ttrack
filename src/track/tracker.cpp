@@ -6,14 +6,13 @@ using namespace ttrk;
 
 void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
   
+
   SetHandleToFrame(image);
 
   if(!found){
     //tracking_ = false;
     return;
   }
-
-  cv::imwrite("classification.png",image->GetClassificationMapROI());
 
   if(!tracking_){
 
@@ -29,9 +28,15 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
   //track each model that we know about
   for(current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++ ){
     
-    Pose pose_measurement = localizer_->TrackTargetInFrame(*current_model_,image);
-    //pose_measurement.translation_ += cv::Vec3f(0.5,0.5,0);
-    current_model_->UpdatePose(pose_measurement);
+    try{
+      Pose pose_measurement = localizer_->TrackTargetInFrame(*current_model_,frame_);
+      current_model_->UpdatePose(pose_measurement);
+    }catch(...){
+      std::cerr << "ERROR IN THIS UPDATE!\n";
+      continue;
+    }
+
+    
 
     //if( localizer_->ModelInFrame( *current_model_, frame_->GetClassificationMapROI() ))
     DrawModelOnFrame(*current_model_,frame_->GetImage());
@@ -39,6 +44,9 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
       //tracking_ = false;
   
   }
+
+  //tracking_ = false; 
+
 }  
 
 
@@ -52,7 +60,7 @@ bool Tracker::InitKalmanFilter(){
 }
 
 void Tracker::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){
-  frame_ = image;
+   frame_ = image;
 }
 
 boost::shared_ptr<sv::Frame> Tracker::GetPtrToFinishedFrame(){

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <time.h> 
 #include "../../../headers/utils/quasi_dense_stereo.hpp"
+#include "../../../headers/utils/helpers.hpp"
 #include <stdint.h>
 using namespace ttrk;
 
@@ -71,16 +72,16 @@ cv::Vec2f StereoToolTracker::FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &
 
 }
 
-void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3f &center_of_mass_3d, cv::Vec3f &central_axis_3d, boost::shared_ptr<MonocularCamera> cam) {
+void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3f &center_of_mass_3d, cv::Vec3f &central_axis_3d, boost::shared_ptr<MonocularCamera> camera, KalmanTracker &tm) {
 
   cv::Vec2f center_of_mass = FindCenterOfMassIn2D(connected_region);
+  
   cv::Mat moi_tensor = cv::Mat::zeros(2,2,CV_32FC1);
   float *data = (float *)moi_tensor.data;
   
   /* moi [ xx , xy ; yx , yy ] */
   for(int r=0;r<2;r++){
     for(int c=0;c<2;c++){
-      
       if(r==1 && c== 0) {
 	      //symmetric...
 	      data[r*2 + c] = data[c*2 + r];
@@ -105,11 +106,11 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
 
   float *e = (float *)eigenvecs.data;
   float *v = (float *)eigenvals.data;
-
+  
   cv::Vec2f central_axis(e[2],e[3]);
   cv::Vec2f horizontal_axis(e[0],e[1]);
 
-  //CheckCentralAxisDirection(center_of_mass,central_axis);
+  CheckCentralAxisDirection(center_of_mass,central_axis);
   
   cv::Vec2f normed_central_axis,normed_horizontal_axis;
   cv::normalize(central_axis,normed_central_axis);
@@ -125,36 +126,56 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
 
   const float radius = sqrt( (2.0*std::abs(v[0]))/connected_region.size() ); 
   const float length = sqrt( ((12.0*std::abs(v[1])) / connected_region.size())  - 3*radius*radius);
-
+  
   cv::Vec2f point = cv::Vec2f(center_of_mass) + 0.5*length*central_axis;
-  ShiftCenter(center_of_mass,central_axis,length);
   cv::Vec2f top = cv::Vec2f(center_of_mass) + (radius)*horizontal_axis;
   cv::Vec2f bottom = cv::Vec2f(center_of_mass) - (radius)*horizontal_axis;
 
-  cv::Point3f top_unp = cam->UnProjectPoint(cv::Point2i(top));
-  cv::Point3f bottom_unp = cam->UnProjectPoint(cv::Point2i(bottom));
-  cv::Point3f center_unp = cam->UnProjectPoint(cv::Point2i(center_of_mass));
+#define CHECK_INIT
+#ifdef CHECK_INIT
+  cv::Mat debug_frame = frame_->GetImageROI().clone();
+  cv::circle(debug_frame,cv::Point(point),4,cv::Scalar(255,0,0),2);
+  cv::circle(debug_frame,cv::Point(center_of_mass),4,cv::Scalar(0,0,255),2);
+  cv::line(debug_frame,cv::Point(point),cv::Point(center_of_mass),cv::Scalar(255,255,0),2);
+  cv::imwrite("debug/init_axis.png",debug_frame);
+#endif
+
+  cv::Point3f top_unp = camera->UnProjectPoint(cv::Point2i(top));
+  cv::Point3f bottom_unp = camera->UnProjectPoint(cv::Point2i(bottom));
+  cv::Point3f center_unp = camera->UnProjectPoint(cv::Point2i(center_of_mass));
   cv::Vec3f diff = cv::Vec3f(top_unp) - cv::Vec3f(bottom_unp);
   float abs_diff = sqrt( static_cast<double>( diff[0]*diff[0] + diff[1]*diff[1] + diff[2]*diff[2] ) );
 
   
   float z = (2*tracked_models_.back().PtrToModel()->Radius())/abs_diff;
   
-  cv::Vec3f unp_point = cv::Vec3f(cam->UnProjectPoint(cv::Point2f(point)));
-  center_of_mass_3d = cv::Vec3f(cam->UnProjectPoint(cv::Point2f(center_of_mass)));
-
-  central_axis_3d = unp_point - center_of_mass_3d;
+  cv::Vec3f unp_point = cv::Vec3f(camera->UnProjectPoint(cv::Point2f(point)));
+  center_of_mass_3d = cv::Vec3f(camera->UnProjectPoint(cv::Point2f(center_of_mass)));
+  
+  central_axis_3d = (z*unp_point) - (z*center_of_mass_3d);
+  cv::Vec3f ca3d_norm; cv::normalize(central_axis_3d,ca3d_norm);
+  central_axis_3d = ca3d_norm;
+  std::cerr << cv::Point3f(central_axis_3d) << "\n";
+  central_axis_3d[2] = 0.45;
   center_of_mass_3d = center_of_mass_3d * z;
-  tracked_model.SetPose(center_of_mass_3d,central_axis_3d);
 
-  boost::shared_ptr<MISTool> tool = boost::dynamic_pointer_cast<MISTool>(tracked_model.PtrToModel());
+  tm.SetPose(center_of_mass_3d,central_axis_3d);
 
-  cv::Point2i tip = camera_->ProjectPointToPixel( tracked_model.CurrentPose().Transform(tool->GetTrackedPoint()));
+  boost::shared_ptr<MISTool> tool = boost::dynamic_pointer_cast<MISTool>(tm.PtrToModel());
 
-  ShiftCenter(center_of_mass,central_axis, 2 * l2_distance(cv::Vec2d(tip.x,tip.y),cv::Vec2d(center_of_mass)));
-  center_of_mass_3d = cv::Vec3f(camera_->UnProjectPoint(cv::Point2f(center_of_mass)));
+  cv::Point2i tip = camera->ProjectPointToPixel( tm.CurrentPose().Transform(tool->GetTrackedPoint()));
+
+  while( !cv::Rect(0,0,frame_->GetImageROI().cols,frame_->GetImageROI().rows).contains(tip) ){
+    z *= 1.1;
+    center_of_mass_3d = cv::Vec3f(camera->UnProjectPoint(cv::Point2f(center_of_mass))) * z;
+    tm.SetPose(center_of_mass_3d,central_axis_3d);
+    tip = camera->ProjectPointToPixel( tm.CurrentPose().Transform(tool->GetTrackedPoint()));
+  }
+
+  ShiftCenter(center_of_mass,central_axis, 2 * l2_distance(cv::Vec2d(tip.x,tip.y),cv::Vec2d(center_of_mass))); // 2 * to turn center to tip distnace to whole distance
+  center_of_mass_3d = cv::Vec3f(camera->UnProjectPoint(cv::Point2f(center_of_mass)));
   center_of_mass_3d = center_of_mass_3d * z;
-  tracked_model.SetPose(center_of_mass_3d,central_axis_3d);
+  tm.SetPose(center_of_mass_3d,central_axis_3d);
  
 }
 
@@ -203,27 +224,27 @@ void StereoToolTracker::ShiftToTip(const cv::Vec3f &central_axis, cv::Vec3f &cen
 void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, KalmanTracker &tracked_model) {
 
   cv::Vec3f left_center_of_mass,left_central_axis,right_center_of_mass,right_central_axis;
-  InitIn2D(region,left_center_of_mass,left_central_axis,camera_->rectified_left_eye());
+  InitIn2D(region,left_center_of_mass,left_central_axis,camera_->rectified_left_eye(),tracked_model);
   
-  cv::Mat right_classification_window = StereoFrame()->GetRightClassificationMap();
-  std::vector<std::vector<cv::Vec2i> > connected_regions_right_frame;
-  FindConnectedRegions(right_classification_window,connected_regions_right_frame);
+  //cv::Mat right_classification_window = StereoFrame()->GetRightClassificationMap();
+  //std::vector<std::vector<cv::Vec2i> > connected_regions_right_frame;
+  //FindConnectedRegions(right_classification_window,connected_regions_right_frame);
   /* NOTE - WRITE A CHECK TO FIND THE MATCHING REGIONS - RIGHT NOW WE CAN HACK IT AS THERE SHOULD ONLY BE ONE REGION */
-  InitIn2D(connected_regions_right_frame.front(),right_center_of_mass,right_central_axis,camera_->rectified_right_eye());
+  //InitIn2D(connected_regions_right_frame.front(),right_center_of_mass,right_central_axis,camera_->rectified_right_eye(),tracked_model);
 
-  cv::Vec3f center_of_mass_3d = left_center_of_mass;//camera_->ReprojectPointTo3D( camera_->rectified_left_eye()->ProjectPointToPixel(cv::Point3f(left_center_of_mass)), camera_->rectified_right_eye()->ProjectPointToPixel(cv::Point3f(right_center_of_mass)) );
+  //cv::Vec3f center_of_mass_3d = left_center_of_mass;//camera_->ReprojectPointTo3D( camera_->rectified_left_eye()->ProjectPointToPixel(cv::Point3f(left_center_of_mass)), camera_->rectified_right_eye()->ProjectPointToPixel(cv::Point3f(right_center_of_mass)) );
 
   //ShiftToTip(left_central_axis,center_of_mass_3d);
-  left_central_axis[2] = -0.5*left_central_axis[0];
+  //left_central_axis[2] = -0.5*left_central_axis[0];
 
-  std::cerr << "Center of amass = " << cv::Point3f(center_of_mass_3d) << "\n";
-  tracked_model.SetPose(center_of_mass_3d,left_central_axis);
+  //std::cerr << "Center of amass = " << cv::Point3f(center_of_mass_3d) << "\n";
+  //tracked_model.SetPose(center_of_mass_3d,left_central_axis);
 
-  //sv::Quaternion q(boost::math::quaternion<double>(0.309,0.03218,-0.9324,-0.18433));
-  //q = q.Normalize();
-  //tracked_model.SetPose(Pose(cv::Vec3f(-18,-18,80),sv::Quaternion(0,cv::Vec3f(1,0,0))));//q));
-  //tracked_model.SetPose(Pose(cv::Vec3f(18,-18,90),q));//
-
+  /* values for learning point based tracking thing
+  sv::Quaternion q(boost::math::quaternion<double>(0.281864,-0.161011,-0.945847,-0.0149875));
+  q = q.Normalize();
+  tracked_model.SetPose(Pose(cv::Vec3f(21.6014,-2.69319,111.758),q));
+  */
   //these values align well for the new_video dataset
   //sv::Quaternion q(boost::math::quaternion<double>(0.309,0.03218,-0.9324,-0.18433));
   //q = q.Normalize();

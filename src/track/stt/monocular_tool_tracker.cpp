@@ -13,7 +13,14 @@ MonocularToolTracker::MonocularToolTracker(const float radius, const float heigh
 bool MonocularToolTracker::Init(){
 
   std::vector<std::vector<cv::Vec2i> >connected_regions;
-  if(!FindConnectedRegions(frame_->GetClassificationMap(),connected_regions)) return false;
+  if(!FindConnectedRegions(frame_->GetClassificationMap(),connected_regions)) {
+#ifdef SAVEDEBUG_1
+    std::cerr << "NO connected regions in the classification image found!\n";
+    cv::imwrite("./debug/bad_classification.png",frame_->GetImageROI());
+    cv::imwrite("./debug/bad_image.png",frame_->GetClassificationMapROI());
+    return false;
+#endif
+  }
 
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
@@ -84,11 +91,19 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
 
   const float radius = sqrt( (2.0*std::abs(v[0]))/connected_region.size() ); 
   const float length = sqrt( ((12.0*std::abs(v[1])) / connected_region.size())  - 3*radius*radius);
-
-
+  
   cv::Vec2f point = cv::Vec2f(center_of_mass) + 0.5*length*central_axis;
   cv::Vec2f top = cv::Vec2f(center_of_mass) + (radius)*horizontal_axis;
   cv::Vec2f bottom = cv::Vec2f(center_of_mass) - (radius)*horizontal_axis;
+
+#define CHECK_INIT
+#ifdef CHECK_INIT
+  cv::Mat debug_frame = frame_->GetImageROI().clone();
+  cv::circle(debug_frame,cv::Point(point),4,cv::Scalar(255,0,0),2);
+  cv::circle(debug_frame,cv::Point(center_of_mass),4,cv::Scalar(0,0,255),2);
+  cv::line(debug_frame,cv::Point(point),cv::Point(center_of_mass),cv::Scalar(255,255,0),2);
+  cv::imwrite("debug/init_axis.png",debug_frame);
+#endif
 
   cv::Point3f top_unp = camera_->UnProjectPoint(cv::Point2i(top));
   cv::Point3f bottom_unp = camera_->UnProjectPoint(cv::Point2i(bottom));
@@ -103,6 +118,7 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
   cv::Vec3f center_of_mass_3d = cv::Vec3f(camera_->UnProjectPoint(cv::Point2f(center_of_mass)));
 
   cv::Vec3f central_axis_3d = (z*unp_point) - (z*center_of_mass_3d);
+  central_axis_3d[2] = -0.5*central_axis[0];
   center_of_mass_3d = center_of_mass_3d * z;
 
   tracked_model.SetPose(center_of_mass_3d,central_axis_3d);
@@ -111,7 +127,14 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
 
   cv::Point2i tip = camera_->ProjectPointToPixel( tracked_model.CurrentPose().Transform(tool->GetTrackedPoint()));
 
-  ShiftCenter(center_of_mass,central_axis, 2 * l2_distance(cv::Vec2d(tip.x,tip.y),cv::Vec2d(center_of_mass)));
+  while( !cv::Rect(0,0,frame_->GetImageROI().cols,frame_->GetImageROI().rows).contains(tip) ){
+    z *= 1.1;
+    center_of_mass_3d = cv::Vec3f(camera_->UnProjectPoint(cv::Point2f(center_of_mass))) * z;
+    tracked_model.SetPose(center_of_mass_3d,central_axis_3d);
+    tip = camera_->ProjectPointToPixel( tracked_model.CurrentPose().Transform(tool->GetTrackedPoint()));
+  }
+
+  ShiftCenter(center_of_mass,central_axis, 2 * l2_distance(cv::Vec2d(tip.x,tip.y),cv::Vec2d(center_of_mass))); // 2 * to turn center to tip distnace to whole distance
   center_of_mass_3d = cv::Vec3f(camera_->UnProjectPoint(cv::Point2f(center_of_mass)));
   center_of_mass_3d = center_of_mass_3d * z;
   tracked_model.SetPose(center_of_mass_3d,central_axis_3d);

@@ -60,7 +60,7 @@ void Detect::ClassifyFrame(){
       cv::Mat pix = nd_image.GetPixelData(r,c);
       
       //const unsigned char prediction = (unsigned char)255*classifier_->PredictClass(pix);
-      const unsigned char prediction = (unsigned char)255*classifier_->PredictProb(pix,1);
+      const unsigned char prediction = (unsigned char)255.0*classifier_->PredictProb(pix,1);
       
       frame_data[index] = prediction;
 

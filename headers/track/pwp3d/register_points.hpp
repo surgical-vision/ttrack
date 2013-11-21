@@ -47,9 +47,9 @@ namespace ttrk {
   };
 
 
-  const int NUM_DESCRIPTOR = 60;
-  const int MATCHING_DISTANCE_THRESHOLD = 60;
-  const double DESCRIPTOR_SIMILARITY_THRESHOLD = 200.0;
+  const int NUM_DESCRIPTOR = 120;
+  const int MATCHING_DISTANCE_THRESHOLD = 25;
+  const double DESCRIPTOR_SIMILARITY_THRESHOLD = 280.0;
 
   class PointRegistration {
 

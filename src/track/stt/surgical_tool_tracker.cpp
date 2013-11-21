@@ -32,6 +32,7 @@ void SurgicalToolTracker::FindSingleRegionFromContour(const std::vector<cv::Poin
   t.push_back(contour);
   drawContours(mask,t,-1,cv::Scalar(255),CV_FILLED,8);
 
+
   //push the interior pixels of the drawn region (faster than polygon intersection?)
   unsigned char *mask_ptr = (unsigned char *)mask.data;
   for(int r=0;r<mask.rows;r++){

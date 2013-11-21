@@ -6,8 +6,6 @@ using namespace ttrk;
 
 MonocularToolTracker::MonocularToolTracker(const float radius, const float height, const std::string &config_dir, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_(new MonocularCamera(config_dir + "/" + calibration_filename)){
   localizer_.reset(new MonoPWP3D(config_dir,camera_));
-  //boost::shared_ptr<MonoPWP3D> mono_pwp3d = boost::dynamic_pointer_cast<MonoPWP3D>(localizer_);
-  //mono_pwp3d->Camera() = camera_;
 }
 
 bool MonocularToolTracker::Init(){
@@ -18,17 +16,14 @@ bool MonocularToolTracker::Init(){
     std::cerr << "NO connected regions in the classification image found!\n";
     cv::imwrite("./debug/bad_classification.png",frame_->GetImageROI());
     cv::imwrite("./debug/bad_image.png",frame_->GetClassificationMapROI());
-    return false;
 #endif
+    return false;
   }
 
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
     KalmanTracker new_tracker(boost::shared_ptr<Model>(new  MISTool(radius_,height_) ));
-    //new_tracker.model_.reset( new MISTool(radius_,height_) );
-
     tracked_models_.push_back( new_tracker ); 
-
     Init2DPoseFromMOITensor(*connected_region,tracked_models_.back());
 
   }
@@ -96,7 +91,6 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
   cv::Vec2f top = cv::Vec2f(center_of_mass) + (radius)*horizontal_axis;
   cv::Vec2f bottom = cv::Vec2f(center_of_mass) - (radius)*horizontal_axis;
 
-#define CHECK_INIT
 #ifdef CHECK_INIT
   cv::Mat debug_frame = frame_->GetImageROI().clone();
   cv::circle(debug_frame,cv::Point(point),4,cv::Scalar(255,0,0),2);
@@ -182,7 +176,7 @@ std::vector<SimplePoint<> > transformed_points = tracked_model.ModelPointsAtCurr
       cv::Vec2f projected_neighbour = camera_->ProjectPoint( neighbour.vertex_ );
 
       if(canvas.channels() == 3)
-        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),1,CV_AA);
+        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,123,25),1,CV_AA);
       if(canvas.channels() == 1)
         line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,1,CV_AA);
     }

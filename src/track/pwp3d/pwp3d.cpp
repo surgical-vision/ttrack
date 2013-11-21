@@ -27,8 +27,11 @@ void PWP3D::ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const 
 }
 
 void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pixel_count) const {
-  
+
+#ifdef SAVEDEBUG_2
   std::cerr << "Unscaled Jacobian = " << jacobian << "\n";
+#endif
+
   double sum_jacobian = 0.0;
   for(int r=0;r<jacobian.rows;r++){
     sum_jacobian += std::abs(jacobian.at<double>(r,0));
@@ -65,9 +68,9 @@ void PWP3D::ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pi
     jacobian.at<double>(i,0) *= 0.5 * (0.007 / largest);
   }
 
-//#ifdef SAVEDEBUG_1
+#ifdef SAVEDEBUG_1
   std::cerr << "Jacobian = " << jacobian << "\n";
-//#endif
+#endif
 
   return;
 
@@ -384,50 +387,14 @@ cv::Point FindNearest(const int r, const int c, cv::Mat im){
   return cv::Point(-1,-1);
 
 }
-/*
-int edgeThresh = 1;
-int lowThreshold;
-int const max_lowThreshold = 100;
-int ratio = 3;
-int kernel_size = 3;
-char* window_name = "Edge Map";
-cv::Mat src_gray,src;
-cv::Mat detected_edges,dst;
-
-void CannyThreshold(int, void*)
-{
-  using namespace cv;
-  /// Reduce noise with a kernel 3x3
-  blur( src_gray, detected_edges, Size(7,7) );
-
-  /// Canny detector
-  Canny( detected_edges, detected_edges, lowThreshold, lowThreshold*ratio, kernel_size );
-
-  /// Using Canny's output as a mask, we display our result
-  dst = Scalar::all(0);
-
-  src.copyTo( dst, detected_edges);
-  imshow( window_name, dst );
- }
- */
 
 cv::Mat PWP3D::AlignObjectToEdges(KalmanTracker &current_model, const cv::Mat &frame, const cv::Mat &sdf_image, const cv::Mat &front_projection_image, cv::Mat &save_image) {
 
   return cv::Mat::zeros(7,1,CV_64FC1);
 
-  //src = frame.clone();
-  //cv::cvtColor(src,src_gray,CV_BGR2GRAY);
   cv::Mat blur;
+
   cv::resize(frame,blur,cv::Size(frame.cols/4,frame.rows/4));
-
-  //cv::namedWindow( window_name, CV_WINDOW_AUTOSIZE );
-
-  /// Create a Trackbar for user to enter threshold
-  //cv::createTrackbar( "Min Threshold:", window_name, &lowThreshold, max_lowThreshold, CannyThreshold );
-
-  /// Show the image
-  //CannyThreshold(0, 0);
-  //cv::waitKey(0);
   
   cv::Mat edges;
   cv::imwrite("debug/blurred.png",blur);
@@ -539,7 +506,7 @@ void PWP3D::DrawModelOnFrame(const std::vector<SimplePoint<> > &transformed_poin
       }
 
       if(canvas.channels() == 3)
-        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,0,255),1,CV_AA);
+        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,123,25),1,CV_AA);
       if(canvas.channels() == 1)
         line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,1,CV_AA);
     }

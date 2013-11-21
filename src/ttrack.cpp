@@ -56,7 +56,7 @@ void TTrack::Run(){
   
   int count = 0;
 
-  while( !handler_->Done() ){
+  while( !handler_->Done() ){ //signals done by reading an empty image file either from a video or a directory of images
     
     boost::thread TrackThread(boost::ref(*(tracker_.get())), GetPtrToClassifiedFrame() , detector_->Found() );
     boost::thread DetectThread(boost::ref(*(detector_.get())), GetPtrToNewFrame() );
@@ -129,7 +129,7 @@ void TTrack::SaveResults() const {
     boost::shared_ptr<std::ofstream> results_file = model.SaveFile();
 
     if( !results_file->is_open() ){
-
+      
       std::stringstream ss; ss << *root_dir_ + "/model_pose" << i << ".txt";
       results_file->open( ss.str(),  std::ofstream::out);
       
@@ -139,7 +139,7 @@ void TTrack::SaveResults() const {
     cv::Vec3f translation = model.CurrentPose().translation_;
     cv::Vec3f point_of_interest = model.CurrentPose().Transform(model.PtrToModel()->GetTrackedPoint());
 
-    *results_file << translation[0] << "," << translation[1] << "," << translation[2] << "," << angle_axis[0] << "," << angle_axis[1] << "," << angle_axis[2] << ", " << point_of_interest[0] << ", " << point_of_interest[1] << ", " << point_of_interest[2] << "\n" ;
+    *results_file << translation[0] << "," << translation[1] << "," << translation[2] << "," << angle_axis[0] << "," << angle_axis[1] << "," << angle_axis[2] << "," << point_of_interest[0] << "," << point_of_interest[1] << "," << point_of_interest[2] << "\n" ;
     results_file->flush();
 
   }

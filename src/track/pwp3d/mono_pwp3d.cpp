@@ -8,7 +8,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
 
   frame_ = frame;
   SetBlurringScaleFactor(frame_->GetImageROI().cols);
-  const int NUM_STEPS = 200;
+  const int NUM_STEPS = 50;
   cv::Vec3f initial_translation = current_model.CurrentPose().translation_;
   static bool first = true;
 
@@ -51,11 +51,11 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
   //iterate until convergence
   for(int step=0; step < NUM_STEPS && !converged; step++){
 
-#ifdef SAVEDEBUG_1
-
+#if defined(SAVDEBUG_1) || defined(SAVEDEBUG_2)
     std::stringstream step_dir; step_dir << "step" << step;
+#endif
+#ifdef SAVEDEBUG_2
     boost::filesystem::create_directory(ss.str()+"/mono/"+step_dir.str());
-
 #endif
 
     //(x,y,z,w,r1,r2,r3)
@@ -91,8 +91,8 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
 
     //std::cerr << "\n\nCurrently subsampling frame!\n\n";
 
-    for(int r=0;r<frame_->GetImageROI().rows;r++){
-      for(int c=0;c<frame_->GetImageROI().cols;c++){
+    for(int r=0;r<frame_->GetImageROI().rows;r+=3){
+      for(int c=0;c<frame_->GetImageROI().cols;c+=3){
 
 
         //speedup tests by checking if we need to evaluate the cost function in this region
@@ -199,8 +199,9 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
 
     cv::Mat save_edge_image = frame_->GetImageROI().clone();
     cv::Mat edge_jacobian = AlignObjectToEdges(current_model,frame_->GetImageROI() , sdf_image, front_intersection_image,save_edge_image );
+#ifdef SAVEDEBUG_2
     cv::imwrite(ss.str()+"/mono/"+step_dir.str()+"/edges.png",save_edge_image);
-
+#endif
     for(int i=0;i<jacobian.rows;i++){
         jacobian.at<double>(i,0) += -20 * edge_jacobian.at<double>(i,0);
     }
@@ -211,7 +212,6 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
 #ifdef SAVEDEBUG_1
     canvas = frame_->GetImageROI().clone();
     DrawModelOnFrame(current_model.ModelPointsAtCurrentPose(),canvas);
-    cv::imwrite(ss.str()+"/mono/"+step_dir.str()+"/update.png",canvas);
     cv::imwrite(ss.str()+"/mono/"+step_dir.str()+".png",canvas);
 #endif
 
@@ -219,20 +219,13 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
     //converged = HasGradientDescentConverged(convergence_test_values, current_model.CurrentPose() );
     //converged = HasGradientDescentConverged__new(std::vector<cv::Mat>(), jacobian );
     //converged = HasGradientDescentConverged(convergence_test_values, current_model.CurrentPose());
-    //if(!first)
-    //  converged = HasGradientDescentConverged_UsingEnergy(energy_vals);
+    if(!first)
+      converged = HasGradientDescentConverged_UsingEnergy(energy_vals);
 
-    //if(energy>max_energy){
-    {
-      //std::cerr << "new max energy = " << energy << "\n";
-      max_energy = energy;
-      pwp3d_best_pose = current_model.CurrentPose();
-#ifdef SAVEDEBUG_2
-      best_image = canvas.clone();
-#endif
-    }
-
+    max_energy = energy;
+    pwp3d_best_pose = current_model.CurrentPose();
   }
+  
 
 #ifdef SAVEDEBUG_1
   ENERGY_FILE.close();

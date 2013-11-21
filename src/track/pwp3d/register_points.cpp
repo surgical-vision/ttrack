@@ -36,12 +36,14 @@ void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::F
     std::vector<std::pair<Descriptor, double> > matching_queue;
     //project them to the image plane
     cv::Point2f projected_pt = camera_->ProjectPointToPixel(cv::Point3f(kp->coordinate));
+    cv::circle(save_image,projected_pt,2,cv::Scalar(255,0,0),1); //point on object
     //cv::circle(frame->GetImageROI(),cv::Point(projected_pt),3,cv::Scalar(255,12,52),2);
 
     //iterate over the found features
     for(auto frame_descriptor = frame_descriptors.begin(); frame_descriptor != frame_descriptors.end(); frame_descriptor++){
 
       cv::Point2f pt_to_match(frame_descriptor->coordinate[0],frame_descriptor->coordinate[1]);
+      cv::circle(save_image,pt_to_match,2,cv::Scalar(0,0,255),1); //point on object
 
       //if the euclidean distance is < threshold then add this point to matching vector
       double euclidean_distance = std::sqrt((projected_pt.x - pt_to_match.x)*(projected_pt.x - pt_to_match.x) + (projected_pt.y - pt_to_match.y)*(projected_pt.y - pt_to_match.y));
@@ -67,9 +69,9 @@ void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::F
     //run l2 norm based matching between learned point and points in this vector. is the matching score is good enough, add to the matches
 
     double size_of_best = matching_queue.front().second;//l2_norm( matching_queue.front().first.descriptor, cv::Mat::zeros(matching_queue.front().first.descriptor.size(),matching_queue.front().first.descriptor.type()));  
-
-    if(size_of_best < DESCRIPTOR_SIMILARITY_THRESHOLD){
-
+    
+    if( (matching_queue.size() > 1 &&  size_of_best/matching_queue[1].second < 0.8) || ( matching_queue.size() == 1 && size_of_best < DESCRIPTOR_SIMILARITY_THRESHOLD) ){
+      
       average_distance += matching_queue.front().first.TEST_DISTANCE;
 
       cv::Point2f pt_to_match(matching_queue.front().first.coordinate[0],matching_queue.front().first.coordinate[1]);
@@ -133,10 +135,14 @@ void PointRegistration::ReadKeypoints(const std::string filename, std::vector<De
 
   for(int n=0; n<count;n++){
 
-
-    Descriptor ds;
-    ds.read(ifs,n);
-    descriptors.push_back(ds);
+    try{
+      Descriptor ds;
+      ds.read(ifs,n);
+      descriptors.push_back(ds);
+    }catch(...){
+      std::cerr << "Error, not enough KeyPoints\n";
+      break;
+    }
 
   }
 
@@ -433,5 +439,6 @@ void PointRegistration::ComputeDescriptorsForPointTracking(boost::shared_ptr<sv:
     i++;
 
   }
+
 }
 

@@ -138,7 +138,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   frame_ = frame;
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
   SetBlurringScaleFactor(stereo_frame->GetLeftImage().cols);
-  const int NUM_STEPS = 26;
+  const int NUM_STEPS = 15;
   cv::Vec3f initial_translation = current_model.CurrentPose().translation_;
   static bool first = true;
 
@@ -190,9 +190,12 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   //iterate until convergence
   for(int step=0; step < NUM_STEPS && !converged; step++){
 
-#ifdef SAVEDEBUG_1
-
+#if defined(SAVDEBUG_1) || defined(SAVEDEBUG_2)
     std::stringstream step_dir; step_dir << "step" << step;
+#endif
+#ifdef SAVEDEBUG_2
+
+
     boost::filesystem::create_directory(ss.str()+"/left/"+step_dir.str());
     boost::filesystem::create_directory(ss.str()+"/right/"+step_dir.str());
 
@@ -243,10 +246,8 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
       //std::cerr << "\n\nCurrently subsampling frame!\n\n";
 
-      for(int r=0;r<frame_->GetImageROI().rows;r++){
-        for(int c=0;c<frame_->GetImageROI().cols;c++){
-      //for(int r=0;r<frame_->GetImageROI().rows;r+=3){
-      //  for(int c=0;c<frame_->GetImageROI().cols;c+=3){
+      for(int r=0;r<frame_->GetImageROI().rows;r+=3){
+        for(int c=0;c<frame_->GetImageROI().cols;c+=3){
 
           //speedup tests by checking if we need to evaluate the cost function in this region
           const double skip = Heaviside(sdf_image.at<float>(r,c), k_heaviside_width_ * blurring_scale_factor_);
@@ -278,12 +279,6 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
             }
             jacobian.at<double>(i,0) += -1 * pp;
           }
-
-          /*if( (r == 130 &&  c == 887) || (r == 183 && c == 772) ){
-            double jacobian_z = region_agreement*pose_derivatives.at<double>(2,0);
-            std::cerr << "jac z = " << jacobian_z << "\n";
-          }*/
-
           
 
           pixel_count++ ;
@@ -387,11 +382,9 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
       cv::Mat pnp_jacobian = register_points_.GetPointDerivative(pnp->learned_point,cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
       for(int i=0;i<jacobian.rows;i++){
-        jacobian.at<double>(i,0) += 5 * -1 * pnp_jacobian.at<double>(i,0);
+        jacobian.at<double>(i,0) += 2 * -1 * pnp_jacobian.at<double>(i,0);
       }
     }
-
-
 
     ApplyGradientDescentStep(jacobian,current_model.CurrentPose(),step,pixel_count);
 
@@ -400,8 +393,6 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     cv::Mat left_canvas = stereo_frame->GetLeftImage().clone();
     cv::Mat right_canvas = stereo_frame->GetRightImage().clone();
     DrawModelOnBothFrames(current_model,left_canvas,right_canvas);
-    cv::imwrite(ss.str()+"/left/"+step_dir.str()+"/update.png",left_canvas);
-    cv::imwrite(ss.str()+"/right/"+step_dir.str()+"/update.png",right_canvas);
     cv::imwrite(ss.str()+"/left/"+step_dir.str()+".png",left_canvas);
     cv::imwrite(ss.str()+"/right/"+step_dir.str()+".png",right_canvas);
 #endif

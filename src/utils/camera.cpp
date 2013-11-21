@@ -27,14 +27,12 @@ MonocularCamera::MonocularCamera(const std::string &calibration_filename){
 
 cv::Point2i MonocularCamera::ProjectPointToPixel(const cv::Point3f &point) const {
   cv::Point2f pt = ProjectPoint(point);
-  //return cv::Point2i(ttrk::round(pt.x));
   return cv::Point2i(ttrk::round(pt.x),ttrk::round(pt.y));
 }
 
 
 cv::Point3f MonocularCamera::UnProjectPoint(const cv::Point2i &point) const {
   
-  //cv::Point3f unprojected;
   cv::Mat projected(1,1,CV_32FC2);
   projected.at<cv::Vec2f>(0,0) = cv::Vec2f(point.x,point.y);
   cv::Mat unprojected(1,1,CV_32FC2);
@@ -51,16 +49,9 @@ cv::Point2f MonocularCamera::ProjectPoint(const cv::Point3f &point) const {
   static cv::Mat rot = cv::Mat::eye(3,3,CV_64FC1);
   static cv::Mat tran = cv::Mat::zeros(3,1,CV_64FC1);
   
-  //std::cerr << intrinsic_matrix_ << "\n" << distortion_params_ << "\n";
-
-  //std::cerr << "Point = " << point << " --> ";
-  //cv::Mat dst = cv::Mat::zeros(1,5,CV_64FC1);
   cv::projectPoints(std::vector<cv::Point3f>(1,point),rot,tran,intrinsic_matrix_,distortion_params_,projected_point);
-  //cv::projectPoints(std::vector<cv::Point3f>(1,point),rot,tran,intrinsic_matrix_,dst,projected_point);
   if(projected_point.size() != 1) throw(std::runtime_error("Error, projected points size != 1.\n"));
   
-  //std::cerr << projected_point.front() << "\n";
-
   return projected_point.front();
 
 }

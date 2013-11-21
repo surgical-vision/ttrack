@@ -31,12 +31,6 @@ StereoVideoHandler::StereoVideoHandler(const std::string &left_input_url,const s
     throw std::runtime_error("Unable to open videofile: " + right_input_url + "\nPlease enter a new filename.\n");
   }
 
-  /*cv::Mat skip;
-  for(int i=0;i<40;i++){
-    //VideoHandler::GetPtrToNewFrame(); CALLED BY STEREO::GET...
-    GetPtrToNewFrame();
-  }*/
-
 }
 
   
@@ -87,7 +81,6 @@ ImageHandler::ImageHandler(const std::string &input_url, const std::string &outp
 
   //push the actual filenames into the paths_ vector
   for(size_t i=0;i<images.size();i++){
-    std::cout << images[i].filename().string() << "\n";
     paths_.push_back( images[i].filename().string() );
   }
   std::cout.flush();
@@ -120,13 +113,9 @@ cv::Mat VideoHandler::GetNewFrame(){
   cv::Mat to_return;
   cap_ >> to_return;
 
-  /*static bool first = true;
-  if(first){
-    for(int n=0;n<60;n++)
-      cap_ >> *m;
-    first = false;
-  }*/
-  
+  cv::Mat x = to_return(cv::Rect(64,35,600,509));
+  x.copyTo(to_return);
+
   if(to_return.data == 0x0) { 
     done_ = true;
     return cv::Mat();

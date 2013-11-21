@@ -31,8 +31,9 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
     try{
       Pose pose_measurement = localizer_->TrackTargetInFrame(*current_model_,frame_);
       current_model_->UpdatePose(pose_measurement);
-    }catch(...){
+    }catch(std::exception &e){
       std::cerr << "ERROR IN THIS UPDATE!\n";
+      std::cerr << e.what() << "\n";
       continue;
     }
 
@@ -45,7 +46,6 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
   
   }
 
-  //tracking_ = false; 
 
 }  
 

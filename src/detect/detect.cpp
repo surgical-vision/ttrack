@@ -31,7 +31,7 @@ void Detect::operator()(boost::shared_ptr<sv::Frame> image){
 }
 
 void Detect::ClassifyFrame(){
-
+  
   assert(Loaded());
   assert(frame_->GetImageROI().type() == CV_8UC3);
   

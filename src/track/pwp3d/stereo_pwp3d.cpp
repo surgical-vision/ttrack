@@ -190,7 +190,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   //iterate until convergence
   for(int step=0; step < NUM_STEPS && !converged; step++){
 
-#if defined(SAVDEBUG_1) || defined(SAVEDEBUG_2)
+#if defined(SAVEDEBUG_1) || defined(SAVEDEBUG_2)
     std::stringstream step_dir; step_dir << "step" << step;
 #endif
 #ifdef SAVEDEBUG_2
@@ -430,97 +430,3 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
 }
 
-
-bool StereoPWP3D::HasGradientDescentConverged__new(std::vector<cv::Mat> &convergence_test_values, cv::Mat &current_estimate) const {
-
-  convergence_test_values.push_back(current_estimate);
-
-  double sum_jacobian = 0;
-  for(int i=0;i<current_estimate.rows;i++){
-    sum_jacobian += std::abs(current_estimate.at<double>(i,0));
-  }
-
-  return sum_jacobian < 9e8;
-
-}
-
-bool StereoPWP3D::HasGradientDescentConverged(std::deque<Pose> &previous_poses, const Pose &pose) const {
-
-  const int NUM_VALUES_TO_USE = 10;
-
-  previous_poses.push_back(pose);
-  if(previous_poses.size() < NUM_VALUES_TO_USE) return false;
-  previous_poses.pop_front();
-
-  cv::Mat sum = cv::Mat::zeros(7,1,CV_64FC1);
-  cv::Mat sum_sqrs = cv::Mat::zeros(7,1,CV_64FC1);
-  cv::Mat std_dev(7,1,CV_64FC1);
-  for(auto val = previous_poses.begin(); val != previous_poses.end(); val++ ){
-
-    int N = 0;
-    sum.at<double>(N,0) += val->translation_[0];
-    sum_sqrs.at<double>(N,0) += (val->translation_[0]*val->translation_[0]);
-        
-    N++;
-    sum.at<double>(N,0) += val->translation_[1];
-    sum_sqrs.at<double>(N,0) += (val->translation_[1]*val->translation_[1]);
-
-    N++;
-    sum.at<double>(N,0) += val->translation_[2];
-    sum_sqrs.at<double>(N,0) += (val->translation_[2]*val->translation_[2]);
-
-    N++;
-    sum.at<double>(N,0) += val->rotation_.W();
-    sum_sqrs.at<double>(N,0) += (val->rotation_.W()*val->rotation_.W());
-
-    N++;
-    sum.at<double>(N,0) += val->rotation_.X();
-    sum_sqrs.at<double>(N,0) += (val->rotation_.X()*val->rotation_.X());
-
-    N++;
-    sum.at<double>(N,0) += val->rotation_.Y();
-    sum_sqrs.at<double>(N,0) += (val->rotation_.Y()*val->rotation_.Y());
-
-    N++;
-    sum.at<double>(N,0) += val->rotation_.Z();
-    sum_sqrs.at<double>(N,0) +=  (val->rotation_.Z()*val->rotation_.Z());
-
-  }
-
-  for(int i=0;i<std_dev.rows;i++){
-
-    std_dev.at<double>(i,0) = sqrt((sum_sqrs.at<double>(i,0) - (sum.at<double>(i,0)*sum.at<double>(i,0))/previous_poses.size())/(previous_poses.size() - 1));
-    
-
-  }
-
-  std::cerr << "Std Devs are " << std_dev << "\n";
-  
-  return false;
-  
-}
-
-bool StereoPWP3D::HasGradientDescentConverged_UsingEnergy(std::vector<double> &energy_values) const {
-
-  std::cerr << "Energy for this step is " << energy_values.back() << "\n";
-  const int NUM_VALUES_TO_USE = 7;
-  if(energy_values.size() < NUM_VALUES_TO_USE ) return false;
-
-
-  double energy_change = 0.0;
-  for(auto value = energy_values.end()-(NUM_VALUES_TO_USE); value != energy_values.end()-1; value++ ){
-
-    //std::cerr << "Energy change is: " << *(value+1) - *(value) << "\n";
-    energy_change += *(value+1) - *(value);
-    //std::cerr << "New energy is: " << energy_change << "\n";
-
-  }
-
-  energy_change /= NUM_VALUES_TO_USE - 1;
-
-  std::cerr << "Current ratio is: " <<  energy_change/energy_values.back() << "\n";
-  std::cerr << "Target ratio for convergence is: " << 1.0/1000 << "\n";
-
-  return !(energy_change/energy_values.back() > 1.0/1000);
-
-}

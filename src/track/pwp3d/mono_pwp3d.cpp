@@ -51,7 +51,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
   //iterate until convergence
   for(int step=0; step < NUM_STEPS && !converged; step++){
 
-#if defined(SAVDEBUG_1) || defined(SAVEDEBUG_2)
+#if defined(SAVEDEBUG_1) || defined(SAVEDEBUG_2)
     std::stringstream step_dir; step_dir << "step" << step;
 #endif
 #ifdef SAVEDEBUG_2
@@ -193,7 +193,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
     for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
       cv::Mat pnp_jacobian = register_points_.GetPointDerivative(pnp->learned_point,cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
       for(int i=0;i<jacobian.rows;i++){
-        jacobian.at<double>(i,0) += 5 * -1 * pnp_jacobian.at<double>(i,0);
+        jacobian.at<double>(i,0) += -1 * pnp_jacobian.at<double>(i,0);
       }
     } 
 

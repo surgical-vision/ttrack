@@ -111,8 +111,11 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
   cv::Vec3f unp_point = cv::Vec3f(camera_->UnProjectPoint(cv::Point2f(point)));
   cv::Vec3f center_of_mass_3d = cv::Vec3f(camera_->UnProjectPoint(cv::Point2f(center_of_mass)));
 
+
   cv::Vec3f central_axis_3d = (z*unp_point) - (z*center_of_mass_3d);
-  central_axis_3d[2] = -0.5*central_axis[0];
+  cv::Vec3f ca3d_norm; cv::normalize(central_axis_3d,ca3d_norm);
+  central_axis_3d = ca3d_norm;
+  central_axis_3d[2] = 0.45;
   center_of_mass_3d = center_of_mass_3d * z;
 
   tracked_model.SetPose(center_of_mass_3d,central_axis_3d);

@@ -514,3 +514,30 @@ void PWP3D::DrawModelOnFrame(const std::vector<SimplePoint<> > &transformed_poin
 
 }
 
+bool PWP3D::HasGradientDescentConverged_UsingEnergy(std::vector<double> &energy_values) const {
+#ifdef SAVEDEBUG_2
+  std::cerr << "Energy for this step is " << energy_values.back() << "\n";
+#endif
+  const int NUM_VALUES_TO_USE = 7;
+  if(energy_values.size() < NUM_VALUES_TO_USE ) return false;
+
+
+  double energy_change = 0.0;
+  for(auto value = energy_values.end()-(NUM_VALUES_TO_USE); value != energy_values.end()-1; value++ ){
+
+    //std::cerr << "Energy change is: " << *(value+1) - *(value) << "\n";
+    energy_change += *(value+1) - *(value);
+    //std::cerr << "New energy is: " << energy_change << "\n";
+
+  }
+
+  energy_change /= NUM_VALUES_TO_USE - 1;
+#ifdef SAVEDEBUG_2
+  std::cerr << "Current ratio is: " <<  energy_change/energy_values.back() << "\n";
+  std::cerr << "Target ratio for convergence is: " << 1.0/1000 << "\n";
+#endif
+  return !(energy_change/energy_values.back() > 1.0/1000);
+
+}
+
+

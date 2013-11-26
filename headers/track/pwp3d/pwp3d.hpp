@@ -45,6 +45,7 @@ namespace ttrk {
 
     cv::Mat AlignObjectToEdges(KalmanTracker &current_model, const cv::Mat &frame, const cv::Mat &sdf_image, const cv::Mat &front_projection_image,cv::Mat &save_image);
 
+    bool HasGradientDescentConverged_UsingEnergy(std::vector<double> &energy_values) const ;
 
     /**
     * Apply some scaling to the pose derivatives to modify the step size.

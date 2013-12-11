@@ -1,16 +1,29 @@
 #ifndef _MODEL_HPP_
 #define _MODEL_HPP_
-#include "../headers.hpp"
+#include "../../headers.hpp"
 #define _USE_MATH_DEFINES
 #include <math.h>
-#include "pose.hpp"
+#include "../pose.hpp"
+#include "../../utils/primitives.hpp"
+#include "../../utils/camera.hpp"
+#include "fast_bvh/BVH.h"
+#include "fast_bvh/Sphere.h"
 
 namespace ttrk{
+
+
+  struct SurfacePoint {
+
+    cv::Vec3f point_;
+    cv::Mat descriptor_;
+  
+  };
+
 
   /**
   * @struct SimplePoint
   * @brief A really basic point-with-neighbours class to represent a
-  * the elements of a connected point cloud.
+  * the elements of a meshed point cloud.
   */
 
   template<typename VertexType = cv::Vec3f>
@@ -54,52 +67,75 @@ namespace ttrk{
   class Model {
 
   public:
-   
+
     /**
     * Construct an empty model.
-    */
+      */
     Model(){}
     //Model &operator=(const Model &that){ return Model(); }
     Model(const Model &that){ }
-    
+
     /**
     * Delete the model.
-    */
+        */
     virtual ~Model(){}
-    
+
     /**
     * Provides access to the points. As the model may be implemented as a parametrised shape or similar 
-    * this is implemented as a virtual function to allow custom representation of the shape.
+        * this is implemented as a virtual function to allow custom representation of the shape.
     * @return A vector of points.
     */
     virtual std::vector<SimplePoint<> > Points(const Pose &pose) const = 0;
-    
+    virtual boost::shared_ptr<std::vector<Object *> > GetPoints(const Pose &pose);
     /**
     * Get an intersection between the model and a ray cast from the camera. This is needed in the tracking methods.
-    * @param[in] ray The ray cast from the camera
+        * @param[in] ray The ray cast from the camera
     * @param[out] front The front intersection of the ray and the shape.
     * @param[out] back The back intersection of the ray and the shape. In the rare case that the intersection is exactly on an edge of the shape this will just be set to same as the front.
     * @return bool The success of the intersection test.
     */
-    virtual bool GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const = 0;
+    //virtual bool GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const = 0;
+    bool ComputeAllIntersections(boost::shared_ptr<MonocularCamera> cam, const Pose &pose, const int rows, const int cols, cv::Mat &intersection_image) const;
+
 
     virtual cv::Vec3f PrincipalAxis() const = 0;
 
     virtual cv::Vec3f GetTrackedPoint() const = 0;
 
-    virtual float Radius() = 0;
+    boost::shared_ptr<BVH> bvh_;
+    boost::shared_ptr<std::vector<Object *> > objects_;
 
   protected:
+
+
+    std::vector<float> flattened_triangles_; 
+    
+    
+    cv::Vec3f ReadVertexFromObj(std::ifstream &ifs) const;
+
+
+
+    cv::Vec3i ReadFaceFromObj(std::ifstream &ifs) const;
+    //virtual std::vector<Quadrilateral> ComputeBoundingBox(const Pose &pose) const = 0;
+     
+    /**
+    *
+    *
+    */
+    bool GetIntersectionTriangle(const cv::Vec3f &ray, const cv::Vec3f &vert0, const cv::Vec3f &vert1, const cv::Vec3f &vert2, float &distance) const ;
+    bool GetIntersectionQuadrilateral(const cv::Vec3f &ray, const cv::Vec3f &vert0, const cv::Vec3f &vert1, const cv::Vec3f &vert2, const cv::Vec3f &vert3, float &distance) const;
+
+    std::vector<SurfacePoint> surface_points_;
+    std::vector<SimplePoint<> > model_points_;
   
- 
 
   };
 
 
   /**
   * @class MISTool
-  * @brief An implementation of a MIS tool.
-  * Provide a simple representation of an MIS tool as a cylinder.
+  * @brief A simple implementation of a MIS tool that is built out of primitives
+  * Subclass this to create a simple MIS Tool 
   */
   class MISTool : public Model {
 
@@ -110,7 +146,8 @@ namespace ttrk{
     * @param[in] radius The cylinder radius.
     * @param[in] height The cylinder height.
     */
-    MISTool(float radius, float height);
+    //MISTool(float radius, float height);
+    MISTool(const std::string &model_file) ;
     
     /**
     * Provides access to a vector of SimplePoints which represent the cylinder.
@@ -125,7 +162,7 @@ namespace ttrk{
     * @param[out] back The back intersection.
     * @return bool The success of the intersection test
     */
-    virtual bool GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const;
+    //virtual bool GetIntersection(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const;
     
     bool CircleIntersection(const cv::Vec3f &A, const cv::Vec3f &n, const cv::Vec3f &d, const float R,cv::Vec3f &intersection) const ;
     
@@ -142,7 +179,7 @@ namespace ttrk{
     bool IntersectionInConvexHull(const std::vector<SimplePoint<> >&convex_hull, const cv::Vec3f &point) const;
     bool GetIntersectionPlane(const std::vector<SimplePoint<> >&points_in_plane, const cv::Vec3f &ray, cv::Vec3f &intersection) const;
     bool GetIntersectionPolygons(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const;
-    std::vector<std::vector<SimplePoint<> > > GetClasperPolygons(const Pose &pose) const;
+    //std::vector<std::vector<SimplePoint<> > > GetClasperPolygons(const Pose &pose) const;
     bool GetIntersectionShaft(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const;
     bool GetIntersectionTip(const cv::Vec3f &ray, cv::Vec3f &front, cv::Vec3f &back, const Pose &pose) const;
 

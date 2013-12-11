@@ -9,7 +9,7 @@ namespace ttrk {
 
   public: 
 
-    StereoPWP3D(const std::string &config_dir, boost::shared_ptr<StereoCamera> camera) : PWP3D(config_dir,camera->rectified_left_eye()) , stereo_camera_(camera) {}
+    StereoPWP3D(boost::shared_ptr<StereoCamera> camera) : PWP3D(camera->rectified_left_eye()) , stereo_camera_(camera) {}
 
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame);
     
@@ -26,8 +26,6 @@ namespace ttrk {
     bool SetupEye(const int eye, Pose &pose);
 
     boost::shared_ptr<StereoCamera> stereo_camera_;
-    //cv::Mat ROI_left_; /**< Experimental feature. Instead of performing the level set tracking over the whole image, try to find a ROI around where the target of interest is located. */
-    //cv::Mat ROI_right_; /**< Experimental feature. Instead of performing the level set tracking over the whole image, try to find a ROI around where the target of interest is located. */
 
   };
 

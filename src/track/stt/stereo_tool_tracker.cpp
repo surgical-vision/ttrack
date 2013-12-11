@@ -11,9 +11,9 @@ using namespace ttrk;
 #define STEREO_SGBM
 #undef QUASI
 
-StereoToolTracker::StereoToolTracker(const float radius, const float height, const std::string &config_dir, const std::string &calibration_file):SurgicalToolTracker(radius,height),camera_( new StereoCamera(config_dir + "/" + calibration_file)){
+StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, const std::string &calibration_file):SurgicalToolTracker(model_parameter_file),camera_( new StereoCamera(calibration_file)){
 
-  localizer_.reset(new StereoPWP3D(config_dir,camera_));
+  localizer_.reset(new StereoPWP3D(camera_));
 
 }
 
@@ -37,23 +37,35 @@ bool StereoToolTracker::Init() {
   //for each connected region find the corresponding connected region in the other frame
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
-    KalmanTracker new_tracker(boost::shared_ptr<Model> (new MISTool(radius_,height_) ));
+    KalmanTracker new_tracker( boost::shared_ptr<Model>(new MISTool(model_parameter_file_)) );
+ 
     tracked_models_.push_back( new_tracker ); 
 
     Init3DPoseFromMOITensor(*connected_region, tracked_models_.back());//,corresponding_connected_region);
+
+    tracked_models_.back().PtrToModel()->GetPoints(tracked_models_.back().CurrentPose());
+    int count = 0;
+    cv::Mat image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_8UC1);
+    for(int r=0;r<image.rows;++r){
+      for(int c=0;c<image.cols;++c){
+        cv::Vec3f ray = camera_->rectified_left_eye()->UnProjectPoint(cv::Point(c,r));
+        Ray nray(Vector3(0,0,0),Vector3(ray[0],ray[1],ray[2]));
+        IntersectionInfo I;
+        bool hit = tracked_models_.back().PtrToModel()->bvh_->getIntersection(nray, &I, false);
+        image.at<unsigned char>(r,c) = 255 * hit;
+        count += hit;
+      }
+    }
+
+    std::cerr << "Count is " << count << "\n";
+    cv::imwrite("testimage.png",image);
+
   
   }
 
   return true;
 }
 
-
-void StereoToolTracker::ProcessFrame(){
-
-  //CreateDisparityImage();
-  //camera_->ReprojectTo3D(StereoFrame()->GetDisparityMap(),StereoFrame()->GetPointCloud(),std::vector<cv::Vec2i>());
-
-}
 
 cv::Vec2f StereoToolTracker::FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &connected_region) const {
 
@@ -74,12 +86,12 @@ cv::Vec2f StereoToolTracker::FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &
 
 void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3f &center_of_mass_3d, cv::Vec3f &central_axis_3d, boost::shared_ptr<MonocularCamera> camera, KalmanTracker &tm) {
 
-  cv::Vec2f center_of_mass = FindCenterOfMassIn2D(connected_region);
+  /*cv::Vec2f center_of_mass = FindCenterOfMassIn2D(connected_region);
   
   cv::Mat moi_tensor = cv::Mat::zeros(2,2,CV_32FC1);
   float *data = (float *)moi_tensor.data;
   
-  /* moi [ xx , xy ; yx , yy ] */
+  // moi [ xx , xy ; yx , yy ] 
   for(int r=0;r<2;r++){
     for(int c=0;c<2;c++){
       if(r==1 && c== 0) {
@@ -147,7 +159,8 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
   float abs_diff = sqrt( static_cast<double>( diff[0]*diff[0] + diff[1]*diff[1] + diff[2]*diff[2] ) );
 
   
-  float z = (2*tracked_models_.back().PtrToModel()->Radius())/abs_diff;
+  float z = 80;// (2*tracked_models_.back().PtrToModel()->Radius())/abs_diff;
+  //throw(std::runtime_error("Error, do this!\n"));
   
   cv::Vec3f unp_point = cv::Vec3f(camera->UnProjectPoint(cv::Point2f(point)));
   center_of_mass_3d = cv::Vec3f(camera->UnProjectPoint(cv::Point2f(center_of_mass)));
@@ -158,7 +171,7 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
   central_axis_3d[2] = 0.45;
   center_of_mass_3d = center_of_mass_3d * z;
 
-  tm.SetPose(center_of_mass_3d,central_axis_3d);
+  //tm.SetPose(center_of_mass_3d,central_axis_3d);
 
   boost::shared_ptr<MISTool> tool = boost::dynamic_pointer_cast<MISTool>(tm.PtrToModel());
 
@@ -173,13 +186,17 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
 
   ShiftCenter(center_of_mass,central_axis, 2 * l2_distance(cv::Vec2d(tip.x,tip.y),cv::Vec2d(center_of_mass))); // 2 * to turn center to tip distnace to whole distance
   center_of_mass_3d = cv::Vec3f(camera->UnProjectPoint(cv::Point2f(center_of_mass)));
-  center_of_mass_3d = center_of_mass_3d * z;
-  tm.SetPose(center_of_mass_3d,central_axis_3d);
+  center_of_mass_3d = center_of_mass_3d * z; */
+  //tm.SetPose(center_of_mass_3d,central_axis_3d);
+  tm.SetPose(Pose(cv::Vec3f(-10,0,75),sv::Quaternion(boost::math::quaternion<double>(0.4,1,0,0))));
  
+
 }
 
 void StereoToolTracker::ShiftToTip(const cv::Vec3f &central_axis, cv::Vec3f &center_of_mass) {//, KalmanTracker &tracked_model){
 
+  //throw(std::runtime_error("Error, not implemented!\n"));
+  /*
   KalmanTracker t(boost::shared_ptr<Model>(new MISTool(radius_,height_) ));
   const float length_of_central_axis = sqrt( central_axis[0]*central_axis[0] + central_axis[1]*central_axis[1] + central_axis[2]*central_axis[2] );
   boost::shared_ptr<MISTool> mis_tool = boost::static_pointer_cast<MISTool>(t.PtrToModel());
@@ -198,7 +215,7 @@ void StereoToolTracker::ShiftToTip(const cv::Vec3f &central_axis, cv::Vec3f &cen
     center_of_mass = center_of_mass - 0.05*central_axis;
 
   }while (length > length_of_central_axis);
-
+  */
 }
 
 

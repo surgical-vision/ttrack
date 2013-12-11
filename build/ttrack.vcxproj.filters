@@ -43,6 +43,18 @@
     <Filter Include="Source Files\track\stt">
       <UniqueIdentifier>{6f313a2b-5ca3-45a7-a0a9-e42fd5fa3d8b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\track\model">
+      <UniqueIdentifier>{eb5c267f-c29e-41a5-9177-505eb2baa74f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\track\model\fast_bvh">
+      <UniqueIdentifier>{10be2d1e-4020-4ad3-b4f1-76574857e64a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\track\model">
+      <UniqueIdentifier>{787afbab-0334-4699-8ad5-503bd98379d3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\track\model\fast_bvh">
+      <UniqueIdentifier>{9b5d69e6-740c-41ff-996c-f6bed2c7d1de}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\headers\constants.hpp">
@@ -70,9 +82,6 @@
       <Filter>Header Files\detect</Filter>
     </ClInclude>
     <ClInclude Include="..\headers\track\kalman.hpp">
-      <Filter>Header Files\track</Filter>
-    </ClInclude>
-    <ClInclude Include="..\headers\track\model.hpp">
       <Filter>Header Files\track</Filter>
     </ClInclude>
     <ClInclude Include="..\headers\track\localizer.hpp">
@@ -126,6 +135,42 @@
     <ClInclude Include="..\headers\track\pwp3d\register_points.hpp">
       <Filter>Header Files\track\pwp3d</Filter>
     </ClInclude>
+    <ClInclude Include="..\headers\utils\renderer.hpp">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\utils\primitives.hpp">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\model\model.hpp">
+      <Filter>Header Files\track\model</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\model\fast_bvh\BBox.h">
+      <Filter>Header Files\track\model\fast_bvh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\model\fast_bvh\BVH.h">
+      <Filter>Header Files\track\model\fast_bvh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\model\fast_bvh\IntersectionInfo.h">
+      <Filter>Header Files\track\model\fast_bvh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\model\fast_bvh\Log.h">
+      <Filter>Header Files\track\model\fast_bvh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\model\fast_bvh\Object.h">
+      <Filter>Header Files\track\model\fast_bvh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\model\fast_bvh\Ray.h">
+      <Filter>Header Files\track\model\fast_bvh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\model\fast_bvh\Sphere.h">
+      <Filter>Header Files\track\model\fast_bvh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\model\fast_bvh\Stopwatch.h">
+      <Filter>Header Files\track\model\fast_bvh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\model\fast_bvh\Vector3.h">
+      <Filter>Header Files\track\model\fast_bvh</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">
@@ -161,9 +206,6 @@
     <ClCompile Include="..\src\track\tracker.cpp">
       <Filter>Source Files\track</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\utils\model.cpp">
-      <Filter>Source Files\utils</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\detect\im_mask_set.cpp">
       <Filter>Source Files\detect</Filter>
     </ClCompile>
@@ -196,6 +238,15 @@
     </ClCompile>
     <ClCompile Include="..\src\track\pwp3d\pose.cpp">
       <Filter>Source Files\track</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\track\model\fast_bvh\BBox.cpp">
+      <Filter>Source Files\track\model\fast_bvh</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\track\model\fast_bvh\BVH.cpp">
+      <Filter>Source Files\track\model\fast_bvh</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\track\model\model.cpp">
+      <Filter>Source Files\track\model</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

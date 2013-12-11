@@ -1,214 +1,109 @@
 #include "../headers/ttrack.hpp"
-#include <boost/program_options/option.hpp>
+#include <boost/program_options.hpp> 
+#include "../headers/utils/helpers.hpp"
+
 #if defined _WIN32 || _WIN64
   #include<direct.h>
 #elif defined __linux__
 #endif
 
-void ConvertColorspace(const cv::Mat &im, cv::Mat &hue, cv::Mat &sat, cv::Mat &o2, cv::Mat &o3){
-
-  hue = cv::Mat::zeros(im.size(),CV_32FC1);
-  sat = cv::Mat::zeros(im.size(),CV_32FC1);
-  o2 = cv::Mat::zeros(im.size(),CV_32FC1);
-  o3 = cv::Mat::zeros(im.size(),CV_32FC1);
-
-  cv::Mat hsv;
-  cv::cvtColor(im,hsv,CV_BGR2HSV);
-
-  for(int r=0;r<im.rows;r++){
-    for(int c=0;c<im.cols;c++){
-
-      const unsigned char BLUE = im.at<cv::Vec3b>(r,c)[0];
-      const unsigned char GREEN = im.at<cv::Vec3b>(r,c)[1];
-      const unsigned char RED = im.at<cv::Vec3b>(r,c)[2];
-
-      hue.at<float>(r,c) = hsv.at<cv::Vec3b>(r,c)[0];
-      sat.at<float>(r,c) = hsv.at<cv::Vec3b>(r,c)[1];
-      o2.at<float>(r,c) = 0.5 * ((float)RED - (float)GREEN);
-      o3.at<float>(r,c) = (0.5*(float)BLUE) - 0.25*((float)RED+(float)GREEN);
-
-    }
-  }
-
-
-}
-
-int SumPositivePixels(cv::Mat &mask){
-  int count = 0;
-  for(int r=0;r<mask.rows;r++){
-    for(int c=0;c<mask.cols;c++){
-      count += mask.at<unsigned char>(r,c) > 127;
-    }
-  }
-  return count;
-}
-
-size_t GetImageSize(cv::Mat &image, cv::Mat &mask){
-  const int pos_pixels = SumPositivePixels(mask);
-  if (  pos_pixels > 100 ){
-    return pos_pixels;
-  }else{
-    return image.rows * image.cols;
-  }
-}
-
-void Train(){
-
-  _chdir("scripts/");
-
-  std::ifstream files("new_video/files.txt");
-  const std::string training_dir = "new_video/training_images/";
-  const std::string mask_dir = "new_video/masks/";
-  std::vector<std::string> image_files;
-
-  if(!files.is_open()) throw(std::runtime_error("Error, could not pen file!\n"));
-
-  while(!files.eof()){
-    std::string f;
-    files >> f;
-    if (f == "") continue;
-    image_files.push_back(f);
-  }
-
-  size_t data_size = 0;
-  for(auto i=image_files.begin();i != image_files.end(); i++){
-    cv::Mat im = cv::imread(training_dir + *i);
-    cv::Mat mask = cv::imread(mask_dir + *i,0);
-    data_size += GetImageSize(im,mask);
-  }
-
-  cv::Mat training_data = cv::Mat::zeros(cv::Size(4,data_size),CV_32FC1);
-  cv::Mat labels = cv::Mat::zeros(cv::Size(1,data_size),CV_32SC1);
-
-  size_t data_row = 0;
-  for(auto i=image_files.begin();i != image_files.end(); i++){
-    cv::Mat im = cv::imread(training_dir + *i);
-    cv::Mat mask = cv::imread(mask_dir + *i,0);
-
-    bool positive_image = SumPositivePixels(mask) > 100;
-
-    cv::Mat hue,sat,o2,o3;
-    ConvertColorspace(im,hue,sat,o2,o3);
-    for(int r=0; r<im.rows;r++){
-      for(int c=0; c<im.cols;c++){
-
-        bool val = mask.at<unsigned char>(r,c) > 127;
-        if( !val && positive_image ) continue;
-
-        training_data.at<float>(data_row,0) = hue.at<float>(r,c);
-        training_data.at<float>(data_row,1) = sat.at<float>(r,c);
-        training_data.at<float>(data_row,2) = o2.at<float>(r,c);
-        training_data.at<float>(data_row,3) = o3.at<float>(r,c);
-        
-        labels.at<int32_t>(data_row,0) = (int32_t)val;
-        data_row++;
-
-      }
-    }
-  }
-
-  if(data_row != data_size) throw(std::runtime_error("Error, thing"));
-
-  const float priors[2] = {1.0,1.0};
-
-  CvRTParams params(10, //max depth of trees
-    500, //minimum sample count at each leaf for a split
-    0.0, //minimum regression accuracy (ignored)
-    false, //use surrogates
-    10, //maximum number of categories to cluster - ignored in 2 class case
-    priors, //priors
-    true, //calculate the variable importance
-    0, //size of random subsets (0 = sqrt(N))
-    50, //max number of trees
-    0.01, //accuracy
-    CV_TERMCRIT_ITER | CV_TERMCRIT_EPS); //halting criteria
-
-
-  CvMat *var_type = cvCreateMat(training_data.cols+1,1,CV_8U);
-  cvSet(var_type,cvScalarAll(CV_VAR_ORDERED)); //data is ordered (can be compared)
-  cvSetReal1D(var_type,training_data.cols,CV_VAR_CATEGORICAL); //labels are categorical
-  cv::Mat var_type_(var_type,true);
-
-#ifdef DEBUG
-  std::cout << "Training...";
-  std::cout.flush();
-#endif
-
-  const int num = training_data.rows;
-  for(int r=0;r<num;r++){
-
-
-    int32_t val = labels.at<int32_t>(r,0) ;
-    assert(val == 0 || val == 1);
-
-
-  }
-
-  CvRTrees forest_;
-
-  forest_.train(training_data,
-    CV_ROW_SAMPLE, //samples are in row form
-    labels,
-    cv::Mat(),//variable index, used to mask certain features from the training
-    cv::Mat(),//sample index, used to mask certain samples entirely
-    var_type,//variable type (regression or classifiaction)
-    cv::Mat(),//missing data mask
-    params);
-
-
-#ifdef DEBUG
-  std::cout << " Done" << std::endl;
-#endif
-
-  
-  forest_.save( "forest.xml" );
-
-  cvReleaseMat(&var_type);
-
-  
-}
 
 int main(int argc, char **argv){
 
+  using namespace boost::program_options;
+
+  bool stereo;
+  std::string video_file,left_video_file,right_video_file,image_dir,classifier_type_,classifier_file,camera_calibration_file,model_file,results_dir;
+  options_description desc("Options"); 
+  desc.add_options() 
+    ("help", "Print help messages")
+    ("classifier_type",value<std::string>(&classifier_type_),"Type of classifier to load. Supported options: RF, SVM.")
+    ("classifier_file", value<std::string>(&classifier_file), "Path to the classifier to load.")
+    ("stereo", value<bool>( &stereo )->zero_tokens()  , "Flag to switch stereo on.")
+    ("video_file",value<std::string>(&video_file),"path to monocular or stereo video file to do pose estimation/tracking on.")
+    ("left_video_file",value<std::string>(&left_video_file),"path to left stereo video file to do pose estimation/tracking on.")
+    ("right_video_file",value<std::string>(&right_video_file),"path to right stereo video file to do pose estimation/tracking on.")
+    ("image_dir",value<std::string>(&image_dir),"path to directory containing images to do pose estimation/tracking on.")
+    ("camera_calibration_file",value<std::string>(&camera_calibration_file),"path to directory containing images to do pose estimation/tracking on.")
+    ("model_file",value<std::string>(&model_file),"path to file where model calibration is stored.")
+    ("results_dir",value<std::string>(&results_dir),"path to directory where images can be saved.")   
+    ; 
+
+  variables_map vm; 
+  ttrk::CameraType camera_type;
+  ttrk::ClassifierType classifier_type;
+
+  try{ 
+
+    store(parse_command_line(argc, argv, desc), vm); // can throw 
+
+    if(vm.count("help")){ 
+      std::cout << "Basic Command Line Parameter App" << std::endl << desc << std::endl; 
+      ttrk::SAFE_EXIT(0);
+    } 
+
+    notify(vm); // throws on error, so do after help in case 
+
+    if(stereo) camera_type = ttrk::STEREO;
+    else camera_type = ttrk::MONOCULAR;
+
+    if(classifier_type_ == "RF" || classifier_type_ == "rf")
+      classifier_type = ttrk::RF;
+    else if (classifier_type_ == "SVM" || classifier_type_ == "svm")
+      classifier_type = ttrk::SVM;
+    else
+      throw(boost::program_options::error("Incorrect classifier type given. Options are: rf, svm."));
+
+    // there are any problems 
+  }catch(error& e){ 
+    std::cerr << "ERROR: " << e.what() << std::endl << std::endl; 
+    std::cerr << desc << std::endl; 
+    ttrk::SAFE_EXIT(1); 
+  } 
+
+  
   ttrk::TTrack &t = ttrk::TTrack::Instance();
 
   try{
     
 #if defined(_WIN32) || defined(_WIN64)
-     _chdir("../");
+     //_chdir("../");
 #endif
-     
-     //Train();
-     //return 0;
 
-     //construct the helper classes and train the classifier     
-     //t.SetUp("./data/new_video/",ttrk::RF,ttrk::STEREO);
-     t.SetUp("./data/in_vivo/",ttrk::RF,ttrk::MONOCULAR);
+
+
+     t.SetUp(model_file,camera_calibration_file,classifier_file,results_dir, classifier_type, camera_type);
      
-     //t.RunVideo("left.avi","right.avi");
-     t.RunVideo("short.avi");
-     //t.RunImages("calib/point_calib/");
-     
-     //t.SetUp("./data/test_video/",ttrk::RF,ttrk::STEREO);
-     //t.RunVideo("video.avi");
+
+     if(video_file.length())
+      t.RunVideo(video_file);
+     else if (left_video_file.length() && right_video_file.length())
+       t.RunVideo(left_video_file,right_video_file);
+     else if (image_dir.length())
+      t.RunImages(image_dir);
+     else
+       throw(std::runtime_error("Error, cmd line args\n"));
 
   }catch(std::runtime_error &e){
 
     std::cerr << e.what() << "\n";
-#if defined(_WIN32) || defined(_WIN64)
-    system("pause");
-#endif
+    ttrk::SAFE_EXIT(1);
+  
+  }catch(std::exception &e){
+  
+    std::cerr << e.what() << "\n";
+    ttrk::SAFE_EXIT(1);
   
   }
+  
   
   ttrk::TTrack::Destroy();
 
 #if defined(_WIN32) || defined(_WIN64)
   _CrtDumpMemoryLeaks();
-  system("pause");
 #endif
-
-  return 0;
+  
+  ttrk::SAFE_EXIT(0);
 
 }
 

@@ -1,11 +1,17 @@
 #include "../../../headers/track/stt/surgical_tool_tracker.hpp"
 #include "../../../headers/track/pwp3d/pwp3d.hpp"
 #include "../../../deps/image/image/image.hpp"
+#include <boost/filesystem.hpp>
 
 using namespace ttrk;
 
 
-SurgicalToolTracker::SurgicalToolTracker(const float radius, const float height):radius_(radius),height_(height){
+SurgicalToolTracker::SurgicalToolTracker(const std::string &model_parameter_file){
+
+  if(!boost::filesystem::exists(boost::filesystem::path(model_parameter_file)))
+    throw(std::runtime_error("Error, unable to read model file: " + model_parameter_file + "\n"));
+
+  model_parameter_file_ = model_parameter_file;
 
 }
 
@@ -18,6 +24,7 @@ void SurgicalToolTracker::GetContours(const cv::Mat &image, std::vector<std::vec
  
   //find contours around the 255 'blobs' in the image
   findContours(thresholded8bit,contours,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_SIMPLE);
+
 }
 
 void SurgicalToolTracker::FindSingleRegionFromContour(const std::vector<cv::Point> &contour,std::vector<cv::Vec2i> &connected_region) const {
@@ -105,7 +112,6 @@ bool SurgicalToolTracker::FindConnectedRegions(const cv::Mat &image,std::vector<
     if(connected_region.size() > 0.028*image.rows*image.cols) connected_regions.push_back(connected_region);
       
   } 
-
 
   //did we find any that were big enough?
   return connected_regions.size() > 0;

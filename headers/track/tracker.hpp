@@ -6,10 +6,9 @@
 #include "../../deps/image/image/image.hpp"
 #include <boost/scoped_ptr.hpp>
 #include "../headers.hpp"
-//#include "camera.hpp"
 #include "kalman.hpp"
 #include "localizer.hpp"
-#include "model.hpp"
+#include "model/model.hpp"
 
 
 namespace ttrk{
@@ -24,16 +23,7 @@ namespace ttrk{
 
   public:
 
-    /**
-    * Constructor for the class.
-    * @param[in] calibration_filename The url of the camera calibration file. Should be in opencv xml format.
-    */
-    //explicit Tracker(const std::string &calibration_filename);
     Tracker();
-
-    /**
-    * Destructor for the class.
-    */
     virtual ~Tracker();
 
     /**
@@ -62,8 +52,6 @@ namespace ttrk{
 
   protected:
 
-    virtual void ProcessFrame() { return; }
-
     /**
     * Initialises the Kalman Filter by setting the state transition matrix, the measurement matrix and the coviariance matrices.
     * @return The success of the initilisation.
@@ -82,16 +70,14 @@ namespace ttrk{
     */
     virtual bool Init() = 0;
 
-    //StereoCamera camera_; /**< A camera model for projecting points onto the image plane. */
     std::vector<KalmanTracker> tracked_models_; /**< a vector of tracked models. TODO: switch this out for point cloud mesh or some better data structure. */
     std::vector<KalmanTracker>::iterator current_model_; /**< A reference to the currently tracked model. */
     boost::shared_ptr<Localizer> localizer_;
 
     
     bool tracking_; /**< The variable for toggling tracking on or off.  */
-    //boost::shared_ptr<cv::Mat> frame_; /**< The frame that the tracker is currently working on. */
     boost::shared_ptr<sv::Frame> frame_; /**< The frame that the tracker is currently working on. */
-    
+    std::string model_parameter_file_;
 
   private:
 

@@ -213,7 +213,9 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
   cv::Mat canvas = cv::Mat::zeros(frame_->GetImageROI().size(),CV_8UC1);
   std::vector<SimplePoint<> > transformed_points = current_model.ModelPointsAtCurrentPose();
   DrawModelOnFrame(transformed_points,canvas);
-  
+
+  cv::imwrite("frame.png",canvas);
+
   //find the set of pixels which correspond to the drawn object
   std::vector<cv::Point2i> set_of_points;
   for(int r=0;r<sdf_image.rows;r++){
@@ -253,12 +255,21 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
   cv::dilate(canvas_2,canvas_2_dilated,cv::Mat(20,20,CV_8UC1));
 
   cv::Mat pixels_intersect = cv::Mat::zeros(canvas_2_dilated.size(),CV_8UC1);
+
+  //compute intersection image
+  throw(std::runtime_error("Do this\n"));
+  /*std::ofstream ofs("somepoints.xyz");
+
+  
   for(int r=0;r<sdf_image.rows;r++){
     for(int c=0;c<sdf_image.cols;c++){
       if(canvas_2_dilated.at<unsigned char>(r,c) != 255) continue;
       cv::Vec3f ray = camera_->UnProjectPoint( cv::Point2i(c,r) );
       cv::Vec3f front_intersection(0,0,0),back_intersection(0,0,0);
       if (current_model.PtrToModel()->GetIntersection(ray, front_intersection , back_intersection ,current_model.CurrentPose())){
+        front_intersection = current_model.CurrentPose().InverseTransform(front_intersection);
+        back_intersection = current_model.CurrentPose().InverseTransform(back_intersection);
+        ofs << front_intersection[0] << " " << front_intersection[1] << " " << front_intersection[2] << "\n" << back_intersection[0] << " " << back_intersection[1] << " " << back_intersection[2] << "\n";
         front_intersection_image.at<cv::Vec3f>(r,c) = front_intersection;
         back_intersection_image.at<cv::Vec3f>(r,c) = back_intersection;
         pixels_intersect.at<unsigned char>(r,c) = 255;
@@ -270,7 +281,8 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
     }
   }
 
-
+  ofs.close();
+  */
 
   //take this binary image and find the outer contour of it. then make a distance image from that contour.
   cv::Mat edge_image(pixels_intersect.size(),CV_8UC1);
@@ -327,8 +339,8 @@ bool PWP3D::ModelInFrame( const KalmanTracker &tracked_model, const cv::Mat &det
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
       cv::Vec3f ray = camera_->UnProjectPoint( cv::Point2i(c,r) );
-      tp += tracked_model.PtrToModel()->GetIntersection(ray, cv::Vec3f() , cv::Vec3f() ,tracked_model.CurrentPose()) && detect_image.at<unsigned char>(r,c) >= 127;
-      fp += tracked_model.PtrToModel()->GetIntersection(ray, cv::Vec3f() , cv::Vec3f() ,tracked_model.CurrentPose()) && detect_image.at<unsigned char>(r,c) < 127;
+      //tp += tracked_model.PtrToModel()->GetIntersection(ray, cv::Vec3f() , cv::Vec3f() ,tracked_model.CurrentPose()) && detect_image.at<unsigned char>(r,c) >= 127;
+      //fp += tracked_model.PtrToModel()->GetIntersection(ray, cv::Vec3f() , cv::Vec3f() ,tracked_model.CurrentPose()) && detect_image.at<unsigned char>(r,c) < 127;
     }
   }
   

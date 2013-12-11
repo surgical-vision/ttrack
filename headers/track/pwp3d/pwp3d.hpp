@@ -13,7 +13,7 @@ namespace ttrk {
   class PWP3D : public Localizer {
   public: 
 
-    PWP3D(const std::string &config_dir, boost::shared_ptr<MonocularCamera> camera ) : camera_(camera), config_dir_(config_dir), register_points_(camera,config_dir), k_delta_function_std_(2.5), k_heaviside_width_(0.3) { }
+    PWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera), register_points_(camera), k_delta_function_std_(2.5), k_heaviside_width_(0.3) { }
 
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame) = 0;
     
@@ -105,7 +105,6 @@ namespace ttrk {
     void DrawModelOnFrame(const std::vector<SimplePoint<> > &transformed_points, cv::Mat canvas);
 
 
-
     boost::shared_ptr<sv::Frame> frame_;
 
     std::string DEBUG_DIR_;
@@ -113,7 +112,6 @@ namespace ttrk {
 
     PointRegistration register_points_;
 
-    std::string config_dir_;
     float blurring_scale_factor_;
     const float k_delta_function_std_;
     const float k_heaviside_width_;

@@ -9,12 +9,12 @@
 
 using namespace ttrk;
 
-Detect::Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifier_type):root_dir_(root_dir){
+Detect::Detect(const std::string &classifier_path, ClassifierType classifier_type){
 
   //create a new classifier
   SetupClassifier(classifier_type);
 
-  LoadClassifier();
+  LoadClassifier(classifier_path);
 
   //currently i don't know a good way of checking if the opencv ML classifier has loaded
   if(!Loaded()) throw(std::runtime_error("Error, could not construct classifier.\n"));
@@ -60,7 +60,7 @@ void Detect::ClassifyFrame(){
       cv::Mat pix = nd_image.GetPixelData(r,c);
       
       //const unsigned char prediction = (unsigned char)255*classifier_->PredictClass(pix);
-      const unsigned char prediction = (unsigned char)255.0*classifier_->PredictProb(pix,1);
+      const unsigned char prediction = (unsigned char)(255.0*classifier_->PredictProb(pix,1));
       
       frame_data[index] = prediction;
 
@@ -120,8 +120,7 @@ void Detect::SetupClassifier(const ClassifierType type){
 #endif
 } 
 
-void Detect::LoadClassifier(){
-  const std::string filepath = classifier_dir() + "/" + classifier_->NameAsString() + ".xml";
-  if(!boost::filesystem::exists(filepath)) throw(std::runtime_error("Error, the classifier at: " + filepath + " does not exist. Exiting...\n"));
-  classifier_->Load(filepath);
+void Detect::LoadClassifier(const std::string &classifier_path){
+  if(!boost::filesystem::exists(classifier_path)) throw(std::runtime_error("Error, the classifier at: " + classifier_path + " does not exist. Exiting...\n"));
+  classifier_->Load(classifier_path);
 }

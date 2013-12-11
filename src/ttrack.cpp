@@ -10,31 +10,27 @@
 
 using namespace ttrk;
 
-void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, const CameraType camera_type){
-  
-  if(!boost::filesystem::exists(boost::filesystem::path(root_dir)))
-    throw std::runtime_error("Error, directory " + root_dir + " does not exist.\n");
+void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type){
   
   camera_type_ = camera_type;
+  results_dir_ = results_dir;
 
   try{
   
-    //set the shared_ptr containing the directory where data is
-    root_dir_.reset(new std::string(root_dir)); 
-
     //if train type is NA, training is skipped
-    detector_.reset(new Detect(root_dir_,classifier_type));
+    detector_.reset(new Detect(classifier_path,classifier_type));
     
     //load the correct type of tool tracker
     switch(camera_type_){
     case STEREO:
-      tracker_.reset(new StereoToolTracker(2.97,50,*root_dir_ + "/config" , "camera.xml"));
+      //tracker_.reset(new StereoToolTracker(2.97,50,*root_dir_ + "/config" , "camera.xml"));
+      tracker_.reset(new StereoToolTracker(model_parameter_file,camera_calibration_file));
       break;
     case MONOCULAR:
-      tracker_.reset(new MonocularToolTracker(2.97,50,*root_dir_ + "/config", "mono_camera.xml"));
+      tracker_.reset(new MonocularToolTracker(model_parameter_file,camera_calibration_file));
       break;
     default:
-      tracker_.reset(new StereoToolTracker(2.97,50,*root_dir_ + "/config", "camera.xml"));
+      tracker_.reset(new StereoToolTracker(model_parameter_file,camera_calibration_file));
       break;
     }
 
@@ -77,21 +73,21 @@ void TTrack::Run(){
 void TTrack::RunVideo(const std::string &video_url){
   
   tracker_->Tracking(false); 
-  handler_.reset(new VideoHandler(*root_dir_ + video_url, *root_dir_ + "/tracked_video.avi"));
+  handler_.reset(new VideoHandler(video_url, results_dir_ + "/tracked_video.avi"));
   Run();
  
 }
 
 void TTrack::RunVideo(const std::string &left_video_url,const std::string &right_video_url){
   tracker_->Tracking(false); 
-  handler_.reset(new StereoVideoHandler(*root_dir_ + left_video_url, *root_dir_ + right_video_url, *root_dir_ + "/tracked_video.avi"));
+  handler_.reset(new StereoVideoHandler(left_video_url, right_video_url, results_dir_ + "/tracked_video.avi"));
   Run();
 }
 
 void TTrack::RunImages(const std::string &image_url){
 
   tracker_->Tracking(false);
-  handler_.reset(new ImageHandler(*root_dir_ + image_url, *root_dir_ + "/tracked_frames/"));
+  handler_.reset(new ImageHandler(image_url, results_dir_ + "/tracked_frames/"));
   Run();
 
 }
@@ -130,7 +126,7 @@ void TTrack::SaveResults() const {
 
     if( !results_file->is_open() ){
       
-      std::stringstream ss; ss << *root_dir_ + "/model_pose" << i << ".txt";
+      std::stringstream ss; ss << results_dir_ + "/model_pose" << i << ".txt";
       results_file->open( ss.str(),  std::ofstream::out);
       
     }

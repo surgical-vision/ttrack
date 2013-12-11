@@ -1,88 +1,9 @@
-#ifndef Sphere_h_
-#define Sphere_h_
+#ifndef Triangle_h_
+#define Triangle_h_
 
 #include <cmath>
 #include "Object.h"
 #include <utility>
-/*
-#include "../../../model.hpp"
-
-bool GetIntersectionPlane(const std::vector<cv::Vec3f >&points_in_plane, const cv::Vec3f &ray, cv::Vec3f &intersection) const {
-
-//find normal to plane and flip for direction with ray
-if(points_in_plane.size() < 3) throw(std::runtime_error("Error, must be at least 3 points to use this function!\n"));
-
-cv::Vec3f a,b,c;
-a = points_in_plane[0];
-b = points_in_plane[1];
-c = points_in_plane[2];
-
-const cv::Vec3f ba = a - b;
-const cv::Vec3f bc = c - b;
-
-cv::Vec3f normal = ba.cross(bc);
-
-//cv::normalize(normal,n_normal);
-
-float dot = normal.dot(ray);
-if(dot < 0) normal *= -1; //normal should point towards ray
-
-const double denom = ray.dot(normal);
-if(denom == 0.0) return false; //only if parallel
-
-double distance_along_ray =  b.dot(normal)/denom;
-intersection = distance_along_ray * ray;
-return true; 
-
-}
-
-
-bool IntersectionInConvexHull(const std::vector<cv::Vec3f>&convex_hull, const cv::Vec3f &intersection) const {
-
-if(convex_hull.size() < 3) throw(std::runtime_error("Error, must be at least 3 points to use this function!\n"));
-
-cv::Vec3f mean_point(0,0,0);
-for( auto hull_pt = convex_hull.begin(); hull_pt != convex_hull.end(); hull_pt++ ){
-mean_point += hull_pt;
-}
-
-int c = convex_hull.size();
-while( mean_point/c == intersection ) { //ensure that the mean point is not the same coordiantes as point
-for( auto hull_pt = convex_hull.begin()+2; hull_pt != convex_hull.end(); hull_pt++ ){
-mean_point += hull_pt;
-}
-}
-mean_point /= c;
-
-
-cv::Vec3f line_segment =  mean_point - intersection; 
-line_segment *= 5000;  //make the line huge
-
-std::vector<std::pair<cv::Vec3f,cv::Vec3f> >edges;
-for(auto point = convex_hull.begin(); point != convex_hull.end() - 1; point++ ){
-
-cv::Vec3f a = *point;
-cv::Vec3f b = *(point + 1);
-
-edges.push_back( std::make_pair<>(a,b) );
-
-}
-edges.push_back( std::make_pair<>(*(convex_hull.end()-1),*convex_hull.begin()) );
-
-int num_intersections = 0;
-
-for(auto line = edges.begin(); line != edges.end(); line++){
-cv::Point2f a(line->first[0]/line->first[2],line->first[1]/line->first[2]),
-b(line->second[0]/line->second[2],line->second[1]/line->second[2]),
-c(intersection[0]/intersection[2],intersection[1]/intersection[2]),
-d(line_segment[0]/line_segment[2],line_segment[1]/line_segment[2]);
-num_intersections += FindIntersection<float>(a,b,c,d, cv::Point2f());
-}
-
-return num_intersections == 1; //if both mean_point and point are inside polygon this will equal 
-
-}
-*/
 
 struct PluckerCoords {
   PluckerCoords(const Vector3 &a, const Vector3 &b){

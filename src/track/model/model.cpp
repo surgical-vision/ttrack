@@ -44,14 +44,7 @@ bool Model::GetIntersectionQuadrilateral(const cv::Vec3f &ray, const cv::Vec3f &
   return false;
 }
 
-Vector3 randVec(){
-  return Vector3( 100*rand()/RAND_MAX,100*rand()/RAND_MAX,100*rand()/RAND_MAX);
-}
-
 MISTool::MISTool(const std::string &model_parameter_file){
-
-
-
 
   std::vector<cv::Vec3f> vertices; 
   std::vector<cv::Vec3i> mesh_indices;

@@ -9,7 +9,7 @@ namespace ttrk {
 
   public:
 
-    StereoToolTracker(const float  radius, const float  height, const std::string &config_dir, const std::string &calibration_filename);
+    StereoToolTracker(const std::string &model_parameter_file, const std::string &calibration_filename);
 
     virtual ~StereoToolTracker(){}
 
@@ -29,8 +29,6 @@ namespace ttrk {
     void ShiftToTip(const cv::Vec3f &central_axis, cv::Vec3f &center_of_mass); 
     void InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3f &center_of_mass_3d, cv::Vec3f &central_axis_3d, boost::shared_ptr<MonocularCamera> cam, KalmanTracker &tm);
     cv::Vec2f FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &connected_region) const;
-
-    virtual void ProcessFrame();
 
     virtual void SetHandleToFrame(boost::shared_ptr<sv::Frame> image);
 

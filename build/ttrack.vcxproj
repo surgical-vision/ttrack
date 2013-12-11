@@ -36,7 +36,16 @@
     <ClInclude Include="..\headers\headers.hpp" />
     <ClInclude Include="..\headers\track\kalman.hpp" />
     <ClInclude Include="..\headers\track\localizer.hpp" />
-    <ClInclude Include="..\headers\track\model.hpp" />
+    <ClInclude Include="..\headers\track\model\fast_bvh\BBox.h" />
+    <ClInclude Include="..\headers\track\model\fast_bvh\BVH.h" />
+    <ClInclude Include="..\headers\track\model\fast_bvh\IntersectionInfo.h" />
+    <ClInclude Include="..\headers\track\model\fast_bvh\Log.h" />
+    <ClInclude Include="..\headers\track\model\fast_bvh\Object.h" />
+    <ClInclude Include="..\headers\track\model\fast_bvh\Ray.h" />
+    <ClInclude Include="..\headers\track\model\fast_bvh\Sphere.h" />
+    <ClInclude Include="..\headers\track\model\fast_bvh\Stopwatch.h" />
+    <ClInclude Include="..\headers\track\model\fast_bvh\Vector3.h" />
+    <ClInclude Include="..\headers\track\model\model.hpp" />
     <ClInclude Include="..\headers\track\pose.hpp" />
     <ClInclude Include="..\headers\track\pwp3d\mono_pwp3d.hpp" />
     <ClInclude Include="..\headers\track\pwp3d\pwp3d.hpp" />
@@ -52,7 +61,9 @@
     <ClInclude Include="..\headers\utils\handler.hpp" />
     <ClInclude Include="..\headers\utils\helpers.hpp" />
     <ClInclude Include="..\headers\utils\nd_image.hpp" />
+    <ClInclude Include="..\headers\utils\primitives.hpp" />
     <ClInclude Include="..\headers\utils\quasi_dense_stereo.hpp" />
+    <ClInclude Include="..\headers\utils\renderer.hpp" />
     <ClInclude Include="..\headers\utils\result_plotter.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -63,6 +74,9 @@
     <ClCompile Include="..\src\detect\supportvectormachine.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\track\kalman.cpp" />
+    <ClCompile Include="..\src\track\model\fast_bvh\BBox.cpp" />
+    <ClCompile Include="..\src\track\model\fast_bvh\BVH.cpp" />
+    <ClCompile Include="..\src\track\model\model.cpp" />
     <ClCompile Include="..\src\track\pwp3d\mono_pwp3d.cpp" />
     <ClCompile Include="..\src\track\pwp3d\pose.cpp" />
     <ClCompile Include="..\src\track\pwp3d\pwp3d.cpp" />
@@ -76,7 +90,6 @@
     <ClCompile Include="..\src\utils\camera.cpp" />
     <ClCompile Include="..\src\utils\handler.cpp" />
     <ClCompile Include="..\src\utils\helpers.cpp" />
-    <ClCompile Include="..\src\utils\model.cpp" />
     <ClCompile Include="..\src\utils\nd_image.cpp" />
     <ClCompile Include="..\src\utils\quasi_dense_stereo.cpp" />
   </ItemGroup>
@@ -166,6 +179,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LibraryPath>C:\Program Files\boost\boost_1_51\lib;c:\Program Files\opencv\build\install\lib\;$(LibraryPath)</LibraryPath>
     <IncludePath>c:\Program Files\boost\boost_1_51\;c:\Program Files\opencv\build\install\include\opencv\;$(IncludePath)</IncludePath>
+    <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -229,7 +243,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>C:\Program Files\opencv\build\install\include;C:\Program Files\boost\boost_1_51\boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files\opencv\build\install\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.1\extras\CUPTI\include;C:\Program Files\boost\boost_1_51\boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>

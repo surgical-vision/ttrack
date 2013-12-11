@@ -4,8 +4,8 @@
 
 using namespace ttrk;
 
-MonocularToolTracker::MonocularToolTracker(const float radius, const float height, const std::string &config_dir, const std::string &calibration_filename):SurgicalToolTracker(radius,height),camera_(new MonocularCamera(config_dir + "/" + calibration_filename)){
-  localizer_.reset(new MonoPWP3D(config_dir,camera_));
+MonocularToolTracker::MonocularToolTracker(const std::string &model_parameter_file, const std::string &calibration_filename):SurgicalToolTracker(model_parameter_file),camera_(new MonocularCamera(calibration_filename)){
+  localizer_.reset(new MonoPWP3D(camera_));
 }
 
 bool MonocularToolTracker::Init(){
@@ -22,7 +22,7 @@ bool MonocularToolTracker::Init(){
 
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
-    KalmanTracker new_tracker(boost::shared_ptr<Model>(new  MISTool(radius_,height_) ));
+    KalmanTracker new_tracker( boost::shared_ptr<Model>(new MISTool(model_parameter_file_)) );
     tracked_models_.push_back( new_tracker ); 
     Init2DPoseFromMOITensor(*connected_region,tracked_models_.back());
 
@@ -106,8 +106,10 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
   float abs_diff = sqrt( static_cast<double>( diff[0]*diff[0] + diff[1]*diff[1] + diff[2]*diff[2] ) );
 
   
-  float z = (2*tracked_models_.back().PtrToModel()->Radius())/abs_diff;
+  float z = 80;// = (2*tracked_models_.back().PtrToModel()->Radius())/abs_diff;
   
+  throw(std::runtime_error("whatever\n"));
+
   cv::Vec3f unp_point = cv::Vec3f(camera_->UnProjectPoint(cv::Point2f(point)));
   cv::Vec3f center_of_mass_3d = cv::Vec3f(camera_->UnProjectPoint(cv::Point2f(center_of_mass)));
 

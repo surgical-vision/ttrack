@@ -49,42 +49,33 @@ namespace ttrk {
 
   const int NUM_DESCRIPTOR = 120;
   const int MATCHING_DISTANCE_THRESHOLD = 25;
-  const double DESCRIPTOR_SIMILARITY_THRESHOLD = 280.0;
+  const double DESCRIPTOR_SIMILARITY_THRESHOLD = 240.0;
 
   class PointRegistration {
 
   public:
 
-    PointRegistration(boost::shared_ptr<MonocularCamera> camera, const std::string &config_dir) : camera_(camera) , config_dir_(config_dir){}
+    PointRegistration(boost::shared_ptr<MonocularCamera> camera);
 
     cv::Mat GetPointDerivative(const cv::Point3f &world, cv::Point2f &image, const Pose &pose) const;
     
-    void FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &pnp, const Pose &pose, cv::Mat &save_image);    
+    void FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, boost::shared_ptr<Model> model, const Pose &pose, cv::Mat &save_image);    
   
     void ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame> frame, KalmanTracker current_model, const cv::Mat &shape_image );
 
   protected:
 
-    void FindTransformationToImagePlane(std::vector<DescriptorMatches> matches,cv::Mat &rotation, cv::Mat &translation,  boost::shared_ptr<MonocularCamera> cam, Pose current_pose);
     void GetDescriptors(const cv::Mat &frame, std::vector<Descriptor> &ds);
     void MatchDescriptorsToModel(std::vector<Descriptor> &d1, std::vector<Descriptor> &d2, std::vector<DescriptorMatches> &dm);
     void ReadKeypoints(const std::string filename, std::vector<Descriptor> &descriptors, int count);
-
-
-
-    void FindTransformation(std::vector<MatchedPair> &matched_pair, cv::Mat &rotation, cv::Mat &translation);
-
+    
     void FindCorrespondingMatches(std::vector<Descriptor> &right_ds, std::vector<DescriptorMatches> &matched_ds);
-    void TriangulateMatches(std::vector<DescriptorMatches> &matches,std::vector<MatchedPair> &matched_3d_points, boost::shared_ptr<StereoCamera> cam, cv::Mat &left, cv::Mat &right);
 
-
-    Pose ApplyPointBasedRegistration(boost::shared_ptr<sv::Frame> frame, KalmanTracker &current_model );
     void FindPointCorrespondences(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &matched_pair);
     
   private:
 
     boost::shared_ptr<MonocularCamera> camera_;
-    std::string config_dir_;
 
   };
 

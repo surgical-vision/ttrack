@@ -374,7 +374,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
 
     std::vector<MatchedPair> pnp_pairs;
     cv::Mat point_save_image = frame_->GetImageROI().clone();
-    register_points_.FindPointCorrespondencesWithPose(frame_,pnp_pairs,current_model.CurrentPose(),point_save_image);
+    register_points_.FindPointCorrespondencesWithPose(frame_,current_model.PtrToModel(),current_model.CurrentPose(),point_save_image);
 #ifdef SAVEDEBUG_2
     cv::imwrite(ss.str()+"/left/"+step_dir.str()+"/points.png",point_save_image);
     std::cerr << "Found " << pnp_pairs.size() << " matches!\n";

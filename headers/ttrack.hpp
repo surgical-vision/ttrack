@@ -68,13 +68,16 @@ namespace ttrk{
    
 
     /**
-     * Setup the directory tree structure containing the root directory of the data sets
-     * as well as the directory where output files are to be saved. Also construct the detector
-     * and tracker
-     * @param root_dir The root training data directory.
+     * Setup the tracking system with the files it needs to find, localize and track the objects.
+     * @param model_parameter_file A path to a file containing the model specifications. Can contain multiple model classes.
+     * @param camera_calibration_file A path to a file containing the camera calibration parameters in OpenCV XML format.
+     * @param classifier_path A path to a file containing the classifier to be loaded.
+     * @param results_dir A directory in which results can be saved.
      * @param classifier_type Specify the type of classifier.
+     * @param camera_type Stereo or monocular camera?
      */
-    void SetUp(std::string root_dir, const ClassifierType classifier_type, const CameraType camera_type);
+    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type);
+    //void SetUp(std::string root_dir, const ClassifierType classifier_type, const CameraType camera_type);
    
     
 
@@ -112,7 +115,7 @@ namespace ttrk{
     boost::scoped_ptr<Handler> handler_; /**< Pointer to either an ImageHandler or a VideoHandler which handles getting and saving frames with a simple interface */
     boost::shared_ptr<sv::Frame> frame_; /**< A pointer to the current frame that will be passed from the classifier to the tracker. */
     
-    boost::shared_ptr<std::string> root_dir_; /**< A string containing the root directory for the data in use. */
+    std::string results_dir_; /**< A string containing the results directory for the data in use. */
     
     CameraType camera_type_;
 

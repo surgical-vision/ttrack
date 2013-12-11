@@ -7,7 +7,7 @@ namespace ttrk {
 
   struct Pose {
 
-    inline Pose():rotation_(0,cv::Vec3f(0,0,0)),translation_(0,0,0){}
+    inline Pose():rotation_(1,cv::Vec3f(0,0,0)),translation_(0,0,0){}
 
     inline Pose(const cv::Vec3f &v, const cv::Vec4f &r): translation_(v), rotation_(r[0],cv::Vec3f(r[1],r[2],r[3])){}
 

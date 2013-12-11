@@ -1,6 +1,8 @@
 #include "../../headers/utils/camera.hpp"
 #include "../../headers/utils/helpers.hpp"
 #include <fstream>
+#include <boost/filesystem.hpp>
+
 using namespace ttrk;
 
 MonocularCamera::MonocularCamera(const std::string &calibration_filename){
@@ -59,7 +61,10 @@ cv::Point2f MonocularCamera::ProjectPoint(const cv::Point3f &point) const {
 
 StereoCamera::StereoCamera(const std::string &calibration_filename):rectified_(false),extrinsic_matrix_(4,4,CV_64FC1){
 
-  cv::FileStorage fs;
+  if(!boost::filesystem::exists(boost::filesystem::path(calibration_filename)))
+    throw(std::runtime_error("Error, could not find camera calibration file: " + calibration_filename + "\n"));
+
+  cv::FileStorage fs;  
 
   try{
 

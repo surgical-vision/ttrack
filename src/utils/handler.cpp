@@ -113,9 +113,6 @@ cv::Mat VideoHandler::GetNewFrame(){
   cv::Mat to_return;
   cap_ >> to_return;
 
-  cv::Mat x = to_return(cv::Rect(64,35,600,509));
-  x.copyTo(to_return);
-
   if(to_return.data == 0x0) { 
     done_ = true;
     return cv::Mat();

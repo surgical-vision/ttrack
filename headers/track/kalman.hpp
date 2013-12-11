@@ -3,7 +3,7 @@
 
 #include <cv.h>
 #include <boost/shared_ptr.hpp>
-#include "model.hpp"
+#include "model/model.hpp"
 #include "pose.hpp"
 #include <fstream>
 
@@ -50,6 +50,7 @@ namespace ttrk {
   private:
 
     KalmanTracker() : save_file_(new std::ofstream) {}
+
   };
 
 

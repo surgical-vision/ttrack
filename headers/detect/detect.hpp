@@ -25,10 +25,10 @@ namespace ttrk{
 
     /**
      * Construct a detection system and train it.
-     * @param[in] root_dir The detection system's root directory. Here it will save/load data. This is shared with the owner ttrack class which can modify the root directory if required. 
+     * @param[in] classifier_path The saved classifier that will be loaded by the detection system.
      * @param[in] classifier_type The type of classifier to load.
      */
-    Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifier_type);
+    Detect(const std::string &classifier_path, ClassifierType classifier_type);
 
        
     ~Detect();
@@ -65,15 +65,6 @@ namespace ttrk{
 
     void SetHandleToFrame(boost::shared_ptr<sv::Image<unsigned char,3> > image);
 
-    
-    
-    /**
-     * Dynamically compute the directory being used for saving/loading the classifier. Uses the
-     * shared_ptr root directory and appends /classifier/.
-     * @return The directory url.
-     */
-    std::string classifier_dir();
-
     /**
      * Construct the classifier of choice.
      * @param[in] type The desired type of classification algorithm.
@@ -84,9 +75,8 @@ namespace ttrk{
      * Load the classifier from the classifier directory.
      * Call this function after creating an empty classifier with SetupClassifier(type).
      */
-    void LoadClassifier();
+    void LoadClassifier(const std::string &classifier_path);
 
-    boost::shared_ptr<std::string> root_dir_; /**< A string containing the root directory where classifier, data etc is stored. */
     boost::shared_ptr<sv::Frame> frame_; /**< A pointer to the current frame, this is passed to the detector then passed to the tracker. */
     bool found_; /**< Indicated whether the target object has been found in the image. */
     boost::shared_ptr<NDImage> nd_image_; /**< The N-D image which is being tracked. */
@@ -110,10 +100,6 @@ namespace ttrk{
 
   inline bool Detect::Loaded() const {
     return classifier_.use_count() > 0;
-  }
-
-  inline std::string Detect::classifier_dir(){
-    return *root_dir_ + "/classifier/";
   }
 
 }

@@ -160,14 +160,14 @@ namespace ttrk{
 
 
   /**
-  * A wrapper for exiting the program without visual studio closing the cmd prompt. Maybe this can be done with VS?
+  * A wrapper for exiting the program. Useful in VS as it doesn't close the command window.
   */
-  inline void SAFE_EXIT(){
+  inline void SAFE_EXIT(const int exit_code=1){
   #ifdef __linux__
-    exit(1);
+    exit(exit_code);
   #elif defined (_WIN32) || (_WIN64)
     system("pause");
-    exit(1);
+    exit(exit_code);
   #else
     exit(1);
   #endif
@@ -180,6 +180,10 @@ namespace ttrk{
   */
   inline bool IS_IMAGE(const std::string &extension){
     return (extension == ".png" || extension == ".jpg" || extension == ".bmp");
+  }
+
+  inline bool IS_VIDEO(const std::string &extension){
+    return (extension == ".AVI" || extension == ".mp4" || extension == ".avi");
   }
 
   cv::Mat &ConvertMatSingleToTriple(cv::Mat &im);

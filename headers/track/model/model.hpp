@@ -7,7 +7,7 @@
 #include "../../utils/primitives.hpp"
 #include "../../utils/camera.hpp"
 #include "fast_bvh/BVH.h"
-#include "fast_bvh/Sphere.h"
+#include "fast_bvh/Triangle.h"
 
 namespace ttrk{
 

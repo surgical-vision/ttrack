@@ -42,7 +42,7 @@
     <ClInclude Include="..\headers\track\model\fast_bvh\Log.h" />
     <ClInclude Include="..\headers\track\model\fast_bvh\Object.h" />
     <ClInclude Include="..\headers\track\model\fast_bvh\Ray.h" />
-    <ClInclude Include="..\headers\track\model\fast_bvh\Sphere.h" />
+    <ClInclude Include="..\headers\track\model\fast_bvh\Triangle.h" />
     <ClInclude Include="..\headers\track\model\fast_bvh\Stopwatch.h" />
     <ClInclude Include="..\headers\track\model\fast_bvh\Vector3.h" />
     <ClInclude Include="..\headers\track\model\model.hpp" />

@@ -162,13 +162,13 @@
     <ClInclude Include="..\headers\track\model\fast_bvh\Ray.h">
       <Filter>Header Files\track\model\fast_bvh</Filter>
     </ClInclude>
-    <ClInclude Include="..\headers\track\model\fast_bvh\Sphere.h">
-      <Filter>Header Files\track\model\fast_bvh</Filter>
-    </ClInclude>
     <ClInclude Include="..\headers\track\model\fast_bvh\Stopwatch.h">
       <Filter>Header Files\track\model\fast_bvh</Filter>
     </ClInclude>
     <ClInclude Include="..\headers\track\model\fast_bvh\Vector3.h">
+      <Filter>Header Files\track\model\fast_bvh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\headers\track\model\fast_bvh\Triangle.h">
       <Filter>Header Files\track\model\fast_bvh</Filter>
     </ClInclude>
   </ItemGroup>

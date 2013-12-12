@@ -214,8 +214,6 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
   std::vector<SimplePoint<> > transformed_points = current_model.ModelPointsAtCurrentPose();
   DrawModelOnFrame(transformed_points,canvas);
 
-  cv::imwrite("frame.png",canvas);
-
   //find the set of pixels which correspond to the drawn object
   std::vector<cv::Point2i> set_of_points;
   for(int r=0;r<sdf_image.rows;r++){

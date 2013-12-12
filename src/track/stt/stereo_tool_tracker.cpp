@@ -176,6 +176,8 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
   center_of_mass_3d = center_of_mass_3d * z;
   tm.SetPose(center_of_mass_3d,central_axis_3d);
  
+  tm.SetPose(Pose(cv::Vec3f(-10,0,75),sv::Quaternion(boost::math::quaternion<double>(0.4,1,0,0))));
+
 }
 
 void StereoToolTracker::ShiftToTip(const cv::Vec3f &central_axis, cv::Vec3f &center_of_mass) {//, KalmanTracker &tracked_model){

@@ -263,8 +263,10 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
       cv::Vec3f ray = camera_->UnProjectPoint( cv::Point2i(c,r) );
       cv::Vec3f front_intersection(0,0,0),back_intersection(0,0,0);
       if (current_model.PtrToModel()->GetIntersection(ray, front_intersection , back_intersection ,current_model.CurrentPose())){
-        ofs << front_intersection[0] << " " << front_intersection[1] << " " << front_intersection[2] << "\n";
-        ofs << back_intersection[0] << " " << back_intersection[1] << " " << back_intersection[2] << "\n";
+        cv::Vec3f front_obj = current_model.CurrentPose().InverseTransform(front_intersection);
+        cv::Vec3f back_obj = current_model.CurrentPose().InverseTransform(back_intersection);
+        ofs << front_obj[0] << " " << front_obj[1] << " " << front_obj[2] << "\n";
+        ofs << back_obj[0] << " " << back_obj[1] << " " << back_obj[2] << "\n";
         front_intersection_image.at<cv::Vec3f>(r,c) = front_intersection;
         back_intersection_image.at<cv::Vec3f>(r,c) = back_intersection;
         pixels_intersect.at<unsigned char>(r,c) = 255;

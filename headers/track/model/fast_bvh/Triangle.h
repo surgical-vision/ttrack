@@ -54,12 +54,14 @@ struct Triangle : public Object {
   }
 
   bool getIntersection(const Ray& ray, IntersectionInfo* I) const {
-        
+    
+    const double length = std::sqrt(center[0]*center[0] + center[1]*center[1] + center[2]*center[2]);
+    
     PluckerCoords plucker_ray = getPlucker(ray.o,ray.d);
     const double s1 = getPluckerInnerProduct(plucker_ray,plucker_1);
     const double s2 = getPluckerInnerProduct(plucker_ray,plucker_2);
 
-    const double length = std::sqrt(center[0]*center[0] + center[1]*center[1] + center[2]*center[2]);
+
 
     if(s1 > 0 && s2 > 0){ //counter-clockwise around the ray
       if(getPluckerInnerProduct(plucker_ray,plucker_3) > 0){
@@ -77,13 +79,15 @@ struct Triangle : public Object {
     }
     //intersects at least 2 edges
     if(s1 == 0 && s2 == 0){
+      puts("zeros\n");
       I->object = this;
       I->t = length;
       return true;
     }
-    return true;
+    
     if(s1 == 0 || s2 == 0){
       if(getPluckerInnerProduct(plucker_ray,plucker_3) == 0){
+        puts("otha zeros\n");
         I->object = this;
         I->t = length;
         return true;

@@ -84,7 +84,6 @@ MISTool::MISTool(const std::string &model_parameter_file){
 
   flattened_triangles_.reserve( 3*3*mesh_indices.size() );
 
-  std::cerr << "mesh size = " << mesh_indices.size() << "\n";
   for(auto triangle = mesh_indices.begin(); triangle != mesh_indices.end(); ++triangle){
 
     for(int i=0;i<3;++i){
@@ -92,11 +91,11 @@ MISTool::MISTool(const std::string &model_parameter_file){
       const cv::Vec3f &v = vertices[(*triangle)[i]];
 
       for(int j=0;j<3;j++) flattened_triangles_.push_back(v[j]);
-
+      
     }
 
-
   }
+  
 
 
 
@@ -141,7 +140,7 @@ cv::Vec3i Model::ReadFaceFromObj(std::ifstream &ifs) const {
 
   }
 
-  std::getline(ifs,std::string()); //move to the end fo the line
+  //std::getline(ifs,std::string()); //move to the end fo the line
   ret = cv::Vec3i(ret[0]-1,ret[1]-1,ret[2]-1); //obj file uses 1...N indexing rather than 0...N-1 indexing
 
   return ret;

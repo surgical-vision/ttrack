@@ -6,6 +6,7 @@
 #include "../../../headers/utils/quasi_dense_stereo.hpp"
 #include "../../../headers/utils/helpers.hpp"
 #include <stdint.h>
+#include <boost/timer.hpp>
 using namespace ttrk;
 
 #define STEREO_SGBM
@@ -44,20 +45,23 @@ bool StereoToolTracker::Init() {
     Init3DPoseFromMOITensor(*connected_region, tracked_models_.back());//,corresponding_connected_region);
 
     tracked_models_.back().PtrToModel()->GetPoints(tracked_models_.back().CurrentPose());
-    int count = 0;
+    cv::Mat unprojected(frame_->GetImageROI().size(),CV_32FC3);
     cv::Mat image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_8UC1);
     for(int r=0;r<image.rows;++r){
       for(int c=0;c<image.cols;++c){
-        cv::Vec3f ray = camera_->rectified_left_eye()->UnProjectPoint(cv::Point(c,r));
-        Ray nray(Vector3(0,0,0),Vector3(ray[0],ray[1],ray[2]));
-        IntersectionInfo I;
-        bool hit = tracked_models_.back().PtrToModel()->bvh_->getIntersection(nray, &I, false);
-        image.at<unsigned char>(r,c) = 255 * hit;
-        count += hit;
+        unprojected.at<cv::Vec3f>(r,c) =  camera_->rectified_left_eye()->UnProjectPoint(cv::Point(c,r));
       }
     }
+  
 
-    std::cerr << "Count is " << count << "\n";
+    boost::timer t;
+    for(int r=0;r<image.rows;++r){
+      for(int c=0;c<image.cols;++c){
+        Ray nray(Vector3(0,0,0),Vector3(unprojected.at<cv::Vec3f>(r,c)[0],unprojected.at<cv::Vec3f>(r,c)[1],unprojected.at<cv::Vec3f>(r,c)[2]));
+        image.at<unsigned char>(r,c) = 255 * tracked_models_.back().PtrToModel()->bvh_->getIntersection(nray, &IntersectionInfo(), false);;
+      }
+    }
+    std::cout << t.elapsed() << std::endl;
     cv::imwrite("testimage.png",image);
 
   

@@ -84,7 +84,7 @@ MISTool::MISTool(const std::string &model_parameter_file){
 
   flattened_triangles_.reserve( 3*3*mesh_indices.size() );
 
-
+  std::cerr << "mesh size = " << mesh_indices.size() << "\n";
   for(auto triangle = mesh_indices.begin(); triangle != mesh_indices.end(); ++triangle){
 
     for(int i=0;i<3;++i){
@@ -165,9 +165,6 @@ boost::shared_ptr<std::vector<Object *> > Model::GetPoints(const Pose &pose) {
     objects_.reset(new std::vector<Object *>());
     objects_->reserve(flattened_triangles_.size()/3);
   }
-
-  std::cerr << cv::Point3f(pose.translation_) << "\n";
-  std::cerr << pose.rotation_ << "\n";
 
   size_t i=0;
   for(auto triangle = flattened_triangles_.begin(); triangle != flattened_triangles_.end(); triangle = triangle + 9){

@@ -213,7 +213,9 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
   cv::Mat canvas = cv::Mat::zeros(frame_->GetImageROI().size(),CV_8UC1);
   std::vector<SimplePoint<> > transformed_points = current_model.ModelPointsAtCurrentPose();
   DrawModelOnFrame(transformed_points,canvas);
-  
+  cv::imwrite("canvas.png",canvas);
+
+
   //find the set of pixels which correspond to the drawn object
   std::vector<cv::Point2i> set_of_points;
   for(int r=0;r<sdf_image.rows;r++){
@@ -252,6 +254,8 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
   cv::Mat canvas_2_dilated;
   cv::dilate(canvas_2,canvas_2_dilated,cv::Mat(20,20,CV_8UC1));
 
+  std::ofstream ofs("newpoints.xyz");
+
   cv::Mat pixels_intersect = cv::Mat::zeros(canvas_2_dilated.size(),CV_8UC1);
   for(int r=0;r<sdf_image.rows;r++){
     for(int c=0;c<sdf_image.cols;c++){
@@ -259,6 +263,8 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
       cv::Vec3f ray = camera_->UnProjectPoint( cv::Point2i(c,r) );
       cv::Vec3f front_intersection(0,0,0),back_intersection(0,0,0);
       if (current_model.PtrToModel()->GetIntersection(ray, front_intersection , back_intersection ,current_model.CurrentPose())){
+        ofs << front_intersection[0] << " " << front_intersection[1] << " " << front_intersection[2] << "\n";
+        ofs << back_intersection[0] << " " << back_intersection[1] << " " << back_intersection[2] << "\n";
         front_intersection_image.at<cv::Vec3f>(r,c) = front_intersection;
         back_intersection_image.at<cv::Vec3f>(r,c) = back_intersection;
         pixels_intersect.at<unsigned char>(r,c) = 255;

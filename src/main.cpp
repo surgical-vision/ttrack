@@ -182,11 +182,11 @@ int main(int argc, char **argv){
      //return 0;
 
      //construct the helper classes and train the classifier     
-     //t.SetUp("./data/new_video/",ttrk::RF,ttrk::STEREO);
-     t.SetUp("./data/in_vivo/",ttrk::RF,ttrk::MONOCULAR);
+     t.SetUp("./data/new_video/",ttrk::RF,ttrk::STEREO);
+    //t.SetUp("./data/in_vivo/",ttrk::RF,ttrk::MONOCULAR);
      
-     //t.RunVideo("left.avi","right.avi");
-     t.RunVideo("short.avi");
+     t.RunVideo("left.avi","right.avi");
+     //t.RunVideo("short.avi");
      //t.RunImages("calib/point_calib/");
      
      //t.SetUp("./data/test_video/",ttrk::RF,ttrk::STEREO);

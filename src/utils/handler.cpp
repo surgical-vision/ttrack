@@ -49,6 +49,9 @@ cv::Mat StereoVideoHandler::GetNewFrame(){
   cv::Mat rhs = to_return(cv::Rect(right_frame.cols,0,right_frame.cols,right_frame.rows));
   right_frame.copyTo(rhs);
 
+  cv::imwrite("left.png",lhs);
+  cv::imwrite("right.png",rhs);
+
   if(to_return.data == 0x0) { 
     done_ = true;
     return cv::Mat();
@@ -113,8 +116,8 @@ cv::Mat VideoHandler::GetNewFrame(){
   cv::Mat to_return;
   cap_ >> to_return;
 
-  cv::Mat x = to_return(cv::Rect(64,35,600,509));
-  x.copyTo(to_return);
+  //cv::Mat x = to_return(cv::Rect(64,35,600,509));
+  //x.copyTo(to_return);
 
   if(to_return.data == 0x0) { 
     done_ = true;

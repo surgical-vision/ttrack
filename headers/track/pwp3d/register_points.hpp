@@ -8,16 +8,16 @@
 namespace ttrk {
 
   struct MatchedPair {
-    cv::Vec3f image_point;
-    cv::Vec3f learned_point;
+    cv::Vec3d image_point;
+    cv::Vec3d learned_point;
   };
 
 
   struct Descriptor {
     void write(cv::FileStorage &ofs, int count) const{
-      cv::Mat t(3,1,CV_32FC1);
+      cv::Mat t(3,1,CV_64FC1);
       for(int i=0;i<3;i++)
-        t.at<float>(i) = coordinate[i];
+        t.at<double>(i) = coordinate[i];
       std::stringstream ss1,ss2;
       ss1 << "Coordinate" << count;
       ss2 << "Descriptor" << count;
@@ -29,13 +29,17 @@ namespace ttrk {
       cv::Mat mcoord;
       ifs[ss1.str()] >> mcoord;
 
-      for(int i=0;i<3;i++)
-        coordinate[i] = mcoord.at<float>(i);
+      for(int i=0;i<3;i++){
+        if(mcoord.type() != CV_64FC1)
+          coordinate[i] = mcoord.at<double>(i);
+        else if(mcoord.type() != CV_32FC1)
+          coordinate[i] = mcoord.at<float>(i);
+      }
 
       ss2 << "Descriptor" << count;
       ifs[ss2.str()] >> descriptor;
     }
-    cv::Vec3f coordinate;
+    cv::Vec3d coordinate;
     cv::Mat descriptor;
     double TEST_DISTANCE;
   }; 
@@ -57,7 +61,7 @@ namespace ttrk {
 
     PointRegistration(boost::shared_ptr<MonocularCamera> camera);
 
-    cv::Mat GetPointDerivative(const cv::Point3f &world, cv::Point2f &image, const Pose &pose) const;
+    cv::Mat GetPointDerivative(const cv::Point3d &world, cv::Point2d &image, const Pose &pose) const;
     
     void FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, boost::shared_ptr<Model> model, const Pose &pose, cv::Mat &save_image);    
   

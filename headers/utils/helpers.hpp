@@ -59,7 +59,7 @@ namespace ttrk{
     return a.y - (gradient*a.x);
   }
 
-  inline double norm2(const cv::Vec3f n){
+  inline double norm2(const cv::Vec3d n){
     return n[0]*n[0] + n[1]*n[1] + n[2]*n[2];
   }
 

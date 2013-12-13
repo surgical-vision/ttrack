@@ -38,7 +38,7 @@ namespace ttrk{
     //const float radius_; /**< The tool radius in metric units. Used for constructing new tool models. */
     //const float height_; /**< The tool tool length in metric units. Used for constructing new tool models. */
 
-    void ShiftCenter(cv::Vec2f &center_of_mass,const cv::Vec2f &central_axis, double length) const;
+    void ShiftCenter(cv::Vec2d &center_of_mass,const cv::Vec2d &central_axis, double length) const;
 
     /**
     * Find connected regions in the classified image. Each blob is a candidate for a surgical instrument. 
@@ -49,7 +49,7 @@ namespace ttrk{
     bool ThresholdImage(const cv::Mat &image, std::vector<std::vector<cv::Point> > &contours) const;
     void FindSingleRegionFromContour(const std::vector<cv::Point> &contour,std::vector<cv::Vec2i> &connected_region) const;
     void GetContours(const cv::Mat &image, std::vector<std::vector<cv::Point> > &contours) const;
-    void CheckCentralAxisDirection(const cv::Vec2f &center_of_mass, cv::Vec2f &horizontal_axis) const;
+    void CheckCentralAxisDirection(const cv::Vec2d &center_of_mass, cv::Vec2d &horizontal_axis) const;
 
 
     template<typename T>

@@ -6,6 +6,7 @@
 #include "../../../deps/image/image/image.hpp"
 #include "../pose.hpp"
 #include "register_points.hpp"
+#include "../../track/model/fast_bvh/Object.h"
 
 
 namespace ttrk {
@@ -52,7 +53,7 @@ namespace ttrk {
     * @param[in] jacobian The pose derivatives.
     * @param[in] step_id The number of steps done. Used for scaling down the step size.
     */
-    void ScaleJacobian(cv::Mat &jacobian, const int step_number, const int pixel_count) const;
+    void ScaleJacobian(cv::Mat &jacobian, const size_t step_number, const size_t pixel_count) const;
 
 
     inline double DeltaFunction(double x,const double std){
@@ -76,7 +77,7 @@ namespace ttrk {
     * Applys one step of gradient descent to the pose. 
     * @param[in]    jacobian The pose update of the target object.
     */    
-    void ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const int step,  const int pixel_count);
+    void ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const size_t step,  const size_t pixel_count);
 
     /**
     * Compute the first part of the derivative, getting a weight for each contribution based on the region agreements.
@@ -86,7 +87,7 @@ namespace ttrk {
     */
     double GetRegionAgreement(const int r, const int c, const float sdf) ;
 
-    static cv::Vec3f GetDOFDerivatives;
+    static cv::Vec3d GetDOFDerivatives;
 
     /**
     * Finds an intersection between a ray cast from the current pixel through the tracked object.
@@ -96,13 +97,13 @@ namespace ttrk {
     * @param[out] back_intersection The intersection between the ray and the back of the object.
     * @return bool The success of the intersection test.
     */
-    bool GetTargetIntersections(const int r, const int c, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const ;
+    bool GetTargetIntersections(const int r, const int c, cv::Vec3d &front_intersection, cv::Vec3d &back_intersection, const KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const ;
 
-    bool GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, cv::Vec3f &front_intersection, cv::Vec3f &back_intersection, const KalmanTracker &current_model , const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const ;
+    bool GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, cv::Vec3d &front_intersection, cv::Vec3d &back_intersection, const KalmanTracker &current_model , const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const ;
 
     double GetEnergy(const int r, const int c, const float sdf) const;
 
-    void DrawModelOnFrame(const std::vector<SimplePoint<> > &transformed_points, cv::Mat canvas);
+    void DrawModelOnFrame(boost::shared_ptr<std::vector<Object *> > transformed_points, cv::Mat canvas);
 
 
     boost::shared_ptr<sv::Frame> frame_;
@@ -112,9 +113,9 @@ namespace ttrk {
 
     PointRegistration register_points_;
 
-    float blurring_scale_factor_;
-    const float k_delta_function_std_;
-    const float k_heaviside_width_;
+    double blurring_scale_factor_;
+    const double k_delta_function_std_;
+    const double k_heaviside_width_;
 
   };
 

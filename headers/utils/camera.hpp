@@ -46,21 +46,21 @@ namespace ttrk{
     * @param point The 3D point to project.
     * @return The projected point.
     */
-    cv::Point2f ProjectPoint(const cv::Point3f &point) const;
+    cv::Point2d ProjectPoint(const cv::Point3d &point) const;
     
     /**
     * Project a 3D point directly to an image pixel by nearest neighbour interpolation.
     * @param point The 3D point to project.
     * @return The projected point.
     */
-    cv::Point2i ProjectPointToPixel(const cv::Point3f &point) const;
+    cv::Point2i ProjectPointToPixel(const cv::Point3d &point) const;
 
     /**
     * Unproject a pixel to a ray into space.
     * @param[in] point The pixel coordinates.
     * @return The ray.
     */
-    cv::Point3f UnProjectPoint(const cv::Point2i &point) const;
+    cv::Point3d UnProjectPoint(const cv::Point2i &point) const;
 
     double Fx() const { return intrinsic_matrix_.at<double>(0,0); }
     double Fy() const { return intrinsic_matrix_.at<double>(1,1); }
@@ -113,7 +113,7 @@ namespace ttrk{
     void RemapRightFrame(cv::Mat &image) const ;
 
     void ReprojectTo3D(const cv::Mat &image, cv::Mat &point_cloud,const std::vector<cv::Vec2i> &connected_region) const ;
-    cv::Vec3f ReprojectPointTo3D(const cv::Point2i &left, const cv::Point2i &right);
+    cv::Vec3d ReprojectPointTo3D(const cv::Point2i &left, const cv::Point2i &right);
     cv::Mat GetP1() { return P1(cv::Range(0,3),cv::Range(0,3));}
 
     void InitRectified() {
@@ -127,7 +127,7 @@ namespace ttrk{
     cv::Rect ROILeft() const { return roi1; }
 
     cv::Mat ExtrinsicRotation() const { return extrinsic_matrix_(cv::Rect(0,0,3,3)); }
-    cv::Vec3f ExtrinsicTranslation() const { return cv::Vec3f(extrinsic_matrix_.at<double>(0,3), extrinsic_matrix_.at<double>(1,3),extrinsic_matrix_.at<double>(2,3)); }
+    cv::Vec3d ExtrinsicTranslation() const { return cv::Vec3d(extrinsic_matrix_.at<double>(0,3), extrinsic_matrix_.at<double>(1,3),extrinsic_matrix_.at<double>(2,3)); }
     
   protected:
 

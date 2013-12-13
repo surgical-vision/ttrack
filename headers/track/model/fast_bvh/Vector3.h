@@ -8,22 +8,22 @@
 
 // SSE Vector object
 struct Vector3 {
-	float x,y,z;
+	double x,y,z;
 
 	Vector3() { }
-	Vector3(float x, float y, float z) : x(x), y(y), z(z) { }
+	Vector3(double x, double y, double z) : x(x), y(y), z(z) { }
 
 	Vector3 operator+(const Vector3& b) const { return Vector3(x+b.x, y+b.y, z+b.z); }
 	Vector3 operator-(const Vector3& b) const { return Vector3(x-b.x, y-b.y, z-b.z); }
-	Vector3 operator*(float b) const { return Vector3(x*b, y*b, z*b); }
-	Vector3 operator/(float b) const { b = 1.f / b; return Vector3(x*b, y*b, z*b); }
+	Vector3 operator*(double b) const { return Vector3(x*b, y*b, z*b); }
+	Vector3 operator/(double b) const { b = 1.f / b; return Vector3(x*b, y*b, z*b); }
 
  // Component-wise multiply and divide
  Vector3 cmul(const Vector3& b) const { return Vector3(x*b.x, y*b.y, z*b.z);	}
  Vector3 cdiv(const Vector3& b) const { return Vector3(x/b.x, y/b.y, z/b.z);	}
 
 	// dot (inner) product
-	float operator*(const Vector3& b) const { return x*b.x + y*b.y + z*b.z;	}
+	double operator*(const Vector3& b) const { return x*b.x + y*b.y + z*b.z;	}
 
  // Cross Product	
 	Vector3 operator^(const Vector3& b) const {
@@ -35,11 +35,11 @@ struct Vector3 {
 	}
 
  // Handy component indexing 
- float& operator[](const unsigned int i) { return (&x)[i]; }
-	const float& operator[](const unsigned int i) const { return (&x)[i]; }
+ double& operator[](const unsigned int i) { return (&x)[i]; }
+	const double& operator[](const unsigned int i) const { return (&x)[i]; }
 };
 
-inline Vector3 operator*(float a, const Vector3& b)  { return b * a; }
+inline Vector3 operator*(double a, const Vector3& b)  { return b * a; }
 
 // Component-wise min
 inline Vector3 min(const Vector3& a, const Vector3& b) {
@@ -52,8 +52,8 @@ inline Vector3 max(const Vector3& a, const Vector3& b) {
 }
 
 // Length of a vector
-inline float length(const Vector3& a) {
-	return sqrtf(a*a);
+inline double length(const Vector3& a) {
+	return sqrt(a*a);
 }
 
 // Make a vector unit length

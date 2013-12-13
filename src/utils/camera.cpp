@@ -27,31 +27,31 @@ MonocularCamera::MonocularCamera(const std::string &calibration_filename){
 
 }
 
-cv::Point2i MonocularCamera::ProjectPointToPixel(const cv::Point3f &point) const {
-  cv::Point2f pt = ProjectPoint(point);
+cv::Point2i MonocularCamera::ProjectPointToPixel(const cv::Point3d &point) const {
+  cv::Point2d pt = ProjectPoint(point);
   return cv::Point2i(ttrk::round(pt.x),ttrk::round(pt.y));
 }
 
 
-cv::Point3f MonocularCamera::UnProjectPoint(const cv::Point2i &point) const {
+cv::Point3d MonocularCamera::UnProjectPoint(const cv::Point2i &point) const {
   
   cv::Mat projected(1,1,CV_32FC2);
-  projected.at<cv::Vec2f>(0,0) = cv::Vec2f(point.x,point.y);
+  projected.at<cv::Vec2d>(0,0) = cv::Vec2d(point.x,point.y);
   cv::Mat unprojected(1,1,CV_32FC2);
   
   cv::undistortPoints(projected, unprojected, intrinsic_matrix_, distortion_params_); 
 
-  return cv::Point3f(unprojected.at<cv::Vec2f>(0,0)[0],unprojected.at<cv::Vec2f>(0,0)[1],1);
+  return cv::Point3d(unprojected.at<cv::Vec2d>(0,0)[0],unprojected.at<cv::Vec2d>(0,0)[1],1);
 
 }
 
-cv::Point2f MonocularCamera::ProjectPoint(const cv::Point3f &point) const {
+cv::Point2d MonocularCamera::ProjectPoint(const cv::Point3d &point) const {
 
-  std::vector<cv::Point2f> projected_point;
+  std::vector<cv::Point2d> projected_point;
   static cv::Mat rot = cv::Mat::eye(3,3,CV_64FC1);
   static cv::Mat tran = cv::Mat::zeros(3,1,CV_64FC1);
   
-  cv::projectPoints(std::vector<cv::Point3f>(1,point),rot,tran,intrinsic_matrix_,distortion_params_,projected_point);
+  cv::projectPoints(std::vector<cv::Point3d>(1,point),rot,tran,intrinsic_matrix_,distortion_params_,projected_point);
   if(projected_point.size() != 1) throw(std::runtime_error("Error, projected points size != 1.\n"));
   
   return projected_point.front();
@@ -122,13 +122,13 @@ void TestReproject(const cv::Mat &disparity_map, cv::Mat &reprojected_point_clou
   for(int r=0;r<disparity_map.rows;r++){
     for(int c=0;c<disparity_map.cols;c++){
 
-      cv::Vec3f &point = reprojected_point_cloud.at<cv::Vec3f>(r,c);
+      cv::Vec3d &point = reprojected_point_cloud.at<cv::Vec3d>(r,c);
 
       double data[] = {r,c,disparity_map.at<float>(r,c),1.0};
       cv::Mat p(4,1,CV_64FC1,data);
       cv::Mat dp = reprojection_matrix * p;
       const double denom = dp.at<double>(3);
-      point = cv::Vec3f( dp.at<double>(0)/denom, dp.at<double>(1)/denom, dp.at<double>(2)/denom);
+      point = cv::Vec3d( dp.at<double>(0)/denom, dp.at<double>(1)/denom, dp.at<double>(2)/denom);
 
     }
   }
@@ -136,13 +136,13 @@ void TestReproject(const cv::Mat &disparity_map, cv::Mat &reprojected_point_clou
 
 }
 
-cv::Vec3f StereoCamera::ReprojectPointTo3D(const cv::Point2i &left, const cv::Point2i &right){
+cv::Vec3d StereoCamera::ReprojectPointTo3D(const cv::Point2i &left, const cv::Point2i &right){
 
   int vertical_disparity = std::abs(left.y - right.y);
   if (vertical_disparity > 40){
 
     //std::cerr << "THIS IS BAD";
-    return cv::Vec3f(0,0,0);
+    return cv::Vec3d(0,0,0);
 
   }else{
     int horizontal_disparity = left.x - right.x;
@@ -153,7 +153,7 @@ cv::Vec3f StereoCamera::ReprojectPointTo3D(const cv::Point2i &left, const cv::Po
     to_reproject.at<double>(3) = 1;
     cv::Mat projected = reprojection_matrix_ * to_reproject;
     if (projected.at<double>(3) == 0) projected.at<double>(3) = 0.1;
-    return cv::Vec3f( projected.at<double>(0)/projected.at<double>(3),
+    return cv::Vec3d( projected.at<double>(0)/projected.at<double>(3),
                       projected.at<double>(1)/projected.at<double>(3),
                       projected.at<double>(2)/projected.at<double>(3));
   }
@@ -191,13 +191,13 @@ void StereoCamera::ReprojectTo3D(const cv::Mat &disparity_image, cv::Mat &point_
       
         
       if(mask.at<unsigned char>(r,c) != 255)
-        point_cloud.at<cv::Vec3f>(r,c) = cv::Vec3f(0,0,0) ;      
+        point_cloud.at<cv::Vec3d>(r,c) = cv::Vec3d(0,0,0) ;      
       
-      if(point_cloud.at<cv::Vec3f>(r,c)[2] < 0 || point_cloud.at<cv::Vec3f>(r,c)[2] == 10000)
-        point_cloud.at<cv::Vec3f>(r,c) = cv::Vec3f(0,0,0);
+      if(point_cloud.at<cv::Vec3d>(r,c)[2] < 0 || point_cloud.at<cv::Vec3d>(r,c)[2] == 10000)
+        point_cloud.at<cv::Vec3d>(r,c) = cv::Vec3d(0,0,0);
  
-      cv::Point3f point(point_cloud.at<cv::Vec3f>(r,c) );
-      if(point != cv::Point3f(0,0,0)){
+      cv::Point3d point(point_cloud.at<cv::Vec3d>(r,c) );
+      if(point != cv::Point3d(0,0,0)){
  
         
       }

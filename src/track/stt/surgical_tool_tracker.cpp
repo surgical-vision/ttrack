@@ -55,26 +55,26 @@ inline bool PointInImage(const cv::Point2i &image_coords, const cv::Size &image_
   return cv::Rect(cv::Point(0,0),image_size).contains(image_coords);
 }
 
-void SurgicalToolTracker::ShiftCenter(cv::Vec2f &center_of_mass,const cv::Vec2f &central_axis, double length) const {
+void SurgicalToolTracker::ShiftCenter(cv::Vec2d &center_of_mass,const cv::Vec2d &central_axis, double length) const {
   
   const cv::Mat &ci = frame_->GetClassificationMapROI();
-  cv::Vec2f end = center_of_mass + 0.5*length*central_axis;
+  cv::Vec2d end = center_of_mass + 0.5*length*central_axis;
 
   //if end off image
   //iterate the length back until it is on the image
-  bool estimate_short = PointInImage(cv::Point(end[0],end[1]),ci.size()) && ci.at<unsigned char>(end[1],end[0]) > 127;
-  float update_direction = -0.05f;
+  bool estimate_short = PointInImage(cv::Point((int)end[0],(int)end[1]),ci.size()) && ci.at<unsigned char>((int)end[1],(int)end[0]) > 127;
+  double update_direction = -0.05;
   if(estimate_short)
     update_direction *= -1;
   
   bool new_estimate;
   int step = -1;
-  float new_length = length;
+  double new_length = length;
   do{
 
     new_length = new_length*(1+update_direction);
     end = center_of_mass + (0.5*new_length)*central_axis;
-    new_estimate = PointInImage(cv::Point(end[0],end[1]),ci.size()) && ci.at<unsigned char>(end[1],end[0]) > 127;
+    new_estimate = PointInImage(cv::Point((int)end[0],(int)end[1]),ci.size()) && ci.at<unsigned char>((int)end[1],(int)end[0]) > 127;
     step++;
 
   }while(estimate_short == new_estimate && step < 15);
@@ -83,14 +83,14 @@ void SurgicalToolTracker::ShiftCenter(cv::Vec2f &center_of_mass,const cv::Vec2f 
 
 }
 
-void SurgicalToolTracker::CheckCentralAxisDirection(const cv::Vec2f &center_of_mass, cv::Vec2f &central_axis) const {
+void SurgicalToolTracker::CheckCentralAxisDirection(const cv::Vec2d &center_of_mass, cv::Vec2d &central_axis) const {
 
   
-  const cv::Vec2i center_of_image((float)frame_->GetImageROI().cols/2,(float)frame_->GetImageROI().rows/2);
-  const cv::Vec2f center_of_mass_to_center_of_image = cv::Vec2f(center_of_image) - cv::Vec2f(center_of_mass);
+  const cv::Vec2i center_of_image((int)((float)frame_->GetImageROI().cols/2),(int)((float)frame_->GetImageROI().rows/2));
+  const cv::Vec2d center_of_mass_to_center_of_image = cv::Vec2d(center_of_image) - cv::Vec2d(center_of_mass);
 
-  const float cos_angle =  center_of_mass_to_center_of_image.dot(central_axis) ; //we don't care about scale factor so don't bother to normalize
-  const float cos_angle_reversed =  center_of_mass_to_center_of_image.dot(-central_axis) ;
+  const double cos_angle =  center_of_mass_to_center_of_image.dot(central_axis) ; //we don't care about scale factor so don't bother to normalize
+  const double cos_angle_reversed =  center_of_mass_to_center_of_image.dot(-central_axis) ;
 
   if( cos_angle > cos_angle_reversed ) return; //we seek the smallest angle (largest cos(angle))
   else central_axis *= -1;

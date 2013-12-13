@@ -131,9 +131,9 @@ void TTrack::SaveResults() const {
       
     }
 
-    cv::Vec3f angle_axis = model.CurrentPose().rotation_.AngleAxis();
-    cv::Vec3f translation = model.CurrentPose().translation_;
-    cv::Vec3f point_of_interest = model.CurrentPose().Transform(model.PtrToModel()->GetTrackedPoint());
+    cv::Vec3d angle_axis = model.CurrentPose().rotation_.AngleAxis();
+    cv::Vec3d translation = model.CurrentPose().translation_;
+    cv::Vec3d point_of_interest = model.CurrentPose().Transform(model.PtrToModel()->GetTrackedPoint());
 
     *results_file << translation[0] << "," << translation[1] << "," << translation[2] << "," << angle_axis[0] << "," << angle_axis[1] << "," << angle_axis[2] << "," << point_of_interest[0] << "," << point_of_interest[1] << "," << point_of_interest[2] << "\n" ;
     results_file->flush();

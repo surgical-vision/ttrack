@@ -272,7 +272,7 @@ void QuasiDenseStereo::sparseMatching(IplImage* imgL , IplImage* imgR)
 
 void QuasiDenseStereo::quasiDenseMatching(IplImage* imgL , IplImage* imgR,CvPoint2D32f* pointsL, CvPoint2D32f* pointsR, char* featureStatus, int numInputPoints)
 {
-	int x,y,i,wx,wy,off,NumberOfMatchesFound=0;
+	int x,y,i,wx,wy,NumberOfMatchesFound=0;
 
 	// reset memory of maps
 	memset(mRefMap,0, imgL->width * imgL->height * sizeof(CvPoint));
@@ -419,13 +419,8 @@ void QuasiDenseStereo::quasiDenseMatching(IplImage* imgL , IplImage* imgR,CvPoin
 void QuasiDenseStereo::process(IplImage* imgL , IplImage* imgR)
 {
 	bool	drawOnOriginal = false;
-	int		i,count;
 	int		featureCount = NUM_MAX_FEATURES;
-		
-#ifdef _WIN32 || _WIN64
-  // just for timing
-  //DWORD t0 = timeGetTime();
-#endif
+
 	// Copy the image data locally or convert to gray if needed
 	// note: sub optimal
 	if(imgL->nChannels == 1)
@@ -449,10 +444,7 @@ void QuasiDenseStereo::process(IplImage* imgL , IplImage* imgR)
 	// run the quasi dense part
 	quasiDenseMatching(mImages[curr],mImages[curr+1],mPoints2D[curr],mPoints2D[curr+1],mStatus[curr],mFeatureCount[curr]);
 
-	// just for timing
-#ifdef _WIN32 || _WIN64
-	//DWORD t1 = timeGetTime() - t0;
-#endif
+
 }
 
 //------------------------------------------------------------------------

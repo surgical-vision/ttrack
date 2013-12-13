@@ -26,12 +26,12 @@ uint32_t BBox::maxDimension() const {
  return result;
 }
 
-float BBox::surfaceArea() const {
- return 2.f*( extent.x*extent.z + extent.x*extent.y + extent.y*extent.z );
+double BBox::surfaceArea() const {
+ return 2*( extent.x*extent.z + extent.x*extent.y + extent.y*extent.z );
 }
 
 // Typical slab-based Ray-AABB test
-bool BBox::intersect(const Ray& ray, float *tnear, float *tfar) const {
+bool BBox::intersect(const Ray& ray, double *tnear, double *tfar) const {
 		Vector3 tbot = ray.inv_d.cmul(min - ray.o);
 		Vector3 ttop = ray.inv_d.cmul(max - ray.o);
 	 

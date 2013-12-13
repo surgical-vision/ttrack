@@ -21,7 +21,7 @@ namespace ttrk {
     KalmanTracker(boost::shared_ptr<Model> model):save_file_(new std::ofstream),model_(model),filter_(14,7,0,CV_32F){}   
     KalmanTracker(const KalmanTracker &that);
 
-    void SetPose(const cv::Vec3f translation, const cv::Vec3f rotated_principal_axis); 
+    void SetPose(const cv::Vec3d translation, const cv::Vec3d rotated_principal_axis); 
     void SetPose(const Pose &p);
     void UpdatePose(const Pose &pose_measurement) ;
     void Init();
@@ -33,7 +33,7 @@ namespace ttrk {
     const Pose &CurrentPose() const { return pose_; }
     boost::shared_ptr<Model> PtrToModel(){ return model_; }
     const boost::shared_ptr<Model> PtrToModel() const { return model_; }
-    std::vector<SimplePoint<> > ModelPointsAtCurrentPose() const { return model_->Points(pose_); }
+    boost::shared_ptr<std::vector<Object *> > ModelPointsAtCurrentPose() const { return model_->Points(pose_); }
 
     boost::shared_ptr<std::ofstream> SaveFile() { return save_file_; }
 

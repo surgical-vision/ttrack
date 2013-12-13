@@ -9,7 +9,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
   frame_ = frame;
   SetBlurringScaleFactor(frame_->GetImageROI().cols);
   const int NUM_STEPS = 50;
-  cv::Vec3f initial_translation = current_model.CurrentPose().translation_;
+  cv::Vec3d initial_translation = current_model.CurrentPose().translation_;
   static bool first = true;
 
 #ifdef DEBUG
@@ -23,7 +23,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
   std::stringstream ss; ss << "debug/frame_" << frame_count;
   boost::filesystem::create_directory(ss.str());
   boost::filesystem::create_directory(ss.str()+"/mono");
-  std::cerr << "starting pose is: "<< current_model.CurrentPose().rotation_ << " + " << cv::Point3f(current_model.CurrentPose().translation_) << std::endl;
+  std::cerr << "starting pose is: "<< current_model.CurrentPose().rotation_ << " + " << cv::Point3d(current_model.CurrentPose().translation_) << std::endl;
   cv::Mat canvas = frame_->GetImageROI().clone();
   DrawModelOnFrame(current_model.ModelPointsAtCurrentPose(),canvas);
   cv::imwrite(ss.str()+"/mono/init.png",canvas);
@@ -61,7 +61,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
     //(x,y,z,w,r1,r2,r3)
     cv::Mat jacobian = cv::Mat::zeros(7,1,CV_64FC1);
     double energy = 0.0;
-    double pixel_count = 0;
+    size_t pixel_count = 0;
 
     cv::Mat sdf_image,front_intersection_image,back_intersection_image;
     GetSDFAndIntersectionImage(current_model,sdf_image,front_intersection_image,back_intersection_image);
@@ -102,7 +102,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
         //compute the energy value for this pixel - not used for pose jacobian, just for assessing minima/          
         energy += GetEnergy(r,c,sdf_image.at<float>(r,c)); 
 #ifdef SAVEDEBUG_2
-        energy_image.at<unsigned char>(r,c) = 255 * GetEnergy(r,c,sdf_image.at<float>(r,c));
+        energy_image.at<unsigned char>(r,c) = (unsigned char)(255 * GetEnergy(r,c,sdf_image.at<float>(r,c)));
 #endif
         //P_f - P_b / (H * P_f + (1 - H) * P_b)
         const double region_agreement = GetRegionAgreement(r, c, sdf_image.at<float>(r,c));
@@ -131,19 +131,19 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
         max_val = std::max(max_val,std::abs(pose_derivatives.at<double>(2,0)));
 
         if(region_agreement*pose_derivatives.at<double>(0,0) > 0)
-          jacobian_x.at<cv::Vec3b>(r,c) = cv::Vec3b(255.0*pose_derivatives.at<double>(0,0)/max_val,0,0); //blue right
+          jacobian_x.at<cv::Vec3b>(r,c) = cv::Vec3b((unsigned char)(255*pose_derivatives.at<double>(0,0)/max_val),0,0); //blue right
         else if(region_agreement*pose_derivatives.at<double>(0,0) < 0)
-          jacobian_x.at<cv::Vec3b>(r,c) = cv::Vec3b(0,0,255.0*pose_derivatives.at<double>(0,0)/max_val); //red left
+          jacobian_x.at<cv::Vec3b>(r,c) = cv::Vec3b(0,0,(unsigned char)(255*pose_derivatives.at<double>(0,0)/max_val)); //red left
 
         if(region_agreement*pose_derivatives.at<double>(1,0) > 0)
-          jacobian_y.at<cv::Vec3b>(r,c) = cv::Vec3b(255.0*pose_derivatives.at<double>(1,0)/max_val,0,0); //blue down
+          jacobian_y.at<cv::Vec3b>(r,c) = cv::Vec3b((unsigned char)(255*pose_derivatives.at<double>(1,0)/max_val),0,0); //blue down
         else if (region_agreement*pose_derivatives.at<double>(1,0) < 0)
-          jacobian_y.at<cv::Vec3b>(r,c) = cv::Vec3b(0,0,255.0*pose_derivatives.at<double>(1,0)/max_val); //red up
+          jacobian_y.at<cv::Vec3b>(r,c) = cv::Vec3b(0,0,(unsigned char)(255*pose_derivatives.at<double>(1,0)/max_val)); //red up
 
         if(region_agreement*pose_derivatives.at<double>(2,0) > 0)
-          jacobian_z.at<cv::Vec3b>(r,c) = cv::Vec3b(255.0*pose_derivatives.at<double>(2,0)/max_val,0,0); //blue away
+          jacobian_z.at<cv::Vec3b>(r,c) = cv::Vec3b((unsigned char)(255.0*pose_derivatives.at<double>(2,0)/max_val),0,0); //blue away
         else if(region_agreement*pose_derivatives.at<double>(2,0) < 0)
-          jacobian_z.at<cv::Vec3b>(r,c) = cv::Vec3b(0,0,255.0*pose_derivatives.at<double>(2,0)/max_val); //red towards
+          jacobian_z.at<cv::Vec3b>(r,c) = cv::Vec3b(0,0,(unsigned char)(255.0*pose_derivatives.at<double>(2,0)/max_val)); //red towards
 #endif
       }
     }
@@ -155,10 +155,10 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
     cv::Mat dSDFdy_save(jacobian_x.size(),CV_8UC3);
     for(int r=0;r<heaviside.rows;r++){
       for(int c=0;c<heaviside.cols;c++){
-        heaviside.at<unsigned char>(r,c) = 255 * Heaviside(sdf_image.at<float>(r,c), k_heaviside_width_ * blurring_scale_factor_);
-        delta.at<unsigned char>(r,c) = 255 * DeltaFunction(sdf_image.at<float>(r,c),k_delta_function_std_ * blurring_scale_factor_);
-        dSDFdx_save.at<cv::Vec3b>(r,c) = cv::Vec3b((255 * (dSDFdx.at<float>(r,c) > 0)) * dSDFdx.at<float>(r,c),0,(255 * (dSDFdx.at<float>(r,c) < 0)) * -dSDFdx.at<float>(r,c));
-        dSDFdy_save.at<cv::Vec3b>(r,c) = cv::Vec3b((255 * (dSDFdy.at<float>(r,c) > 0)) * dSDFdy.at<float>(r,c),0,(255 * (dSDFdy.at<float>(r,c) < 0)) * -dSDFdy.at<float>(r,c));
+        heaviside.at<unsigned char>(r,c) = (unsigned char)(255 * Heaviside(sdf_image.at<float>(r,c), k_heaviside_width_ * blurring_scale_factor_));
+        delta.at<unsigned char>(r,c) = (unsigned char)(255 * DeltaFunction(sdf_image.at<float>(r,c),k_delta_function_std_ * blurring_scale_factor_));
+        dSDFdx_save.at<cv::Vec3b>(r,c) = cv::Vec3b((255 * (dSDFdx.at<float>(r,c) > 0)) * (unsigned char)dSDFdx.at<float>(r,c),0,(255 * (dSDFdx.at<float>(r,c) < 0)) * (unsigned char)-dSDFdx.at<float>(r,c));
+        dSDFdy_save.at<cv::Vec3b>(r,c) = cv::Vec3b((255 * (dSDFdy.at<float>(r,c) > 0)) * (unsigned char)dSDFdy.at<float>(r,c),0,(255 * (dSDFdy.at<float>(r,c) < 0)) * (unsigned char)-dSDFdy.at<float>(r,c));
       }
     }
 
@@ -191,7 +191,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
     #endif
 
     for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
-      cv::Mat pnp_jacobian = register_points_.GetPointDerivative(pnp->learned_point,cv::Point2f(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
+      cv::Mat pnp_jacobian = register_points_.GetPointDerivative(pnp->learned_point,cv::Point2d(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose());
       for(int i=0;i<jacobian.rows;i++){
         jacobian.at<double>(i,0) += -1 * pnp_jacobian.at<double>(i,0);
       }
@@ -234,7 +234,7 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
   current_model.CurrentPose() = pwp3d_best_pose;
 
   //update the velocity model... a bit crude
-  cv::Vec3f translational_velocity = current_model.CurrentPose().translation_ - initial_translation;
+  cv::Vec3d translational_velocity = current_model.CurrentPose().translation_ - initial_translation;
   current_model.CurrentPose().translational_velocity_ = translational_velocity;
   first = false;
   return current_model.CurrentPose();

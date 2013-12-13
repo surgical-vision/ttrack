@@ -44,14 +44,14 @@ void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::F
 
     std::vector<std::pair<Descriptor, double> > matching_queue;
     //project them to the image plane
-    cv::Point2f projected_pt = camera_->ProjectPointToPixel(cv::Point3f(kp->coordinate));
+    cv::Point2d projected_pt = camera_->ProjectPointToPixel(cv::Point3d(kp->coordinate));
     cv::circle(save_image,projected_pt,2,cv::Scalar(255,0,0),1); //point on object
     //cv::circle(frame->GetImageROI(),cv::Point(projected_pt),3,cv::Scalar(255,12,52),2);
 
     //iterate over the found features
     for(auto frame_descriptor = frame_descriptors.begin(); frame_descriptor != frame_descriptors.end(); frame_descriptor++){
 
-      cv::Point2f pt_to_match(frame_descriptor->coordinate[0],frame_descriptor->coordinate[1]);
+      cv::Point2d pt_to_match(frame_descriptor->coordinate[0],frame_descriptor->coordinate[1]);
       cv::circle(save_image,pt_to_match,2,cv::Scalar(0,0,255),1); //point on object
 
       //if the euclidean distance is < threshold then add this point to matching vector
@@ -83,7 +83,7 @@ void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::F
       
       average_distance += matching_queue.front().first.TEST_DISTANCE;
 
-      cv::Point2f pt_to_match(matching_queue.front().first.coordinate[0],matching_queue.front().first.coordinate[1]);
+      cv::Point2d pt_to_match(matching_queue.front().first.coordinate[0],matching_queue.front().first.coordinate[1]);
 
 #ifdef SAVEDEBUG_2
       cv::circle(save_image,projected_pt,2,cv::Scalar(255,0,0),1); //point on object
@@ -108,20 +108,20 @@ void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::F
     */
 }
 
-cv::Mat PointRegistration::GetPointDerivative(const cv::Point3f &world, cv::Point2f &image, const Pose &pose) const{
+cv::Mat PointRegistration::GetPointDerivative(const cv::Point3d &world, cv::Point2d &image, const Pose &pose) const{
 
   const int NUM_DERIVS = 7;
   cv::Mat ret(NUM_DERIVS,1,CV_64FC1);
-  cv::Vec3f front_intersection(world);
+  cv::Vec3d front_intersection(world);
 
   if(front_intersection[2] == 0.0) front_intersection[2] = 0.001;
   double z_inv_sq = 1.0/front_intersection[2];
 
-  cv::Point2f projected_world = camera_->ProjectPointToPixel(world);
+  cv::Point2d projected_world = camera_->ProjectPointToPixel(world);
 
   for(int dof=0;dof<NUM_DERIVS;dof++){
 
-    const cv::Vec3f dof_derivatives = pose.GetDOFDerivatives(dof,cv::Vec3f(world));
+    const cv::Vec3d dof_derivatives = pose.GetDOFDerivatives(dof,cv::Vec3d(world));
 
     const double dXdL = camera_->Fx() * (z_inv_sq*((front_intersection[2]*dof_derivatives[0]) - (front_intersection[0]*dof_derivatives[2])));
     const double dYdL = camera_->Fy() * (z_inv_sq*((front_intersection[2]*dof_derivatives[1]) - (front_intersection[1]*dof_derivatives[2])));
@@ -205,7 +205,7 @@ void PointRegistration::GetDescriptors(const cv::Mat &frame, std::vector<Descrip
   int i = 0;
   for (auto kp = keypoints.begin(); kp != keypoints.end() ; kp++){
     Descriptor d;
-    d.coordinate = cv::Vec3f(kp->pt.x,kp->pt.y,0);
+    d.coordinate = cv::Vec3d(kp->pt.x,kp->pt.y,0);
     d.descriptor = descriptors_image.row(i);
     i++;
     ds.push_back(d);
@@ -233,7 +233,7 @@ void PointRegistration::MatchDescriptorsToModel(std::vector<Descriptor> &model_d
 
     d.gt = model_descriptors[match->queryIdx];
     d.left_image = image_descriptors[match->trainIdx];
-    d.right_image.coordinate = cv::Vec3f(0,0,0);
+    d.right_image.coordinate = cv::Vec3d(0,0,0);
     found_matches.push_back(d);
 
     //cv::Point2i original(cam->rectified_left_eye()->ProjectPointToPixel(pose.Transform(d.gt.coordinate)));
@@ -296,7 +296,7 @@ void PointRegistration::ComputeDescriptorsForPointTracking(boost::shared_ptr<sv:
 
   for( auto kp = keypoints.begin(); kp != keypoints.end(); kp++ ){
 
-    cv::Point2f &pt = kp->pt;
+    cv::Point2d &pt = kp->pt;
     if(shape_image.at<float>(pt.y,pt.x) > 0){
       tool_keypoints.push_back(*kp);
     }
@@ -318,12 +318,12 @@ void PointRegistration::ComputeDescriptorsForPointTracking(boost::shared_ptr<sv:
 
   for( auto kp = tool_keypoints.begin(); kp != tool_keypoints.end() && kp != tool_keypoints.begin()+NUM_DESCRIPTOR; kp++ ){
 
-    cv::Point2f &pt = kp->pt;
-    cv::Vec3f ray = camera_->UnProjectPoint( cv::Point2i(int(pt.x),int(pt.y)) );
-    cv::Vec3f front;
-    current_model.PtrToModel()->GetIntersection(ray, front, cv::Vec3f() ,current_model.CurrentPose());
+    cv::Point2d &pt = kp->pt;
+    cv::Vec3d ray = camera_->UnProjectPoint( cv::Point2i(int(pt.x),int(pt.y)) );
+    cv::Vec3d front;
+    current_model.PtrToModel()->GetIntersection(ray, front, cv::Vec3d() ,current_model.CurrentPose());
 
-    cv::Vec3f front_on_model = current_model.CurrentPose().InverseTransform(front);
+    cv::Vec3d front_on_model = current_model.CurrentPose().InverseTransform(front);
 
     Descriptor ds;
     ds.coordinate = front_on_model;

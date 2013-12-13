@@ -26,9 +26,9 @@ namespace ttrk {
   
   protected:
 
-    void ShiftToTip(const cv::Vec3f &central_axis, cv::Vec3f &center_of_mass); 
-    void InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3f &center_of_mass_3d, cv::Vec3f &central_axis_3d, boost::shared_ptr<MonocularCamera> cam, KalmanTracker &tm);
-    cv::Vec2f FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &connected_region) const;
+    void ShiftToTip(const cv::Vec3d &central_axis, cv::Vec3d &center_of_mass); 
+    void InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3d &center_of_mass_3d, cv::Vec3d &central_axis_3d, boost::shared_ptr<MonocularCamera> cam, KalmanTracker &tm);
+    cv::Vec2d FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &connected_region) const;
 
     virtual void SetHandleToFrame(boost::shared_ptr<sv::Frame> image);
 
@@ -36,9 +36,9 @@ namespace ttrk {
 
     void Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, KalmanTracker &tracked_model);
 
-    cv::Vec3f FindCenterOfMass(const cv::Mat &point_cloud) const ; 
-    //cv::Vec3f FindClusterMode(const cv::Mat &point_cloud, const cv::Mat &classification_map) const ;
-    cv::Vec3f FindPrincipalAxisFromMOITensor(const cv::Vec3f center_of_mass, const cv::Mat &point_cloud) const ;
+    cv::Vec3d FindCenterOfMass(const cv::Mat &point_cloud) const ; 
+    //cv::Vec3d FindClusterMode(const cv::Mat &point_cloud, const cv::Mat &classification_map) const ;
+    cv::Vec3d FindPrincipalAxisFromMOITensor(const cv::Vec3d center_of_mass, const cv::Mat &point_cloud) const ;
    
     boost::shared_ptr<StereoCamera> camera_;
 

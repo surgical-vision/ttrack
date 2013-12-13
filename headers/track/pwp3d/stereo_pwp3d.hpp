@@ -20,7 +20,7 @@ namespace ttrk {
     void DrawModelOnBothFrames(const KalmanTracker &tracked_model, cv::Mat left_canvas, cv::Mat right_canvas);
 
     
-    cv::Vec3f GetDOFDerivativesRightEye(const int dof, const Pose &pose, const cv::Vec3f &point_) ;
+    cv::Vec3d GetDOFDerivativesRightEye(const int dof, const Pose &pose, const cv::Vec3d &point_) ;
     cv::Mat GetPoseDerivativesRightEye(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image);
     
     bool SetupEye(const int eye, Pose &pose);

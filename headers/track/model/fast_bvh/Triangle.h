@@ -79,7 +79,6 @@ struct Triangle : public Object {
     }
     //intersects at least 2 edges
     if(s1 == 0 && s2 == 0){
-      puts("zeros\n");
       I->object = this;
       I->t = length;
       return true;
@@ -87,7 +86,6 @@ struct Triangle : public Object {
     
     if(s1 == 0 || s2 == 0){
       if(getPluckerInnerProduct(plucker_ray,plucker_3) == 0){
-        puts("otha zeros\n");
         I->object = this;
         I->t = length;
         return true;

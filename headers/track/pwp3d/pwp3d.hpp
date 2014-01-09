@@ -30,7 +30,7 @@ namespace ttrk {
     * @param[in] current_model The model which will be projected to the image plane.
     * @return The image containin the signed distance function. Will be a single channel floating point image.
     */
-    void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sdf_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image);
+    void GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sdf_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image);
     //const cv::Mat ProjectShapeToSDF(KalmanTracker &current_model);
 
     /**
@@ -42,9 +42,7 @@ namespace ttrk {
     * @param[in] dSDFdy The derivative of the signed distance function /f$\frac{\partial SDF}{\partial y}/f$ at the current pixel.
     * @return The pose derivitives as a vector.
     */
-    cv::Mat GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image);
-
-    cv::Mat AlignObjectToEdges(KalmanTracker &current_model, const cv::Mat &frame, const cv::Mat &sdf_image, const cv::Mat &front_projection_image,cv::Mat &save_image);
+    void GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const double dSDFdx, const double dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image, PoseDerivs &pd);
 
     bool HasGradientDescentConverged_UsingEnergy(std::vector<double> &energy_values) const ;
 
@@ -53,7 +51,7 @@ namespace ttrk {
     * @param[in] jacobian The pose derivatives.
     * @param[in] step_id The number of steps done. Used for scaling down the step size.
     */
-    void ScaleJacobian(cv::Mat &jacobian, const size_t step_number, const size_t pixel_count) const;
+    void ScaleJacobian(PoseDerivs &jacobian, const size_t step_number, const size_t pixel_count) const;
 
 
     inline double DeltaFunction(double x,const double std){
@@ -62,22 +60,15 @@ namespace ttrk {
       return (1.0/(std*sqrt(2*M_PI)))*exp(-((x*x)/(2*std*std)));
     }
 
-    inline  void SetBlurringScaleFactor(const int image_width){
+    inline void SetBlurringScaleFactor(const int image_width){
       blurring_scale_factor_ = 0.3 + (0.7 * image_width/1900); 
     }
-
-
-    /*double HeavisideFunction(float x){
-    const double a = 0.4; //equates to blur between -25 and 25 ---- 0.3
-    double r = 1.0/(exp(-a*x) + 1);
-    return r;
-    }*/
 
     /**
     * Applys one step of gradient descent to the pose. 
     * @param[in]    jacobian The pose update of the target object.
     */    
-    void ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const size_t step,  const size_t pixel_count);
+    void ApplyGradientDescentStep(PoseDerivs &jacobian, Pose &pose, const size_t step,  const size_t pixel_count);
 
     /**
     * Compute the first part of the derivative, getting a weight for each contribution based on the region agreements.
@@ -85,9 +76,8 @@ namespace ttrk {
     * @param[in] c The column index of the current pixel.
     * @param[in] sdf The signed distance function image.
     */
-    double GetRegionAgreement(const int r, const int c, const float sdf) ;
+    double GetRegionAgreement(const int r, const int c, const double sdf) ;
 
-    static cv::Vec3d GetDOFDerivatives;
 
     /**
     * Finds an intersection between a ray cast from the current pixel through the tracked object.
@@ -97,14 +87,9 @@ namespace ttrk {
     * @param[out] back_intersection The intersection between the ray and the back of the object.
     * @return bool The success of the intersection test.
     */
-    bool GetTargetIntersections(const int r, const int c, cv::Vec3d &front_intersection, cv::Vec3d &back_intersection, const KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const ;
+    bool GetTargetIntersections(const int r, const int c, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const ;
 
-    bool GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, cv::Vec3d &front_intersection, cv::Vec3d &back_intersection, const KalmanTracker &current_model , const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const ;
-
-    double GetEnergy(const int r, const int c, const float sdf) const;
-
-    void DrawModelOnFrame(boost::shared_ptr<std::vector<Object *> > transformed_points, cv::Mat canvas);
-
+    bool GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const;
 
     boost::shared_ptr<sv::Frame> frame_;
 

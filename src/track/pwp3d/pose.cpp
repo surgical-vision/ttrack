@@ -2,6 +2,8 @@
 
 using namespace ttrk;
 
+const int PoseDerivs::NUM_VALS = 7;
+
 Pose Pose::operator=(const cv::Mat &that){
   if(that.size() == cv::Size(1,9)){
 
@@ -40,6 +42,38 @@ Pose::operator cv::Mat() const {
   return r;  
 }
 
+
+void Pose::SetupFastDOFDerivs(double *data) const {
+
+  data[0] = 1.0;
+  data[1] = 0.0;
+  data[2] = 0.0;
+  data[3] = 0.0;
+  data[4] = 1.0;
+  data[5] = 0.0;
+  data[6] = 0.0;
+  data[7] = 0.0;
+  data[8] = 1.0;
+
+}
+
+
+void Pose::GetFastDOFDerivs(double *data, double *point) const {
+
+  data[9] =  (2*rotation_.Y()*point[2])-(2*rotation_.Z()*point[1]);
+  data[10] = (2*rotation_.Z()*point[0])-(2*rotation_.X()*point[2]);
+  data[11] = (2*rotation_.X()*point[1])-(2*rotation_.Y()*point[0]);
+  data[12] = (2*rotation_.Y()*point[1])+(2*rotation_.Z()*point[2]);
+  data[13] = (2*rotation_.Y()*point[0])-(4*rotation_.X()*point[1])-(2*rotation_.W()*point[2]);
+  data[14] = (2*rotation_.Z()*point[0])+(2*rotation_.W()*point[1])-(4*rotation_.X()*point[2]);
+  data[15] = (2*rotation_.X()*point[1])-(4*rotation_.Y()*point[0])+(2*rotation_.W()*point[2]);
+  data[16] = (2*rotation_.X()*point[0])+(2*rotation_.Z()*point[2]);
+  data[17] = (2*rotation_.Z()*point[1])-(2*rotation_.W()*point[0])-(4*rotation_.Y()*point[2]);
+  data[18] = (2*rotation_.X()*point[2])-(2*rotation_.W()*point[1])-(4*rotation_.Z()*point[0]);
+  data[19] = (2*rotation_.W()*point[0])-(4*rotation_.X()*point[1])+(2*rotation_.Y()*point[2]);
+  data[20] = (2*rotation_.X()*point[0])+(2*rotation_.Y()*point[1]);
+
+}
 
 
 cv::Vec3d Pose::GetDOFDerivatives(const int dof, const cv::Vec3d &point_) const {

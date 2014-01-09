@@ -1,133 +1,93 @@
 #include "../../../headers/track/pwp3d/pwp3d.hpp"
 #include "../../../headers/utils/helpers.hpp"
 #include <boost/math/special_functions/fpclassify.hpp>
+#include "../../../headers/utils/renderer.hpp"
 #include <ctime>
 using namespace ttrk;
 
-void PWP3D::ApplyGradientDescentStep(const cv::Mat &jacobian, Pose &pose, const size_t step, const size_t pixel_count){
+void PWP3D::ApplyGradientDescentStep(PoseDerivs &jacobian, Pose &pose, const size_t step, const size_t pixel_count){
 
-  cv::Mat scaled_jacobian;
-  jacobian.copyTo(scaled_jacobian);
-
-  ScaleJacobian(scaled_jacobian,step,pixel_count);
+  ScaleJacobian(jacobian,step,pixel_count);
 
   //update the translation
-  cv::Vec3d translation = scaled_jacobian(cv::Range(0,3),cv::Range::all());
+  cv::Vec3d translation(jacobian[0],jacobian[1],jacobian[2]);
   pose.translation_ = pose.translation_ + translation;
 
   //update the rotation
-  sv::Quaternion rotation( boost::math::quaternion<double>((float)scaled_jacobian.at<double>(3,0),(float)scaled_jacobian.at<double>(4,0),(float)scaled_jacobian.at<double>(5,0),(float)scaled_jacobian.at<double>(6,0)));
+  sv::Quaternion rotation(boost::math::quaternion<double>(jacobian[3],jacobian[4],jacobian[5],jacobian[6]));
 
   pose.rotation_ = pose.rotation_ + rotation;
   pose.rotation_ = pose.rotation_.Normalize();
-#ifdef SAVEDEBUG_2
-  std::cerr << "Pose is now: " << pose << "\n";
-#endif
 
 }
 
-void PWP3D::ScaleJacobian(cv::Mat &jacobian, const size_t step_number, const size_t pixel_count) const {
+void PWP3D::ScaleJacobian(PoseDerivs &jacobian, const size_t step_number, const size_t pixel_count) const {
 
-#ifdef SAVEDEBUG_2
-  std::cerr << "Unscaled Jacobian = " << jacobian << "\n";
-#endif
-
-  double sum_jacobian = 0.0;
-  for(int r=0;r<jacobian.rows;r++){
-    sum_jacobian += std::abs(jacobian.at<double>(r,0));
-  }
-
-  static bool swap = true;
-  
   const double SCALE_FACTOR =  (1.0/(pixel_count)) * 3;
     
-  const double XY_scale = 0.2 * 0.005 * swap * SCALE_FACTOR;
-  const double Z_scale = 0.5 * 0.005 * swap * SCALE_FACTOR;
-  double R_SCALE = 10 * 0.00008 * swap * SCALE_FACTOR;
+  const double XY_scale = 0.2 * 0.005 * SCALE_FACTOR;
+  const double Z_scale = 0.5 * 0.005 * SCALE_FACTOR;
+  double R_SCALE = 10 * 0.00008 * SCALE_FACTOR;
   
-  jacobian.at<double>(0,0) *= XY_scale;//* 25;
-  jacobian.at<double>(1,0) *= XY_scale ;
-  jacobian.at<double>(2,0) *= Z_scale; //* camera_->Fx()/4;
+  jacobian[0] *= XY_scale;//* 25;
+  jacobian[1] *= XY_scale ;
+  jacobian[2] *= Z_scale; //* camera_->Fx()/4;
   
-  double largest = std::abs(jacobian.at<double>(0,0));
-  if( largest < std::abs(jacobian.at<double>(1,0)) ) largest = std::abs(jacobian.at<double>(1,0));
-  if( largest < std::abs(jacobian.at<double>(2,0)) ) largest = std::abs(jacobian.at<double>(2,0));
+  double largest = std::abs(jacobian[0]);
+  if( largest < std::abs(jacobian[1]) ) largest = std::abs(jacobian[1]);
+  if( largest < std::abs(jacobian[2]) ) largest = std::abs(jacobian[2]);
 
-  jacobian.at<double>(0,0) = 0.5 * (jacobian.at<double>(0,0)*0.2)/largest;
-  jacobian.at<double>(1,0) = 0.5 * (jacobian.at<double>(1,0)*0.2)/largest;
-  jacobian.at<double>(2,0) = 0.5 * (jacobian.at<double>(2,0)*0.4)/largest;
+  jacobian[0] = 0.5 * (jacobian[0]*0.2)/largest;
+  jacobian[1] = 0.5 * (jacobian[1]*0.2)/largest;
+  jacobian[2] = 0.5 * (jacobian[2]*0.4)/largest;
 
   //jacobian.at<double>(5,0) *= 3;
 
-  largest = std::abs(jacobian.at<double>(3,0));
-  if( largest < std::abs(jacobian.at<double>(4,0)) ) largest = std::abs(jacobian.at<double>(4,0));
-  if( largest < std::abs(jacobian.at<double>(5,0)) ) largest = std::abs(jacobian.at<double>(5,0));
-  if( largest < std::abs(jacobian.at<double>(6,0)) ) largest = std::abs(jacobian.at<double>(6,0));
+  largest = std::abs(jacobian[3]);
+  if( largest < std::abs(jacobian[4]) ) largest = std::abs(jacobian[4]);
+  if( largest < std::abs(jacobian[5]) ) largest = std::abs(jacobian[5]);
+  if( largest < std::abs(jacobian[6]) ) largest = std::abs(jacobian[6]);
 
   for(int i=3;i<7;i++){
-    jacobian.at<double>(i,0) *= 0.5 * (0.007 / largest);
+    jacobian[i] *= 0.5 * (0.007 / largest);
   }
-
-#ifdef SAVEDEBUG_1
-  std::cerr << "Jacobian = " << jacobian << "\n";
-#endif
-
-  return;
-
   
 }
 
 
-
-
-double PWP3D::GetEnergy(const int r, const int c, const float sdf) const {
-
+double PWP3D::GetRegionAgreement(const int r, const int c, const double sdf) {
+  
   const double pixel_probability = (double)frame_->GetClassificationMapROI().at<unsigned char>(r,c)/255.0;
-  const double foreground_probability = pixel_probability;
-  const double background_probability = (1-pixel_probability);
-  
-  double x = (Heaviside(sdf, k_heaviside_width_ * blurring_scale_factor_)*foreground_probability + (1-Heaviside(sdf, k_heaviside_width_ * blurring_scale_factor_))*background_probability);
-  if ( x == std::numeric_limits<double>::infinity() )
-    return 1000;  
-  return x;
-
-}
-
-double PWP3D::GetRegionAgreement(const int r, const int c, const float sdf) {
-  
-  const double alpha = 1.0;//0.3; // DEBUGGING TEST !!!!
-  const double beta = 1.0;//0.7; // DEBUGGING TEST !!!!
-
-  const double pixel_probability = (double)frame_->GetClassificationMapROI().at<unsigned char>(r,c)/255.0;
-  
-  const double foreground_probability = pixel_probability;
-  const double background_probability = (1.0 - pixel_probability);
-
-  const double region_agreement = (foreground_probability - background_probability)/ (Heaviside(sdf, k_heaviside_width_ * blurring_scale_factor_)*foreground_probability + (1.0-Heaviside(sdf, k_heaviside_width_ * blurring_scale_factor_))*background_probability);
+  const double heaviside_value = Heaviside(sdf, k_heaviside_width_ * blurring_scale_factor_);
+    
+#ifdef _DEBUG
+  const double region_agreement = (foreground_probability - background_probability)/ (heaviside_value*foreground_probability + (1.0-heaviside_value)*background_probability);
   if(region_agreement == std::numeric_limits<double>::infinity())
     return 0.0;
-  return region_agreement;
+#endif
+  return (2*pixel_probability - 1)/(heaviside_value*pixel_probability + (1.0-heaviside_value)*(1-pixel_probability));
 
 }
 
+bool PWP3D::GetTargetIntersections(const int r, const int c, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const {
 
+#ifdef _DEBUG 
+  if(front_intersection_image.type() != CV_64FC3) throw(std::runtime_error("Error, the type of the front intersection matrix should be 3xfloat\n"));
+  if(back_intersection_image.type() != CV_64FC3) throw(std::runtime_error("Error, the type of the back intersection matrix should be 3xfloat\n"));
+#endif
 
-bool PWP3D::GetTargetIntersections(const int r, const int c, cv::Vec3d &front_intersection, cv::Vec3d &back_intersection, const KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const {
+  const int index = (r*front_intersection_image.cols + c)*3;
+  memcpy(front_intersection, ((double *)front_intersection_image.data)+index, 3*sizeof(double));
+  memcpy(back_intersection, ((double *)back_intersection_image.data)+index, 3*sizeof(double));
 
-  front_intersection = front_intersection_image.at<cv::Vec3d>(r,c);
-  back_intersection = back_intersection_image.at<cv::Vec3d>(r,c);
-
-  return  front_intersection != cv::Vec3d(0,0,0);
+  return !(front_intersection[0] == 0.0 && front_intersection[1] == 0.0 && front_intersection[2] == 0.0); 
 
 }
 
-
-bool PWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, cv::Vec3d &front_intersection, cv::Vec3d &back_intersection, const KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const {
+bool PWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const {
 
   static const int search_range= 20; //has to be larger than border for search to work!
-  //if(sdf.at<float>(r,c) <  -10 || sdf.at<float>(r,c) >= 0) return false;
-  if(r == 338 && c == 211)
-    int asfjalsfj = 0;
+
   cv::Point2i min_point;
   const cv::Point2i start_pt(c,r);
   float min_dist = std::numeric_limits<float>::max();
@@ -153,66 +113,72 @@ bool PWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat &sdf,
 
   if(min_dist == std::numeric_limits<float>::max()) return false;
 
-  front_intersection = front_intersection_image.at<cv::Vec3d>(min_point.y,min_point.x);
-  back_intersection = back_intersection_image.at<cv::Vec3d>(min_point.y,min_point.x);
-
-  return  front_intersection != cv::Vec3d(0,0,0);
+  return GetTargetIntersections(min_point.y,min_point.x,front_intersection,back_intersection,front_intersection_image,back_intersection_image);
 }
 
-cv::Mat PWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image){
+void PWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const double dSDFdx, const double dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image, PoseDerivs &pd){
 
-  const int NUM_DERIVS = 7;
-     
    //find the (x,y,z) coordinates of the front and back intersection between the ray from the current pixel and the target object. return zero vector for no intersection.
-  cv::Vec3d front_intersection;
-  cv::Vec3d back_intersection;
-  bool intersects = GetTargetIntersections(r,c,front_intersection,back_intersection,current_model,front_intersection_image,back_intersection_image);
+  double front_intersection[3];
+  double back_intersection[3];
+  bool intersects = GetTargetIntersections(r,c,front_intersection,back_intersection,front_intersection_image,back_intersection_image);
   
   //because the derivative only works for points which project to the target and we need it to be defined for points outside the contour, 'pretend' that a small region of these points actually hit the contour
   if(!intersects) {
-    intersects = GetNearestIntersection(r,c,sdf,front_intersection,back_intersection,current_model,front_intersection_image,back_intersection_image);
-    if(!intersects)
-      return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
+    intersects = GetNearestIntersection(r,c,sdf,front_intersection,back_intersection,front_intersection_image,back_intersection_image);
+    if(!intersects){
+      pd = PoseDerivs::Zeros();
+      return;
+    }
   }
 
-  if(front_intersection == cv::Vec3d(0,0,0) || back_intersection == cv::Vec3d(0,0,0)) throw(std::runtime_error("Error, this is a value we should not get!\n"));
+#ifdef _DEBUG
+  if( (front_intersection[0] == 0.0 && front_intersection[1] == 0.0 && front_intersection[2] == 0.0) || (back_intersection[0] == 0.0 && back_intersection[1] == 0.0 && back_intersection[2] == 0.0) )
+    throw(std::runtime_error("Error, this is a value we should not get!\n"));
+  if( front_intersection[2] == 0.0 || back_intersection[2] == 0.0 )
+    throw(std::runtime_error("Error, this is a value we should not get!\n"));
+#endif
 
-
-  //just in case...
-  if(front_intersection[2] == 0) front_intersection[2] = 0.00000001;
   const double z_inv_sq_front = 1.0/(front_intersection[2]*front_intersection[2]);
-  if(back_intersection[2] == 0) back_intersection[2] = 0.00000001;
   const double z_inv_sq_back = 1.0/(back_intersection[2]*back_intersection[2]);
 
-  cv::Mat ret(NUM_DERIVS,1,CV_64FC1);
-  for(int dof=0;dof<NUM_DERIVS;dof++){
+  static double derivs_front[21];
+  static double derivs_back[21];
+  static bool first = true;
+  if(first) {
+    current_model.CurrentPose().SetupFastDOFDerivs(derivs_front);
+    current_model.CurrentPose().SetupFastDOFDerivs(derivs_back);
+    first = false;
+  }
+
+  //front derivs
+  current_model.CurrentPose().GetFastDOFDerivs(derivs_front,front_intersection);
+  current_model.CurrentPose().GetFastDOFDerivs(derivs_back,back_intersection);
+  for(int dof=0;dof<PoseDerivs::NUM_VALS;dof++){
     
     //compute the derivative for each dof
-    const cv::Vec3d dof_derivatives_front = current_model.CurrentPose().GetDOFDerivatives(dof,front_intersection);
-    const cv::Vec3d dof_derivatives_back = current_model.CurrentPose().GetDOFDerivatives(dof,back_intersection);
+    const double *dof_derivatives_front = derivs_front+(3*dof);
+    const double *dof_derivatives_back = derivs_back+(3*dof);
 
-    const double dXdL = camera_->Fx() * (z_inv_sq_front*((front_intersection[2]*dof_derivatives_front[0]) - (front_intersection[0]*dof_derivatives_front[2]))) + camera_->Fx() * (z_inv_sq_back*((back_intersection[2]*dof_derivatives_back[0]) - (back_intersection[0]*dof_derivatives_back[2])));
-    const double dYdL = camera_->Fy() * (z_inv_sq_front*((front_intersection[2]*dof_derivatives_front[1]) - (front_intersection[1]*dof_derivatives_front[2]))) + camera_->Fy() * (z_inv_sq_back*((back_intersection[2]*dof_derivatives_back[1]) - (back_intersection[1]*dof_derivatives_back[2])));
-    ret.at<double>(dof,0) = DeltaFunction(sdf.at<float>(r,c), k_delta_function_std_ * blurring_scale_factor_ ) * ((dSDFdx * dXdL) + (dSDFdy * dYdL));
+    pd[dof] = dSDFdx * (camera_->Fx() * (z_inv_sq_front*((front_intersection[2]*dof_derivatives_front[0]) - (front_intersection[0]*dof_derivatives_front[2]))) + camera_->Fx() * (z_inv_sq_back*((back_intersection[2]*dof_derivatives_back[0]) - (back_intersection[0]*dof_derivatives_back[2]))));
+    pd[dof] += dSDFdy * (camera_->Fy() * (z_inv_sq_front*((front_intersection[2]*dof_derivatives_front[1]) - (front_intersection[1]*dof_derivatives_front[2]))) + camera_->Fy() * (z_inv_sq_back*((back_intersection[2]*dof_derivatives_back[1]) - (back_intersection[1]*dof_derivatives_back[2]))));
+    pd[dof] *= DeltaFunction(sdf.at<float>(r,c), k_delta_function_std_ * blurring_scale_factor_ );
   
   }
-  return ret;
-
+  
 }
-
-
 
 void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sdf_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image) {
 
   //find all the pixels which project to intersection points on the model
   sdf_image = cv::Mat(frame_->GetImageROI().size(),CV_32FC1);
-  front_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_32FC3);
-  back_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_32FC3);
+  front_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_64FC3);
+  back_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_64FC3);
 
   //first draw the model at the current pose
   cv::Mat canvas = cv::Mat::zeros(frame_->GetImageROI().size(),CV_8UC1);
-  boost::shared_ptr<std::vector<Object *> > transformed_points = current_model.ModelPointsAtCurrentPose();
-  DrawModelOnFrame(transformed_points,canvas);
+  Renderer r;
+  r.DrawMesh(current_model.PtrToModel(),canvas,current_model.CurrentPose(),camera_);
 
   //find the set of pixels which correspond to the drawn object
   std::vector<cv::Point2i> set_of_points;
@@ -291,7 +257,7 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
   for(int r=0;r<sdf_image.rows;r++){
     for(int c=0;c<sdf_image.cols;c++){
       if(pixels_intersect.at<unsigned char>(r,c) != 255)
-        sdf_image.at<float>(r,c) *= -1;
+        sdf_image.at<double>(r,c) *= -1;
     }
   }
 
@@ -301,20 +267,20 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
   for(int r=0;r<sdf_image.rows;r++){
     for(int c=0;c<sdf_image.cols;c++){
 
-      const double skip = Heaviside(sdf_image.at<float>(r,c), k_heaviside_width_ * blurring_scale_factor_);
+      const double skip = Heaviside(sdf_image.at<double>(r,c), k_heaviside_width_ * blurring_scale_factor_);
       if( skip < 0.00001 || skip > 0.99999 ) continue;
 
-      cv::Vec3d front_intersection;
-      cv::Vec3d back_intersection;
-      bool intersects = GetTargetIntersections(r,c,front_intersection,back_intersection,current_model,front_intersection_image,back_intersection_image);
+      double front_intersection[3];
+      double back_intersection[3];
+      bool intersects = GetTargetIntersections(r,c,front_intersection,back_intersection,front_intersection_image,back_intersection_image);
 
       //because the derivative only works for points which project to the target and we need it to be defined for points outside the contour, 'pretend' that a small region of these points actually hit the contour
       if(!intersects) {
-        intersects = GetNearestIntersection(r,c,sdf_image,front_intersection,back_intersection,current_model,front_intersection_image,back_intersection_image);
+        intersects = GetNearestIntersection(r,c,sdf_image,front_intersection,back_intersection,front_intersection_image,back_intersection_image);
         if(intersects){
           float random_variable = (float)std::rand()/RAND_MAX; 
           if(random_variable > 0.95)
-            cv::line(nearest_intersection_image,cv::Point2i(c,r),camera_->ProjectPointToPixel(front_intersection),cv::Scalar(255,0,24),1);
+            cv::line(nearest_intersection_image,cv::Point2i(c,r),camera_->ProjectPointToPixel(cv::Point3f(front_intersection[0],front_intersection[1],front_intersection[2])),cv::Scalar(255,0,24),1);
         }
       }
     }
@@ -398,85 +364,6 @@ cv::Point FindNearest(const int r, const int c, cv::Mat im){
 
 }
 
-cv::Mat PWP3D::AlignObjectToEdges(KalmanTracker &current_model, const cv::Mat &frame, const cv::Mat &sdf_image, const cv::Mat &front_projection_image, cv::Mat &save_image) {
-
-  return cv::Mat::zeros(7,1,CV_64FC1);
-
-  cv::Mat blur;
-
-  cv::resize(frame,blur,cv::Size(frame.cols/4,frame.rows/4));
-  
-  cv::Mat edges;
-  cv::imwrite("debug/blurred.png",blur);
-  cv::Canny(blur,edges,7,30);
-  cv::resize(edges,blur,cv::Size(frame.cols,frame.rows));
-  edges = blur;
-  cv::imwrite("debug/edges.png",edges);
-  std::vector<cv::Vec4i> lines;
-  cv::HoughLinesP( edges, lines, 1, CV_PI/180, 60, 40, 10);
-  cv::Mat im = cv::Mat::zeros(frame.size(),CV_8UC1);
-  for( size_t i = 0; i < lines.size(); i++ ){
-    cv::line( im, cv::Point(lines[i][0], lines[i][1]),
-      cv::Point(lines[i][2], lines[i][3]), cv::Scalar(255), 1, 8 );
-  }
-  cv::imwrite("debug/lines.png",im);
-  std::vector<cv::Point>object_points;
-  std::vector<std::pair<cv::Point,cv::Point> >nearest_points;
-  for(int r=0;r<sdf_image.rows;r+=2){
-    for(int c=0;c<sdf_image.cols;c+=2){
-      if(sdf_image.at<float>(r,c) < 1 && sdf_image.at<float>(r,c) > -1.0){
-        object_points.push_back(cv::Point(c,r));
-      }
-    }
-  }
-
-  std::random_shuffle(object_points.begin(),object_points.end());
-  for(auto point = object_points.begin(); point != object_points.end(); point++){
-
-    cv::Point nearest = FindNearest(point->y,point->x,im);
-    if(nearest == cv::Point(-1,-1) || front_projection_image.at<cv::Vec3d>(point->y,point->x) == cv::Vec3d(0,0,0))
-      continue;
-
-    nearest_points.push_back(std::make_pair<>(*point,nearest));
-
-#ifdef SAVEDEBUG_2
-    cv::circle(save_image,*point,2,cv::Scalar(255,0,0),1); //point on object
-    cv::circle(save_image,nearest,2,cv::Scalar(0,0,255),1); //target in image
-    cv::line(save_image,*point,nearest,cv::Scalar(13,189,12),1);
-#endif
-
-    if(nearest_points.size() > 200)
-      break;
-
-  }
-  //static int count = 0;
-  //std::stringstream ss; ss << "image" << count << ".png";
-  //cv::imwrite(ss.str(),canvas);
-  //count++;
-
-  cv::Mat drawim = cv::Mat::zeros(im.size(),CV_8UC3);
-  for(int r=0;r<sdf_image.rows;r+=2){
-    for(int c=0;c<sdf_image.cols;c+=2){
-      drawim.at<cv::Vec3b>(r,c) = cv::Vec3b(edges.at<unsigned char>(r,c),0,0);
-
-    }
-  }
-
-  cv::Mat derivs = cv::Mat::zeros(7,1,CV_64FC1);
-
-  for(auto matched_edge = nearest_points.begin(); matched_edge != nearest_points.end(); matched_edge++){
-
-     cv::Vec3d point_on_object = front_projection_image.at<cv::Vec3d>(matched_edge->first.y,matched_edge->first.x);
-      
-     if(point_on_object == cv::Vec3d(0,0,0))throw(std::runtime_error("Err, should not happen!\n"));
-
-     derivs += register_points_.GetPointDerivative(cv::Point3d(point_on_object),cv::Point2d(matched_edge->second),current_model.CurrentPose());
-
-   }
-   
-   return derivs;//cv::Mat();
- }
-
  bool CheckEdgesForIntersection(const cv::Point &a, const cv::Point &b, const cv::Size &image_size, cv::Point &intersection){
    if(FindIntersection(cv::Point2d(a), cv::Point2d(b), cv::Point2d(0,0), cv::Point2d(0,image_size.height-1),cv::Point2d(intersection))){
      return true;
@@ -490,42 +377,6 @@ cv::Mat PWP3D::AlignObjectToEdges(KalmanTracker &current_model, const cv::Mat &f
   return false;
 }
 
-void PWP3D::DrawModelOnFrame(boost::shared_ptr<std::vector<Object *> > transformed_points, cv::Mat canvas) {
-  
-  for(auto point = transformed_points->begin(); point != transformed_points->end(); ++point ){
-    /*
-    point->
-
-    cv::Vec2d projected = camera_->ProjectPoint(point->vertex_);
-
-    for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
-
-      const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
-      cv::Vec2d projected_neighbour = camera_->ProjectPoint( neighbour.vertex_ );
-
-      if(!PointInImage(cv::Point2i(projected),canvas.size()) || !PointInImage(cv::Point2i(projected_neighbour),canvas.size())){
-        cv::Point intersection;
-        bool intersected = CheckEdgesForIntersection(cv::Point2i(projected),cv::Point2i(projected_neighbour),canvas.size(),intersection);
-        if(intersected && !PointInImage(cv::Point2i(projected),canvas.size()) && PointInImage(cv::Point2i(projected_neighbour),canvas.size())){
-          projected = cv::Vec2i(intersection);          
-        } 
-        else if(intersected && PointInImage(cv::Point2i(projected),canvas.size()) && !PointInImage(cv::Point2i(projected_neighbour),canvas.size())){
-          projected_neighbour = cv::Vec2i(intersection);
-        }
-        else if(!PointInImage(cv::Point2i(projected),canvas.size()) && !PointInImage(cv::Point2i(projected_neighbour),canvas.size())){
-          continue;
-        }
-      }
-
-      if(canvas.channels() == 3)
-        line(canvas,cv::Point2d(projected),cv::Point2d(projected_neighbour),cv::Scalar(255,123,25),1,CV_AA);
-      if(canvas.channels() == 1)
-        line(canvas,cv::Point2d(projected),cv::Point2d(projected_neighbour),(unsigned char)255,1,CV_AA);
-    }
-    */
-  }
-
-}
 
 bool PWP3D::HasGradientDescentConverged_UsingEnergy(std::vector<double> &energy_values) const {
 #ifdef SAVEDEBUG_2

@@ -108,10 +108,8 @@ void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::F
     */
 }
 
-cv::Mat PointRegistration::GetPointDerivative(const cv::Point3d &world, cv::Point2d &image, const Pose &pose) const{
-
-  const int NUM_DERIVS = 7;
-  cv::Mat ret(NUM_DERIVS,1,CV_64FC1);
+void PointRegistration::GetPointDerivative(const cv::Point3d &world, cv::Point2d &image, const Pose &pose, PoseDerivs &pd) const{
+    
   cv::Vec3d front_intersection(world);
 
   if(front_intersection[2] == 0.0) front_intersection[2] = 0.001;
@@ -119,19 +117,15 @@ cv::Mat PointRegistration::GetPointDerivative(const cv::Point3d &world, cv::Poin
 
   cv::Point2d projected_world = camera_->ProjectPointToPixel(world);
 
-  for(int dof=0;dof<NUM_DERIVS;dof++){
+  for(int dof=0;dof<PoseDerivs::NUM_VALS;dof++){
 
     const cv::Vec3d dof_derivatives = pose.GetDOFDerivatives(dof,cv::Vec3d(world));
 
     const double dXdL = camera_->Fx() * (z_inv_sq*((front_intersection[2]*dof_derivatives[0]) - (front_intersection[0]*dof_derivatives[2])));
     const double dYdL = camera_->Fy() * (z_inv_sq*((front_intersection[2]*dof_derivatives[1]) - (front_intersection[1]*dof_derivatives[2])));
-    ret.at<double>(dof,0) = -2*((image.x - projected_world.x)*dXdL + (image.y - projected_world.y)*dYdL);
+    pd[dof] += 2*((image.x - projected_world.x)*dXdL + (image.y - projected_world.y)*dYdL); //-1 * -1
 
   }
-
-  return ret;
-
-
 
 }
 

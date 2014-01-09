@@ -5,6 +5,20 @@
 
 namespace ttrk {
 
+  struct PoseDerivs {
+    
+    void AddValues(const PoseDerivs &pd) { for(int i=0;i<NUM_VALS;++i) vals_[i] += pd.vals_[i]; }
+    void MultiplyByValue(const double region_agreement) { for(int i=0;i<NUM_VALS;++i) vals_[i] *= region_agreement; }
+    const static int NUM_VALS;    
+    double operator[](const int n) const { return vals_[n]; }
+    double &operator[](const int n) { return vals_[n]; }
+    PoseDerivs() : vals_(new double[NUM_VALS]) {}
+    ~PoseDerivs() { delete vals_; }
+    static PoseDerivs Zeros() { PoseDerivs pd; memset(pd.vals_,0,sizeof(double)*NUM_VALS); return pd; }
+    double *vals_;
+   
+  };
+  
   struct Pose {
 
     inline Pose():rotation_(1,cv::Vec3d(0,0,0)),translation_(0,0,0){}
@@ -41,6 +55,8 @@ namespace ttrk {
     }
 
     cv::Vec3d GetDOFDerivatives(const int dof, const cv::Vec3d &point) const ;
+    void GetFastDOFDerivs(double *data, double *point) const;
+    void SetupFastDOFDerivs(double *data) const;
 
     operator cv::Mat() const;
 
@@ -75,6 +91,8 @@ namespace ttrk {
     return p;
 
   }
+
+
 
 
 }

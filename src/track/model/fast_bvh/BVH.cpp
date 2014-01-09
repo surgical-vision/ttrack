@@ -36,12 +36,12 @@ bool BVH::getIntersection(const Ray& ray, IntersectionInfo* intersection, bool o
  while(stackptr>=0) {
   // Pop off the next node to work on.
   int ni = todo[stackptr].i;
-  float near = todo[stackptr].mint;
+  float near_nd = todo[stackptr].mint;
   stackptr--;
   const BVHFlatNode &node(flatTree[ ni ]);
 
   // If this node is further than the closest found intersection, continue
-  if(near > intersection->t)
+  if(near_nd > intersection->t)
    continue;
 
   // Is leaf -> Intersect
@@ -237,4 +237,6 @@ void BVH::build()
 	for(uint32_t n=0; n<nNodes; ++n) 
 		flatTree[n] = buildnodes[n];
 }
+
+#define near
 

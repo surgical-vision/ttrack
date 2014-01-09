@@ -14,6 +14,10 @@ namespace ttrk {
 
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame);
 
+  protected:
+
+    virtual void GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection);
+
   };
 
 

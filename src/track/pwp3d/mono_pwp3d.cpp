@@ -10,22 +10,9 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
   SetBlurringScaleFactor(frame_->GetImageROI().cols);
   const int NUM_STEPS = 50;
   cv::Vec3d initial_translation = current_model.CurrentPose().translation_;
-  static bool first = true;
-
-
-  //store a vector of Pose values. check std. dev. of these values, if this is small enough, assume convergence.
-  std::deque<Pose> convergence_test_values;
-  bool converged = false;
-
-  //values to hold the 'best' pwp3d estimate
-  double max_energy = 0;
-  Pose pwp3d_best_pose = current_model.CurrentPose();
-  std::vector<double> energy_vals;
-
   
-
   //iterate until convergence
-  for(int step=0,pixel_count=0; step < NUM_STEPS && !converged; step++,pixel_count=0){
+  for(int step=0,pixel_count=0; step < NUM_STEPS; ++step,pixel_count=0){
 
     //(x,y,z,w,r1,r2,r3)
     PoseDerivs image_pose_derivatives = PoseDerivs::Zeros();
@@ -37,8 +24,9 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
     cv::Scharr(sdf_image,dSDFdx,CV_64FC1,1,0);
     cv::Scharr(sdf_image,dSDFdy,CV_64FC1,0,1);
 
+    //do region based tracking
     for(int r=0;r<frame_->GetImageROI().rows;r+=3){
-      for(int c=0;c<frame_->GetImageROI().cols;c+=3,pixel_count=0){
+      for(int c=0;c<frame_->GetImageROI().cols;c+=3,++pixel_count){
 
         //speedup tests by checking if we need to evaluate the cost function in this region
         const double skip = Heaviside(sdf_image.at<double>(r,c), k_heaviside_width_ * blurring_scale_factor_);
@@ -57,29 +45,26 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
       }
     }
 
+    //do point based tracking
     std::vector<MatchedPair> pnp_pairs;
     cv::Mat point_save_image = frame_->GetImageROI().clone();
     register_points_.FindPointCorrespondencesWithPose(frame_,current_model.PtrToModel(),current_model.CurrentPose(),point_save_image);
-
     for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
-
       register_points_.GetPointDerivative(pnp->learned_point,cv::Point2d(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose(), image_pose_derivatives);
-      
     } 
 
+    //scale jacobian and update pose
     ApplyGradientDescentStep(image_pose_derivatives,current_model.CurrentPose(),step,pixel_count);
-
-    if(!first)
-      converged = HasGradientDescentConverged_UsingEnergy(energy_vals);
-
-    
+      
   }
   
   //update the velocity model... a bit crude
   cv::Vec3d translational_velocity = current_model.CurrentPose().translation_ - initial_translation;
   current_model.CurrentPose().translational_velocity_ = translational_velocity;
-  first = false;
+  
   return current_model.CurrentPose();
 }
 
-
+void MonoPWP3D::GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection) {
+  pose.GetFastDOFDerivs(pose_derivs,intersection);
+}

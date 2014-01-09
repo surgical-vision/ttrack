@@ -25,6 +25,8 @@ namespace ttrk {
 
   protected:
 
+    virtual void GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection) = 0;
+
     /**
     * Construct a signed distance function of the outer contour of the shape projected into the image plane.
     * @param[in] current_model The model which will be projected to the image plane.

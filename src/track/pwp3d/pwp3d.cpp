@@ -151,9 +151,9 @@ void PWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, con
     first = false;
   }
 
-  //front derivs
-  current_model.CurrentPose().GetFastDOFDerivs(derivs_front,front_intersection);
-  current_model.CurrentPose().GetFastDOFDerivs(derivs_back,back_intersection);
+  GetFastDOFDerivs(current_model.CurrentPose(),derivs_front,front_intersection);
+  GetFastDOFDerivs(current_model.CurrentPose(),derivs_back,back_intersection);
+  
   for(int dof=0;dof<PoseDerivs::NUM_VALS;dof++){
     
     //compute the derivative for each dof
@@ -289,118 +289,6 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
   cv::imwrite("debug/nearest_intersection.png",nearest_intersection_image);
 
 #endif
-
-}
-
-
-bool PWP3D::ModelInFrame( const KalmanTracker &tracked_model, const cv::Mat &detect_image) const {
-
-  const int rows = detect_image.rows;
-  const int cols = detect_image.cols;
-  
-  size_t tp = 0;
-  size_t fp = 0;
-  for(int r=0;r<rows;r++){
-    for(int c=0;c<cols;c++){
-      cv::Vec3d ray = camera_->UnProjectPoint( cv::Point2i(c,r) );
-      //tp += tracked_model.PtrToModel()->GetIntersection(ray, cv::Vec3d() , cv::Vec3d() ,tracked_model.CurrentPose()) && detect_image.at<unsigned char>(r,c) >= 127;
-      //fp += tracked_model.PtrToModel()->GetIntersection(ray, cv::Vec3d() , cv::Vec3d() ,tracked_model.CurrentPose()) && detect_image.at<unsigned char>(r,c) < 127;
-    }
-  }
-  
-  return ((float)tp / (tp+fp) ) > 0.75;
-
-}
-
-cv::Point FindNearest(const int r, const int c, cv::Mat im){
-
-  double distance = std::numeric_limits<double>::max();
-  cv::Point best(-1,-1);
-
-  //std::cout << "MAtching to " << cv::Point(c,r) << std::endl;
-
-  for(int v=1;v<15;v++){
-
-    for( int y = (r-v) ; y < (r+v) ; y++ ){
-      for( int x = (c-v) ; x < c+(2*v)+1 ; x = x +(2*v) ){
-        
-        if(y < 0 || x < 0 || y > im.rows-1 || x > im.cols-1) continue;
-
-        if(im.at<unsigned char>(y,x) == 255) {
-
-          if(distance > l2_distance(cv::Vec2d(y,x),cv::Vec2d(r,c))){
-            distance = l2_distance(cv::Vec2d(y,x),cv::Vec2d(r,c));
-            best = cv::Point(x,y);
-          }
-
-        }
-      }
-    }
-
-    for(int x=(c-v);x<(c+v);x++){
-      for( int y = r-v; y<r+(2*v)+1; y = y+(2*v) ){
-
-        if(y < 0 || x < 0 || y > im.rows-1 || x > im.cols-1) continue;
-
-        if(im.at<unsigned char>(y,x) == 255) {
-
-          if(distance > l2_distance(cv::Vec2d(y,x),cv::Vec2d(r,c))){
-            distance = l2_distance(cv::Vec2d(y,x),cv::Vec2d(r,c));
-            best = cv::Point(x,y);
-          }
-
-        }
-      }
-    }
-
-    if(distance !=std::numeric_limits<float>::max()){
-      //std::cerr << "Matched to " << best << "\n";
-      return best;
-    }
-
-  }
-
-  return cv::Point(-1,-1);
-
-}
-
- bool CheckEdgesForIntersection(const cv::Point &a, const cv::Point &b, const cv::Size &image_size, cv::Point &intersection){
-   if(FindIntersection(cv::Point2d(a), cv::Point2d(b), cv::Point2d(0,0), cv::Point2d(0,image_size.height-1),cv::Point2d(intersection))){
-     return true;
-   }else if(FindIntersection(cv::Point2d(a), cv::Point2d(b), cv::Point2d(0,0), cv::Point2d(image_size.width-1,0) , cv::Point2d(intersection))){
-    return true;
-  }else if(FindIntersection(cv::Point2d(a), cv::Point2d(b), cv::Point2d(0,image_size.height-1), cv::Point2d(image_size.width-1,image_size.height-1),cv::Point2d(intersection))){
-    return true;
-  }else if(FindIntersection(cv::Point2d(a), cv::Point2d(b), cv::Point2d(image_size.width-1,0), cv::Point2d(image_size.width-1,image_size.height-1),cv::Point2d(intersection))){
-    return true;
-  }
-  return false;
-}
-
-
-bool PWP3D::HasGradientDescentConverged_UsingEnergy(std::vector<double> &energy_values) const {
-#ifdef SAVEDEBUG_2
-  std::cerr << "Energy for this step is " << energy_values.back() << "\n";
-#endif
-  const int NUM_VALUES_TO_USE = 7;
-  if(energy_values.size() < NUM_VALUES_TO_USE ) return false;
-
-
-  double energy_change = 0.0;
-  for(auto value = energy_values.end()-(NUM_VALUES_TO_USE); value != energy_values.end()-1; value++ ){
-
-    //std::cerr << "Energy change is: " << *(value+1) - *(value) << "\n";
-    energy_change += *(value+1) - *(value);
-    //std::cerr << "New energy is: " << energy_change << "\n";
-
-  }
-
-  energy_change /= NUM_VALUES_TO_USE - 1;
-#ifdef SAVEDEBUG_2
-  std::cerr << "Current ratio is: " <<  energy_change/energy_values.back() << "\n";
-  std::cerr << "Target ratio for convergence is: " << 1.0/1000 << "\n";
-#endif
-  return !(energy_change/energy_values.back() > 1.0/1000);
 
 }
 

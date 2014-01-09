@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include "Log.h"
+#include <cv.h>
 
 // SSE Vector object
 struct Vector3 {
@@ -32,7 +33,12 @@ struct Vector3 {
    z * b.x - x * b.z, 
    x * b.y - y * b.x
    );
+
 	}
+
+  operator cv::Point3d () const {
+    return cv::Point3d(x,y,z);
+  }
 
  // Handy component indexing 
  double& operator[](const unsigned int i) { return (&x)[i]; }

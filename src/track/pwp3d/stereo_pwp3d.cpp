@@ -18,7 +18,7 @@ bool StereoPWP3D::SetupEye(const int eye, Pose &pose){
 
   }else if(eye == 1){
 
-    Camera() = GetStereoCamera()->rectified_right_eye();
+    Camera() = stereo_camera_->rectified_right_eye();
 
     //swap the roi over in the images so they refer to the right hand image
     stereo_frame->SwapEyes();
@@ -35,7 +35,7 @@ bool StereoPWP3D::SetupEye(const int eye, Pose &pose){
 
   }else{
 
-    Camera() = GetStereoCamera()->rectified_left_eye();
+    Camera() = stereo_camera_->rectified_left_eye();
 
     //swap everything back
     stereo_frame->SwapEyes();
@@ -54,36 +54,44 @@ bool StereoPWP3D::SetupEye(const int eye, Pose &pose){
 
 }
 
-cv::Mat StereoPWP3D::GetPoseDerivativesRightEye(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image){
 
-  const int NUM_DERIVS = 7;
-     
+void StereoPWP3D::GetPoseDerivativesStereo(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image, const size_t eye , PoseDerivs &pd){
+
+   
    //find the (x,y,z) coordinates of the front and back intersection between the ray from the current pixel and the target object. return zero vector for no intersection.
-  cv::Vec3d front_intersection;
-  cv::Vec3d back_intersection;
-  bool intersects = GetTargetIntersections(r,c,front_intersection,back_intersection,current_model, front_intersection_image, back_intersection_image);
+  double front_intersection[3]; //outside of loop?
+  double back_intersection[3]; //outside of loop?
+  bool intersects = GetTargetIntersections(r,c,front_intersection,back_intersection, front_intersection_image, back_intersection_image);
   
   //because the derivative only works for points which project to the target and we need it to be defined for points outside the contour, 'pretend' that a small region of these points actually hit the contour
   if(!intersects) {
-    intersects = GetNearestIntersection(r,c,sdf,front_intersection,back_intersection,current_model, front_intersection_image, back_intersection_image);
+    intersects = GetNearestIntersection(r,c,sdf,front_intersection,back_intersection, front_intersection_image, back_intersection_image);
     if(!intersects)
       //throw(std::runtime_error("Error, should not miss point on the border. Check GetNearestIntesection::search_range and continue values!\n"));
-      return cv::Mat::zeros(NUM_DERIVS,1,CV_64FC1);
+      pd = PoseDerivs::Zeros();
+      return;
   }
 
-
-  //just in case...
-  if(front_intersection[2] == 0) front_intersection[2] = 0.00000001;
   const double z_inv_sq_front = 1.0/(front_intersection[2]*front_intersection[2]);
-  if(back_intersection[2] == 0) back_intersection[2] = 0.00000001;
   const double z_inv_sq_back = 1.0/(back_intersection[2]*back_intersection[2]);
 
-  cv::Mat ret(NUM_DERIVS,1,CV_64FC1);
-  for(int dof=0;dof<NUM_DERIVS;dof++){
+  static double derivs_front[21];
+  static double derivs_back[21];
+  static bool first = true;
+  if(first) {
+    current_model.CurrentPose().SetupFastDOFDerivs(derivs_front);
+    current_model.CurrentPose().SetupFastDOFDerivs(derivs_back);
+    first = false;
+  }
+
+  GetStereoDOFDerivs(derivs_front,front_intersection,current_model.CurrentPose(),eye);
+  GetStereoDOFDerivs(derivs_back,back_intersection,current_model.CurrentPose(),etye);
+  
+  for(int dof=0;dof<PoseDerivs::NUM_VALS;dof++){
 
     //compute the derivative for each dof
-    const cv::Vec3d dof_derivatives_front = GetDOFDerivativesRightEye(dof,current_model.CurrentPose(),front_intersection);
-    const cv::Vec3d dof_derivatives_back = GetDOFDerivativesRightEye(dof,current_model.CurrentPose(),back_intersection);
+    const double *dof_derivatives_front = derivs_front+(3*dof);
+    const double *dof_derivatives_back = derivs_back+(3*dof);
 
     const double dXdL = camera_->Fx() * (z_inv_sq_front*((front_intersection[2]*dof_derivatives_front[0]) - (front_intersection[0]*dof_derivatives_front[2]))) + camera_->Fx() * (z_inv_sq_back*((back_intersection[2]*dof_derivatives_back[0]) - (back_intersection[0]*dof_derivatives_back[2])));
     const double dYdL = camera_->Fy() * (z_inv_sq_front*((front_intersection[2]*dof_derivatives_front[1]) - (front_intersection[1]*dof_derivatives_front[2]))) + camera_->Fy() * (z_inv_sq_back*((back_intersection[2]*dof_derivatives_back[1]) - (back_intersection[1]*dof_derivatives_back[2])));
@@ -95,18 +103,18 @@ cv::Mat StereoPWP3D::GetPoseDerivativesRightEye(const int r, const int c, const 
 }
 
 
-cv::Vec3d StereoPWP3D::GetDOFDerivativesRightEye(const int dof, const Pose &pose, const cv::Vec3d &point_) {
+cv::Vec3d StereoPWP3D::GetDOFDerivativesRightEye(const Pose &pose, const double *point_in_right_coords) {
 
   //derivatives use the (x,y,z) from the initial reference frame not the transformed one so inverse the transformation
   
-  Pose extrinsic;
+  static Pose extrinsic;
   if(stereo_camera_->IsRectified())
     extrinsic = Pose(cv::Vec3d(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
   else
     extrinsic = Pose(stereo_camera_->ExtrinsicTranslation(),sv::Quaternion(stereo_camera_->ExtrinsicRotation()));
 
 
-  const cv::Vec3d point = extrinsic.InverseTransform(point_); //point in left camera coordinates
+  const cv::Vec3d point_in_left_coords = extrinsic.InverseTransform(cv::Vec3d(point_in_right_coords[0],point_in_right_coords[1],point_in_right_coords[2])); //point in left camera coordinates
 
   cv::Vec3d derivs = CombinePoses(extrinsic.Inverse(),pose).GetDOFDerivatives(dof,point); //get derivatives from the perspective of the left camera
 
@@ -116,7 +124,7 @@ cv::Vec3d StereoPWP3D::GetDOFDerivativesRightEye(const int dof, const Pose &pose
 
 void StereoPWP3D::DrawModelOnBothFrames(const KalmanTracker &tracked_model, cv::Mat left_canvas, cv::Mat right_canvas) {
 
-  Camera() = GetStereoCamera()->rectified_left_eye();
+  Camera() = stereo_camera_->rectified_left_eye();
   DrawModelOnFrame(tracked_model.ModelPointsAtCurrentPose(),left_canvas);
   
   KalmanTracker tracked_model_from_right = tracked_model;
@@ -126,10 +134,10 @@ void StereoPWP3D::DrawModelOnBothFrames(const KalmanTracker &tracked_model, cv::
   else
     extrinsic = Pose(stereo_camera_->ExtrinsicTranslation(),sv::Quaternion(stereo_camera_->ExtrinsicRotation()));
   
-  Camera() = GetStereoCamera()->rectified_right_eye();
+  Camera() = stereo_camera_->rectified_right_eye();
   tracked_model_from_right.CurrentPose() = CombinePoses(extrinsic, tracked_model_from_right.CurrentPose());
   DrawModelOnFrame(tracked_model_from_right.ModelPointsAtCurrentPose(),right_canvas);
-  Camera() = GetStereoCamera()->rectified_left_eye();
+  Camera() = stereo_camera_->rectified_left_eye();
 
 }
 
@@ -244,29 +252,28 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
       cv::Mat region_agreement_image = cv::Mat::zeros(sdf_image.size(),CV_8UC3);
 #endif
 
-      //std::cerr << "\n\nCurrently subsampling frame!\n\n";
-
       for(int r=0;r<frame_->GetImageROI().rows;r+=3){
         for(int c=0;c<frame_->GetImageROI().cols;c+=3){
 
           //speedup tests by checking if we need to evaluate the cost function in this region
-          const double skip = Heaviside(sdf_image.at<float>(r,c), k_heaviside_width_ * blurring_scale_factor_);
+          const double skip = Heaviside(sdf_image.at<double>(r,c), k_heaviside_width_ * blurring_scale_factor_);
           if( skip < 0.00001 || skip > 0.99999 ) continue;
 
-          //compute the energy value for this pixel - not used for pose jacobian, just for assessing minima/          
-          energy += GetEnergy(r,c,sdf_image.at<float>(r,c)); 
+          
 #ifdef SAVEDEBUG_2
-          energy_image.at<unsigned char>(r,c) = (unsigned char)(255 * GetEnergy(r,c,sdf_image.at<float>(r,c)));
+          //compute the energy value for this pixel - not used for pose jacobian, just for assessing minima/          
+          energy += GetEnergy(r,c,sdf_image.at<double>(r,c)); 
+          energy_image.at<unsigned char>(r,c) = (unsigned char)(255 * GetEnergy(r,c,sdf_image.at<double>(r,c)));
 #endif
           //P_f - P_b / (H * P_f + (1 - H) * P_b)
-          const double region_agreement = GetRegionAgreement(r, c, sdf_image.at<float>(r,c));
+          const double region_agreement = GetRegionAgreement(r, c, sdf_image.at<double>(r,c));
 
           //dH / dL
           cv::Mat pose_derivatives;
           if(eye == 0)
-            pose_derivatives = GetPoseDerivatives(r, c, sdf_image, dSDFdx.at<float>(r,c), dSDFdy.at<float>(r,c), current_model, front_intersection_image, back_intersection_image);
+            pose_derivatives = GetPoseDerivatives(r, c, sdf_image, dSDFdx.at<double>(r,c), dSDFdy.at<double>(r,c), current_model, front_intersection_image, back_intersection_image);
           else if(eye == 1)
-            pose_derivatives = GetPoseDerivativesRightEye(r, c, sdf_image, dSDFdx.at<float>(r,c), dSDFdy.at<float>(r,c), current_model, front_intersection_image, back_intersection_image);
+            pose_derivatives = GetPoseDerivativesRightEye(r, c, sdf_image, dSDFdx.at<double>(r,c), dSDFdy.at<double>(r,c), current_model, front_intersection_image, back_intersection_image);
           else
             throw(std::runtime_error("Error, bad stereo thing.\n"));
 
@@ -332,10 +339,10 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
       cv::Mat dSDFdy_save(jacobian_x.size(),CV_8UC3);
       for(int r=0;r<heaviside.rows;r++){
         for(int c=0;c<heaviside.cols;c++){
-           heaviside.at<unsigned char>(r,c) = (unsigned char)(255 * Heaviside(sdf_image.at<float>(r,c), k_heaviside_width_ * blurring_scale_factor_));
-        delta.at<unsigned char>(r,c) = (unsigned char)(255 * DeltaFunction(sdf_image.at<float>(r,c),k_delta_function_std_ * blurring_scale_factor_));
-        dSDFdx_save.at<cv::Vec3b>(r,c) = cv::Vec3b((255 * (dSDFdx.at<float>(r,c) > 0)) * (unsigned char)dSDFdx.at<float>(r,c),0,(255 * (dSDFdx.at<float>(r,c) < 0)) * (unsigned char)-dSDFdx.at<float>(r,c));
-        dSDFdy_save.at<cv::Vec3b>(r,c) = cv::Vec3b((255 * (dSDFdy.at<float>(r,c) > 0)) * (unsigned char)dSDFdy.at<float>(r,c),0,(255 * (dSDFdy.at<float>(r,c) < 0)) * (unsigned char)-dSDFdy.at<float>(r,c));
+           heaviside.at<unsigned char>(r,c) = (unsigned char)(255 * Heaviside(sdf_image.at<double>(r,c), k_heaviside_width_ * blurring_scale_factor_));
+        delta.at<unsigned char>(r,c) = (unsigned char)(255 * DeltaFunction(sdf_image.at<double>(r,c),k_delta_function_std_ * blurring_scale_factor_));
+        dSDFdx_save.at<cv::Vec3b>(r,c) = cv::Vec3b((255 * (dSDFdx.at<double>(r,c) > 0)) * (unsigned char)dSDFdx.at<double>(r,c),0,(255 * (dSDFdx.at<double>(r,c) < 0)) * (unsigned char)-dSDFdx.at<double>(r,c));
+        dSDFdy_save.at<cv::Vec3b>(r,c) = cv::Vec3b((255 * (dSDFdy.at<double>(r,c) > 0)) * (unsigned char)dSDFdy.at<double>(r,c),0,(255 * (dSDFdy.at<double>(r,c) < 0)) * (unsigned char)-dSDFdy.at<double>(r,c));
         }
       }
 

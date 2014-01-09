@@ -13,15 +13,13 @@ namespace ttrk {
 
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame);
     
-    boost::shared_ptr<StereoCamera> &GetStereoCamera() { return stereo_camera_; } //* Probably this shouldn't be a reference. Change it so it is not. */
-
   protected:   
 
     void DrawModelOnBothFrames(const KalmanTracker &tracked_model, cv::Mat left_canvas, cv::Mat right_canvas);
 
     
     cv::Vec3d GetDOFDerivativesRightEye(const int dof, const Pose &pose, const cv::Vec3d &point_) ;
-    cv::Mat GetPoseDerivativesRightEye(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image);
+    cv::Vec<double,7> GetPoseDerivativesStereo(const int r, const int c, const cv::Mat &sdf, const float dSDFdx, const float dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image, const size_t eye);
     
     bool SetupEye(const int eye, Pose &pose);
 

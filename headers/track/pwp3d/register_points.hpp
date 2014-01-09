@@ -61,7 +61,7 @@ namespace ttrk {
 
     PointRegistration(boost::shared_ptr<MonocularCamera> camera);
 
-    cv::Mat GetPointDerivative(const cv::Point3d &world, cv::Point2d &image, const Pose &pose) const;
+    void GetPointDerivative(const cv::Point3d &world, cv::Point2d &image, const Pose &pose, PoseDerivs &pd) const ;
     
     void FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, boost::shared_ptr<Model> model, const Pose &pose, cv::Mat &save_image);    
   

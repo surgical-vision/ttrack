@@ -1,4 +1,4 @@
-#include "../../headers/utils/quaternion.hpp"
+#include "../../include/utils/quaternion.hpp"
 
 using namespace sv;
 
@@ -27,22 +27,6 @@ Quaternion Quaternion::FromVectorToVector(const cv::Vec3f &from, const cv::Vec3f
 
   return q.Normalize();
 
-}
-
-Quaternion Quaternion::Normalize() const {
-  
-  //Note boost::math::norm(quaternion) is Cayley norm NOT Euclidean norm...
-  double mag_2 = (internal_quaternion_.R_component_1() * internal_quaternion_.R_component_1()) 
-    + (internal_quaternion_.R_component_2() * internal_quaternion_.R_component_2()) 
-    + (internal_quaternion_.R_component_3() * internal_quaternion_.R_component_3()) 
-    + (internal_quaternion_.R_component_4() * internal_quaternion_.R_component_4());
-      
-  double mag = sqrt(mag_2);
-      
-  return boost::math::quaternion<double>(internal_quaternion_.R_component_1()/mag,
-                                         internal_quaternion_.R_component_2()/mag,
-                                         internal_quaternion_.R_component_3()/mag,
-                                         internal_quaternion_.R_component_4()/mag);
 }
 
 cv::Vec3f Quaternion::RotateVector(const cv::Vec3f &to_rotate) const {

@@ -1,5 +1,5 @@
-#include "../../../headers/track/pwp3d/mono_pwp3d.hpp"
-#include "../../../headers/utils/helpers.hpp"
+#include "../../../include/track/pwp3d/mono_pwp3d.hpp"
+#include "../../../include/utils/helpers.hpp"
 #include<boost/filesystem.hpp>
 using namespace ttrk;
 

@@ -1,4 +1,4 @@
-#include "../../../../headers/track/model/fast_bvh/BBox.h"
+#include "../../../../include/track/model/fast_bvh/BBox.h"
 #include <algorithm>
 
 BBox::BBox(const Vector3& min, const Vector3& max)

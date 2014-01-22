@@ -1,4 +1,4 @@
-#include "../../headers/detect/baseclassifier.hpp"
+#include "../../include/detect/baseclassifier.hpp"
 
 using namespace ttrk;
 

@@ -7,7 +7,7 @@
 #elif defined __linux__
 #endif
 
-
+/*
 int main(int argc, char **argv){
 
   using namespace boost::program_options;
@@ -105,7 +105,7 @@ int main(int argc, char **argv){
   
   ttrk::SAFE_EXIT(0);
 
-}
+}*/
 
 
 

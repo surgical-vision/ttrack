@@ -1,7 +1,7 @@
-#include "../../headers/headers.hpp"
-#include "../../headers/utils/helpers.hpp"
+#include "../../include/headers.hpp"
+#include "../../include/utils/helpers.hpp"
 #include <boost/filesystem.hpp>
-#include "../../headers/utils/exceptions.hpp"
+#include "../../include/utils/exceptions.hpp"
 
 
 cv::Mat &ttrk::ConvertMatSingleToTriple(cv::Mat &im){

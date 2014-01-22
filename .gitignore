@@ -25,6 +25,9 @@ ttrack
 build/ipch
 build/Debug
 build/x64
+build/Release
+build/ttrack_tests/Debug
+build/ttrack_tests/Release
 ipch
 ./ipch/*
 build/ttrack.opensdf

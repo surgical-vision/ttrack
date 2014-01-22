@@ -1,10 +1,10 @@
-#include "../../../headers/track/stt/stereo_tool_tracker.hpp"
-#include "../../../headers/track/pwp3d/stereo_pwp3d.hpp"
+#include "../../../include/track/stt/stereo_tool_tracker.hpp"
+#include "../../../include/track/pwp3d/stereo_pwp3d.hpp"
 #include <fstream>
 #include <stdlib.h>
 #include <time.h> 
-#include "../../../headers/utils/quasi_dense_stereo.hpp"
-#include "../../../headers/utils/helpers.hpp"
+#include "../../../include/utils/quasi_dense_stereo.hpp"
+#include "../../../include/utils/helpers.hpp"
 #include <stdint.h>
 #include <boost/timer.hpp>
 using namespace ttrk;
@@ -38,7 +38,7 @@ bool StereoToolTracker::Init() {
   //for each connected region find the corresponding connected region in the other frame
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
-    KalmanTracker new_tracker( boost::shared_ptr<Model>(new MISTool(model_parameter_file_)) );
+    KalmanTracker new_tracker( boost::shared_ptr<Model>(new ArticulatedTool(model_parameter_file_)) );
  
     tracked_models_.push_back( new_tracker ); 
 
@@ -274,10 +274,10 @@ cv::Vec3d StereoToolTracker::FindCenterOfMass(const cv::Mat &point_cloud) const 
 }
 
 void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const {
-
+  /*
   boost::shared_ptr<std::vector<Object *> > transformed_points = tracked_model.ModelPointsAtCurrentPose();
   for(auto point = transformed_points->begin(); point != transformed_points->end(); point++ ){
-    /*
+   
     cv::Vec2d projected = camera_->rectified_left_eye()->ProjectPoint(point->vertex_);
 
     for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
@@ -290,9 +290,9 @@ void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv:
       if(canvas.channels() == 1)
         line(canvas,cv::Point2d(projected),cv::Point2d(projected_neighbour),(unsigned char)255,1,CV_AA);
     }
-    */
+    
   }
-
+  */
 }
 
 

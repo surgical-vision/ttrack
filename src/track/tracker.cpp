@@ -1,6 +1,6 @@
-#include "../../headers/track/tracker.hpp"
-#include "../../headers/utils/helpers.hpp"
-#include "../../headers/utils/camera.hpp"
+#include "../../include/track/tracker.hpp"
+#include "../../include/utils/helpers.hpp"
+#include "../../include/utils/camera.hpp"
 
 using namespace ttrk;
 

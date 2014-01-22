@@ -1,8 +1,8 @@
-#include "../../headers/detect/im_mask_set.hpp"
-#include "../../headers/headers.hpp"
+#include "../../include/detect/im_mask_set.hpp"
+#include "../../include/headers.hpp"
 #include <boost/filesystem.hpp>
-#include "../../headers/utils/exceptions.hpp"
-#include "../../headers/utils/helpers.hpp"
+#include "../../include/utils/exceptions.hpp"
+#include "../../include/utils/helpers.hpp"
 #include <boost/algorithm/string.hpp>
 
 using namespace ttrk;

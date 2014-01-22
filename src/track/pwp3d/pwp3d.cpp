@@ -1,7 +1,7 @@
-#include "../../../headers/track/pwp3d/pwp3d.hpp"
-#include "../../../headers/utils/helpers.hpp"
+#include "../../../include/track/pwp3d/pwp3d.hpp"
+#include "../../../include/utils/helpers.hpp"
 #include <boost/math/special_functions/fpclassify.hpp>
-#include "../../../headers/utils/renderer.hpp"
+#include "../../../include/utils/renderer.hpp"
 #include <ctime>
 using namespace ttrk;
 
@@ -61,7 +61,7 @@ double PWP3D::GetRegionAgreement(const int r, const int c, const double sdf) {
   const double heaviside_value = Heaviside(sdf, k_heaviside_width_ * blurring_scale_factor_);
     
 #ifdef _DEBUG
-  const double region_agreement = (foreground_probability - background_probability)/ (heaviside_value*foreground_probability + (1.0-heaviside_value)*background_probability);
+  const double region_agreement =  (2*pixel_probability - 1)/(heaviside_value*pixel_probability + (1.0-heaviside_value)*(1-pixel_probability));
   if(region_agreement == std::numeric_limits<double>::infinity())
     return 0.0;
 #endif

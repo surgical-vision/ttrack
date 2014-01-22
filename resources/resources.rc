@@ -1,0 +1,3 @@
+#include "../include/resources.hpp"
+RES_SHADER_FRAG
+RES_SHADER_VERT

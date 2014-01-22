@@ -1,4 +1,4 @@
-#include "../../headers/utils/nd_image.hpp"
+#include "../../include/utils/nd_image.hpp"
 
 using namespace ttrk;
 

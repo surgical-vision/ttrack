@@ -1,5 +1,5 @@
-#include "../../headers/utils/camera.hpp"
-#include "../../headers/utils/helpers.hpp"
+#include "../../include/utils/camera.hpp"
+#include "../../include/utils/helpers.hpp"
 #include <fstream>
 #include <boost/filesystem.hpp>
 

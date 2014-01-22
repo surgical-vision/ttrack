@@ -1,15 +1,45 @@
-#include "../../../headers/track/pwp3d/stereo_pwp3d.hpp"
-#include "../../../headers/utils/helpers.hpp"
+#include "../../../include/track/pwp3d/stereo_pwp3d.hpp"
+#include "../../../include/utils/helpers.hpp"
 #include<boost/filesystem.hpp>
 
 
 using namespace ttrk;
-/*** REMOVE THIS ***/
 
 
-bool StereoPWP3D::SwapEye(Pose &pose){
+void StereoPWP3D::SwapToLeft(Pose &pose){
 
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
+
+  Camera() = stereo_camera_->rectified_left_eye();
+  //swap everything back
+  stereo_frame->SwapEyes();
+  Pose extrinsic;
+  if(stereo_camera_->IsRectified())
+    extrinsic = Pose(cv::Vec3d(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
+  else
+    extrinsic = Pose(stereo_camera_->ExtrinsicTranslation(),sv::Quaternion(stereo_camera_->ExtrinsicRotation()));
+  pose = CombinePoses(extrinsic.Inverse(),pose);
+
+}
+
+
+void StereoPWP3D::SwapToRight(Pose &pose){
+
+  boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
+  Camera() = stereo_camera_->rectified_right_eye();
+  //swap the roi over in the images so they refer to the right hand image
+  stereo_frame->SwapEyes();
+  //also update the object pose so that it's relative to the right eye
+  Pose extrinsic;
+  if(stereo_camera_->IsRectified())
+    extrinsic = Pose(cv::Vec3d(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
+  else
+    extrinsic = Pose(stereo_camera_->ExtrinsicTranslation(),sv::Quaternion(stereo_camera_->ExtrinsicRotation()));
+  pose = CombinePoses(extrinsic, pose);
+
+}
+
+bool StereoPWP3D::SwapEye(Pose &pose){
 
   switch (current_eye_) {
 
@@ -17,63 +47,57 @@ bool StereoPWP3D::SwapEye(Pose &pose){
     return true;
 
   case RIGHT:
-    Camera() = stereo_camera_->rectified_right_eye();
-    //swap the roi over in the images so they refer to the right hand image
-    stereo_frame->SwapEyes();
-    //also update the object pose so that it's relative to the right eye
-    Pose extrinsic;
-    if(stereo_camera_->IsRectified())
-      extrinsic = Pose(cv::Vec3d(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
-    else
-      extrinsic = Pose(stereo_camera_->ExtrinsicTranslation(),sv::Quaternion(stereo_camera_->ExtrinsicRotation()));
-    pose = CombinePoses(extrinsic, pose);
+    SwapToRight(pose);
     return true;
   
   default:
-    Camera() = stereo_camera_->rectified_left_eye();
-    //swap everything back
-    stereo_frame->SwapEyes();
-    Pose extrinsic;
-    if(stereo_camera_->IsRectified())
-      extrinsic = Pose(cv::Vec3d(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
-    else
-      extrinsic = Pose(stereo_camera_->ExtrinsicTranslation(),sv::Quaternion(stereo_camera_->ExtrinsicRotation()));
-    pose = CombinePoses(extrinsic.Inverse(),pose);
+    SwapToLeft(pose);
     return false;
 
   }
 
 }
 
+void StereoPWP3D::GetFastDOFDerivsLeft(const Pose &pose, double *pose_derivs, double *intersection){
+  pose.GetFastDOFDerivs(pose_derivs,intersection);
+}
+
+void StereoPWP3D::GetFastDOFDerivsRight(const Pose &pose, double *pose_derivs, double *intersection){
+  pose.GetFastDOFDerivs(pose_derivs,intersection);
+  static Pose extrinsic;
+  if(stereo_camera_->IsRectified())
+    extrinsic = Pose(cv::Vec3d(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
+  else
+    extrinsic = Pose(stereo_camera_->ExtrinsicTranslation(),sv::Quaternion(stereo_camera_->ExtrinsicRotation()));
+
+  cv::Vec3d point_in_left_coords = extrinsic.InverseTransform(cv::Vec3d(intersection[0],intersection[1],intersection[2])); //point in left camera coordinates
+
+  CombinePoses(extrinsic.Inverse(),pose).GetFastDOFDerivs(pose_derivs,point_in_left_coords.val); //get derivatives from the perspective of the left camera
+
+  //rotate vector and copy it back
+  for(int i=0;i<21;i+=3){
+    cv::Vec3d x = extrinsic.rotation_.RotateVector( cv::Vec3d(pose_derivs[i],pose_derivs[i+1],pose_derivs[i+2]) );
+    memcpy(pose_derivs+i,x.val,3*sizeof(double));
+  }
+}
+
+
+
 void StereoPWP3D::GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection) {
 
   switch( current_eye_ ){
 
   case LEFT: //derivatives are super simple for the left eye
-    pose.GetFastDOFDerivs(pose_derivs,intersection);
+    GetFastDOFDerivsLeft(pose,pose_derivs,intersection);
     break;
 
   case RIGHT: //more complex for the right eye
+    GetFastDOFDerivsRight(pose,pose_derivs,intersection);
+    break;
 
-    pose.GetFastDOFDerivs(pose_derivs,intersection);
-    static Pose extrinsic;
-    if(stereo_camera_->IsRectified())
-      extrinsic = Pose(cv::Vec3d(stereo_camera_->ExtrinsicTranslation()[0],0,0),sv::Quaternion(cv::Mat::eye(3,3,CV_64FC1)));
-    else
-      extrinsic = Pose(stereo_camera_->ExtrinsicTranslation(),sv::Quaternion(stereo_camera_->ExtrinsicRotation()));
-
-    cv::Vec3d point_in_left_coords = extrinsic.InverseTransform(cv::Vec3d(intersection[0],intersection[1],intersection[2])); //point in left camera coordinates
-
-    CombinePoses(extrinsic.Inverse(),pose).GetFastDOFDerivs(pose_derivs,point_in_left_coords.val); //get derivatives from the perspective of the left camera
-
-    //rotate vector and copy it back
-    for(int i=0;i<21;i+=3){
-      cv::Vec3d x = extrinsic.rotation_.RotateVector( cv::Vec3d(pose_derivs[i],pose_derivs[i+1],pose_derivs[i+2]) );
-      memcpy(pose_derivs+i,x.val,3*sizeof(double));
-    }
-  
   default:
     throw(std::runtime_error("Error, something is very wrong...!\n"));
+  
   }
 
 }

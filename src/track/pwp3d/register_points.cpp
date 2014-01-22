@@ -1,12 +1,12 @@
-#include "../../../headers/track/pwp3d/register_points.hpp"
+#include "../../../include/track/pwp3d/register_points.hpp"
 #include <opencv2/contrib/contrib.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/ml/ml.hpp>
 #include <opencv2/nonfree/features2d.hpp>
 #include <opencv2/legacy/legacy.hpp>
 #include <numeric>
-#include "../../../headers/utils/helpers.hpp"
-#include "../../../headers/track/pwp3d/pwp3d.hpp"
+#include "../../../include/utils/helpers.hpp"
+#include "../../../include/track/pwp3d/pwp3d.hpp"
 
 using namespace ttrk;
 

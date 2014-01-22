@@ -1,6 +1,6 @@
-#include "../../../headers/track/stt/monocular_tool_tracker.hpp"
-#include "../../../headers/track/pwp3d/mono_pwp3d.hpp"
-#include "../../../headers/utils/helpers.hpp"
+#include "../../../include/track/stt/monocular_tool_tracker.hpp"
+#include "../../../include/track/pwp3d/mono_pwp3d.hpp"
+#include "../../../include/utils/helpers.hpp"
 
 using namespace ttrk;
 
@@ -22,7 +22,7 @@ bool MonocularToolTracker::Init(){
 
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
-    KalmanTracker new_tracker( boost::shared_ptr<Model>(new MISTool(model_parameter_file_)) );
+    KalmanTracker new_tracker( boost::shared_ptr<Model>(new ArticulatedTool(model_parameter_file_)) );
     tracked_models_.push_back( new_tracker ); 
     Init2DPoseFromMOITensor(*connected_region,tracked_models_.back());
 
@@ -122,7 +122,7 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
 
   tracked_model.SetPose(center_of_mass_3d,central_axis_3d);
 
-  boost::shared_ptr<MISTool> tool = boost::dynamic_pointer_cast<MISTool>(tracked_model.PtrToModel());
+  boost::shared_ptr<ArticulatedTool> tool = boost::dynamic_pointer_cast<ArticulatedTool>(tracked_model.PtrToModel());
 
   cv::Point2i tip = camera_->ProjectPointToPixel( tracked_model.CurrentPose().Transform(tool->GetTrackedPoint()));
 
@@ -170,8 +170,8 @@ const cv::Vec2i MonocularToolTracker::FindCenterOfMass(const std::vector<cv::Vec
 
 void MonocularToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const {
 
-boost::shared_ptr<std::vector<Object *> > transformed_points= tracked_model.ModelPointsAtCurrentPose();
-  for(auto point = transformed_points->begin(); point != transformed_points->end(); point++ ){
+//boost::shared_ptr<std::vector<Object *> > transformed_points= tracked_model.ModelPointsAtCurrentPose();
+  //for(auto point = transformed_points->begin(); point != transformed_points->end(); point++ ){
 
     /*cv::Vec2d projected = camera_->ProjectPoint(point->vertex_);
 
@@ -186,7 +186,7 @@ boost::shared_ptr<std::vector<Object *> > transformed_points= tracked_model.Mode
         line(canvas,cv::Point2d(projected),cv::Point2d(projected_neighbour),(unsigned char)255,1,CV_AA);
     }
     */
-  }
+  //}
 }
 
 

@@ -1,5 +1,5 @@
-#include "../../../headers/track/stt/surgical_tool_tracker.hpp"
-#include "../../../headers/track/pwp3d/pwp3d.hpp"
+#include "../../../include/track/stt/surgical_tool_tracker.hpp"
+#include "../../../include/track/pwp3d/pwp3d.hpp"
 #include "../../../deps/image/image/image.hpp"
 #include <boost/filesystem.hpp>
 

@@ -1,7 +1,7 @@
 #include <algorithm>
-#include "../../../../headers/track/model/fast_bvh/BVH.h"
-#include "../../../../headers/track/model/fast_bvh/Log.h"
-#include "../../../../headers/track/model/fast_bvh/Stopwatch.h"
+#include "../../../../include/track/model/fast_bvh/BVH.h"
+#include "../../../../include/track/model/fast_bvh/Log.h"
+#include "../../../../include/track/model/fast_bvh/Stopwatch.h"
 #include <iostream>
 
 //! Node for storing state information during traversal.

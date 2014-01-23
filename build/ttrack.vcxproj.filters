@@ -135,6 +135,9 @@
     <ClCompile Include="..\src\track\model\articulated_model.cpp">
       <Filter>Source Files\track\model</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\ttrack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\resources\cinder_app_icon.ico">

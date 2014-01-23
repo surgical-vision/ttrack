@@ -44,7 +44,7 @@ namespace ttrk{
     /**
      * A factory method for getting a reference to the singleton TTrack class.
      */
-    static TTrack &Instance(); 
+    static boost::shared_ptr<TTrack> Instance(); 
 
     /**
      * A method to start running the main method of the class. Loops getting a new frame from the video file, classifying it and then detecting the 
@@ -52,7 +52,7 @@ namespace ttrk{
      * @param[in] video_url The url of the video file. Give this relative to root directory.
      */
     void RunVideo(const std::string &video_url);
-    void TTrack::RunVideo(const std::string &left_video_url,const std::string &right_video_url);
+    void RunVideo(const std::string &left_video_url,const std::string &right_video_url);
     
     /**
      * A method to start running the main method of the class. Same features as RunVideo but it inputs still frames from a directory
@@ -125,7 +125,7 @@ namespace ttrk{
     TTrack(const TTrack &);
     TTrack &operator=(const TTrack &);
     static bool constructed_;
-    static boost::scoped_ptr<TTrack> instance_;
+    static boost::shared_ptr<TTrack> instance_;
 
   };
 

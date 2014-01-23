@@ -44,7 +44,7 @@ namespace ttrk {
 
 }
 
-BOOST_AUTO_TEST_CASE( tree_size_test ) {
+BOOST_AUTO_TEST_CASE( model_load_test ) {
 
   ttrk::TestArticulatedTool at("../../resources/intuitive_astree.json"); //load the json file
 

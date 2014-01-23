@@ -17,10 +17,13 @@ using namespace ci::app;
 
 void TTrackApp::setup(){
 
-  time_ = getElapsedSeconds();
-  //mTransform.setToIdentity();
+  const std::string root_dir = "../data/lnd";
 
-  // load and compile the shader
+  t_track_ = ttrk::TTrack::Instance();
+  t_track_->SetUp( root_dir + "/" + "model/model.json", root_dir + "/" + "camera/config.xml", root_dir + "/" + "classifier/config.xml", root_dir + "/" + "results/", ttrk::RF,ttrk::STEREO);
+  
+  time_ = getElapsedSeconds();
+    // load and compile the shader
   //  (note: a shader is not required, but gives a much better visual appearance.
   //	See for yourself by disabling the 'mShader.bind()' call in the draw method.)
   shader_ = gl::GlslProg( loadResource( RES_SHADER_VERT ), loadResource( RES_SHADER_FRAG ) );
@@ -32,10 +35,11 @@ void TTrackApp::setup(){
   //ImageSourceRef img = loadImage( loadResource( RES_DUCKY_TEX ) );
   //if(img) mTexture = gl::Texture( img, format );
 
+  //CameraStereo cam;
   CameraPersp cam;
-  cam.setEyePoint( Vec3f(5.0f, 20.0f, 8.0f) );
-  cam.setCenterOfInterestPoint( Vec3f(0.0f, 20.0f, 0.0f) );
-  cam.setPerspective( 60.0f, getWindowAspectRatio(), 1.0f, 1000.0f );
+  cam.setEyePoint( Vec3f(0.0f, 0.0f, 0.0f) );
+  cam.setCenterOfInterestPoint( Vec3f(0.0f, 0.0f, 10.0f) );
+  cam.setPerspective( 90.0f, getWindowAspectRatio(), 1.0f, 1000.0f );
   maya_cam_.setCurrentCam( cam );
 
 

@@ -6,15 +6,13 @@ using namespace ttrk;
 inline void LoadMesh(ci::TriMesh *mesh, ci::JsonTree &tree, const std::string &root_dir){
 
   boost::filesystem::path file = boost::filesystem::path(root_dir) / boost::filesystem::path(tree["file"].getValue<std::string>());
-  std::string x = file.string();
-  //ci::ObjLoader loader(ci::loadFile( file.string() ));
-  //loader.load( mesh );
+  ci::ObjLoader loader(ci::loadFile( file.string() ));
+  loader.load( mesh );
 
 }
 
 void ArticulatedNode::LoadData(ci::JsonTree &tree, ArticulatedNode::Ptr parent, const std::string &root_dir) {
 
-  bool hasfile = tree.hasChild("file");
   LoadMesh(&model_,tree,root_dir);
   transform_.setToIdentity();
   articulation_.setToIdentity();
@@ -90,7 +88,6 @@ void ArticulatedTool::LoadFromJsonFile(const std::string &json_file){
 
 ArticulatedTool::ArticulatedTool(const std::string &model_parameter_file) : articulated_model_(new ArticulatedTree) {
 
- 
   const std::string ext = boost::filesystem::path(model_parameter_file).extension().string();
 
   if( ext == ".json" )

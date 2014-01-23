@@ -129,6 +129,7 @@
     <ClCompile Include="..\src\track\stt\stereo_tool_tracker.cpp" />
     <ClCompile Include="..\src\track\stt\surgical_tool_tracker.cpp" />
     <ClCompile Include="..\src\track\tracker.cpp" />
+    <ClCompile Include="..\src\ttrack.cpp" />
     <ClCompile Include="..\src\ttrack_app.cpp" />
     <ClCompile Include="..\src\utils\camera.cpp" />
     <ClCompile Include="..\src\utils\handler.cpp" />

@@ -6,9 +6,8 @@
 #include <cinder/ImageIo.h>
 #include <cinder/MayaCamUI.h>
 #include <cinder/Rand.h>
-#include <cinder/TriMesh.h>
-#include <cinder/ObjLoader.h>
-#include <cinder/Json.h>
+
+#include "ttrack.hpp"
 
 using namespace ci;
 using namespace ci::app;
@@ -21,11 +20,7 @@ public:
   void update();
   void draw();
 
-  //~Picking3DApp() { delete aj; } 
-
   void drawGrid(float size=100.0f, float step=10.0f);
-
-  //bool performPicking( Vec3f *pickedPoint, Vec3f *pickedNormal );
 
   void mouseMove( MouseEvent event );
   void mouseDown( MouseEvent event );
@@ -45,6 +40,13 @@ protected:
 
   // keep track of time
   double time_;
+
+  //TTrack factory
+  boost::shared_ptr<ttrk::TTrack> t_track_;
+
+  boost::shared_ptr<sv::Frame> current_frame_;
+
+  std::vector<ttrk::KalmanTracker
 
 };
 

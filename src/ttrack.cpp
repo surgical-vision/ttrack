@@ -1,12 +1,12 @@
-#include "../headers/ttrack.hpp"
-#include "../headers/utils/helpers.hpp"
+#include "../include/ttrack.hpp"
+#include "../include/utils/helpers.hpp"
 #include <boost/ref.hpp>
 #include <vector>
 #include <cassert>
 #include <string>
-#include "../headers/track/stt/stereo_tool_tracker.hpp"
-#include "../headers/track/stt/monocular_tool_tracker.hpp"
-#include "../headers/utils/result_plotter.hpp"
+#include "../include/track/stt/stereo_tool_tracker.hpp"
+#include "../include/track/stt/monocular_tool_tracker.hpp"
+#include "../include/utils/result_plotter.hpp"
 
 using namespace ttrk;
 
@@ -69,7 +69,12 @@ void TTrack::Run(){
   }
   
 }  
+//return the current frame
+void TTrack::UpdateFrame(boost::shared_ptr<sv::Frame> current_frame, std::vector<boost::shared_ptr<KalmanTracker> > tracked_models){
 
+
+
+}
 void TTrack::RunVideo(const std::string &video_url){
   
   tracker_->Tracking(false); 
@@ -192,7 +197,7 @@ boost::shared_ptr<sv::Frame> TTrack::GetPtrToClassifiedFrame(){
 
 bool TTrack::constructed_ = false;
 
-boost::scoped_ptr<TTrack> TTrack::instance_(new TTrack);
+boost::shared_ptr<TTrack> TTrack::instance_(new TTrack);
 
 TTrack::TTrack(){}
 
@@ -218,12 +223,12 @@ TTrack &TTrack::operator=(const TTrack &that){
 
 }
 
-TTrack &TTrack::Instance(){
+boost::shared_ptr<TTrack> TTrack::Instance(){
   if(!constructed_){
     instance_.reset(new TTrack());
     constructed_ = true;
   }
-  return *(instance_.get());
+  return instance_;
 }
 
 

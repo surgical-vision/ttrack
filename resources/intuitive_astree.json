@@ -1,12 +1,12 @@
 {
-  "body" : 
+  "root" : 
     { 
-    "file" : "c:/Users/max/Desktop/body.obj",
+    "file" : "body.obj",
     "articulated" : false,
     "child" : 
       {
       
-        "file" : "c:/Users/max/Desktop/head_at_center.obj",
+        "file" : "head_at_center.obj",
         "articulated" : true,
         "max_angle" : 0.25,
         "min_angle" : 0.25,
@@ -22,45 +22,44 @@
             "y": 0,
             "z" : 1
           },
-        "child" : 
-          [
-            {
-              "file" : "c:/Users/max/Desktop/clasper1_at_center.obj",
-              "articulated" : true,
-              "max_angle" : 0.30,
-              "min_angle" : -0.30,
-              "center" : 
-                {
-                  "x" : 0.0083226,
-                  "y" : 0.354,
-                  "z" : 0.00864
-                },
-              "axis" : 
-                {
-                  "x" : 1,
-                  "y" : 0,
-                  "z" : 0
-                }
-            },
-            {
-              "file" : "c:/Users/max/Desktop/clasper2_at_center.obj",
-              "articulated" : true,
-              "max_angle" : 0.30,
-              "min_angle" : -0.30,
-              "center" : 
-                {
-                  "x" : 0.0083226,
-                  "y" : 0.354,
-                  "z" : 0.00864
-                },
-              "axis" : 
-                {
-                  "x" : 1,
-                  "y" : 0,
-                  "z" : 0
-                }
-            }
-          ]
+        "child_1" : 
+          {
+            "file" : "clasper1_at_center.obj",
+            "articulated" : true,
+            "max_angle" : 0.30,
+            "min_angle" : -0.30,
+            "center" : 
+              {
+                "x" : 0.0083226,
+                "y" : 0.354,
+                "z" : 0.00864
+              },
+            "axis" : 
+              {
+                "x" : 1,
+                "y" : 0,
+                "z" : 0
+              }
+          },
+        "child_2" : 
+          {
+            "file" : "clasper2_at_center.obj",
+            "articulated" : true,
+            "max_angle" : 0.30,
+            "min_angle" : -0.30,
+            "center" : 
+              {
+                "x" : 0.0083226,
+                "y" : 0.354,
+                "z" : 0.00864
+              },
+            "axis" : 
+              {
+                "x" : 1,
+                "y" : 0,
+                "z" : 0
+              }
+          }  
       }
   }
   

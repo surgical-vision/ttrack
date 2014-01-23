@@ -3,6 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ttrack", "ttrack.vcxproj", "{228AE26E-02EB-491B-8499-59A652A2A63C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ttrack_tests", "ttrack_tests\ttrack_tests.vcxproj", "{9FA3168A-98CC-4BA5-A617-974EFCCB0809}"
+	ProjectSection(ProjectDependencies) = postProject
+		{228AE26E-02EB-491B-8499-59A652A2A63C} = {228AE26E-02EB-491B-8499-59A652A2A63C}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(TestCaseManagementSettings) = postSolution

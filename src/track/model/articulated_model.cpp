@@ -3,21 +3,65 @@
 #include "cinder/Json.h"
 using namespace ttrk;
 
-inline void LoadMesh(ci::TriMesh *mesh, ci::JsonTree::ConstIter iter){
+inline void LoadMesh(ci::TriMesh *mesh, ci::JsonTree &tree, const std::string &root_dir){
 
-  ci::ObjLoader loader(ci::loadFile( (*iter)["file"].getValue<std::string>() ));
-  loader.load( mesh );
+  boost::filesystem::path file = boost::filesystem::path(root_dir) / boost::filesystem::path(tree["file"].getValue<std::string>());
+  std::string x = file.string();
+  //ci::ObjLoader loader(ci::loadFile( file.string() ));
+  //loader.load( mesh );
 
 }
 
-void ArticulatedTool::ParseJsonTree(ci::JsonTree &jt, ArticulatedNode::Ptr node){
+void ArticulatedNode::LoadData(ci::JsonTree &tree, ArticulatedNode::Ptr parent, const std::string &root_dir) {
 
+  bool hasfile = tree.hasChild("file");
+  LoadMesh(&model_,tree,root_dir);
+  transform_.setToIdentity();
+  articulation_.setToIdentity();
+  parent_ = parent;
+
+  movable_ = tree["articulated"].getValue<bool>();
+
+  if( !movable_ ) return;
+
+  center_of_mass_[0] = tree["center"]["x"].getValue<double>() ;
+  center_of_mass_[1] = tree["center"]["y"].getValue<double>() ;
+  center_of_mass_[2] = tree["center"]["z"].getValue<double>() ;
+
+  transform_.translate(center_of_mass_);
+
+  axis_of_rotation_[0] = tree["axis"]["x"].getValue<double>() ;
+  axis_of_rotation_[1] = tree["axis"]["y"].getValue<double>() ;
+  axis_of_rotation_[2] = tree["axis"]["z"].getValue<double>() ;
+
+  max_angle_ = tree["max_angle"].getValue<double>();
+  min_angle_ = tree["min_angle"].getValue<double>();
+  
+ }
+
+ci::Matrix44d ArticulatedNode::GetTransform() {
+  
+  if( parent_ != 0x0 ){
+    return parent_->GetTransform() * transform_ * articulation_ ;
+  }else{
+    return transform_ * articulation_  ; //root node returns this
+  }
+
+}
+
+
+
+void ArticulatedTool::ParseJsonTree(ci::JsonTree &jt, ArticulatedNode::Ptr node, ArticulatedNode::Ptr parent, const std::string &root_dir){
+
+  node->LoadData(jt,parent,root_dir);
+ 
+  //node->children_.back()->LoadData(jt,node,root_dir);
+    
   for(auto child = jt.begin(); child != jt.end(); ++child){
-
-    node->children_.push_back( ArticulatedNode::Ptr(new ArticulatedNode) );
-    node->children_.back()->LoadData(*child,node);
-    ParseJsonTree(*child,node->children_.back());
-
+    if(child->getKey().find("child") != std::string::npos){
+      node->children_.push_back( ArticulatedNode::Ptr(new ArticulatedNode) );
+      ParseJsonTree(*child,node->children_.back(), node, root_dir); //
+    }
   }
 
 }
@@ -28,21 +72,23 @@ void ArticulatedTool::LoadFromJsonFile(const std::string &json_file){
 
     ci::JsonTree loader(ci::loadFile(json_file));
 
-    ParseJsonTree(loader,articulated_model_->RootNode());
+    ParseJsonTree(loader.getChild("root"),articulated_model_->RootNode(),ArticulatedNode::Ptr(),boost::filesystem::path(json_file).parent_path().relative_path().string());
 
   }catch(ci::Exception &e){
 
-    
+    if( ! boost::filesystem::exists(json_file) )
+      std::cout << "Error, cannot find file : " << json_file << std::endl;
+
+    std::cout << e.what() << "\n";
+    std::cout.flush();
 
   }
-
-
 
 }
 
 
 
-ArticulatedTool::ArticulatedTool(const std::string &model_parameter_file) {
+ArticulatedTool::ArticulatedTool(const std::string &model_parameter_file) : articulated_model_(new ArticulatedTree) {
 
  
   const std::string ext = boost::filesystem::path(model_parameter_file).extension().string();
@@ -52,77 +98,19 @@ ArticulatedTool::ArticulatedTool(const std::string &model_parameter_file) {
   else
     throw(std::runtime_error("Error, supported file type.\n"));
 
-  //for each child
-
- 
-
-    /*
-
-
-    ArticulatedComponent ac;
-    
-
-    ac.name_ =  (*tree_iter)["name"].getValue<std::string>();
-
-    ac.transform_.setToIdentity();
-    ac.articulation_.setToIdentity();
-
-    if( !(*tree_iter)["articulated"].getValue<bool>() ) {
-
-      ac.movable_ = false;
-      //ac.acp_ = models_.end();
-      ac.rel_to = "";
-
-    }else{
-
-      ac.movable_ = true;
-      ac.com_[0] = (*tree_iter)["center"]["x"].getValue<double>() ;
-      ac.com_[1] = (*tree_iter)["center"]["y"].getValue<double>() ;
-      ac.com_[2] = (*tree_iter)["center"]["z"].getValue<double>() ;
-
-      ac.transform_.translate(ac.com_);
-
-      ac.axis_[0] = (*tree_iter)["axis"]["x"].getValue<double>() ;
-      ac.axis_[1] = (*tree_iter)["axis"]["y"].getValue<double>() ;
-      ac.axis_[2] = (*tree_iter)["axis"]["z"].getValue<double>() ;
-
-      ac.max_angle_ = (*tree_iter)["max_angle"].getValue<double>();
-      ac.min_angle_ = (*tree_iter)["min_angle"].getValue<double>();
-
-      ac.rel_to = (*tree_iter)["relative_to"].getValue<std::string>();
-
-      //ac.acp_ = std::find(models_.begin(),models_.end(),(*tree_iter)["relative_to"].getValue<std::string>());
-
-
-    }
-
-
-
-
-    models_.push_back(ac);
-
-
-  }
-
-  for(auto model = models_.begin(); model != models_.end(); ++model){
-
-    model->acp_ = std::find(models_.begin(),models_.end(),model->rel_to);
-
-  }
-  */
-
 }
 
 
 void IntuitiveSurgicalLND::RotateHead(const double angle) {
 
-
+  body_->Rotate(angle);
 
 }
 
 
 void IntuitiveSurgicalLND::RotateClaspers(const double angle_1,const double angle_2) {
 
-
+  clasper_left_->Rotate(angle_1);
+  clasper_right_->Rotate(angle_2);
 
 }

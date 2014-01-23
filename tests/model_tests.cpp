@@ -7,14 +7,14 @@
 
 namespace ttrk {
 
-  class TestArticulatedTool : public ArticulatedTool {
+  class TestArticulatedTool : public IntuitiveSurgicalLND {
 
   public:
-    TestArticulatedTool(const std::string &s) : ArticulatedTool(s) {}
+    TestArticulatedTool(const std::string &s) : IntuitiveSurgicalLND(s) {}
 
     ci::Matrix44f getTransformationToEndNode(int child) const { 
       ArticulatedNode::Ptr root_node = articulated_model_->RootNode();
-      return root_node->children_[0]->children_[child]->getTransform();
+      return root_node->children_[0]->children_[child]->GetTransform();
     }
 
     int getNumberOfRootNodeChildren() {
@@ -46,7 +46,7 @@ namespace ttrk {
 
 BOOST_AUTO_TEST_CASE( tree_size_test ) {
 
-  ttrk::TestArticulatedTool at("somefile.json"); //load the json file
+  ttrk::TestArticulatedTool at("../../resources/intuitive_astree.json"); //load the json file
 
   BOOST_ASSERT( at.getNumberOfRootNodeChildren() == 1 );
 
@@ -54,23 +54,24 @@ BOOST_AUTO_TEST_CASE( tree_size_test ) {
 
   BOOST_ASSERT( at.getNumberOfSecondChildChildren() == 0);
 
+  //at.RotateHead(0.01);
+  at.RotateClaspers(0.01,0.01);
 
+  ci::Matrix44d end_node_left = at.getTransformationToEndNode(0);
+  ci::Matrix44d end_node_right = at.getTransformationToEndNode(1);
 
-  ci::Matrix44f end_node_left = at.getTransformationToEndNode(0);
-  ci::Matrix44f end_node_right = at.getTransformationToEndNode(1);
+  ci::Matrix44d test1;
+  test1.setToIdentity();
+  test1.at(0,3) = 0.0078226;
+  test1.at(1,1) = 0.99995;
+  test1.at(1,2) = -0.00999983;
+  test1.at(1,3) = 18.1565;
+  test1.at(2,1) = 0.00999983;
+  test1.at(2,2) = 0.99995;
+  test1.at(2,3) = -6.24917e-007;
+
+  BOOST_ASSERT( test1 == end_node_left );
+  BOOST_ASSERT( test1 == end_node_right );
+
 }
 
-/* after 0.01 rads rotations
-clasper1 
- |           1           0           0   0.0078226|
- |           0     0.99995 -0.00999983     18.1565|
- |           0  0.00999983     0.99995-6.24917e-007|
- |           0           0           0           1|
-
-clasper2 
- |           1           0           0   0.0078226|
- |           0     0.99995 -0.00999983     18.1565|
- |           0  0.00999983     0.99995-6.24917e-007|
- |           0           0           0           1|
-
- */

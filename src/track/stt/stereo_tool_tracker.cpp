@@ -38,7 +38,7 @@ bool StereoToolTracker::Init() {
   //for each connected region find the corresponding connected region in the other frame
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
-    KalmanTracker new_tracker( boost::shared_ptr<Model>(new ArticulatedTool(model_parameter_file_)) );
+    KalmanTracker new_tracker( boost::shared_ptr<Model>(new IntuitiveSurgicalLND(model_parameter_file_)) );
  
     tracked_models_.push_back( new_tracker ); 
 

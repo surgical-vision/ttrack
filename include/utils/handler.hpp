@@ -24,6 +24,8 @@ namespace ttrk{
     virtual void SetOutputFileName(const std::string &url) = 0;   
     void SaveDebug(const std::vector< ImAndName > &to_save) const;
     virtual bool Done() { return done_; }
+    virtual int GetFrameWidth() = 0;
+    virtual int GetFrameHeight() = 0;
 
   protected:
 
@@ -42,7 +44,9 @@ namespace ttrk{
     virtual void SaveFrame(const cv::Mat image);
     virtual void SetInputFileName(const std::string &url);
     virtual void SetOutputFileName(const std::string &url);   
-       
+    virtual int GetFrameWidth() { return (int)cap_.get(CV_CAP_PROP_FRAME_WIDTH); }
+    virtual int GetFrameHeight() { return (int)cap_.get(CV_CAP_PROP_FRAME_HEIGHT); }
+
   private:
 
     cv::VideoCapture cap_;
@@ -73,7 +77,9 @@ namespace ttrk{
     virtual void SaveFrame(const cv::Mat image);
     virtual void SetInputFileName(const std::string &url);
     virtual void SetOutputFileName(const std::string &url);
-    
+    virtual int GetFrameWidth() { if(!paths_.size()) return 0; auto i = cv::imread(paths_[0]); return i.cols; }
+    virtual int GetFrameHeight() { if(!paths_.size()) return 0; auto i = cv::imread(paths_[0]); return i.rows; }
+
   private:
 
     std::vector<std::string> paths_;

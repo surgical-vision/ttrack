@@ -15,7 +15,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
 #include "../deps/image/image/image.hpp"
-
+#include <queue>
+#include <boost/thread/mutex.hpp>
 /**
  * @namespace ttrk
  * This is the namespace for the tool tracking project.
@@ -38,34 +39,39 @@ namespace ttrk{
     
   public:
     
+    typedef std::pair<boost::shared_ptr<sv::Frame>,std::vector<KalmanTracker> > ImageRenderSet;
+
     static void Destroy();
     ~TTrack();
     
     /**
      * A factory method for getting a reference to the singleton TTrack class.
      */
-    static boost::shared_ptr<TTrack> Instance(); 
+    //static boost::shared_ptr<TTrack> Instance(); 
+    static TTrack &Instance();
+
+    void operator()() { Run(); }
 
     /**
      * A method to start running the main method of the class. Loops getting a new frame from the video file, classifying it and then detecting the 
      * instruments in it. Per-frame pose is saved in out_posefile file and video in the out_videofile file.
      * @param[in] video_url The url of the video file. Give this relative to root directory.
      */
-    void RunVideo(const std::string &video_url);
-    void RunVideo(const std::string &left_video_url,const std::string &right_video_url);
+    //void RunVideo(const std::string &video_url);
+    //void RunVideo(const std::string &left_video_url,const std::string &right_video_url);
     
     /**
      * A method to start running the main method of the class. Same features as RunVideo but it inputs still frames from a directory
      * @param[in] image_url The url of the directory where the images are stored. Give this relative to root directory.
      */
-    void RunImages(const std::string &image_url);
+    //void RunImages(const std::string &image_url);
     
     /**
      * A method for saving the current frame in output directory. 
      */
     void SaveFrame();
     
-   
+    void GetWindowSize(int &width, int &height);
 
     /**
      * Setup the tracking system with the files it needs to find, localize and track the objects.
@@ -76,12 +82,19 @@ namespace ttrk{
      * @param classifier_type Specify the type of classifier.
      * @param camera_type Stereo or monocular camera?
      */
-    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type);
+    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type, const std::string &left_media_file,const std::string &right_media_file);
+    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type, const std::string &media_file);
     //void SetUp(std::string root_dir, const ClassifierType classifier_type, const CameraType camera_type);
-   
+
+
+    bool GetLatestUpdate(ImageRenderSet &irs); 
     
 
   protected:
+    
+    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type);
+
+    void AddToQueue();
 
     /**
      * Draw the model at the current pose onto the canvas image ready for it to be saved
@@ -119,13 +132,16 @@ namespace ttrk{
     
     CameraType camera_type_;
 
+    boost::mutex mutex_;
+    std::queue< ImageRenderSet > processed_frames_;
+
   private:
 
     TTrack();
     TTrack(const TTrack &);
     TTrack &operator=(const TTrack &);
     static bool constructed_;
-    static boost::shared_ptr<TTrack> instance_;
+    static boost::scoped_ptr<TTrack> instance_;
 
   };
 

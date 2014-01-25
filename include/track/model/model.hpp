@@ -9,6 +9,7 @@
 #include "fast_bvh/BVH.h"
 #include "fast_bvh/Triangle.h"
 #include "cinder/TriMesh.h"
+#include <utility>
 
 namespace ttrk{
 
@@ -30,6 +31,8 @@ namespace ttrk{
     * Delete the model.
     */
     virtual ~Model(){}
+
+    typedef std::pair< boost::shared_ptr<ci::TriMesh> , ci::Matrix44d > MeshAndTransform;
 
     /**
     * Provides access to the points. As the model may be implemented as a parametrised shape or similar 
@@ -53,6 +56,7 @@ namespace ttrk{
     cv::Vec3d GetTrackedPoint() const { return tracked_point_; }
     cv::Vec3d SetTrackedPoint(const cv::Vec3d &tracked_point) { tracked_point_ = tracked_point ; }
 
+    virtual std::vector< MeshAndTransform > GetRenderableMeshes() { ci::Matrix44d eye; eye.setToIdentity(); std::vector<MeshAndTransform> v; v.push_back(std::make_pair(model_,eye)); return v; }
 
   protected:
 

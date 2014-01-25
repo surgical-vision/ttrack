@@ -101,8 +101,9 @@ bool SurgicalToolTracker::FindConnectedRegions(const cv::Mat &image,std::vector<
 
   //draw contours around the connected regions returning a vector of each connected region
   std::vector<std::vector<cv::Point> >contours;
+     
   GetContours(image,contours);
-  
+  /*
   //iterate over the contours, finding the number of pixels they enclose and store those above a heuristic threshold
   for(size_t i=0;i<contours.size();i++){
    
@@ -112,6 +113,10 @@ bool SurgicalToolTracker::FindConnectedRegions(const cv::Mat &image,std::vector<
     if(connected_region.size() > 0.028*image.rows*image.cols) connected_regions.push_back(connected_region);
       
   } 
+  
+  */
+
+  //connected_regions.push_back(pt);
 
   //did we find any that were big enough?
   return connected_regions.size() > 0;

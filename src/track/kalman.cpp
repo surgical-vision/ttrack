@@ -6,7 +6,23 @@ KalmanTracker::KalmanTracker(const KalmanTracker &that){
   model_ = that.model_;
   pose_ = that.pose_;
   save_file_ = that.save_file_;
+  filter_ = that.filter_;
+  that.temporary_update_pose_.copyTo(temporary_update_pose_);
   //
+}
+
+KalmanTracker &KalmanTracker::operator=(const KalmanTracker &kt){
+
+  KalmanTracker copy(kt);
+
+  std::swap(model_,copy.model_);
+  std::swap(pose_,copy.pose_);
+  std::swap(save_file_,copy.save_file_);
+  std::swap(filter_,copy.filter_);
+  std::swap(temporary_update_pose_,copy.temporary_update_pose_);
+  
+  return *this;
+
 }
 
 void KalmanTracker::SetPose(const cv::Vec3d translation, const cv::Vec3d rotated_principal_axis) {

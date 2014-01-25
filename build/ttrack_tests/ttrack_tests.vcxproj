@@ -12,6 +12,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\tests\model_tests.cpp" />
+    <ClCompile Include="..\..\tests\pose_tests.cpp" />
+    <ClCompile Include="..\..\tests\ttrack_tests.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{9FA3168A-98CC-4BA5-A617-974EFCCB0809}</ProjectGuid>

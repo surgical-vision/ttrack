@@ -1,7 +1,5 @@
 //#define BOOST_TEST_MAIN
 
-#define BOOST_TEST_MODULE model_test
-
 #include <boost/test/unit_test.hpp>
 #include "../include/track/model/articulated_model.hpp"
 
@@ -44,6 +42,9 @@ namespace ttrk {
 
 }
 
+
+BOOST_AUTO_TEST_SUITE( model_test_suite )
+
 BOOST_AUTO_TEST_CASE( model_load_test ) {
 
   ttrk::TestArticulatedTool at("../../resources/intuitive_astree.json"); //load the json file
@@ -75,3 +76,4 @@ BOOST_AUTO_TEST_CASE( model_load_test ) {
 
 }
 
+BOOST_AUTO_TEST_SUITE_END()

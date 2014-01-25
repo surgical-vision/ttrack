@@ -7,8 +7,32 @@
 #include "../include/track/stt/stereo_tool_tracker.hpp"
 #include "../include/track/stt/monocular_tool_tracker.hpp"
 #include "../include/utils/result_plotter.hpp"
+#include <boost/interprocess/sync/scoped_lock.hpp>
+#include <boost/system/error_code.hpp>
 
 using namespace ttrk;
+
+void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type, const std::string &left_media_file,const std::string &right_media_file){
+  
+  SetUp(model_parameter_file,camera_calibration_file,classifier_path,results_dir,classifier_type,camera_type);
+  tracker_->Tracking(false); 
+  handler_.reset(new StereoVideoHandler(left_media_file,right_media_file, results_dir_ + "/tracked_video.avi"));
+
+}
+
+void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type, const std::string &media_file){
+
+  SetUp(model_parameter_file,camera_calibration_file,classifier_path,results_dir,classifier_type,camera_type);
+  tracker_->Tracking(false); 
+  if(IS_VIDEO(boost::filesystem::path(media_file).extension().string()))
+    handler_.reset(new VideoHandler(media_file, results_dir_ + "/tracked_video.avi"));
+  else if(boost::filesystem::is_directory(boost::filesystem::path(media_file)))
+    handler_.reset(new ImageHandler(media_file, results_dir_ + "/tracked_frames/"));
+  else
+    throw(boost::filesystem::filesystem_error("Error, wrong file type\n",boost::system::error_code()));  
+
+}
+
 
 void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type){
   
@@ -50,8 +74,6 @@ void TTrack::Run(){
 
   (*detector_)( GetPtrToNewFrame() ); 
   
-  int count = 0;
-
   while( !handler_->Done() ){ //signals done by reading an empty image file either from a video or a directory of images
     
     boost::thread TrackThread(boost::ref(*(tracker_.get())), GetPtrToClassifiedFrame() , detector_->Found() );
@@ -60,22 +82,46 @@ void TTrack::Run(){
     TrackThread.join();
     DetectThread.join();
     
-    SaveFrame();
-    SaveResults();
-    
-    if (count > 400) break;
-    count++;
+    break;
+    //SaveFrame();
+    //SaveResults();
+ 
+    AddToQueue();
 
   }
   
 }  
-//return the current frame
-void TTrack::UpdateFrame(boost::shared_ptr<sv::Frame> current_frame, std::vector<boost::shared_ptr<KalmanTracker> > tracked_models){
 
+void TTrack::GetWindowSize(int &width, int &height) {
 
+  width = handler_->GetFrameWidth();
+  height = handler_->GetFrameHeight();
 
 }
-void TTrack::RunVideo(const std::string &video_url){
+
+
+void TTrack::AddToQueue(){
+
+  boost::interprocess::scoped_lock<boost::mutex> m(mutex_);
+
+  ImageRenderSet irs( frame_, tracker_->TrackedModels() );
+
+  processed_frames_.push(irs);
+
+}
+
+bool TTrack::GetLatestUpdate(ImageRenderSet &irs) {
+
+  boost::interprocess::scoped_lock<boost::mutex> m(mutex_);
+
+  if( processed_frames_.empty()) return false;
+
+  irs = processed_frames_.front();
+  processed_frames_.pop();
+  
+}
+
+/*void TTrack::RunVideo(const std::string &video_url){
   
   tracker_->Tracking(false); 
   handler_.reset(new VideoHandler(video_url, results_dir_ + "/tracked_video.avi"));
@@ -96,7 +142,7 @@ void TTrack::RunImages(const std::string &image_url){
   Run();
 
 }
-
+*/
 
 void TTrack::SaveFrame(){
 
@@ -223,12 +269,12 @@ TTrack &TTrack::operator=(const TTrack &that){
 
 }
 
-boost::shared_ptr<TTrack> TTrack::Instance(){
+TTrack &TTrack::Instance(){
   if(!constructed_){
     instance_.reset(new TTrack());
     constructed_ = true;
   }
-  return instance_;
+  return *(instance_.get());
 }
 
 

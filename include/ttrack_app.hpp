@@ -42,11 +42,9 @@ protected:
   double time_;
 
   //TTrack factory
-  boost::shared_ptr<ttrk::TTrack> t_track_;
+  //boost::shared_ptr<ttrk::TTrack> t_track_;
 
-  boost::shared_ptr<sv::Frame> current_frame_;
-
-  std::vector<ttrk::KalmanTracker
+  ttrk::TTrack::ImageRenderSet irs_;
 
 };
 

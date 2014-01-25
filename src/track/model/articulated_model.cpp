@@ -3,17 +3,18 @@
 #include "cinder/Json.h"
 using namespace ttrk;
 
-inline void LoadMesh(ci::TriMesh *mesh, ci::JsonTree &tree, const std::string &root_dir){
+inline void LoadMesh(boost::shared_ptr<ci::TriMesh> mesh, ci::JsonTree &tree, const std::string &root_dir){
 
   boost::filesystem::path file = boost::filesystem::path(root_dir) / boost::filesystem::path(tree["file"].getValue<std::string>());
   ci::ObjLoader loader(ci::loadFile( file.string() ));
-  loader.load( mesh );
+  mesh.reset(new ci::TriMesh);
+  loader.load( mesh.get() );
 
 }
 
 void ArticulatedNode::LoadData(ci::JsonTree &tree, ArticulatedNode::Ptr parent, const std::string &root_dir) {
 
-  LoadMesh(&model_,tree,root_dir);
+  LoadMesh(model_,tree,root_dir);
   transform_.setToIdentity();
   articulation_.setToIdentity();
   parent_ = parent;
@@ -46,8 +47,6 @@ ci::Matrix44d ArticulatedNode::GetTransform() {
   }
 
 }
-
-
 
 void ArticulatedTool::ParseJsonTree(ci::JsonTree &jt, ArticulatedNode::Ptr node, ArticulatedNode::Ptr parent, const std::string &root_dir){
 
@@ -84,8 +83,6 @@ void ArticulatedTool::LoadFromJsonFile(const std::string &json_file){
 
 }
 
-
-
 ArticulatedTool::ArticulatedTool(const std::string &model_parameter_file) : articulated_model_(new ArticulatedTree) {
 
   const std::string ext = boost::filesystem::path(model_parameter_file).extension().string();
@@ -93,17 +90,15 @@ ArticulatedTool::ArticulatedTool(const std::string &model_parameter_file) : arti
   if( ext == ".json" )
     LoadFromJsonFile(model_parameter_file);
   else
-    throw(std::runtime_error("Error, supported file type.\n"));
+    throw(std::runtime_error("Error, unsupported file type.\n"));
 
 }
-
 
 void IntuitiveSurgicalLND::RotateHead(const double angle) {
 
   body_->Rotate(angle);
 
 }
-
 
 void IntuitiveSurgicalLND::RotateClaspers(const double angle_1,const double angle_2) {
 

@@ -20,6 +20,8 @@ namespace ttrk {
     //KalmanTracker() : save_file_(new std::ofstream), model_(new Model {}
     KalmanTracker(boost::shared_ptr<Model> model):save_file_(new std::ofstream),model_(model),filter_(14,7,0,CV_32F){}   
     KalmanTracker(const KalmanTracker &that);
+    KalmanTracker &operator=(const KalmanTracker &kt);
+
 
     void SetPose(const cv::Vec3d translation, const cv::Vec3d rotated_principal_axis); 
     void SetPose(const Pose &p);
@@ -43,7 +45,7 @@ namespace ttrk {
     
     cv::KalmanFilter filter_; /**< The Kalman Filter used to track the class. */
     boost::shared_ptr<Model> model_; /**< The tracked model. */
-    cv::Mat temporary_update_pose; /**< A store for the pose update. May be removed. */
+    cv::Mat temporary_update_pose_; /**< A store for the pose update. May be removed. */
 
     Pose pose_; /**< The pose of the model. */
 

@@ -2,6 +2,7 @@
 #define __POSE_HPP__
 
 #include "../../deps/quaternion/inc/quaternion.hpp"
+#include <cinder/Matrix44.h>
 
 namespace ttrk {
 
@@ -29,11 +30,22 @@ namespace ttrk {
 
     Pose operator=(const cv::Mat &that);
 
+    ci::Matrix44d AsCiMatrix();
+
     inline Pose(const Pose &that){
       translation_ = that.translation_;
       rotation_ = that.rotation_;
       translational_velocity_ = that.translational_velocity_;
     }
+
+    inline Pose &operator=(const Pose &rhs){
+      Pose tmp(rhs);
+      std::swap(translation_,tmp.translation_);
+      std::swap(rotation_,tmp.rotation_);
+      std::swap(translational_velocity_,tmp.translational_velocity_);
+      return *this;
+    }
+
 
     inline cv::Vec3d Transform(const cv::Vec3d &to_transform) const {
       return rotation_.RotateVector(to_transform) + translation_;

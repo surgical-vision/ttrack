@@ -78,9 +78,6 @@
     <ClCompile Include="..\src\track\pwp3d\mono_pwp3d.cpp">
       <Filter>Source Files\track\pwp3d</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\track\pwp3d\pose.cpp">
-      <Filter>Source Files\track\pwp3d</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\track\pwp3d\pwp3d.cpp">
       <Filter>Source Files\track\pwp3d</Filter>
     </ClCompile>
@@ -137,6 +134,9 @@
     </ClCompile>
     <ClCompile Include="..\src\ttrack.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\track\pwp3d\pose.cpp">
+      <Filter>Source Files\track</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

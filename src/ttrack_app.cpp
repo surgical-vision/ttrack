@@ -164,9 +164,9 @@ void TTrackApp::resize(){
 
 
 
-//CINDER_APP_NATIVE( TTrackApp, RendererGl )
+CINDER_APP_NATIVE( TTrackApp, RendererGl )
 
-
+/*
 #include <boost/program_options.hpp> 
 #include "../include/utils/helpers.hpp"
 
@@ -279,4 +279,4 @@ int main(int argc, char **argv){
   ttrk::SAFE_EXIT(0);
 
 }
-
+*/

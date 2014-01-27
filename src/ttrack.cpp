@@ -243,7 +243,7 @@ boost::shared_ptr<sv::Frame> TTrack::GetPtrToClassifiedFrame(){
 
 bool TTrack::constructed_ = false;
 
-boost::shared_ptr<TTrack> TTrack::instance_(new TTrack);
+boost::scoped_ptr<TTrack> TTrack::instance_(new TTrack);
 
 TTrack::TTrack(){}
 

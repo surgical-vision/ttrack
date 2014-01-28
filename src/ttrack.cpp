@@ -1,3 +1,4 @@
+#include "../include/ttrack_app.hpp"
 #include "../include/ttrack.hpp"
 #include "../include/utils/helpers.hpp"
 #include <boost/ref.hpp>
@@ -9,6 +10,7 @@
 #include "../include/utils/result_plotter.hpp"
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/system/error_code.hpp>
+
 
 using namespace ttrk;
 
@@ -47,7 +49,6 @@ void TTrack::SetUp(const std::string &model_parameter_file, const std::string &c
     //load the correct type of tool tracker
     switch(camera_type_){
     case STEREO:
-      //tracker_.reset(new StereoToolTracker(2.97,50,*root_dir_ + "/config" , "camera.xml"));
       tracker_.reset(new StereoToolTracker(model_parameter_file,camera_calibration_file));
       break;
     case MONOCULAR:
@@ -81,10 +82,6 @@ void TTrack::Run(){
 
     TrackThread.join();
     DetectThread.join();
-    
-    break;
-    //SaveFrame();
-    //SaveResults();
  
     AddToQueue();
 
@@ -104,7 +101,7 @@ void TTrack::AddToQueue(){
 
   boost::interprocess::scoped_lock<boost::mutex> m(mutex_);
 
-  ImageRenderSet irs( frame_, tracker_->TrackedModels() );
+  ImageRenderSet irs( new ImageRenderSetContainer(frame_, tracker_->TrackedModels()) );
 
   processed_frames_.push(irs);
 
@@ -118,31 +115,8 @@ bool TTrack::GetLatestUpdate(ImageRenderSet &irs) {
 
   irs = processed_frames_.front();
   processed_frames_.pop();
-  
+  return true;
 }
-
-/*void TTrack::RunVideo(const std::string &video_url){
-  
-  tracker_->Tracking(false); 
-  handler_.reset(new VideoHandler(video_url, results_dir_ + "/tracked_video.avi"));
-  Run();
- 
-}
-
-void TTrack::RunVideo(const std::string &left_video_url,const std::string &right_video_url){
-  tracker_->Tracking(false); 
-  handler_.reset(new StereoVideoHandler(left_video_url, right_video_url, results_dir_ + "/tracked_video.avi"));
-  Run();
-}
-
-void TTrack::RunImages(const std::string &image_url){
-
-  tracker_->Tracking(false);
-  handler_.reset(new ImageHandler(image_url, results_dir_ + "/tracked_frames/"));
-  Run();
-
-}
-*/
 
 void TTrack::SaveFrame(){
 

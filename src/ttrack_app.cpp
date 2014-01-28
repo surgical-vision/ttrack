@@ -12,6 +12,7 @@
 #include <vector>
 #include <utility>
 #include <boost/ref.hpp>
+#include "CinderOpenCV.h"
 
 using namespace ci;
 using namespace ci::app;
@@ -20,39 +21,30 @@ void TTrackApp::setup(){
 
   const std::string root_dir = "../data/lnd";
 
-  //t_track_ = ttrk::TTrack::Instance();
-  auto &tt = ttrk::TTrack::Instance();
-  //t_track_->SetUp( root_dir + "/" + "model/model.json", root_dir + "/" + "camera/config.xml", root_dir + "/" + "classifier/config.xml", root_dir + "/" + "results/", ttrk::RF,ttrk::STEREO, root_dir + "/left.avi",root_dir + "/right.avi");
-  tt.SetUp( root_dir + "/" + "model/model.json", root_dir + "/" + "camera/config.xml", root_dir + "/" + "classifier/config.xml", root_dir + "/" + "results/", ttrk::RF,ttrk::STEREO, root_dir + "/left.avi",root_dir + "/right.avi");
+  auto &ttrack = ttrk::TTrack::Instance();
+  ttrack.SetUp( root_dir + "/" + "model/model.json", root_dir + "/" + "camera/config.xml", root_dir + "/" + "classifier/config.xml", root_dir + "/" + "results/", ttrk::RF,ttrk::STEREO, root_dir + "/left.avi",root_dir + "/right.avi");
   
   time_ = getElapsedSeconds();
-    // load and compile the shader
-  //  (note: a shader is not required, but gives a much better visual appearance.
-  //	See for yourself by disabling the 'mShader.bind()' call in the draw method.)
+ 
   shader_ = gl::GlslProg( loadResource( RES_SHADER_VERT ), loadResource( RES_SHADER_FRAG ) );
 
   // load the texture
   //  (note: enable mip-mapping by default)
-  gl::Texture::Format format;
-  format.enableMipmapping(true);			
+		
+  
   //ImageSourceRef img = loadImage( loadResource( RES_DUCKY_TEX ) );
   //if(img) mTexture = gl::Texture( img, format );
-
-  //boost::thread TTrackThread(boost::ref(*t_track_.get()));
-  //(*t_track_)();
-  tt();
+ 
+  
+  boost::thread main_thread( boost::ref(ttrack) );
   
   //CameraStereo cam;
   CameraPersp cam;
-  cam.setEyePoint( Vec3f(0.0f, 0.0f, 0.0f) );
-  cam.setCenterOfInterestPoint( Vec3f(0.0f, 0.0f, 10.0f) );
-  cam.setPerspective( 90.0f, getWindowAspectRatio(), 1.0f, 1000.0f );
+  cam.setEyePoint( Vec3f(0.0f,0.0f,0.0f) );
+  cam.setCenterOfInterestPoint( Vec3f(0.0f, 0.0f, 40.0f) );
+  cam.setPerspective( 70.0f, getWindowAspectRatio(), 1.0f, 1000.0f );
   maya_cam_.setCurrentCam( cam );
-
-  int width,height;
-  //t_track_->GetWindowSize(width,height);
-  setWindowSize(width,height);
-
+    
 }
 
 void TTrackApp::update(){
@@ -60,66 +52,32 @@ void TTrackApp::update(){
   double elapsed = getElapsedSeconds() - time_;
   time_ = getElapsedSeconds();
 
-  auto &tt = ttrk::TTrack::Instance();
-  tt.GetLatestUpdate(irs_);
-  //t_track_->GetLatestUpdate(irs_);
+  auto &ttrack = ttrk::TTrack::Instance();
+  if(!ttrack.GetLatestUpdate(irs_))
+    return;
+  
+  ci::ImageSourceRef img = ci::fromOcv( irs_->first->GetImageROI() );
+  frame_texture_ = gl::Texture( img );
 
 }
 
-void TTrackApp::draw(){
+void TTrackApp::draw3D() {
 
-  auto area = gl::getViewport();
-  
+  if(!irs_) return;
 
-  gl::clear( Colorf(0.5f, 0.5f, 0.5f) );
-  // set up the camera 
   gl::pushMatrices();
   gl::setMatrices( maya_cam_.getCamera() );
+  gl::enableAlphaBlending();
 
   // enable the depth buffer (after all, we are doing 3D)
   gl::enableDepthRead();
   gl::enableDepthWrite();
 
-  // draw the grid on the floor
-  drawGrid();
-
-  // bind the texture
-  //mTexture.bind();
-
   // bind the shader and tell it to use our texture
-  shader_.bind();
-  shader_.uniform("tex0", 0);
-
-  // draw the mesh 
-  //  (note: reset current color to white so the actual texture colors show up)
-  gl::color( Color::white() );
-  //  (note: apply transformations to the model)
-
-  for(auto model = irs_.second.begin(); model != irs_.second.end(); ++model)  {
-    auto meshs_and_transforms = model->PtrToModel()->GetRenderableMeshes();
-    ci::Matrix44d current_pose = model->CurrentPose().AsCiMatrix();
-    for(auto mesh_and_transform = meshs_and_transforms.begin();mesh_and_transform != meshs_and_transforms.end();++mesh_and_transform){
-      gl::pushModelView();
-      gl::multModelView(current_pose * mesh_and_transform->second);
-      gl::draw( *mesh_and_transform->first );
-      gl::popModelView();
-    }
-  }
-
-  // unbind the shader and texture
-  shader_.unbind();
-  //mTexture.unbind();
-
-  // perform 3D picking now, so we can draw the intersection as a sphere
-  Vec3f pickedPoint, pickedNormal;
-  //if( performPicking( &pickedPoint, &pickedNormal ) ) {
-  gl::color( ColorAf(0.0f, 1.0f, 0.0f, 0.5f) );
-  // draw an arrow to the picked point along its normal
-  gl::drawVector( pickedPoint + pickedNormal, pickedPoint );
-
-  // draw bubbles 
-  gl::color( Colorf(0.1f, 0.2f, 0.25f) );
-  gl::enableAdditiveBlending();
+  drawMeshes();
+  
+  
+  //gl::enableAdditiveBlending();
 
   gl::disableAlphaBlending();
 
@@ -127,15 +85,52 @@ void TTrackApp::draw(){
 
 }
 
+void TTrackApp::draw2D() {
+      
+  if( frame_texture_ )
+    gl::draw(frame_texture_, getWindowBounds() );
 
-void TTrackApp::drawGrid(float size, float step){
-	gl::color( Colorf(0.2f, 0.2f, 0.2f) );
-  for(float i=-size;i<=size;i+=step) {
-    gl::drawLine( Vec3f(i, 0.0f, -size), Vec3f(i, 0.0f, size) );
-    gl::drawLine( Vec3f(-size, 0.0f, i), Vec3f(size, 0.0f, i) );
+}
+
+void TTrackApp::drawMeshes() {
+
+  gl::color( Color::white() );
+
+  for(auto model = irs_->second.begin(); model != irs_->second.end(); ++model)  {
+    auto meshes_textures_transforms = model->PtrToModel()->GetRenderableMeshes();
+    ci::Matrix44d current_pose = model->CurrentPose().AsCiMatrix();
+
+    for(auto mesh_tex_trans = meshes_textures_transforms.begin();mesh_tex_trans != meshes_textures_transforms.end();++mesh_tex_trans){
+      
+      auto texture = mesh_tex_trans->get<1>();
+      //texture->bind();
+      shader_.bind();
+      //shader_.uniform("tex0", 0);
+      
+      gl::pushModelView();
+      gl::multModelView(current_pose * mesh_tex_trans->get<2>());
+      
+      const auto trimesh = (*mesh_tex_trans).get<0>();
+      gl::draw( *trimesh );
+      
+      gl::popModelView();
+      shader_.unbind();
+      //texture->unbind();
+
+    }
   }
 }
 
+
+void TTrackApp::draw(){
+
+ 	gl::clear( Color( 0.0f, 0.0f, 0.0f ) , true ); //set the screen to black and clear the depth buffer
+  
+  draw2D();
+
+	draw3D();
+
+}
 
 
 void TTrackApp::mouseMove( MouseEvent event ){

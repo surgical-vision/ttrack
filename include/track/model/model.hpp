@@ -8,8 +8,11 @@
 #include "../../utils/camera.hpp"
 #include "fast_bvh/BVH.h"
 #include "fast_bvh/Triangle.h"
-#include "cinder/TriMesh.h"
+#include <cinder/TriMesh.h>
+#include <cinder/gl/gl.h>
+#include <cinder/gl/Texture.h>
 #include <utility>
+#include <boost/tuple/tuple.hpp>
 
 namespace ttrk{
 
@@ -32,7 +35,9 @@ namespace ttrk{
     */
     virtual ~Model(){}
 
-    typedef std::pair< boost::shared_ptr<ci::TriMesh> , ci::Matrix44d > MeshAndTransform;
+    
+    typedef boost::tuple<boost::shared_ptr<ci::TriMesh>, boost::shared_ptr<ci::gl::Texture>, ci::Matrix44d> MeshTextureAndTransform;
+    //typedef std::pair< boost::shared_ptr<ci::TriMesh> , ci::Matrix44d > MeshAndTransform;
 
     /**
     * Provides access to the points. As the model may be implemented as a parametrised shape or similar 
@@ -56,7 +61,7 @@ namespace ttrk{
     cv::Vec3d GetTrackedPoint() const { return tracked_point_; }
     cv::Vec3d SetTrackedPoint(const cv::Vec3d &tracked_point) { tracked_point_ = tracked_point ; }
 
-    virtual std::vector< MeshAndTransform > GetRenderableMeshes() { ci::Matrix44d eye; eye.setToIdentity(); std::vector<MeshAndTransform> v; v.push_back(std::make_pair(model_,eye)); return v; }
+    virtual std::vector< MeshTextureAndTransform > GetRenderableMeshes() { ci::Matrix44d eye; eye.setToIdentity(); std::vector<MeshTextureAndTransform> v; v.push_back(MeshTextureAndTransform(model_,texture_,eye)); return v; }
 
   protected:
 
@@ -64,6 +69,7 @@ namespace ttrk{
 
     cv::Vec3d tracked_point_;
     boost::shared_ptr<ci::TriMesh> model_;
+    boost::shared_ptr<ci::gl::Texture> texture_;
     
   };
  

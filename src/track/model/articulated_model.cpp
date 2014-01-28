@@ -1,20 +1,33 @@
 #include "../../../include/track/model/articulated_model.hpp"
-#include "cinder/ObjLoader.h"
-#include "cinder/Json.h"
+#include <cinder/ObjLoader.h>
+#include <cinder/Json.h>
+#include <cinder/ImageIo.h>
+#include <cinder/app/App.h>
+#include <cinder/gl/Texture.h>
+
 using namespace ttrk;
 
-inline void LoadMesh(boost::shared_ptr<ci::TriMesh> mesh, ci::JsonTree &tree, const std::string &root_dir){
+inline void LoadMeshAndTexture(boost::shared_ptr<ci::TriMesh> &mesh, boost::shared_ptr<ci::gl::Texture> &texture, ci::JsonTree &tree, const std::string &root_dir){
 
   boost::filesystem::path file = boost::filesystem::path(root_dir) / boost::filesystem::path(tree["file"].getValue<std::string>());
+  if(!boost::filesystem::exists(file)) throw(std::runtime_error("Error, the file doens't exist!\n"));
   ci::ObjLoader loader(ci::loadFile( file.string() ));
   mesh.reset(new ci::TriMesh);
   loader.load( mesh.get() );
+
+  file = boost::filesystem::path(root_dir) / boost::filesystem::path(tree["texture"].getValue<std::string>());
+  if(!boost::filesystem::exists(file)) throw(std::runtime_error("Error, the file doens't exist!\n"));
+  
+  ci::gl::Texture::Format format;
+  format.enableMipmapping(true);	
+  ci::ImageSourceRef img = ci::loadImage( file.string() );
+  if(img) texture.reset( new ci::gl::Texture( img, format ));
 
 }
 
 void ArticulatedNode::LoadData(ci::JsonTree &tree, ArticulatedNode::Ptr parent, const std::string &root_dir) {
 
-  LoadMesh(model_,tree,root_dir);
+  LoadMeshAndTexture(model_,texture_,tree,root_dir);
   transform_.setToIdentity();
   articulation_.setToIdentity();
   parent_ = parent;

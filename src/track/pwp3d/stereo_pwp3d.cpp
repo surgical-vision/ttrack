@@ -105,6 +105,9 @@ void StereoPWP3D::GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
  
   frame_ = frame;
+
+  return current_model.CurrentPose();
+
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
   SetBlurringScaleFactor(stereo_frame->GetLeftImage().cols);
   const int NUM_STEPS = 15;

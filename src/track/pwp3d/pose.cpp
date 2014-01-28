@@ -33,7 +33,8 @@ ci::Matrix44d Pose::AsCiMatrix(){
 
   cv::Vec3d euler = rotation_.EulerAngles();
   ci::Matrix44d ret = ci::Matrix44d::createRotation(ci::Vec3d(euler[0],euler[1],euler[2]));
-  ret.translate( ci::Vec3d(translation_[0],translation_[1],translation_[2]) );
+  //ret.translate( ci::Vec3d(translation_[0],translation_[1],translation_[2]) );
+  for(int i=0;i<3;i++) ret.at(i,3) = translation_[i];
   
   return ret;
   

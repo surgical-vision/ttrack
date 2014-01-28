@@ -39,7 +39,8 @@ namespace ttrk{
     
   public:
     
-    typedef std::pair<boost::shared_ptr<sv::Frame>,std::vector<KalmanTracker> > ImageRenderSet;
+    typedef std::pair<boost::shared_ptr<sv::Frame>,std::vector<KalmanTracker> > ImageRenderSetContainer;
+    typedef boost::shared_ptr<ImageRenderSetContainer> ImageRenderSet;
 
     static void Destroy();
     ~TTrack();

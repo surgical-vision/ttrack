@@ -29,8 +29,13 @@ public:
 
 protected:
   // shader and texture for our model
-  gl::GlslProg	shader_;
-  gl::Texture		texture_;
+  gl::GlslProg shader_;
+  gl::Texture	frame_texture_;
+  gl::Texture	model_texture_;
+
+  void draw2D();
+  void draw3D();
+  void drawMeshes();
 
   // our camera
   MayaCamUI	maya_cam_;

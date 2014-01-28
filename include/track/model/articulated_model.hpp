@@ -2,6 +2,7 @@
 #define __ARTICULATED_MODEL_HPP__
 #include "model.hpp"
 #include <cinder/Json.h>
+#include <cinder/gl/gl.h>
 
 namespace ttrk {
 
@@ -19,7 +20,6 @@ namespace ttrk {
     ci::Vec3d center_of_mass_;
     ci::Vec3d axis_of_rotation_;
 
-    //bool direction_; (use negative angles)
     bool movable_;
 
     ci::Matrix44d	transform_; //const
@@ -31,6 +31,7 @@ namespace ttrk {
     std::vector<ArticulatedNode::Ptr> children_;
 
     boost::shared_ptr<ci::TriMesh> model_;   
+    boost::shared_ptr<ci::gl::Texture> texture_;
 
   };
 
@@ -65,23 +66,30 @@ namespace ttrk {
     */
     ArticulatedTool(const std::string &model_parameter_file);
 
-    virtual std::vector< MeshAndTransform > GetRenderableMeshes() { 
-      std::vector<MeshAndTransform> v; 
+    virtual std::vector< MeshTextureAndTransform > GetRenderableMeshes() { 
+      std::vector<MeshTextureAndTransform> v; 
       //HACK need to write iterators that return depth first and breadth first search of tree
-      v.push_back(std::make_pair(articulated_model_->RootNode()->model_,articulated_model_->RootNode()->GetTransform()));  
-      v.push_back(std::make_pair(articulated_model_->RootNode()->children_[0]->model_,articulated_model_->RootNode()->children_[0]->GetTransform()));  
-      v.push_back(std::make_pair(articulated_model_->RootNode()->children_[0]->children_[0]->model_,articulated_model_->RootNode()->children_[0]->children_[0]->GetTransform()));  
-      v.push_back(std::make_pair(articulated_model_->RootNode()->children_[0]->children_[1]->model_,articulated_model_->RootNode()->children_[0]->children_[1]->GetTransform()));  
+      v.push_back(MeshTextureAndTransform(articulated_model_->RootNode()->model_,
+                                          articulated_model_->RootNode()->texture_,
+                                          articulated_model_->RootNode()->GetTransform()));  
+      v.push_back(MeshTextureAndTransform(articulated_model_->RootNode()->children_[0]->model_,
+                                          articulated_model_->RootNode()->children_[0]->texture_,
+                                          articulated_model_->RootNode()->children_[0]->GetTransform()));  
+      v.push_back(MeshTextureAndTransform(articulated_model_->RootNode()->children_[0]->children_[0]->model_,
+                                          articulated_model_->RootNode()->children_[0]->children_[0]->texture_,
+                                          articulated_model_->RootNode()->children_[0]->children_[0]->GetTransform()));  
+      v.push_back(MeshTextureAndTransform(articulated_model_->RootNode()->children_[0]->children_[1]->model_,
+                                          articulated_model_->RootNode()->children_[0]->children_[1]->texture_,
+                                          articulated_model_->RootNode()->children_[0]->children_[1]->GetTransform()));  
       return v; 
     }
+  
   protected:
 
     void LoadFromJsonFile(const std::string &json_file);
     void ParseJsonTree(ci::JsonTree &jt, ArticulatedNode::Ptr node, ArticulatedNode::Ptr parent, const std::string &root_dir);
   
-    
     boost::shared_ptr<ArticulatedTree> articulated_model_;
-
 
   };
 

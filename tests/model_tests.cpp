@@ -1,7 +1,8 @@
 //#define BOOST_TEST_MAIN
 
-#include <boost/test/unit_test.hpp>
 #include "../include/track/model/articulated_model.hpp"
+#include <boost/test/unit_test.hpp>
+
 
 namespace ttrk {
 

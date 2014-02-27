@@ -172,7 +172,8 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
   center_of_mass_3d = cv::Vec3d(camera->UnProjectPoint(cv::Point2d(center_of_mass)));
   center_of_mass_3d = center_of_mass_3d * z; */
   //tm.SetPose(center_of_mass_3d,central_axis_3d);
-  tm.SetPose(Pose(cv::Vec3d(-18,0,4.5),sv::Quaternion(boost::math::quaternion<double>(0.4,1,0,0))));
+  //tm.SetPose(Pose(cv::Vec3d(-18,0,4.5),sv::Quaternion(boost::math::quaternion<double>(0.4,1,0,0))));
+  tm.SetPose(Pose(cv::Vec3d(-18,0,1.5),sv::Quaternion(boost::math::quaternion<double>(0.4,1.2,0,0.1))));
  
 
 }

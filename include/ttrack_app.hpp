@@ -22,6 +22,7 @@ public:
 
   void drawGrid(float size=100.0f, float step=10.0f);
 
+  void keyDown( KeyEvent event);
   void mouseMove( MouseEvent event );
   void mouseDown( MouseEvent event );
   void mouseDrag( MouseEvent event );

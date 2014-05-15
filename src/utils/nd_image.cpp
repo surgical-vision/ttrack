@@ -1,4 +1,6 @@
 #include "../../include/utils/nd_image.hpp"
+#include <opencv2/imgproc.hpp>
+#include <opencv2/imgproc/types_c.h>
 
 using namespace ttrk;
 

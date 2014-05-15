@@ -2,31 +2,53 @@
 #define __RENDERED_HPP__
 #include "../headers.hpp"
 #include "../track/model/model.hpp"
+#include <cinder/gl/Fbo.h>
+#include "../ttrack.hpp"
+#include <boost/thread.hpp>
 
 namespace ttrk {
+
+  typedef boost::shared_mutex Lock;
+  typedef boost::unique_lock< Lock > WriteLock;
+
+  struct Renderable {
+    
+    Renderable(boost::shared_ptr<Model> mesh, const Pose &pose) : mesh_(mesh), pose_(pose) {}
+
+    boost::shared_ptr<Model> mesh_;
+    cv::Mat canvas_;
+    cv::Mat z_buffer_;
+    Pose pose_;
+
+  };
+
 
   class Renderer {
 
   public:
 
-    static void DrawMesh(const boost::shared_ptr<Model> mesh, cv::Mat &canvas, const Pose &pose, const boost::shared_ptr<MonocularCamera> camera) {
-      /*
-      auto mesh_in_camera_coords = mesh->Points(pose);
-      for(auto mesh_element = mesh_in_camera_coords->begin(); mesh_element != mesh_in_camera_coords->end(); ++mesh_element) {
-        
-        Triangle *triangle = dynamic_cast<Triangle *>(*mesh_element);
-        cv::Point v1 = camera->ProjectPointToPixel((cv::Point3d)triangle->v1);
-        cv::Point v2 = camera->ProjectPointToPixel((cv::Point3d)triangle->v2);
-        cv::Point v3 = camera->ProjectPointToPixel((cv::Point3d)triangle->v3);
+    static Renderer &Instance();
+    static void Destroy();
 
-        if(canvas.channels() == 3)
-          cv::line(canvas,v1,v2,cv::Scalar(241,13,156),1,CV_AA);
-        else
-          cv::line(canvas,v1,v2,cv::Scalar(241),1,CV_AA);
-        
-      }
-      */
-    }
+    static void DrawMesh(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, const Pose &pose, const boost::shared_ptr<MonocularCamera> camera);
+
+    std::unique_ptr<Renderable> to_render;
+    std::unique_ptr<Renderable> rendered;
+    static Lock mutex;
+
+  protected:
+
+    bool AddModel(boost::shared_ptr<Model> mesh, const Pose &pose);
+    bool RetrieveRenderedModel(cv::Mat &canvas, cv::Mat &z_buffer);
+
+  private:
+
+    Renderer();
+    
+    Renderer(const Renderer &);
+    Renderer &operator=(const Renderer &);
+    static bool constructed_;
+    static boost::scoped_ptr<Renderer> instance_;
 
   };
 

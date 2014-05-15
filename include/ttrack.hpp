@@ -90,7 +90,6 @@ namespace ttrk{
 
     bool GetLatestUpdate(ImageRenderSet &irs); 
     
-
   protected:
     
     void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type);

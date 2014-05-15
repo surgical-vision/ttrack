@@ -2,7 +2,11 @@
 #include "../../../include/utils/helpers.hpp"
 #include <boost/math/special_functions/fpclassify.hpp>
 #include "../../../include/utils/renderer.hpp"
+#include <cinder/ImageIo.h>
+#include <cinder/app/AppBasic.h>
+
 #include <ctime>
+
 using namespace ttrk;
 
 void PWP3D::ApplyGradientDescentStep(PoseDerivs &jacobian, Pose &pose, const size_t step, const size_t pixel_count){
@@ -176,9 +180,11 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
   back_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_64FC3);
 
   //first draw the model at the current pose
-  cv::Mat canvas = cv::Mat::zeros(frame_->GetImageROI().size(),CV_8UC1);
-  Renderer r;
-  r.DrawMesh(current_model.PtrToModel(),canvas,current_model.CurrentPose(),camera_);
+ 
+  cv::Mat canvas,z_buffer;
+  Renderer::DrawMesh(current_model.PtrToModel(),canvas,z_buffer,current_model.CurrentPose(),camera_);
+
+  cv::imwrite("../../opencv.png", canvas);
 
   //find the set of pixels which correspond to the drawn object
   std::vector<cv::Point2i> set_of_points;

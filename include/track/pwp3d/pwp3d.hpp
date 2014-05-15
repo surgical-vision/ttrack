@@ -8,17 +8,21 @@
 #include "register_points.hpp"
 #include "../../track/model/fast_bvh/Object.h"
 
+#include <cinder/gl/Fbo.h>
+#include <cinder/app/Renderer.h>
 
 namespace ttrk {
 
   class PWP3D : public Localizer {
   public: 
 
-    PWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera), register_points_(camera), k_delta_function_std_(2.5), k_heaviside_width_(0.3) { }
+    PWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera), register_points_(camera), k_delta_function_std_(2.5), k_heaviside_width_(0.3) { 
+      framebuffer_.reset(new cinder::gl::Fbo(640, 480));
+    }
 
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame) = 0;
     
-    boost::shared_ptr<MonocularCamera> &Camera() { return camera_; } //references to shared pointers are nasty, change this!
+    //boost::shared_ptr<MonocularCamera> &Camera() { return camera_; } //references to shared pointers are nasty, change this!
 
     //bool PWP3D::ModelInFrame( const KalmanTracker &tracked_model, const cv::Mat &detect_image) const;
 
@@ -103,6 +107,9 @@ namespace ttrk {
     double blurring_scale_factor_;
     const double k_delta_function_std_;
     const double k_heaviside_width_;
+
+    cinder::app::RendererGlRef renderer_;
+    boost::shared_ptr<cinder::gl::Fbo> framebuffer_;
 
   };
 

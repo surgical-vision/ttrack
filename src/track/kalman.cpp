@@ -58,7 +58,7 @@ void KalmanTracker::UpdatePose(const Pose &pose_measurement) {
   const cv::Mat prediction = filter_.predict(); //compute prior P(w_{t}|x_{1},...,x_{t-1}) (using Chapman-Kolomogorov e.q.)
   const cv::Mat estimation = filter_.correct((cv::Mat)pose_measurement); //compute posterior by combining the measurement likelihood with the prior
   
-  cv::Mat position_prediction = *(cv::Mat_<float>(9, 1) << estimation.at<float>(0,0),estimation.at<float>(1,0),estimation.at<float>(2,0),estimation.at<float>(3,0),estimation.at<float>(4,0),estimation.at<float>(5,0),estimation.at<float>(6,0),estimation.at<float>(7,0),estimation.at<float>(8,0) );
+  cv::Mat position_prediction = estimation(cv::Range(0, 9), cv::Range::all());// .clone();// *(cv::Mat_<float>(9, 1) << estimation.at<float>(0, 0), estimation.at<float>(1, 0), estimation.at<float>(2, 0), estimation.at<float>(3, 0), estimation.at<float>(4, 0), estimation.at<float>(5, 0), estimation.at<float>(6, 0), estimation.at<float>(7, 0), estimation.at<float>(8, 0));
   pose_ = position_prediction;
 
 }

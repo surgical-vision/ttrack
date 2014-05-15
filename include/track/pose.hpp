@@ -30,7 +30,7 @@ namespace ttrk {
 
     Pose operator=(const cv::Mat &that);
 
-    ci::Matrix44d AsCiMatrix();
+    ci::Matrix44d AsCiMatrix() const ;
 
     inline Pose(const Pose &that){
       translation_ = that.translation_;

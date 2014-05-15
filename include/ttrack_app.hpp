@@ -6,8 +6,10 @@
 #include <cinder/ImageIo.h>
 #include <cinder/MayaCamUI.h>
 #include <cinder/Rand.h>
+#include <cinder/gl/Fbo.h>
 
 #include "ttrack.hpp"
+#include "utils/renderer.hpp"
 
 using namespace ci;
 using namespace ci::app;
@@ -29,10 +31,16 @@ public:
   void resize();
 
 protected:
+
+  void drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose, cv::Mat &canvas);
+  void checkRenderer();
+
   // shader and texture for our model
   gl::GlslProg shader_;
   gl::Texture	frame_texture_;
   gl::Texture	model_texture_;
+
+  boost::shared_ptr<gl::Fbo> framebuffer_;
 
   void draw2D();
   void draw3D();

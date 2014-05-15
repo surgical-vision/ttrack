@@ -10,7 +10,7 @@ void StereoPWP3D::SwapToLeft(Pose &pose){
 
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
 
-  Camera() = stereo_camera_->rectified_left_eye();
+  camera_ = stereo_camera_->rectified_left_eye();
   //swap everything back
   stereo_frame->SwapEyes();
   Pose extrinsic;
@@ -26,7 +26,7 @@ void StereoPWP3D::SwapToLeft(Pose &pose){
 void StereoPWP3D::SwapToRight(Pose &pose){
 
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
-  Camera() = stereo_camera_->rectified_right_eye();
+  camera_ = stereo_camera_->rectified_right_eye();
   //swap the roi over in the images so they refer to the right hand image
   stereo_frame->SwapEyes();
   //also update the object pose so that it's relative to the right eye
@@ -105,7 +105,8 @@ void StereoPWP3D::GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
  
   frame_ = frame;
-
+  cv::Mat sdf_image__, front_intersection_image__, back_intersection_image__;
+  GetSDFAndIntersectionImage(current_model, sdf_image__, front_intersection_image__, back_intersection_image__);
   return current_model.CurrentPose();
 
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);

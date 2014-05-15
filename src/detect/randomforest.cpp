@@ -56,10 +56,12 @@ void RandomForest::TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boo
                     CV_TERMCRIT_ITER | CV_TERMCRIT_EPS); //halting criteria
 
 
-  CvMat *var_type = cvCreateMat(training_data->cols+1,1,CV_8U);
-  cvSet(var_type,cvScalarAll(CV_VAR_ORDERED)); //data is ordered (can be compared)
-  cvSetReal1D(var_type,training_data->cols,CV_VAR_CATEGORICAL); //labels are categorical
-  cv::Mat var_type_(var_type,true);
+  //CvMat *var_type = cvCreateMat(training_data->cols+1,1,CV_8U);
+  //cvSet(var_type,cvScalarAll(CV_VAR_ORDERED)); //data is ordered (can be compared)
+  //cvSetReal1D(var_type,training_data->cols,CV_VAR_CATEGORICAL); //labels are categorical
+  cv::Mat var_type = cv::Mat::zeros(training_data->cols + 1, 1, CV_8U);// (var_type, true);
+  cvSet((CvMat *)(&var_type), cvScalarAll(CV_VAR_ORDERED));
+  cvSetReal1D((CvMat *)(&var_type), training_data->cols, CV_VAR_CATEGORICAL); //labels are categorical
 
 #ifdef DEBUG
   std::cout << "Training...";
@@ -96,7 +98,7 @@ void RandomForest::TrainClassifier(boost::shared_ptr<cv::Mat> training_data, boo
 
   forest_.save( (classifier_save_path + "forest.xml").c_str());
   
-  cvReleaseMat(&var_type);
+  //cvReleaseMat(&var_type);
 
 }
 

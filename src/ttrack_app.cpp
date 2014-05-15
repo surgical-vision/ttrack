@@ -19,17 +19,15 @@ using namespace ci::app;
 
 void TTrackApp::setup(){
 
-  const std::string root_dir = "../data/new_surgeon";
+  const std::string root_dir = "../data/lnd";
 
   auto &ttrack = ttrk::TTrack::Instance();
   //ttrack.SetUp( root_dir + "/" + "model/model.json", root_dir + "/" + "camera/config.xml", root_dir + "/" + "classifier/config.xml", root_dir + "/" + "results/", ttrk::RF,ttrk::STEREO, root_dir + "/left.avi",root_dir + "/right.avi");
-  ttrack.SetUp(root_dir + "/" + "model/model.json", root_dir + "/" + "camera/config.xml", root_dir + "/" + "classifier/config.xml", root_dir + "/" + "results/", ttrk::RF, ttrk::MONOCULAR, root_dir + "/surgery.m4v");
+  ttrack.SetUp(root_dir + "/" + "model/model.json", root_dir + "/" + "camera/config.xml", root_dir + "/" + "classifier/config.xml", root_dir + "/" + "results/", ttrk::RF, ttrk::STEREO, root_dir + "/left.avi", root_dir + "/right.avi");
   time_ = getElapsedSeconds();
  
   shader_ = gl::GlslProg( loadResource( RES_SHADER_VERT ), loadResource( RES_SHADER_FRAG ) );
-  
-  boost::thread main_thread( boost::ref(ttrack) );
-  
+ 
   //CameraStereo cam;
   CameraPersp cam;
   cam.setEyePoint( Vec3f(0.0f,0.0f,0.0f) );
@@ -37,6 +35,8 @@ void TTrackApp::setup(){
   cam.setPerspective( 70.0f, getWindowAspectRatio(), 1.0f, 1000.0f );
   maya_cam_.setCurrentCam( cam );
     
+  framebuffer_.reset(new gl::Fbo(getWindowWidth(), getWindowHeight()));
+  boost::thread main_thread(boost::ref(ttrack));
 }
 
 void TTrackApp::update(){
@@ -48,6 +48,50 @@ void TTrackApp::update(){
   if(!ttrack.GetLatestUpdate(irs_))
     return;
   
+}
+
+void TTrackApp::drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose, cv::Mat &canvas){
+  
+  framebuffer_->bindFramebuffer();
+
+  gl::clear(ci::Color(0,255,123));
+  
+  auto meshes_textures_transforms = mesh->GetRenderableMeshes();
+  const ci::Matrix44d current_pose = pose.AsCiMatrix();
+
+  for (auto mesh_tex_trans : meshes_textures_transforms ){
+
+    auto texture = mesh_tex_trans.get<1>();
+
+    gl::pushModelView();
+    gl::multModelView(current_pose * mesh_tex_trans.get<2>());
+
+    const auto trimesh = mesh_tex_trans.get<0>();
+    gl::draw(*trimesh);
+
+    gl::popModelView();
+    shader_.unbind();
+
+  }
+
+  framebuffer_->unbindFramebuffer();
+
+  canvas = toOcv(framebuffer_->getTexture());
+
+}
+
+void TTrackApp::checkRenderer(){
+
+  ttrk::WriteLock w_lock(ttrk::Renderer::mutex);
+  
+  ttrk::Renderer &r = ttrk::Renderer::Instance();
+
+  if (r.to_render.get() != nullptr && r.rendered.get() == nullptr){
+    std::unique_ptr<ttrk::Renderable> to_render = std::move(r.to_render); //take ownership
+    drawRenderable(to_render->mesh_,to_render->pose_,to_render->canvas_);
+    r.rendered = std::move(to_render);
+  }
+
 }
 
 void TTrackApp::draw3D() {
@@ -112,12 +156,14 @@ void TTrackApp::drawMeshes() {
 
 
 void TTrackApp::draw(){
+  
+  checkRenderer();
 
-  gl::clear( Color( 0.0f, 0.0f, 0.0f ) , true ); //set the screen to black and clear the depth buffer
+  gl::clear( Color( 255.0f, 0.0f, 0.0f ) , true ); //set the screen to black and clear the depth buffer
   
   draw2D();
 
-	//draw3D();
+	draw3D();
 
 }
 
@@ -126,7 +172,7 @@ void TTrackApp::keyDown( KeyEvent event ){
 
   if(event.getChar() == ' '){
 
-    throw(std::runtime_error("Err"));
+    quit();
 
   } 
 

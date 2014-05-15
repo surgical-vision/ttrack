@@ -1,5 +1,8 @@
 #include "../../include/utils/quasi_dense_stereo.hpp"
-
+#include <opencv2/core/core_c.h>
+#include <opencv2/imgproc/imgproc_c.h>
+#include <opencv2/video/tracking_c.h>
+#include <opencv2/highgui/highgui_c.h>
 
 //-------------------------------------------------------------------------------------------------
 // Class for performing quasi dense stereo matching. The code uses pyramidal LK from OpenCV with

@@ -4,6 +4,8 @@
 #include "pose.hpp"
 #include "../../deps/image/image/image.hpp"
 
+#include <cinder/app/Renderer.h>
+
 namespace ttrk {
 
   class Localizer {
@@ -13,7 +15,6 @@ namespace ttrk {
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame) = 0;
     
     //virtual bool ModelInFrame(const KalmanTracker &tracked_model, const cv::Mat &detect_image) const = 0;
-
 
   };
 

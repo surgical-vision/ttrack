@@ -2,6 +2,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include "../include/track/pose.hpp"
+#include <opencv2/opencv.hpp>
 
 template<typename T>
 bool operator==(const ci::Matrix33<T> &a, const cv::Mat &b){

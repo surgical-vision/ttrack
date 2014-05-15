@@ -138,6 +138,9 @@
     <ClCompile Include="..\src\track\pwp3d\pose.cpp">
       <Filter>Source Files\track</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\utils\renderer.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\resources\cinder_app_icon.ico">

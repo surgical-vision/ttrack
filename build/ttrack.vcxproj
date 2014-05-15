@@ -140,6 +140,7 @@
     <ClCompile Include="..\src\utils\nd_image.cpp" />
     <ClCompile Include="..\src\utils\quasi_dense_stereo.cpp" />
     <ClCompile Include="..\src\utils\quaternion.cpp" />
+    <ClCompile Include="..\src\utils\renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\resources\cinder_app_icon.ico" />

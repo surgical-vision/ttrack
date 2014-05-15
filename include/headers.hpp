@@ -1,9 +1,9 @@
 #ifndef _HEADERS_H_
 #define _HEADERS_H_
 
-#include <opencv/cv.h>
-#include <opencv/cxcore.h>
-#include <opencv/highgui.h>
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui_c.h>
+
 #if defined(_WIN32) || defined(_WIN64)
   #define _CRTDBG_MAP_ALLOC
   #include <stdlib.h>

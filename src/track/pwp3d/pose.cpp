@@ -29,7 +29,7 @@ Pose Pose::operator=(const cv::Mat &that){
   return *this;
 }
 
-ci::Matrix44d Pose::AsCiMatrix(){
+ci::Matrix44d Pose::AsCiMatrix() const {
 
   cv::Vec3d euler = rotation_.EulerAngles();
   ci::Matrix44d ret = ci::Matrix44d::createRotation(ci::Vec3d(euler[0],euler[1],euler[2]));

@@ -183,7 +183,7 @@ namespace ttrk{
   }
 
   inline bool IS_VIDEO(const std::string &extension){
-    return (extension == ".AVI" || extension == ".mp4" || extension == ".avi");
+    return (extension == ".AVI" || extension == ".mp4" || extension == ".avi" || extension == ".m4v");
   }
 
   cv::Mat &ConvertMatSingleToTriple(cv::Mat &im);

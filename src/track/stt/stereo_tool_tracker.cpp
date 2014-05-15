@@ -234,7 +234,7 @@ cv::Vec3d StereoToolTracker::FindPrincipalAxisFromMOITensor(const cv::Vec3d cent
   }
 
   cv::Mat eigenvectors,eigenvalues;
-  cv::eigen(moi,true,eigenvalues,eigenvectors);
+  cv::eigen(moi,eigenvalues,eigenvectors);
   
   int row = 1;
   return cv::Vec3d(eigenvectors.at<float>(row,0),eigenvectors.at<float>(row,1),eigenvectors.at<float>(row,2));

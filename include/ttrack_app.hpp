@@ -32,7 +32,7 @@ public:
 
 protected:
 
-  void drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose, cv::Mat &canvas);
+  void drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose, cv::Mat &canvas, cv::Mat &z_buffer);
   void checkRenderer();
 
   // shader and texture for our model

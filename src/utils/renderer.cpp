@@ -16,7 +16,7 @@ void Renderer::DrawMesh(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat 
   Renderer &r = Renderer::Instance();
   while (!r.AddModel(mesh, pose)){ Sleep(5); }
 
-  while (!r.RetrieveRenderedModel(canvas)){ Sleep(5); }
+  while (!r.RetrieveRenderedModel(canvas,z_buffer)){ Sleep(5); }
 
 }
 

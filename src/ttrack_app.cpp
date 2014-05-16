@@ -22,7 +22,6 @@ void TTrackApp::setup(){
   const std::string root_dir = "../data/lnd";
 
   auto &ttrack = ttrk::TTrack::Instance();
-  //ttrack.SetUp( root_dir + "/" + "model/model.json", root_dir + "/" + "camera/config.xml", root_dir + "/" + "classifier/config.xml", root_dir + "/" + "results/", ttrk::RF,ttrk::STEREO, root_dir + "/left.avi",root_dir + "/right.avi");
   ttrack.SetUp(root_dir + "/" + "model/model.json", root_dir + "/" + "camera/config.xml", root_dir + "/" + "classifier/config.xml", root_dir + "/" + "results/", ttrk::RF, ttrk::STEREO, root_dir + "/left.avi", root_dir + "/right.avi");
   time_ = getElapsedSeconds();
  
@@ -48,15 +47,19 @@ void TTrackApp::update(){
   if(!ttrack.GetLatestUpdate(irs_))
     return;
   
+  ci::ImageSourceRef img = ci::fromOcv(irs_->first->GetImageROI());
+  frame_texture_ = gl::Texture(img);
+
 }
 
-void TTrackApp::drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose, cv::Mat &canvas){
+void TTrackApp::drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose, cv::Mat &canvas, cv::Mat &z_buffer){
   
   framebuffer_->bindFramebuffer();
 
-  gl::clear(ci::Color(0,255,123));
+  gl::clear(ci::Color(0,0,0));
   
   auto meshes_textures_transforms = mesh->GetRenderableMeshes();
+  
   const ci::Matrix44d current_pose = pose.AsCiMatrix();
 
   for (auto mesh_tex_trans : meshes_textures_transforms ){
@@ -66,17 +69,19 @@ void TTrackApp::drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::
     gl::pushModelView();
     gl::multModelView(current_pose * mesh_tex_trans.get<2>());
 
+    ci::app::console() << "in draw renderable:\n" << current_pose * mesh_tex_trans.get<2>() << "\n";
+
     const auto trimesh = mesh_tex_trans.get<0>();
     gl::draw(*trimesh);
 
     gl::popModelView();
-    shader_.unbind();
 
   }
 
   framebuffer_->unbindFramebuffer();
 
   canvas = toOcv(framebuffer_->getTexture());
+  z_buffer = toOcv(framebuffer_->getDepthTexture());
 
 }
 
@@ -88,8 +93,8 @@ void TTrackApp::checkRenderer(){
 
   if (r.to_render.get() != nullptr && r.rendered.get() == nullptr){
     std::unique_ptr<ttrk::Renderable> to_render = std::move(r.to_render); //take ownership
-    drawRenderable(to_render->mesh_,to_render->pose_,to_render->canvas_);
-    r.rendered = std::move(to_render);
+    drawRenderable(to_render->mesh_,to_render->pose_,to_render->canvas_,to_render->z_buffer_);
+    r.rendered = std::move(to_render); //give it back
   }
 
 }
@@ -109,9 +114,6 @@ void TTrackApp::draw3D() {
   // bind the shader and tell it to use our texture
   drawMeshes();
   
-  
-  //gl::enableAdditiveBlending();
-
   gl::disableAlphaBlending();
 
   gl::popMatrices();
@@ -127,8 +129,6 @@ void TTrackApp::draw2D() {
 
 void TTrackApp::drawMeshes() {
 
-  gl::color( Color::white() );
-
   for(auto model = irs_->second.begin(); model != irs_->second.end(); ++model)  {
     auto meshes_textures_transforms = model->PtrToModel()->GetRenderableMeshes();
     ci::Matrix44d current_pose = model->CurrentPose().AsCiMatrix();
@@ -136,9 +136,6 @@ void TTrackApp::drawMeshes() {
     for(auto mesh_tex_trans = meshes_textures_transforms.begin();mesh_tex_trans != meshes_textures_transforms.end();++mesh_tex_trans){
       
       auto texture = mesh_tex_trans->get<1>();
-      //texture->bind();
-      shader_.bind();
-      //shader_.uniform("tex0", 0);
       
       gl::pushModelView();
       gl::multModelView(current_pose * mesh_tex_trans->get<2>());
@@ -147,8 +144,6 @@ void TTrackApp::drawMeshes() {
       gl::draw( *trimesh );
       
       gl::popModelView();
-      shader_.unbind();
-      //texture->unbind();
 
     }
   }
@@ -159,7 +154,7 @@ void TTrackApp::draw(){
   
   checkRenderer();
 
-  gl::clear( Color( 255.0f, 0.0f, 0.0f ) , true ); //set the screen to black and clear the depth buffer
+  gl::clear( Color( 0.0f, 0.0f, 0.0f ) , true ); //set the screen to black and clear the depth buffer
   
   draw2D();
 

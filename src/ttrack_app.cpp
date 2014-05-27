@@ -30,7 +30,7 @@ void TTrackApp::setup(){
   //CameraStereo cam;
   CameraPersp cam;
   cam.setEyePoint( Vec3f(0.0f,0.0f,0.0f) );
-  cam.setCenterOfInterestPoint( Vec3f(0.0f, 0.0f, 40.0f) );
+  cam.setCenterOfInterestPoint( Vec3f(0.0f, 0.0f, 1.0f) );
   cam.setPerspective( 70.0f, getWindowAspectRatio(), 1.0f, 1000.0f );
   maya_cam_.setCurrentCam( cam );
     
@@ -43,6 +43,8 @@ void TTrackApp::update(){
   double elapsed = getElapsedSeconds() - time_;
   time_ = getElapsedSeconds();
 
+  returnRenderable(); //check to see if the renderer has processed any frames
+
   auto &ttrack = ttrk::TTrack::Instance();
   if(!ttrack.GetLatestUpdate(irs_))
     return;
@@ -52,7 +54,26 @@ void TTrackApp::update(){
 
 }
 
-void TTrackApp::drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose, cv::Mat &canvas, cv::Mat &z_buffer){
+bool TTrackApp::returnRenderable(){
+
+  ttrk::WriteLock w_lock(ttrk::Renderer::mutex);
+
+  if (to_render_ == nullptr)
+    return false;
+
+  ttrk::Renderer &r = ttrk::Renderer::Instance();
+ 
+  to_render_->canvas_ = toOcv(framebuffer_->getTexture());
+  to_render_->z_buffer_ = toOcv(framebuffer_->getDepthTexture());
+  
+  r.rendered = std::move(to_render_); //give it back
+  
+  return true;
+
+}
+
+
+void TTrackApp::drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose){
   
   framebuffer_->bindFramebuffer();
 
@@ -67,21 +88,23 @@ void TTrackApp::drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::
     auto texture = mesh_tex_trans.get<1>();
 
     gl::pushModelView();
-    gl::multModelView(current_pose * mesh_tex_trans.get<2>());
-
-    ci::app::console() << "in draw renderable:\n" << current_pose * mesh_tex_trans.get<2>() << "\n";
+    //gl::multModelView(current_pose * mesh_tex_trans.get<2>());
+    ci::Matrix44d draw_matrix;
+    draw_matrix.setToIdentity();
+    draw_matrix.setTranslate(ci::Vec3f(0, 0, 20));
 
     const auto trimesh = mesh_tex_trans.get<0>();
-    gl::draw(*trimesh);
+    //gl::draw(*trimesh);
+    gl::color(ci::Color(0, 255, 0));
+    gl::drawCoordinateFrame();
+    gl::color(ci::Color(0, 0, 0));
+
 
     gl::popModelView();
 
   }
 
   framebuffer_->unbindFramebuffer();
-
-  canvas = toOcv(framebuffer_->getTexture());
-  z_buffer = toOcv(framebuffer_->getDepthTexture());
 
 }
 
@@ -92,9 +115,8 @@ void TTrackApp::checkRenderer(){
   ttrk::Renderer &r = ttrk::Renderer::Instance();
 
   if (r.to_render.get() != nullptr && r.rendered.get() == nullptr){
-    std::unique_ptr<ttrk::Renderable> to_render = std::move(r.to_render); //take ownership
-    drawRenderable(to_render->mesh_,to_render->pose_,to_render->canvas_,to_render->z_buffer_);
-    r.rendered = std::move(to_render); //give it back
+    to_render_ = std::move(r.to_render); //take ownership
+    drawRenderable(to_render_->mesh_,to_render_->pose_); //make the draw command 
   }
 
 }
@@ -156,9 +178,19 @@ void TTrackApp::draw(){
 
   gl::clear( Color( 0.0f, 0.0f, 0.0f ) , true ); //set the screen to black and clear the depth buffer
   
-  draw2D();
+  //draw2D();
 
 	draw3D();
+
+  /*gl::color(ci::Color(0, 255, 255));
+  gl::pushModelView();
+  ci::Matrix44d tran;
+  tran.setToIdentity();
+  tran.setTranslate(ci::Vec3f(5, 5, 50));
+  gl::drawSphere(ci::Vec3f(0, 0, 0), 5);
+  gl::color(ci::Color(0, 0, 0));
+  gl::popModelView();*/
+  //gl::draw(framebuffer_->getTexture());
 
 }
 

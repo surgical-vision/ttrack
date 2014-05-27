@@ -32,7 +32,8 @@ public:
 
 protected:
 
-  void drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose, cv::Mat &canvas, cv::Mat &z_buffer);
+  bool returnRenderable();
+  void drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose);
   void checkRenderer();
 
   // shader and texture for our model
@@ -41,7 +42,8 @@ protected:
   gl::Texture	model_texture_;
 
   boost::shared_ptr<gl::Fbo> framebuffer_;
-
+  std::unique_ptr<ttrk::Renderable> to_render_;
+  
   void draw2D();
   void draw3D();
   void drawMeshes();

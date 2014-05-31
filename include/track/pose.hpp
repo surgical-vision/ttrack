@@ -30,7 +30,12 @@ namespace ttrk {
 
     Pose operator=(const cv::Mat &that);
 
-    ci::Matrix44d AsCiMatrix() const ;
+    /**
+    * Transform the pose from our left handed coordinate system to an OpenGL/Cinder friendly one.
+    * This means column-major storage and right handed coordinates system with camera looking down -z.
+    * @return A transformed matrix.
+    */
+    ci::Matrix44d AsCiMatrixForOpenGL() const ;
 
     inline Pose(const Pose &that){
       translation_ = that.translation_;

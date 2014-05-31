@@ -32,12 +32,44 @@ cv::Point2i MonocularCamera::ProjectPointToPixel(const cv::Point3d &point) const
   return cv::Point2i(ttrk::round(pt.x),ttrk::round(pt.y));
 }
 
+cv::Mat MonocularCamera::GetUnprojectedImagePlane(const int width, const int height) {
+
+  if (unprojected_image_.data != nullptr) {
+    return unprojected_image_;
+  }
+  else{
+    std::vector<cv::Vec2f> points,outpoints;
+    points.reserve(width*height);
+    for (int r = 0; r < height; ++r){
+      for (int c = 0; c < width; ++c){
+        points.push_back(cv::Vec2f(c, r));
+      }
+    }
+
+    cv::undistortPoints(points, outpoints, intrinsic_params(), distortion_params());
+
+    unprojected_image_ = cv::Mat(height, width, CV_32FC2);
+    float *data = (float *)unprojected_image_.data;
+    const int channels = 2;
+    for (int r = 0; r < height; ++r){
+      for (int c = 0; c < width; ++c){
+        const int index = ((width*r) + c);
+        data[index*channels] = outpoints[index][0];
+        data[(index*channels) + 1] = outpoints[index][1];
+      }
+    }
+  
+    return unprojected_image_;
+  }
+
+
+}
 
 cv::Point3d MonocularCamera::UnProjectPoint(const cv::Point2i &point) const {
   
-  cv::Mat projected(1,1,CV_32FC2);
+  cv::Mat projected(1,1,CV_64FC2);
   projected.at<cv::Vec2d>(0,0) = cv::Vec2d(point.x,point.y);
-  cv::Mat unprojected(1,1,CV_32FC2);
+  cv::Mat unprojected(1,1,CV_64FC2);
   
   cv::undistortPoints(projected, unprojected, intrinsic_matrix_, distortion_params_); 
 

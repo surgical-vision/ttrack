@@ -15,14 +15,13 @@ namespace ttrk{
 
   public:
    
-    cv::Mat distortion_params() { return distortion_params_; }
-    cv::Mat intrinsic_params() { return intrinsic_matrix_; }
+    const cv::Mat distortion_params() const { return distortion_params_; }
+    const cv::Mat intrinsic_params() const { return intrinsic_matrix_; }
     /**
     * Construct a camera with a calibration file. This file should be in the opencv calibration xml format.
     * @param[in] calibration_filename The url of the calibration file.
     */ 
     explicit MonocularCamera(const std::string &calibration_filename);
-
 
     /**
     * Construct a camera directly specifying the intrinsic and distortion parameters. 
@@ -30,7 +29,7 @@ namespace ttrk{
     * @param[in] distortion The distortion parameters of the camera.
     */
     MonocularCamera(const cv::Mat &intrinsic, const cv::Mat &distortion):intrinsic_matrix_(intrinsic),distortion_params_(distortion){}
-    
+
     /**
     * Construct a camera setting its parameters to /f$f_{x} = 1000, f_{y} = 1000, c_{x} = 0.5\times ImageWidth, c_{y} = 0.5\times ImageHeight \f$.
     */
@@ -40,7 +39,10 @@ namespace ttrk{
     * Destructor for the camera.
     */
     virtual ~MonocularCamera(){};
-    
+
+
+    cv::Mat GetUnprojectedImagePlane(const int width, const int height);
+
     /** 
     * Project a 3D point onto the image plane without rounding its coordinates to a specific pixel.
     * @param point The 3D point to project.
@@ -76,6 +78,7 @@ namespace ttrk{
 
   private:
 
+    cv::Mat unprojected_image_; /**< The z=1 unprojected image plane. */
 
   };
 

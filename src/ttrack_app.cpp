@@ -17,6 +17,7 @@
 using namespace ci;
 using namespace ci::app;
 
+
 void TTrackApp::setup(){
 
   const std::string root_dir = "../data/lnd";
@@ -27,15 +28,22 @@ void TTrackApp::setup(){
  
   shader_ = gl::GlslProg( loadResource( RES_SHADER_VERT ), loadResource( RES_SHADER_FRAG ) );
  
+  setWindowSize(736 * 2, 288 * 2);
+
   //CameraStereo cam;
   CameraPersp cam;
   cam.setEyePoint( Vec3f(0.0f,0.0f,0.0f) );
-  cam.setCenterOfInterestPoint( Vec3f(0.0f, 0.0f, 1.0f) );
+ //cam.setCenterOfInterestPoint( Vec3f(0.0f, 0.0f, -1.0f) ); //look down -z
+  cam.setViewDirection(ci::Vec3f(0, 0, -1));
   cam.setPerspective( 70.0f, getWindowAspectRatio(), 1.0f, 1000.0f );
   maya_cam_.setCurrentCam( cam );
-    
-  framebuffer_.reset(new gl::Fbo(getWindowWidth(), getWindowHeight()));
+  
+  gl::Fbo::Format msaaFormat;
+  msaaFormat.setSamples(4); // enable 4x MSAA
+
+  framebuffer_.reset(new gl::Fbo(getWindowWidth(), getWindowHeight()));// , msaaFormat));
   boost::thread main_thread(boost::ref(ttrack));
+ 
 }
 
 void TTrackApp::update(){
@@ -46,8 +54,9 @@ void TTrackApp::update(){
   returnRenderable(); //check to see if the renderer has processed any frames
 
   auto &ttrack = ttrk::TTrack::Instance();
-  if(!ttrack.GetLatestUpdate(irs_))
+  if (!ttrack.GetLatestUpdate(irs_)){
     return;
+  }
   
   ci::ImageSourceRef img = ci::fromOcv(irs_->first->GetImageROI());
   frame_texture_ = gl::Texture(img);
@@ -74,34 +83,26 @@ bool TTrackApp::returnRenderable(){
 
 
 void TTrackApp::drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose){
-  
+
   framebuffer_->bindFramebuffer();
 
   gl::clear(ci::Color(0,0,0));
   
   auto meshes_textures_transforms = mesh->GetRenderableMeshes();
   
-  const ci::Matrix44d current_pose = pose.AsCiMatrix();
+  const ci::Matrix44d current_pose = pose.AsCiMatrixForOpenGL();
 
-  for (auto mesh_tex_trans : meshes_textures_transforms ){
+  for (auto mesh_tex_trans = meshes_textures_transforms.begin(); mesh_tex_trans != meshes_textures_transforms.end(); ++mesh_tex_trans){
 
-    auto texture = mesh_tex_trans.get<1>();
+    auto texture = mesh_tex_trans->get<1>();
 
     gl::pushModelView();
-    //gl::multModelView(current_pose * mesh_tex_trans.get<2>());
-    ci::Matrix44d draw_matrix;
-    draw_matrix.setToIdentity();
-    draw_matrix.setTranslate(ci::Vec3f(0, 0, 20));
+    gl::multModelView(current_pose * mesh_tex_trans->get<2>());
 
-    const auto trimesh = mesh_tex_trans.get<0>();
-    //gl::draw(*trimesh);
-    gl::color(ci::Color(0, 255, 0));
-    gl::drawCoordinateFrame();
-    gl::color(ci::Color(0, 0, 0));
-
+    const auto trimesh = mesh_tex_trans->get<0>();
+    gl::draw(*trimesh);
 
     gl::popModelView();
-
   }
 
   framebuffer_->unbindFramebuffer();
@@ -123,37 +124,27 @@ void TTrackApp::checkRenderer(){
 
 void TTrackApp::draw3D() {
 
-  if(!irs_) return;
+  if (!irs_) {
+    return;
+  }
 
-  gl::pushMatrices();
-  gl::setMatrices( maya_cam_.getCamera() );
-  gl::enableAlphaBlending();
-
-  // enable the depth buffer (after all, we are doing 3D)
-  gl::enableDepthRead();
-  gl::enableDepthWrite();
-
-  // bind the shader and tell it to use our texture
+  //only draw the meshes if we actually have some to draw
   drawMeshes();
   
-  gl::disableAlphaBlending();
-
-  gl::popMatrices();
-
 }
 
 void TTrackApp::draw2D() {
       
   if( frame_texture_ )
     gl::draw(frame_texture_, getWindowBounds() );
-
+  
 }
 
 void TTrackApp::drawMeshes() {
 
   for(auto model = irs_->second.begin(); model != irs_->second.end(); ++model)  {
     auto meshes_textures_transforms = model->PtrToModel()->GetRenderableMeshes();
-    ci::Matrix44d current_pose = model->CurrentPose().AsCiMatrix();
+    ci::Matrix44d current_pose = model->CurrentPose().AsCiMatrixForOpenGL();
 
     for(auto mesh_tex_trans = meshes_textures_transforms.begin();mesh_tex_trans != meshes_textures_transforms.end();++mesh_tex_trans){
       
@@ -162,18 +153,29 @@ void TTrackApp::drawMeshes() {
       gl::pushModelView();
       gl::multModelView(current_pose * mesh_tex_trans->get<2>());
       
-      const auto trimesh = (*mesh_tex_trans).get<0>();
+      const auto trimesh = mesh_tex_trans->get<0>();
       gl::draw( *trimesh );
       
       gl::popModelView();
 
     }
   }
+
 }
 
 
 void TTrackApp::draw(){
   
+  gl::pushMatrices();
+  gl::setMatrices(maya_cam_.getCamera());
+
+  gl::enableDepthRead();
+  gl::enableDepthWrite();
+
+  gl::enableAlphaBlending();
+
+  shader_.bind();
+
   checkRenderer();
 
   gl::clear( Color( 0.0f, 0.0f, 0.0f ) , true ); //set the screen to black and clear the depth buffer
@@ -182,16 +184,10 @@ void TTrackApp::draw(){
 
 	draw3D();
 
-  /*gl::color(ci::Color(0, 255, 255));
-  gl::pushModelView();
-  ci::Matrix44d tran;
-  tran.setToIdentity();
-  tran.setTranslate(ci::Vec3f(5, 5, 50));
-  gl::drawSphere(ci::Vec3f(0, 0, 0), 5);
-  gl::color(ci::Color(0, 0, 0));
-  gl::popModelView();*/
-  //gl::draw(framebuffer_->getTexture());
+  shader_.unbind();
+  gl::disableAlphaBlending();
 
+  gl::popMatrices();
 }
 
 
@@ -202,9 +198,7 @@ void TTrackApp::keyDown( KeyEvent event ){
     quit();
 
   } 
-
-
-
+  
 }
 
 void TTrackApp::mouseMove( MouseEvent event ){

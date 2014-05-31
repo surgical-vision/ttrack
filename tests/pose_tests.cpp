@@ -26,7 +26,7 @@ BOOST_AUTO_TEST_CASE( pose_test ) {
   cv::Rodrigues(cv::Vec3d(5,0.45,-1),rotation);
   
   ttrk::Pose pose(cv::Vec3d(20,15,20),sv::Quaternion(rotation));
-  ci::Matrix44d v1 = pose.AsCiMatrix();
+  ci::Matrix44d v1 = pose.AsCiMatrixForOpenGL();
   
   BOOST_ASSERT( v1.subMatrix33(0,0) == rotation );
 

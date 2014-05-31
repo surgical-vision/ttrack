@@ -29,16 +29,27 @@ Pose Pose::operator=(const cv::Mat &that){
   return *this;
 }
 
-ci::Matrix44d Pose::AsCiMatrix() const {
+ci::Matrix44d Pose::AsCiMatrixForOpenGL() const {
 
   cv::Vec3d euler = rotation_.EulerAngles();
   ci::Matrix44d ret = ci::Matrix44d::createRotation(ci::Vec3d(euler[0],euler[1],euler[2]));
-  //ret.translate( ci::Vec3d(translation_[0],translation_[1],translation_[2]) );
-  for(int i=0;i<3;i++) ret.at(i,3) = translation_[i];
+  
+  //using http://answers.unity3d.com/storage/temp/12048-lefthandedtorighthanded.pdf
+  
+  //transform rotation by flipping z
+  ci::Matrix44d S_z;
+  S_z.setToIdentity();
+  S_z.at(2, 2) *= -1; 
+  ret = S_z * ret * S_z;
+  
+  //transform translation
+  const ci::Vec3d translation_transformed = S_z.subMatrix33(0,0) * ci::Vec3d(translation_[0], translation_[1], translation_[2]);
+  for (int i = 0; i<3; i++) ret.at(i, 3) = translation_transformed[i];
   
   return ret;
   
 }
+
 
 
 Pose::operator cv::Mat() const {

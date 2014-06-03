@@ -184,19 +184,26 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
   cv::Mat canvas,z_buffer;
   Renderer::DrawMesh(current_model.PtrToModel(),canvas,z_buffer,current_model.CurrentPose(),camera_);
 
-  //find the set of pixels which correspond to the drawn object
+  
+
+  cv::Mat unprojected_image_plane = camera_->GetUnprojectedImagePlane(front_intersection_image.cols, front_intersection_image.rows);
+  //find the set of pixels which correspond to the drawn object and create the intersection image
   cv::Mat pixels_intersect = cv::Mat::zeros(canvas.size(), CV_8UC1);
-  for(int r=0;r<sdf_image.rows;r++){
+
+for(int r=0;r<sdf_image.rows;r++){
     for(int c=0;c<sdf_image.cols;c++){
-      pixels_intersect = 255 * (z_buffer.at<float>(r, c) != 0);
+      pixels_intersect.at<unsigned char>(r,c) = 255 * (z_buffer.at<float>(r, c) != 0);
+      const cv::Vec2f &unprojected_pixel = unprojected_image_plane.at<cv::Vec2f>(r, c);
+      front_intersection_image.at<cv::Vec3d>(r, c) = z_buffer.at<float>(r, c)*cv::Vec3d(unprojected_pixel[0], unprojected_pixel[1], 1);
     }
   }
 
-
+  back_intersection_image = front_intersection_image.clone(); 
 
   //take this binary image and find the outer contour of it. then make a distance image from that contour.
   cv::Mat edge_image(pixels_intersect.size(),CV_8UC1);
   cv::Canny(pixels_intersect,edge_image,1,100);
+  cv::imwrite("../../edge_image.png", edge_image);
   distanceTransform(~edge_image,sdf_image,CV_DIST_L2,CV_DIST_MASK_PRECISE);
 
   //flip the sign of the distance image for outside pixels

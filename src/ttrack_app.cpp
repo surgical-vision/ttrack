@@ -28,7 +28,7 @@ void TTrackApp::setup(){
  
   shader_ = gl::GlslProg( loadResource( RES_SHADER_VERT ), loadResource( RES_SHADER_FRAG ) );
  
-  setWindowSize(736 * 2, 288 * 2);
+  setWindowSize(736, 288);
 
   //CameraStereo cam;
   CameraPersp cam;
@@ -180,7 +180,7 @@ void TTrackApp::draw(){
 
   gl::clear( Color( 0.0f, 0.0f, 0.0f ) , true ); //set the screen to black and clear the depth buffer
   
-  //draw2D();
+  draw2D();
 
 	draw3D();
 

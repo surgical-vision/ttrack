@@ -35,18 +35,6 @@ void Detect::ClassifyFrame(){
   assert(Loaded());
   assert(frame_->GetImageROI().type() == CV_8UC3);
   
-  /*** DEBUG SAVE ****/
-
-  //boost::filesystem::
-
-  /*******************/
-
-  static cv::Mat mask = cv::imread("../debug/classified.png",0);
-  
-  mask.copyTo(frame_->GetClassificationMapROI());
-  found_ = true;
-  return;
-
   cv::Mat whole_frame = frame_->GetImage();
   NDImage nd_image(whole_frame);
   const int rows = whole_frame.rows;
@@ -78,6 +66,8 @@ void Detect::ClassifyFrame(){
   if(pixel_count > (0.02*rows*cols)) found_ = true;
   else found_ = false;
 
+  cv::imwrite("../detector_out.png", frame_->GetClassificationMap());
+  int x = 0;
 }
 
 void Detect::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){

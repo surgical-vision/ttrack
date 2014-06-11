@@ -203,7 +203,6 @@ for(int r=0;r<sdf_image.rows;r++){
   //take this binary image and find the outer contour of it. then make a distance image from that contour.
   cv::Mat edge_image(pixels_intersect.size(),CV_8UC1);
   cv::Canny(pixels_intersect,edge_image,1,100);
-  cv::imwrite("../../edge_image.png", edge_image);
   distanceTransform(~edge_image,sdf_image,CV_DIST_L2,CV_DIST_MASK_PRECISE);
 
   //flip the sign of the distance image for outside pixels

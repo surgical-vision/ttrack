@@ -18,6 +18,7 @@ namespace ttrk {
     boost::shared_ptr<Model> mesh_;
     cv::Mat canvas_;
     cv::Mat z_buffer_;
+    cv::Mat binary_;
     Pose pose_;
 
   };
@@ -30,7 +31,7 @@ namespace ttrk {
     static Renderer &Instance();
     static void Destroy();
 
-    static void DrawMesh(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, const Pose &pose, const boost::shared_ptr<MonocularCamera> camera);
+    static void DrawMesh(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image, const ttrk::Pose &pose, const boost::shared_ptr<MonocularCamera> camera);
 
     std::unique_ptr<Renderable> to_render;
     std::unique_ptr<Renderable> rendered;
@@ -39,7 +40,7 @@ namespace ttrk {
   protected:
 
     bool AddModel(boost::shared_ptr<Model> mesh, const Pose &pose);
-    bool RetrieveRenderedModel(cv::Mat &canvas, cv::Mat &z_buffer);
+    bool RetrieveRenderedModel(cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image);
 
   private:
 

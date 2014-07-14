@@ -50,6 +50,7 @@
     <Import Project="..\..\..\..\vs_props\ttrack_release.props" />
     <Import Project="..\..\..\..\vs_props\cinder_release.props" />
     <Import Project="..\..\..\..\vs_props\boost32_release.props" />
+    <Import Project="..\..\..\..\vs_props\ceres.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />

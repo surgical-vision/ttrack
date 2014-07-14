@@ -63,6 +63,23 @@ void TTrackApp::update(){
 
 }
 
+void TTrackApp::convertZBufferToDepth(cv::Mat &zbuffer) const {
+ 
+
+  const float &znear = maya_cam_.getCamera().getNearClip();
+  const float &zfar = maya_cam_.getCamera().getFarClip();
+
+  for (int r = 0; r < zbuffer.rows; ++r){
+    for (int c = 0; c < zbuffer.cols; ++c){
+      float &z_b = zbuffer.at<float>(r, c);
+      const float z_n = 2.0 * z_b - 1.0;
+      z_b = 2.0 * znear * zfar / (zfar + znear - z_n * (zfar - znear));
+    }
+  }
+  
+
+}
+
 bool TTrackApp::returnRenderable(){
 
   ttrk::WriteLock w_lock(ttrk::Renderer::mutex);
@@ -74,7 +91,10 @@ bool TTrackApp::returnRenderable(){
  
   to_render_->canvas_ = toOcv(framebuffer_->getTexture());
   to_render_->z_buffer_ = toOcv(framebuffer_->getDepthTexture());
-  
+
+  convertZBufferToDepth(to_render_->z_buffer_); 
+  to_render_->binary_ = maya_cam_.getCamera().getFarClip() != to_render_->z_buffer_;
+
   r.rendered = std::move(to_render_); //give it back
   
   return true;

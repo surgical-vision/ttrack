@@ -35,6 +35,7 @@ protected:
   bool returnRenderable();
   void drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose);
   void checkRenderer();
+  void convertZBufferToDepth(cv::Mat &zbuffer) const;
 
   // shader and texture for our model
   gl::GlslProg shader_;

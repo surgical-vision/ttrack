@@ -35,12 +35,14 @@
     <Import Project="..\..\..\vs_props\opencv32_release.props" />
     <Import Project="..\..\..\vs_props\cinder_release.props" />
     <Import Project="..\..\..\vs_props\boost32_release.props" />
+    <Import Project="..\..\..\vs_props\ceres.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\..\..\vs_props\opencv32_debug.props" />
     <Import Project="..\..\..\vs_props\cinder_debug.props" />
     <Import Project="..\..\..\vs_props\boost32_debug.props" />
+    <Import Project="..\..\..\vs_props\ceres_debug.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>

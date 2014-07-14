@@ -102,8 +102,17 @@ void StereoPWP3D::GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double
 
 }
 
+struct CostFunctor {
+  template <typename T>
+  bool operator()(const T* const x, T* residual) const {
+    residual[0] = T(10.0) - x[0];
+    return true;
+  }
+};
+
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
  
+  using namespace ceres;
   frame_ = frame;
   
   /*
@@ -122,6 +131,25 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   GetSDFAndIntersectionImage(current_model,sdf_image,front_intersection_image,back_intersection_image);
   register_points_.ComputeDescriptorsForPointTracking(frame_,current_model,sdf_image);
   SAFE_EXIT();*/
+
+  // Build the problem.
+  ceres::Problem problem;
+  // The variable to solve for with its initial value.
+  double initial_x = 5.0;
+  double x = initial_x;
+
+  // Set up the only cost function (also known as residual). This uses
+  // auto-differentiation to obtain the derivative (jacobian).
+  ceres::CostFunction* cost_function =
+    new ceres::AutoDiffCostFunction<CostFunctor, 1, 1>(new CostFunctor);
+  problem.AddResidualBlock(cost_function, NULL, &x);
+
+  // Run the solver!
+  Solver::Options options;
+  options.linear_solver_type = ceres::DENSE_QR;
+  options.minimizer_progress_to_stdout = true;
+  Solver::Summary summary;
+  Solve(options, &problem, &summary);
 
   //iterate until convergence
   for(int step=0,pixel_count=0; step < NUM_STEPS; step++,pixel_count=0){

@@ -11,12 +11,12 @@ Renderer &Renderer::Instance() {
   return *(instance_.get());
 }
 
-void Renderer::DrawMesh(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, const Pose &pose, const boost::shared_ptr<MonocularCamera> camera){
+void Renderer::DrawMesh(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image, const Pose &pose, const boost::shared_ptr<MonocularCamera> camera){
 
   Renderer &r = Renderer::Instance();
   while (!r.AddModel(mesh, pose)){ Sleep(5); }
 
-  while (!r.RetrieveRenderedModel(canvas,z_buffer)){ Sleep(5); }
+  while (!r.RetrieveRenderedModel(canvas,z_buffer,binary_image)){ Sleep(5); }
 
 }
 
@@ -35,8 +35,8 @@ bool Renderer::AddModel(boost::shared_ptr<Model> mesh, const Pose &pose){
 }
 
 
-bool Renderer::RetrieveRenderedModel(cv::Mat &canvas,cv::Mat &z_buffer){
-  
+bool Renderer::RetrieveRenderedModel(cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image){
+    
   WriteLock w_lock(mutex);
   
   if (rendered == nullptr){
@@ -45,6 +45,7 @@ bool Renderer::RetrieveRenderedModel(cv::Mat &canvas,cv::Mat &z_buffer){
   else{
     canvas = rendered->canvas_;
     z_buffer = rendered->z_buffer_;
+    binary_image = rendered->binary_;
     rendered.release();
     return true;
   }

@@ -7,6 +7,7 @@
 #include "../pose.hpp"
 #include "register_points.hpp"
 #include "../../track/model/fast_bvh/Object.h"
+#include <ceres/ceres.h>
 
 namespace ttrk {
 

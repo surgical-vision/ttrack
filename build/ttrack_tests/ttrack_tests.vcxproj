@@ -43,6 +43,7 @@
     <Import Project="..\..\..\..\vs_props\cinder_debug.props" />
     <Import Project="..\..\..\..\vs_props\boost32_debug.props" />
     <Import Project="..\..\..\..\vs_props\ttrack_debug.props" />
+    <Import Project="..\..\..\..\vs_props\ceres_debug.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />

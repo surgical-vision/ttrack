@@ -17,8 +17,11 @@ namespace ttrk {
 
     boost::shared_ptr<Model> mesh_;
     cv::Mat canvas_;
+    cv::Mat right_canvas_;
     cv::Mat z_buffer_;
+    cv::Mat right_z_buffer_;
     cv::Mat binary_;
+    cv::Mat right_binary_;
     Pose pose_;
 
   };
@@ -41,7 +44,8 @@ namespace ttrk {
 
     bool AddModel(boost::shared_ptr<Model> mesh, const Pose &pose);
     bool RetrieveRenderedModel(cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image);
-
+    bool RetrieveStereoRenderedModel(cv::Mat &left_canvas, cv::Mat &right_canvas, cv::Mat &left_z_buffer, cv::Mat &right_z_buffer, cv::Mat &left_binary_image, cv::Mat &right_binary_image);
+  
   private:
 
     Renderer();

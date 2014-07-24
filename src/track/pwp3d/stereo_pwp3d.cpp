@@ -115,11 +115,10 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   using namespace ceres;
   frame_ = frame;
   
-  /*
   cv::Mat sdf_image__, front_intersection_image__, back_intersection_image__;
   GetSDFAndIntersectionImage(current_model, sdf_image__, front_intersection_image__, back_intersection_image__);
   return current_model.CurrentPose();
-  */
+  
 
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
   SetBlurringScaleFactor(stereo_frame->GetLeftImage().cols);

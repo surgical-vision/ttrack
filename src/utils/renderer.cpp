@@ -52,6 +52,26 @@ bool Renderer::RetrieveRenderedModel(cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat
 
 }
 
+bool Renderer::RetrieveStereoRenderedModel(cv::Mat &left_canvas, cv::Mat &right_canvas, cv::Mat &left_z_buffer, cv::Mat &right_z_buffer, cv::Mat &left_binary_image, cv::Mat &right_binary_image){
+  
+  WriteLock w_lock(mutex);
+
+  if (rendered == nullptr){
+    return false;
+  }
+  else{
+    left_canvas = rendered->canvas_;
+    right_canvas = rendered->right_canvas_;
+    left_z_buffer = rendered->z_buffer_;
+    right_z_buffer = rendered->right_z_buffer_;
+    left_binary_image = rendered->binary_;
+    right_binary_image = rendered->right_binary_;
+    rendered.release();
+    return true;
+  }
+}
+
+
 /******** SETUP CODE ***********/
 
 bool Renderer::constructed_ = false;

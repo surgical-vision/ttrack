@@ -40,8 +40,6 @@ namespace {
 }
 
 
-
-
 void TTrackApp::setup(){
 
   const std::string root_dir = ROOT_DIR;
@@ -50,20 +48,16 @@ void TTrackApp::setup(){
   ttrack.SetUp(root_dir + "/" + "model/model.json", root_dir + "/" + "camera/config.xml", root_dir + "/" + "classifier/config.xml", root_dir + "/" + "results/", ttrk::RF, ttrk::STEREO, root_dir + "/left.avi", root_dir + "/right.avi");
   
   shader_ = gl::GlslProg( loadResource( RES_SHADER_VERT ), loadResource( RES_SHADER_FRAG ) );
- 
-  setWindowSize(WINDOW_WIDTH * 2, WINDOW_HEIGHT);
-
-  CameraPersp cam;
-  cam.setEyePoint(ci::Vec3f(0, 0, 0));
-  cam.setViewDirection(ci::Vec3f(0, 0, -1));
-  cam.setWorldUp(ci::Vec3f(0, 1, 0));
-  maya_cam_.setCurrentCam(cam);
+  
+  if (::STEREO){
+    setWindowSize(2 * WINDOW_WIDTH, WINDOW_HEIGHT);
+  }
+  else{
+    setWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+  }
 
   left_params_ = CalibParams(::LEFT_FX, ::LEFT_FY, ::LEFT_PX, ::LEFT_PY);
   right_params_ = CalibParams(::RIGHT_FX, ::RIGHT_FY, ::RIGHT_PX, ::RIGHT_PY);
-
-  gl::Fbo::Format msaaFormat;
-  msaaFormat.setSamples(4); // enable 4x MSAA
 
   window_framebuffer_.reset(new gl::Fbo(WINDOW_WIDTH, WINDOW_HEIGHT));
   left_external_framebuffer_.reset(new gl::Fbo(WINDOW_WIDTH, WINDOW_HEIGHT));
@@ -122,15 +116,20 @@ bool TTrackApp::returnRenderable(){
     return false;
 
   ttrk::Renderer &r = ttrk::Renderer::Instance();
- 
-  to_render_->canvas_ = toOcv(left_external_framebuffer_->getTexture());
-  to_render_->z_buffer_ = toOcv(left_external_framebuffer_->getDepthTexture());
+  
+  //opengl rendering is upside down compared with opencv
+  cv::Mat tmp = toOcv(left_external_framebuffer_->getTexture());
+  cv::flip(tmp, to_render_->canvas_, 0);
+  tmp = toOcv(left_external_framebuffer_->getDepthTexture());
+  cv::flip(tmp, to_render_->z_buffer_, 0);
   convertZBufferToDepth(to_render_->z_buffer_);
   to_render_->binary_ = maya_cam_.getCamera().getFarClip() != to_render_->z_buffer_;
 
   if (::STEREO){
-    to_render_->right_canvas_ = toOcv(right_external_framebuffer_->getTexture());
-    to_render_->right_z_buffer_ = toOcv(right_external_framebuffer_->getDepthTexture());
+    cv::Mat tmp = toOcv(right_external_framebuffer_->getTexture());
+    cv::flip(tmp, to_render_->right_canvas_, 0);
+    tmp = toOcv(right_external_framebuffer_->getDepthTexture());
+    cv::flip(tmp, to_render_->right_z_buffer_, 0);
     convertZBufferToDepth(to_render_->right_z_buffer_);
     to_render_->right_binary_ = maya_cam_.getCamera().getFarClip() != to_render_->right_z_buffer_;
   }
@@ -170,6 +169,8 @@ void TTrackApp::setupEye(const CalibParams &params){
   up_dir = ci::Quatf(params.stereo_camera_rotation.xyz(), params.stereo_camera_rotation.w) * up_dir;
   cam.setViewDirection(view_dir);
   cam.setWorldUp(up_dir);
+  cam.setNearClip(1.0f);
+  cam.setFarClip(1000.0f);
   maya_cam_.setCurrentCam(cam);
 
   gl::setMatrices(maya_cam_.getCamera());
@@ -182,20 +183,22 @@ void TTrackApp::drawModelOnEye(boost::shared_ptr<gl::Fbo> framebuffer, const gl:
 
   framebuffer->bindFramebuffer();
 
-  gl::clear(Color(0, 0, 0), true);
-  if (background.getHeight() + background.getWidth() > 0)
+  gl::clear(Color(0, 0, 0));
+
+  //gl::disableDepthRead();
+  gl::enableDepthRead();
+  gl::enableDepthWrite();
+   
+  if (background.getWidth() > 0 && background.getHeight() > 0)
     gl::draw(background);
   
-  framebuffer->unbindFramebuffer();
-  ci::writeImage("../../fbuffer_image.png", framebuffer->getTexture());
-  return;
 
   GLint viewport_cache[4];
   glGetIntegerv(GL_VIEWPORT, viewport_cache);
   glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
   gl::pushMatrices();
-
+  shader_.bind();
   setupEye(params);
 
   gl::multModelView(pose.AsCiMatrixForOpenGL());
@@ -205,9 +208,8 @@ void TTrackApp::drawModelOnEye(boost::shared_ptr<gl::Fbo> framebuffer, const gl:
   glViewport(viewport_cache[0], viewport_cache[1], viewport_cache[2], viewport_cache[3]);
 
   gl::popMatrices();
-
+  
   framebuffer->unbindFramebuffer();
-
 }
 
 void TTrackApp::checkRenderer(){
@@ -217,17 +219,13 @@ void TTrackApp::checkRenderer(){
   ttrk::Renderer &r = ttrk::Renderer::Instance();
 
   if (r.to_render.get() != nullptr && r.rendered.get() == nullptr){
+    
     to_render_ = std::move(r.to_render); //take ownership
-    //drawRenderable(to_render_->mesh_,to_render_->pose_); //make the draw command 
-    drawModelOnEye(left_external_framebuffer_, gl::Texture(0, 0), to_render_->mesh_, to_render_->pose_, left_params_);
+    
+    drawModelOnEye(left_external_framebuffer_, gl::Texture(0,0), to_render_->mesh_, to_render_->pose_, left_params_);
 
-    if (::STEREO){
-
-
+    if (::STEREO)
       drawModelOnEye(right_external_framebuffer_, gl::Texture(0, 0), to_render_->mesh_, to_render_->pose_, right_params_);
-      
-
-    }
 
   }
 
@@ -243,7 +241,7 @@ void TTrackApp::drawModelAtPose(boost::shared_ptr<ttrk::Model> mesh, const ttrk:
     auto texture = mesh_tex_trans->get<1>();
 
     gl::pushModelView();
-    gl::multModelView(current_pose * mesh_tex_trans->get<2>());
+    gl::multModelView(mesh_tex_trans->get<2>());
 
     const auto trimesh = mesh_tex_trans->get<0>();
     gl::draw(*trimesh);
@@ -254,68 +252,22 @@ void TTrackApp::drawModelAtPose(boost::shared_ptr<ttrk::Model> mesh, const ttrk:
   }
 }
 
-void TTrackApp::setupDraw() {
-
-
-  gl::pushMatrices();
-  gl::setMatrices(maya_cam_.getCamera());
-
-  gl::enableDepthRead();
-  gl::enableDepthWrite();
-
-  gl::enableAlphaBlending();
-
-  shader_.bind();
-
-}
-
-void TTrackApp::finishDraw() {
-
-  shader_.unbind();
-  gl::disableAlphaBlending();
-
-  gl::popMatrices();
-
-}
-
-void TTrackApp::drawMonocular(){
-
-  drawModelOnEye(window_framebuffer_, left_frame_texture_, irs_->second[0].PtrToModel(), irs_->second[0].CurrentPose(), left_params_);
-  gl::draw(window_framebuffer_->getTexture());
-
-}
-
-void TTrackApp::drawStereo(){
-
-  drawModelOnEye(window_framebuffer_, left_frame_texture_, irs_->second[0].PtrToModel(), irs_->second[0].CurrentPose(), left_params_);
-  gl::draw(window_framebuffer_->getTexture(), ci::Rectf(0, left_frame_texture_.getHeight(), left_frame_texture_.getWidth(), 0));
-
-  drawModelOnEye(window_framebuffer_, right_frame_texture_, irs_->second[0].PtrToModel(), irs_->second[0].CurrentPose(), right_params_);
-  gl::draw(window_framebuffer_->getTexture(), ci::Rectf(window_framebuffer_->getWidth(), window_framebuffer_->getHeight(), 2 * window_framebuffer_->getWidth(), 0));
-
-}
-
-
 void TTrackApp::draw(){
-  
-  setupDraw();
-  
-  checkRenderer();
-  
-  finishDraw();
 
+  checkRenderer();
+   
   if (!irs_){
     return;
   }
+      
+  drawModelOnEye(left_external_framebuffer_, left_frame_texture_, irs_->second[0].PtrToModel(), irs_->second[0].CurrentPose(), left_params_);
+  gl::draw(left_external_framebuffer_->getTexture(), ci::Rectf(0, left_external_framebuffer_->getHeight(), left_external_framebuffer_->getWidth(), 0));
 
-  setupDraw();
+  if (::STEREO){
+    drawModelOnEye(right_external_framebuffer_, right_frame_texture_, irs_->second[0].PtrToModel(), irs_->second[0].CurrentPose(), right_params_);
+    gl::draw(right_external_framebuffer_->getTexture(), ci::Rectf(right_external_framebuffer_->getWidth(), right_external_framebuffer_->getHeight(), 2 * right_external_framebuffer_->getWidth(), 0));
+  }
 
-  if (::STEREO)
-    drawStereo();
-  else
-    drawMonocular();
-  
-  finishDraw();
 
 }
 
@@ -357,3 +309,4 @@ void TTrackApp::resize(){
 
 
 CINDER_APP_NATIVE( TTrackApp, RendererGl )
+

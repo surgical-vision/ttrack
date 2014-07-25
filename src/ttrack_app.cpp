@@ -25,18 +25,18 @@ namespace {
   const std::size_t WINDOW_HEIGHT = 288;
   const std::size_t WINDOW_WIDTH = 736;
 
-  const float LEFT_FX = 848.7527;
-  const float LEFT_FY = 457.6367;
-  const float LEFT_PX = 361.7452;
-  const float LEFT_PY = WINDOW_HEIGHT - 175.8229;
+  const float LEFT_FX = 848.7527f;
+  const float LEFT_FY = 457.6367f;
+  const float LEFT_PX = 361.7452f;
+  const float LEFT_PY = WINDOW_HEIGHT - 175.8229f;
 
-  const float RIGHT_FX = 840.0076;
-  const float RIGHT_FY = 452.5958;
-  const float RIGHT_PX = 361.9466;
-  const float RIGHT_PY = WINDOW_HEIGHT - 158.4793;
+  const float RIGHT_FX = 840.0076f;
+  const float RIGHT_FY = 452.5958f;
+  const float RIGHT_PX = 361.9466f;
+  const float RIGHT_PY = WINDOW_HEIGHT - 158.4793f;
 
-  const ci::Vec3f L2R_TRANS(-6.1282, -1.0395, -0.5295); //for T = [ 6.1282 ;-1.0395 ; - 0.5295 ] transformation is inversed but y,z need to be flipped as usual
-  const ci::Vec4f L2R_ROT(0.3408, -0.9392, 0.0411, 0.1324); //[axis, angle] from get_angle_axis(rodrigues(inv(R)) where get_angle_axis has n_mat = flip * r_mat * flip; 
+  const ci::Vec3f L2R_TRANS(-6.1282f, -1.0395f, -0.5295f); //for T = [ 6.1282 ;-1.0395 ; - 0.5295 ] transformation is inversed but y,z need to be flipped as usual
+  const ci::Vec4f L2R_ROT(0.3408f, -0.9392f, 0.0411f, 0.1324f); //[axis, angle] from get_angle_axis(rodrigues(inv(R)) where get_angle_axis has n_mat = flip * r_mat * flip; 
 }
 
 
@@ -49,12 +49,12 @@ void TTrackApp::setup(){
   
   shader_ = gl::GlslProg( loadResource( RES_SHADER_VERT ), loadResource( RES_SHADER_FRAG ) );
   
-  if (::STEREO){
-    setWindowSize(2 * WINDOW_WIDTH, WINDOW_HEIGHT);
-  }
-  else{
-    setWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
-  }
+  //if (::STEREO){
+  //setWindowSize(2 * WINDOW_WIDTH, WINDOW_HEIGHT);
+  //}
+  //else{
+  setWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+  //}
 
   left_params_ = CalibParams(::LEFT_FX, ::LEFT_FY, ::LEFT_PX, ::LEFT_PY);
   right_params_ = CalibParams(::RIGHT_FX, ::RIGHT_FY, ::RIGHT_PX, ::RIGHT_PY);

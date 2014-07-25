@@ -124,8 +124,6 @@
     <ClCompile Include="..\src\detect\supportvectormachine.cpp" />
     <ClCompile Include="..\src\track\kalman.cpp" />
     <ClCompile Include="..\src\track\model\articulated_model.cpp" />
-    <ClCompile Include="..\src\track\model\fast_bvh\BBox.cpp" />
-    <ClCompile Include="..\src\track\model\fast_bvh\BVH.cpp" />
     <ClCompile Include="..\src\track\model\model.cpp" />
     <ClCompile Include="..\src\track\pwp3d\mono_pwp3d.cpp" />
     <ClCompile Include="..\src\track\pwp3d\pose.cpp" />
@@ -142,7 +140,6 @@
     <ClCompile Include="..\src\utils\handler.cpp" />
     <ClCompile Include="..\src\utils\helpers.cpp" />
     <ClCompile Include="..\src\utils\nd_image.cpp" />
-    <ClCompile Include="..\src\utils\quasi_dense_stereo.cpp" />
     <ClCompile Include="..\src\utils\quaternion.cpp" />
     <ClCompile Include="..\src\utils\renderer.cpp" />
   </ItemGroup>
@@ -163,15 +160,6 @@
     <ClInclude Include="..\include\track\kalman.hpp" />
     <ClInclude Include="..\include\track\localizer.hpp" />
     <ClInclude Include="..\include\track\model\articulated_model.hpp" />
-    <ClInclude Include="..\include\track\model\fast_bvh\BBox.h" />
-    <ClInclude Include="..\include\track\model\fast_bvh\BVH.h" />
-    <ClInclude Include="..\include\track\model\fast_bvh\IntersectionInfo.h" />
-    <ClInclude Include="..\include\track\model\fast_bvh\Log.h" />
-    <ClInclude Include="..\include\track\model\fast_bvh\Object.h" />
-    <ClInclude Include="..\include\track\model\fast_bvh\Ray.h" />
-    <ClInclude Include="..\include\track\model\fast_bvh\Stopwatch.h" />
-    <ClInclude Include="..\include\track\model\fast_bvh\Triangle.h" />
-    <ClInclude Include="..\include\track\model\fast_bvh\Vector3.h" />
     <ClInclude Include="..\include\track\model\model.hpp" />
     <ClInclude Include="..\include\track\pose.hpp" />
     <ClInclude Include="..\include\track\pwp3d\mono_pwp3d.hpp" />
@@ -191,7 +179,6 @@
     <ClInclude Include="..\include\utils\helpers.hpp" />
     <ClInclude Include="..\include\utils\nd_image.hpp" />
     <ClInclude Include="..\include\utils\primitives.hpp" />
-    <ClInclude Include="..\include\utils\quasi_dense_stereo.hpp" />
     <ClInclude Include="..\include\utils\quaternion.hpp" />
     <ClInclude Include="..\include\utils\renderer.hpp" />
     <ClInclude Include="..\include\utils\result_plotter.hpp" />

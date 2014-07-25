@@ -31,9 +31,6 @@
     <Filter Include="Header Files\track\model">
       <UniqueIdentifier>{1aee14bd-f8a8-4ed8-8a13-9c611cc7de90}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\track\model\fast_bvh">
-      <UniqueIdentifier>{a9482aa5-a6d0-4f47-a45f-1eea6d8404c6}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\detect">
       <UniqueIdentifier>{fea6f35b-0f2d-4526-ab86-1aefd79037fd}</UniqueIdentifier>
     </Filter>
@@ -52,17 +49,8 @@
     <Filter Include="Source Files\track\model">
       <UniqueIdentifier>{916435df-95ef-4281-a83b-1bf9757898a1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\track\model\fast_bvh">
-      <UniqueIdentifier>{402933cd-3ddf-4b03-9914-6db7aa3c7e4e}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\track\model\fast_bvh\BBox.cpp">
-      <Filter>Source Files\track\model\fast_bvh</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\track\model\fast_bvh\BVH.cpp">
-      <Filter>Source Files\track\model\fast_bvh</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\track\model\model.cpp">
       <Filter>Source Files\track\model</Filter>
     </ClCompile>
@@ -103,9 +91,6 @@
       <Filter>Source Files\utils</Filter>
     </ClCompile>
     <ClCompile Include="..\src\utils\nd_image.cpp">
-      <Filter>Source Files\utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\utils\quasi_dense_stereo.cpp">
       <Filter>Source Files\utils</Filter>
     </ClCompile>
     <ClCompile Include="..\src\utils\quaternion.cpp">
@@ -169,33 +154,6 @@
     <ClInclude Include="..\include\detect\supportvectormachine.hpp">
       <Filter>Header Files\detect</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\track\model\fast_bvh\BBox.h">
-      <Filter>Header Files\track\model\fast_bvh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\track\model\fast_bvh\BVH.h">
-      <Filter>Header Files\track\model\fast_bvh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\track\model\fast_bvh\IntersectionInfo.h">
-      <Filter>Header Files\track\model\fast_bvh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\track\model\fast_bvh\Log.h">
-      <Filter>Header Files\track\model\fast_bvh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\track\model\fast_bvh\Object.h">
-      <Filter>Header Files\track\model\fast_bvh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\track\model\fast_bvh\Ray.h">
-      <Filter>Header Files\track\model\fast_bvh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\track\model\fast_bvh\Stopwatch.h">
-      <Filter>Header Files\track\model\fast_bvh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\track\model\fast_bvh\Triangle.h">
-      <Filter>Header Files\track\model\fast_bvh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\track\model\fast_bvh\Vector3.h">
-      <Filter>Header Files\track\model\fast_bvh</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\track\pwp3d\mono_pwp3d.hpp">
       <Filter>Header Files\track\pwp3d</Filter>
     </ClInclude>
@@ -248,9 +206,6 @@
       <Filter>Header Files\utils</Filter>
     </ClInclude>
     <ClInclude Include="..\include\utils\primitives.hpp">
-      <Filter>Header Files\utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\utils\quasi_dense_stereo.hpp">
       <Filter>Header Files\utils</Filter>
     </ClInclude>
     <ClInclude Include="..\include\utils\quaternion.hpp">

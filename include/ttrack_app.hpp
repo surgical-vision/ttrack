@@ -38,8 +38,6 @@ public:
   void update();
   void draw();
 
-  void drawGrid(float size=100.0f, float step=10.0f);
-
   void keyDown( KeyEvent event);
   void mouseMove( MouseEvent event );
   void mouseDown( MouseEvent event );
@@ -48,17 +46,14 @@ public:
 
 protected:
 
+  void drawMeshes();
   void drawModelOnEye(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture &background, boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose, const CalibParams &params);
   void drawModelAtPose(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose);
-  void drawMonocular();
-  void drawStereo();
   bool returnRenderable();
-  //void drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose);
+  void drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose);
   void setGlProjectionFromCameraCalibration(const CalibParams &params);
   void checkRenderer();
   void convertZBufferToDepth(cv::Mat &zbuffer) const;
-  void setupDraw();
-  void finishDraw();
   void setupEye(const CalibParams &params);
 
   // shader and texture for our model

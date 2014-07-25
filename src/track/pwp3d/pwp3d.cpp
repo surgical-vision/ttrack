@@ -177,8 +177,8 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
 
   //find all the pixels which project to intersection points on the model
   sdf_image = cv::Mat(frame_->GetImageROI().size(),CV_32FC1);
-  front_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_64FC3);
-  back_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_64FC3);
+  front_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_32FC3);
+  back_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_32FC3);
  
   //blocks here
   cv::Mat canvas,z_buffer,binary_image;
@@ -190,7 +190,7 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
   for (int r = 0; r < front_intersection_image.rows; r++){
     for (int c = 0; c < front_intersection_image.cols; c++){
       const cv::Vec2f &unprojected_pixel = unprojected_image_plane.at<cv::Vec2f>(r, c);
-      front_intersection_image.at<cv::Vec3d>(r, c) = z_buffer.at<float>(r, c)*cv::Vec3d(unprojected_pixel[0], unprojected_pixel[1], 1);
+      front_intersection_image.at<cv::Vec3f>(r, c) = z_buffer.at<float>(r, c)*cv::Vec3f(unprojected_pixel[0], unprojected_pixel[1], 1);
     }
   }
 
@@ -200,7 +200,7 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
   cv::Mat edge_image(binary_image.size(), CV_8UC1);
   cv::Canny(binary_image, edge_image, 1, 100);
   std::vector<std::vector<cv::Point> > output_contours;
-  //std::vector<std::vector<int> > heirarchy;
+  
   cv::findContours(edge_image, output_contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE); //CV_RETR_EXTERNAL only returns the outer contours
   cv::Mat edge_image_no_inner = cv::Mat::zeros(edge_image.size(), CV_8UC1);
   
@@ -220,11 +220,6 @@ void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sd
         sdf_image.at<float>(r,c) *= -1;
     }
   }
-
-  cv::imwrite("../../canvas.png", canvas);
-  cv::imwrite("../../binary_image.png", binary_image);
-  cv::imwrite("../../edge_image.png", edge_image_no_inner);
-  cv::imwrite("../../sdf_image.png", sdf_image);
   
 }
 

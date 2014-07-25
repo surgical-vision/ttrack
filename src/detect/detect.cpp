@@ -17,7 +17,7 @@ Detect::Detect(const std::string &classifier_path, ClassifierType classifier_typ
   LoadClassifier(classifier_path);
 
   //currently i don't know a good way of checking if the opencv ML classifier has loaded
-  if(!Loaded()) throw(std::runtime_error("Error, could not construct classifier.\n"));
+  //if(!Loaded()) throw(std::runtime_error("Error, could not construct classifier.\n"));
 
 }
 
@@ -31,7 +31,17 @@ void Detect::operator()(boost::shared_ptr<sv::Frame> image){
 }
 
 void Detect::ClassifyFrame(){
+
+  cv::Mat target = frame_->GetClassificationMap();
+  cv::Mat left = target(cv::Rect(0, 0, target.cols / 2, target.rows));
+  cv::Mat right = target(cv::Rect(target.cols / 2, 0, target.cols / 2, target.rows));
+  cv::Mat tmp = cv::imread("../data/lnd/left_classification.png", 0);
+  tmp.copyTo(left);
+  tmp = cv::imread("../data/lnd/right_classification.png", 0);
+  tmp.copyTo(right);
   
+  return;
+
   assert(Loaded());
   assert(frame_->GetImageROI().type() == CV_8UC3);
   
@@ -39,6 +49,7 @@ void Detect::ClassifyFrame(){
   NDImage nd_image(whole_frame);
   const int rows = whole_frame.rows;
   const int cols = whole_frame.cols;
+
 
   static size_t frame_count = 0;
 
@@ -51,10 +62,10 @@ void Detect::ClassifyFrame(){
 
       const int index = r*cols + c;
       
-      cv::Mat pix = nd_image.GetPixelData(r,c);
+      //cv::Mat pix = nd_image.GetPixelData(r,c);
       
       //const unsigned char prediction = (unsigned char)255*classifier_->PredictClass(pix);
-      const unsigned char prediction = (unsigned char)(255.0*classifier_->PredictProb(pix,1));
+      const unsigned char prediction = (unsigned char)1.0;// (255.0*classifier_->PredictProb(pix, 1));
       
       frame_data[index] = prediction;
 

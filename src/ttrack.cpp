@@ -1,16 +1,17 @@
-#include "../include/ttrack_app.hpp"
-#include "../include/ttrack.hpp"
-#include "../include/utils/helpers.hpp"
 #include <boost/ref.hpp>
 #include <vector>
 #include <cassert>
 #include <string>
-#include "../include/track/stt/stereo_tool_tracker.hpp"
-#include "../include/track/stt/monocular_tool_tracker.hpp"
-#include "../include/utils/result_plotter.hpp"
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/system/error_code.hpp>
 
+#include "../include/headers.hpp"
+#include "../include/ttrack_app.hpp"
+#include "../include/ttrack.hpp"
+#include "../include/utils/helpers.hpp"
+#include "../include/track/stt/stereo_tool_tracker.hpp"
+#include "../include/track/stt/monocular_tool_tracker.hpp"
+#include "../include/utils/result_plotter.hpp"
 
 using namespace ttrk;
 
@@ -114,6 +115,7 @@ bool TTrack::GetLatestUpdate(ImageRenderSet &irs) {
   if( processed_frames_.empty()) return false;
 
   irs = processed_frames_.front();
+
   processed_frames_.pop();
   return true;
 }
@@ -122,19 +124,8 @@ void TTrack::SaveFrame(){
 
   boost::shared_ptr<sv::Frame> frame = tracker_->GetPtrToFinishedFrame();
 
-  //blend frame with classification map
-  cv::Mat blended;
-  cv::Mat classification_3channel;
-  std::vector<cv::Mat> chans;
-  chans.push_back(frame->GetClassificationMapROI());
-  chans.push_back(cv::Mat::zeros( frame->GetClassificationMapROI().size(),CV_8UC1) );
-  chans.push_back(cv::Mat::zeros( frame->GetClassificationMapROI().size(),CV_8UC1) );
-  cv::merge(chans,classification_3channel);
-  cv::addWeighted(frame->GetImageROI(),0.55,classification_3channel,0.45,0,blended);
-
   //request the handler to save it to a video/image
   handler_->SaveFrame(frame->GetImageROI());
-  //handler_->SaveFrame(blended);
 
 }
 
@@ -217,7 +208,7 @@ boost::shared_ptr<sv::Frame> TTrack::GetPtrToClassifiedFrame(){
 
 bool TTrack::constructed_ = false;
 
-boost::scoped_ptr<TTrack> TTrack::instance_(new TTrack);
+boost::scoped_ptr<TTrack> TTrack::instance_;
 
 TTrack::TTrack(){}
 

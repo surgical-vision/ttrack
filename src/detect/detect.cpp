@@ -1,11 +1,13 @@
-#include "../../include/detect/detect.hpp"
-#include "../../include/utils/helpers.hpp"
-#include "../../include/detect/randomforest.hpp"
-#include "../../include/detect/supportvectormachine.hpp"
 #include <boost/filesystem.hpp>
 #include <iostream>
 #include <stdlib.h>
 #include <time.h>
+
+#include "../../include/detect/detect.hpp"
+#include "../../include/utils/helpers.hpp"
+#include "../../include/detect/randomforest.hpp"
+#include "../../include/detect/supportvectormachine.hpp"
+
 
 using namespace ttrk;
 

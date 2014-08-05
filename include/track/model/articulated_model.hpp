@@ -1,8 +1,10 @@
 #ifndef __ARTICULATED_MODEL_HPP__
 #define __ARTICULATED_MODEL_HPP__
-#include "model.hpp"
+
 #include <cinder/Json.h>
 #include <cinder/gl/gl.h>
+
+#include "model.hpp"
 
 namespace ttrk {
 

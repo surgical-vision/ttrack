@@ -1,10 +1,11 @@
 #ifndef _DETECT_HPP_
 #define _DETECT_HPP_
 
+#include <opencv2/ml/ml.hpp>
+
 #include "../headers.hpp"
 #include "baseclassifier.hpp"
 #include "../utils/nd_image.hpp"
-#include <opencv2/ml/ml.hpp>
 #include "../../deps/image/image/image.hpp"
 
 namespace ttrk{

@@ -1,10 +1,13 @@
 #ifndef _HELPERS_HPP_
 #define _HELPERS_HPP_
+
 #include <string>
 #include <vector>
-#include "../headers.hpp"
 #include <unordered_map>
 #include <boost/functional/hash.hpp>
+
+#include "../headers.hpp"
+
 //#include <math.h>
 
 namespace ttrk{

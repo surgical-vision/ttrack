@@ -1,18 +1,22 @@
 #ifndef _MODEL_HPP_
 #define _MODEL_HPP_
-#include "../../headers.hpp"
-#define _USE_MATH_DEFINES
-#include <math.h>
-#include "../pose.hpp"
-#include "../../utils/primitives.hpp"
-#include "../../utils/camera.hpp"
-#include "fast_bvh/BVH.h"
-#include "fast_bvh/Triangle.h"
+
+
+
 #include <cinder/TriMesh.h>
 #include <cinder/gl/gl.h>
 #include <cinder/gl/Texture.h>
 #include <utility>
 #include <boost/tuple/tuple.hpp>
+
+#include "../../headers.hpp"
+#define _USE_MATH_DEFINES
+#include <math.h>
+
+#include "../pose.hpp"
+#include "../../utils/primitives.hpp"
+#include "../../utils/camera.hpp"
+
 
 namespace ttrk{
 
@@ -38,13 +42,6 @@ namespace ttrk{
     
     typedef boost::tuple<boost::shared_ptr<ci::TriMesh>, boost::shared_ptr<ci::gl::Texture>, ci::Matrix44d> MeshTextureAndTransform;
     //typedef std::pair< boost::shared_ptr<ci::TriMesh> , ci::Matrix44d > MeshAndTransform;
-
-    /**
-    * Provides access to the points. As the model may be implemented as a parametrised shape or similar 
-    * this is implemented as a virtual function to allow custom representation of the shape.
-    * @return A vector of points.
-    */
-    //virtual boost::shared_ptr<std::vector<Object *> > Points(const Pose &pose);
     
     /**
     * Get an intersection between the model and a ray cast from the camera. This is needed in the tracking methods. 

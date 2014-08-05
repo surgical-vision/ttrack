@@ -1,8 +1,10 @@
 #ifndef _ND_IMAGE_HPP_
 #define _ND_IMAGE_HPP_
+
+#include <map>
+
 #include "../headers.hpp"
 #include "../constants.hpp"
-#include <map>
 
 namespace ttrk{
 

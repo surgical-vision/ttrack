@@ -7,16 +7,19 @@
  * Information about the project...
  */
 
-#include "track/tracker.hpp"
-#include "detect/detect.hpp"
-#include "utils/handler.hpp"
+
 #include <boost/thread.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
-#include "../deps/image/image/image.hpp"
 #include <queue>
 #include <boost/thread/mutex.hpp>
+
+#include "../deps/image/image/image.hpp"
+#include "track/tracker.hpp"
+#include "detect/detect.hpp"
+#include "utils/handler.hpp"
+
 /**
  * @namespace ttrk
  * This is the namespace for the tool tracking project.

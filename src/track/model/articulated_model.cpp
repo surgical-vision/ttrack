@@ -1,9 +1,11 @@
-#include "../../../include/track/model/articulated_model.hpp"
 #include <cinder/ObjLoader.h>
 #include <cinder/Json.h>
 #include <cinder/ImageIo.h>
 #include <cinder/app/App.h>
 #include <cinder/gl/Texture.h>
+
+#include "../../../include/track/model/articulated_model.hpp"
+
 
 using namespace ttrk;
 

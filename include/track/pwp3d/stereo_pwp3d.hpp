@@ -23,6 +23,7 @@ namespace ttrk {
     
   protected:   
 
+    void GetRenderedModelAtPose(const KalmanTracker &current_model, cv::Mat &left_canvas, cv::Mat &left_z_buffer, cv::Mat &left_binary_image, cv::Mat &right_canvas, cv::Mat &right_z_buffer, cv::Mat &right_binary_image) const;
     virtual void GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection);
     void GetFastDOFDerivsLeft(const Pose &pose, double *pose_derivs, double *intersection);
     void GetFastDOFDerivsRight(const Pose &pose, double *pose_derivs, double *intersection);

@@ -1,10 +1,11 @@
+#include <boost/filesystem.hpp>
+
 #include "../../../include/track/stt/surgical_tool_tracker.hpp"
 #include "../../../include/track/pwp3d/pwp3d.hpp"
 #include "../../../deps/image/image/image.hpp"
-#include <boost/filesystem.hpp>
+
 
 using namespace ttrk;
-
 
 SurgicalToolTracker::SurgicalToolTracker(const std::string &model_parameter_file){
 

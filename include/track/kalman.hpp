@@ -3,9 +3,11 @@
 
 #include <cv.h>
 #include <boost/shared_ptr.hpp>
+#include <fstream>
+
 #include "model/model.hpp"
 #include "pose.hpp"
-#include <fstream>
+
 
 namespace ttrk {
 

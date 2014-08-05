@@ -1,7 +1,10 @@
 #ifndef __STEREO_TOOL_TRACKER_HPP__
 #define __STEREO_TOOL_TRACKER_HPP__
-#include "surgical_tool_tracker.hpp"
+
 #include <cv.h>
+
+#include "surgical_tool_tracker.hpp"
+
 
 namespace ttrk {
 

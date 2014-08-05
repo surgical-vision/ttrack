@@ -1,5 +1,6 @@
 #ifndef __MONO_TOOL_TRACKER_HPP__
 #define __MONO_TOOL_TRACKER_HPP__
+
 #include "surgical_tool_tracker.hpp"
 
 namespace ttrk {

@@ -211,12 +211,14 @@ void TTrackApp::drawModelOnEye(boost::shared_ptr<gl::Fbo> framebuffer, const gl:
   glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
   gl::pushMatrices();
-  shader_.bind();
+  
   setupEye(params);
 
   gl::multModelView(pose.AsCiMatrixForOpenGL());
   
+  shader_.bind();
   drawModelAtPose(mesh, pose);
+  shader_.unbind(); //if we render the background frame with the shader bound we get a stupid specular reflection in the middle of it
 
   glViewport(viewport_cache[0], viewport_cache[1], viewport_cache[2], viewport_cache[3]);
 
@@ -272,7 +274,9 @@ void TTrackApp::draw(){
   if (!irs_){
     return;
   }
-      
+  
+  gl::clear(ci::Color(0, 0, 0), true);
+
   drawModelOnEye(left_external_framebuffer_, left_frame_texture_, irs_->second[0].PtrToModel(), irs_->second[0].CurrentPose(), left_params_);
   gl::draw(left_external_framebuffer_->getTexture(), ci::Rectf(0, left_external_framebuffer_->getHeight(), left_external_framebuffer_->getWidth(), 0));
 

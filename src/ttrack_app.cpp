@@ -1,19 +1,22 @@
-#include "../include/ttrack_app.hpp"
-#include "cinder/app/AppNative.h"
-#include "cinder/gl/Texture.h"
-#include "cinder/gl/GlslProg.h"
-#include "cinder/ImageIo.h"
-#include "cinder/MayaCamUI.h"
-#include "cinder/Rand.h"
-#include "cinder/TriMesh.h"
-#include "../include/resources.hpp"
-#include "cinder/ObjLoader.h"
-#include "cinder/Json.h"
+#include <cinder/ObjLoader.h>
+#include <cinder/Json.h>
 #include <vector>
 #include <utility>
 #include <boost/ref.hpp>
-#include "CinderOpenCV.h"
+#include <CinderOpenCV.h>
 #include <cinder/gl/Fbo.h>
+#include <cinder/app/AppNative.h>
+#include <cinder/gl/Texture.h>
+#include <cinder/gl/GlslProg.h>
+#include <cinder/ImageIo.h>
+#include <cinder/MayaCamUI.h>
+#include <cinder/Rand.h>
+#include <cinder/TriMesh.h>
+
+#include "../include/headers.hpp"
+#include "../include/ttrack_app.hpp"
+#include "../include/resources.hpp"
+
 using namespace ci;
 using namespace ci::app;
 
@@ -37,6 +40,7 @@ namespace {
 
   const ci::Vec3f L2R_TRANS(-6.1282f, -1.0395f, -0.5295f); //for T = [ 6.1282 ;-1.0395 ; - 0.5295 ] transformation is inversed but y,z need to be flipped as usual
   const ci::Vec4f L2R_ROT(0.3408f, -0.9392f, 0.0411f, 0.1324f); //[axis, angle] from get_angle_axis(rodrigues(inv(R)) where get_angle_axis has n_mat = flip * r_mat * flip; 
+
 }
 
 
@@ -88,6 +92,15 @@ void TTrackApp::update(){
     img = ci::fromOcv(irs_->first->GetImageROI());
     left_frame_texture_ = gl::Texture(img);
   }
+
+}
+
+void TTrackApp::shutdown(){
+
+  //_CrtMemDumpAllObjectsSince(0x0);
+  //_CrtDumpMemoryLeaks();
+  //system("pause");
+  cinder::app::AppNative::shutdown();
 
 }
 

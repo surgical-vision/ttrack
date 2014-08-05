@@ -14,6 +14,23 @@
 #include <boost/timer.hpp>
 #include <boost/progress.hpp>
 #include <iostream>
+#include <boost/thread/thread.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/interprocess/sync/scoped_lock.hpp>
+#include <boost/system/error_code.hpp>
+#include <boost/ref.hpp>
+#include <boost/math/special_functions/fpclassify.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/tuple/tuple.hpp>
+#include <boost/numeric/ublas/vector.hpp>
+#include <boost/numeric/ublas/io.hpp>
+#include <boost/scoped_ptr.hpp>
+#include <boost/functional/hash.hpp>
+#include <boost/math/quaternion.hpp>
+#include <boost/thread.hpp>
+#include <boost/thread/mutex.hpp>
+
+
 
 #ifndef DEBUG
   #define DEBUG
@@ -21,5 +38,6 @@
 
 #define SAVEDEBUG_1
 #define SAVEDEBUG_2
-  
+
+
 #endif //_HEADERS_H_

@@ -1,5 +1,8 @@
-#include "../../include/utils/renderer.hpp"
 #include <cinder/app/App.h>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/thread/thread.hpp> 
+
+#include "../../include/utils/renderer.hpp"
 
 using namespace ttrk;
 
@@ -14,11 +17,21 @@ Renderer &Renderer::Instance() {
 void Renderer::DrawMesh(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image, const Pose &pose, const boost::shared_ptr<MonocularCamera> camera){
 
   Renderer &r = Renderer::Instance();
-  while (!r.AddModel(mesh, pose)){ Sleep(5); }
+  while (!r.AddModel(mesh, pose)){ boost::this_thread::sleep(boost::posix_time::milliseconds(100)); }// Sleep(5);
 
-  while (!r.RetrieveRenderedModel(canvas,z_buffer,binary_image)){ Sleep(5); }
+  while (!r.RetrieveRenderedModel(canvas, z_buffer, binary_image)){ boost::this_thread::sleep(boost::posix_time::milliseconds(100)); }
 
 }
+
+void Renderer::DrawStereoMesh(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image, const Pose &pose, const boost::shared_ptr<MonocularCamera> camera){
+  
+  Renderer &r = Renderer::Instance();
+  while (!r.AddModel(mesh, pose)){ boost::this_thread::sleep(boost::posix_time::milliseconds(100)); }// Sleep(5);
+
+  while (!r.RetrieveRenderedModel(canvas, z_buffer, binary_image)){ boost::this_thread::sleep(boost::posix_time::milliseconds(100)); }
+
+}
+
 
 bool Renderer::AddModel(boost::shared_ptr<Model> mesh, const Pose &pose){
   
@@ -46,7 +59,8 @@ bool Renderer::RetrieveRenderedModel(cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat
     canvas = rendered->canvas_;
     z_buffer = rendered->z_buffer_;
     binary_image = rendered->binary_;
-    rendered.release();
+    //rendered.release();
+    rendered.reset();
     return true;
   }
 
@@ -66,7 +80,8 @@ bool Renderer::RetrieveStereoRenderedModel(cv::Mat &left_canvas, cv::Mat &right_
     right_z_buffer = rendered->right_z_buffer_;
     left_binary_image = rendered->binary_;
     right_binary_image = rendered->right_binary_;
-    rendered.release();
+    //rendered.release();
+    rendered.reset();
     return true;
   }
 }

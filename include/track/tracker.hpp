@@ -3,9 +3,10 @@
 
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/io.hpp>
-#include "../../deps/image/image/image.hpp"
 #include <boost/scoped_ptr.hpp>
+
 #include "../headers.hpp"
+#include "../../deps/image/image/image.hpp"
 #include "kalman.hpp"
 #include "localizer.hpp"
 #include "model/articulated_model.hpp"

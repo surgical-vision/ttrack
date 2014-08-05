@@ -1,12 +1,15 @@
-#include "../../../include/track/stt/stereo_tool_tracker.hpp"
-#include "../../../include/track/pwp3d/stereo_pwp3d.hpp"
 #include <fstream>
 #include <stdlib.h>
 #include <time.h> 
-#include "../../../include/utils/quasi_dense_stereo.hpp"
-#include "../../../include/utils/helpers.hpp"
 #include <stdint.h>
 #include <boost/timer.hpp>
+
+#include "../../../include/track/stt/stereo_tool_tracker.hpp"
+#include "../../../include/track/pwp3d/stereo_pwp3d.hpp"
+
+#include "../../../include/utils/quasi_dense_stereo.hpp"
+#include "../../../include/utils/helpers.hpp"
+
 using namespace ttrk;
 
 #define STEREO_SGBM

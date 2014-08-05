@@ -1,10 +1,13 @@
 #ifndef __LOCALIZER_HPP__
 #define __LOCALIZER_HPP__
+
+#include <cinder/app/Renderer.h>
+
 #include "kalman.hpp"
 #include "pose.hpp"
 #include "../../deps/image/image/image.hpp"
 
-#include <cinder/app/Renderer.h>
+
 
 namespace ttrk {
 

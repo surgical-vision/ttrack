@@ -1,7 +1,8 @@
-#include "../../include/utils/camera.hpp"
-#include "../../include/utils/helpers.hpp"
 #include <fstream>
 #include <boost/filesystem.hpp>
+
+#include "../../include/utils/camera.hpp"
+#include "../../include/utils/helpers.hpp"
 
 using namespace ttrk;
 

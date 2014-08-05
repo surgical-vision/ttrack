@@ -3,7 +3,6 @@
 #include <boost/filesystem.hpp>
 #include "../../include/utils/exceptions.hpp"
 
-
 cv::Mat &ttrk::ConvertMatSingleToTriple(cv::Mat &im){
 
   //must return im!

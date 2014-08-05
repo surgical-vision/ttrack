@@ -1,9 +1,10 @@
 #ifndef _BASE_CLASSIFIER_HPP_
 #define _BASE_CLASSIFIER_HPP_
 
-#include "../headers.hpp"
 #include <opencv2/ml/ml.hpp>
 #include <boost/filesystem.hpp>
+
+#include "../headers.hpp"
 
 namespace ttrk{
   

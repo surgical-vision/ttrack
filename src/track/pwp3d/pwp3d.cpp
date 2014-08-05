@@ -1,12 +1,11 @@
-#include "../../../include/track/pwp3d/pwp3d.hpp"
-#include "../../../include/utils/helpers.hpp"
-#include <boost/math/special_functions/fpclassify.hpp>
-#include "../../../include/utils/renderer.hpp"
 #include <cinder/ImageIo.h>
 #include <cinder/app/AppBasic.h>
-
-
+#include <boost/math/special_functions/fpclassify.hpp>
 #include <ctime>
+
+#include "../../../include/track/pwp3d/pwp3d.hpp"
+#include "../../../include/utils/helpers.hpp"
+#include "../../../include/utils/renderer.hpp"
 
 using namespace ttrk;
 
@@ -173,17 +172,13 @@ void PWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, con
   
 }
 
-void PWP3D::GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sdf_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image) {
+void PWP3D::ProcessSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &z_buffer, cv::Mat &sdf_image, cv::Mat &binary_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image) {
 
   //find all the pixels which project to intersection points on the model
   sdf_image = cv::Mat(frame_->GetImageROI().size(),CV_32FC1);
   front_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_32FC3);
   back_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_32FC3);
- 
-  //blocks here
-  cv::Mat canvas,z_buffer,binary_image;
-  Renderer::DrawMesh(current_model.PtrToModel(), canvas, z_buffer, binary_image, current_model.CurrentPose(), camera_);
- 
+
   cv::Mat unprojected_image_plane = camera_->GetUnprojectedImagePlane(front_intersection_image.cols, front_intersection_image.rows);
   //find the set of pixels which correspond to the drawn object and create the intersection image
 

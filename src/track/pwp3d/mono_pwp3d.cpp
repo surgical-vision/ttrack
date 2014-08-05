@@ -1,8 +1,10 @@
+#include<boost/filesystem.hpp>
+
 #include "../../../include/track/pwp3d/mono_pwp3d.hpp"
 #include "../../../include/utils/helpers.hpp"
-#include<boost/filesystem.hpp>
-using namespace ttrk;
+#include "../../../include/utils/renderer.hpp"
 
+using namespace ttrk;
 
 Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
 
@@ -16,8 +18,10 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
 
     //(x,y,z,w,r1,r2,r3)
     PoseDerivs image_pose_derivatives = PoseDerivs::Zeros();
+    cv::Mat canvas, z_buffer, binary_image;
+    GetRenderedModelAtPose(current_model, canvas, z_buffer, binary_image);
     cv::Mat sdf_image,front_intersection_image,back_intersection_image;
-    GetSDFAndIntersectionImage(current_model,sdf_image,front_intersection_image,back_intersection_image);
+    ProcessSDFAndIntersectionImage(current_model, z_buffer, sdf_image, binary_image, front_intersection_image, back_intersection_image);
 
     //compute the derivates of the sdf images
     cv::Mat dSDFdx, dSDFdy;
@@ -67,4 +71,11 @@ Pose MonoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_pt
 
 void MonoPWP3D::GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection) {
   pose.GetFastDOFDerivs(pose_derivs,intersection);
+}
+
+
+void MonoPWP3D::GetRenderedModelAtPose(const KalmanTracker &current_model, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image) const {
+
+
+
 }

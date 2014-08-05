@@ -1,8 +1,10 @@
 #ifndef __POSE_HPP__
 #define __POSE_HPP__
 
-#include "../../deps/quaternion/inc/quaternion.hpp"
 #include <cinder/Matrix44.h>
+
+#include "../../deps/quaternion/inc/quaternion.hpp"
+
 
 namespace ttrk {
 

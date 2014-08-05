@@ -1,21 +1,20 @@
 #ifndef __PWP3D_HPP__
 #define __PWD3D_HPP__
 
+//#include <ceres/ceres.h>
+
 #include "../localizer.hpp"
 #include "../../utils/camera.hpp"
 #include "../../../deps/image/image/image.hpp"
 #include "../pose.hpp"
 #include "register_points.hpp"
-#include "../../track/model/fast_bvh/Object.h"
-#include <ceres/ceres.h>
 
 namespace ttrk {
 
   class PWP3D : public Localizer {
   public: 
 
-    PWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera), register_points_(camera), k_delta_function_std_(2.5), k_heaviside_width_(0.3) { 
-    }
+    PWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera), register_points_(camera), k_delta_function_std_(2.5), k_heaviside_width_(0.3) {  }
 
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame) = 0;
     
@@ -28,7 +27,9 @@ namespace ttrk {
     * @param[in] current_model The model which will be projected to the image plane.
     * @return The image containin the signed distance function. Will be a single channel floating point image.
     */
-    void GetSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &sdf_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image);
+    void ProcessSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &z_buffer, cv::Mat &sdf_image, cv::Mat &binary_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image);
+    
+    
     //const cv::Mat ProjectShapeToSDF(KalmanTracker &current_model);
 
     /**

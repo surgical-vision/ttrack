@@ -1,9 +1,10 @@
-#include "../../../include/track/model/model.hpp"
-#include "../../../include/utils/helpers.hpp"
 #include <fstream>
 #include <boost/algorithm/string.hpp>
-#include "../../../include/utils/primitives.hpp"
 #include <boost/filesystem.hpp>
+
+#include "../../../include/track/model/model.hpp"
+#include "../../../include/utils/helpers.hpp"
+#include "../../../include/utils/primitives.hpp"
 
 using namespace ttrk;
 

@@ -1,10 +1,13 @@
 #ifndef __RENDERER_HPP__
 #define __RENDERED_HPP__
+
+#include <boost/thread.hpp>
+#include <cinder/gl/Fbo.h>
+
 #include "../headers.hpp"
 #include "../track/model/model.hpp"
-#include <cinder/gl/Fbo.h>
 #include "../ttrack.hpp"
-#include <boost/thread.hpp>
+
 
 namespace ttrk {
 
@@ -35,6 +38,7 @@ namespace ttrk {
     static void Destroy();
 
     static void DrawMesh(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image, const ttrk::Pose &pose, const boost::shared_ptr<MonocularCamera> camera);
+    static void DrawStereoMesh(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image, const Pose &pose, const boost::shared_ptr<MonocularCamera> camera);
 
     std::unique_ptr<Renderable> to_render;
     std::unique_ptr<Renderable> rendered;
@@ -45,7 +49,8 @@ namespace ttrk {
     bool AddModel(boost::shared_ptr<Model> mesh, const Pose &pose);
     bool RetrieveRenderedModel(cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image);
     bool RetrieveStereoRenderedModel(cv::Mat &left_canvas, cv::Mat &right_canvas, cv::Mat &left_z_buffer, cv::Mat &right_z_buffer, cv::Mat &left_binary_image, cv::Mat &right_binary_image);
-  
+    
+
   private:
 
     Renderer();

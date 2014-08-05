@@ -1,10 +1,10 @@
+#include <boost/filesystem.hpp>
+
 #include "../../../include/track/pwp3d/stereo_pwp3d.hpp"
 #include "../../../include/utils/helpers.hpp"
-#include<boost/filesystem.hpp>
-
+#include "../../../include/utils/renderer.hpp"
 
 using namespace ttrk;
-
 
 void StereoPWP3D::SwapToLeft(Pose &pose){
 
@@ -102,6 +102,7 @@ void StereoPWP3D::GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double
 
 }
 
+/*
 struct CostFunctor {
   template <typename T>
   bool operator()(const T* const x, T* residual) const {
@@ -109,14 +110,13 @@ struct CostFunctor {
     return true;
   }
 };
-
+*/
 Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_ptr<sv::Frame> frame){
  
-  using namespace ceres;
+  //using namespace ceres;
   frame_ = frame;
   
   cv::Mat sdf_image__, front_intersection_image__, back_intersection_image__;
-  GetSDFAndIntersectionImage(current_model, sdf_image__, front_intersection_image__, back_intersection_image__);
   return current_model.CurrentPose();
   
 
@@ -132,36 +132,42 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   SAFE_EXIT();*/
 
   // Build the problem.
-  ceres::Problem problem;
+  //ceres::Problem problem;
   // The variable to solve for with its initial value.
   double initial_x = 5.0;
   double x = initial_x;
 
   // Set up the only cost function (also known as residual). This uses
   // auto-differentiation to obtain the derivative (jacobian).
-  ceres::CostFunction* cost_function =
-    new ceres::AutoDiffCostFunction<CostFunctor, 1, 1>(new CostFunctor);
-  problem.AddResidualBlock(cost_function, NULL, &x);
+  //ceres::CostFunction* cost_function =
+  //  new ceres::AutoDiffCostFunction<CostFunctor, 1, 1>(new CostFunctor);
+  //problem.AddResidualBlock(cost_function, NULL, &x);
 
   // Run the solver!
-  Solver::Options options;
-  options.linear_solver_type = ceres::DENSE_QR;
-  options.minimizer_progress_to_stdout = true;
-  Solver::Summary summary;
-  Solve(options, &problem, &summary);
+  //Solver::Options options;
+  //options.linear_solver_type = ceres::DENSE_QR;
+  //options.minimizer_progress_to_stdout = true;
+  //Solver::Summary summary;
+  //Solve(options, &problem, &summary);
 
   //iterate until convergence
   for(int step=0,pixel_count=0; step < NUM_STEPS; step++,pixel_count=0){
 
     //(x,y,z,w,r1,r2,r3)
     PoseDerivs image_pose_derivatives = PoseDerivs::Zeros();
+    cv::Mat left_canvas, right_canvas, left_z_buffer, right_z_buffer, left_binary_image, right_binary_image;
+    GetRenderedModelAtPose(current_model, left_canvas, left_z_buffer, left_binary_image, right_canvas, right_z_buffer, right_binary_image);
 
     for(current_eye_ = LEFT; ;current_eye_++){ //iterate over the eyes
 
       if(!SwapEye(current_model.CurrentPose())) break; //sets the camera_ variable to left or right eye breaks after resetting everything back to initial state after right ey
         
       cv::Mat sdf_image,front_intersection_image,back_intersection_image;
-      GetSDFAndIntersectionImage(current_model,sdf_image,front_intersection_image,back_intersection_image);
+      
+      if (current_eye_ == LEFT)
+        ProcessSDFAndIntersectionImage(current_model, left_z_buffer, sdf_image, left_binary_image, front_intersection_image, back_intersection_image);
+      else if (current_eye_ == RIGHT)
+        ProcessSDFAndIntersectionImage(current_model, right_z_buffer, sdf_image, right_binary_image, front_intersection_image, back_intersection_image);
 
       //compute the derivates of the sdf images
       cv::Mat dSDFdx, dSDFdy;
@@ -208,6 +214,12 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
   current_model.CurrentPose().translational_velocity_ = translational_velocity;
 
   return current_model.CurrentPose();
+
+}
+
+void StereoPWP3D::GetRenderedModelAtPose(const KalmanTracker &current_model, cv::Mat &left_canvas, cv::Mat &left_z_buffer, cv::Mat &left_binary_image, cv::Mat &right_canvas, cv::Mat &right_z_buffer, cv::Mat &right_binary_image) const {
+
+  Renderer::DrawStereoMesh(current_model.PtrToModel(), left_canvas, left_z_buffer, left_binary_image, current_model.CurrentPose(), camera_);
 
 }
 

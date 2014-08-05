@@ -37,6 +37,7 @@ public:
   void setup();
   void update();
   void draw();
+  virtual void shutdown(); 
 
   void keyDown( KeyEvent event);
   void mouseMove( MouseEvent event );

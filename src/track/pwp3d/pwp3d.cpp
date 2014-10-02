@@ -179,6 +179,10 @@ void PWP3D::ProcessSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat
   front_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_32FC3);
   back_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_32FC3);
 
+  //blocks here
+  cv::Mat canvas, z_buffer, binary_image;
+  Renderer::DrawMesh(current_model.PtrToModel(), canvas, z_buffer, binary_image, current_model.CurrentPose(), camera_);
+
   cv::Mat unprojected_image_plane = camera_->GetUnprojectedImagePlane(front_intersection_image.cols, front_intersection_image.rows);
   //find the set of pixels which correspond to the drawn object and create the intersection image
 

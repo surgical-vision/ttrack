@@ -11,19 +11,21 @@ using namespace ttrk;
 
 inline void LoadMeshAndTexture(boost::shared_ptr<ci::TriMesh> &mesh, boost::shared_ptr<ci::gl::Texture> &texture, ci::JsonTree &tree, const std::string &root_dir){
 
-  boost::filesystem::path file = boost::filesystem::path(root_dir) / boost::filesystem::path(tree["file"].getValue<std::string>());
-  if(!boost::filesystem::exists(file)) throw(std::runtime_error("Error, the file doens't exist!\n"));
-  ci::ObjLoader loader(ci::loadFile( file.string() ));
-  mesh.reset(new ci::TriMesh);
-  loader.load( mesh.get() );
+  boost::filesystem::path obj_file = boost::filesystem::path(root_dir) / boost::filesystem::path(tree["obj-file"].getValue<std::string>());
+  if (!boost::filesystem::exists(obj_file)) throw(std::runtime_error("Error, the file doens't exist!\n"));
 
-  file = boost::filesystem::path(root_dir) / boost::filesystem::path(tree["texture"].getValue<std::string>());
-  if(!boost::filesystem::exists(file)) throw(std::runtime_error("Error, the file doens't exist!\n"));
-  
-  ci::gl::Texture::Format format;
-  format.enableMipmapping(true);	
-  ci::ImageSourceRef img = ci::loadImage( file.string() );
-  if(img) texture.reset( new ci::gl::Texture( img, format ));
+  boost::filesystem::path mat_file = boost::filesystem::path(root_dir) / boost::filesystem::path(tree["mtl-file"].getValue<std::string>());
+  if (!boost::filesystem::exists(mat_file)) throw(std::runtime_error("Error, the file doesn't exist!\n"));
+
+  ci::ObjLoader loader(ci::loadFile(obj_file.string()), ci::loadFile(mat_file.string()));
+  mesh.reset(new ci::TriMesh);
+  loader.load(mesh.get());
+
+  //boost::filesystem::path tex_file = boost::filesystem::path(root_dir) / boost::filesystem::path(tree["texture"].getValue<std::string>());
+  //if(!boost::filesystem::exists(file)) throw(std::runtime_error("Error, the file doens't exist!\n"));
+
+  ci::gl::Texture::Format format;  
+  format.enableMipmapping(true);
 
 }
 
@@ -84,7 +86,7 @@ void ArticulatedTool::LoadFromJsonFile(const std::string &json_file){
 
     ci::JsonTree loader(ci::loadFile(json_file));
 
-    ParseJsonTree(loader.getChild("root"),articulated_model_->RootNode(),ArticulatedNode::Ptr(),boost::filesystem::path(json_file).parent_path().relative_path().string());
+    ParseJsonTree(loader.getChild("root"),articulated_model_->RootNode(),ArticulatedNode::Ptr(),boost::filesystem::path(json_file).parent_path().string());
 
   }catch(ci::Exception &e){
 

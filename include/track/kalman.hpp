@@ -1,7 +1,7 @@
 #ifndef __KALMAN_HPP__
 #define __KALMAN_HPP__
 
-#include <cv.h>
+#include <opencv2/opencv.hpp>
 #include <boost/shared_ptr.hpp>
 #include <fstream>
 

@@ -1,5 +1,7 @@
 #include <fstream>
 #include <boost/filesystem.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/calib3d.hpp>
 
 #include "../../include/utils/camera.hpp"
 #include "../../include/utils/helpers.hpp"

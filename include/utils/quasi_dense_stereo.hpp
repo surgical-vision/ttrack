@@ -1,6 +1,8 @@
 #ifndef __QUASI_DENSE_STEREO_HPP__
 #define __QUASI_DENSE_STEREO_HPP__
 #include"../headers.hpp"
+#include <opencv2/core/types_c.h>
+
 //-------------------------------------------------------------------------------------------------
 // Class for performing quasi dense stereo matching. The code uses pyramidal LK from OpenCV with
 // Shi and Tomasi features to get the initial seed correspondences. Then these are propagated by

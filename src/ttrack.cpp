@@ -112,7 +112,7 @@ bool TTrack::GetLatestUpdate(ImageRenderSet &irs) {
 
   boost::interprocess::scoped_lock<boost::mutex> m(mutex_);
 
-  if( processed_frames_.empty()) return false;
+  if( processed_frames_.empty() ) return false;
 
   irs = processed_frames_.front();
 

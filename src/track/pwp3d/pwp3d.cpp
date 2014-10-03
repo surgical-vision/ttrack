@@ -180,7 +180,7 @@ void PWP3D::ProcessSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat
   back_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_32FC3);
 
   //blocks here
-  cv::Mat canvas, z_buffer, binary_image;
+  cv::Mat canvas;
   Renderer::DrawMesh(current_model.PtrToModel(), canvas, z_buffer, binary_image, current_model.CurrentPose(), camera_);
 
   cv::Mat unprojected_image_plane = camera_->GetUnprojectedImagePlane(front_intersection_image.cols, front_intersection_image.rows);
@@ -210,6 +210,7 @@ void PWP3D::ProcessSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat
     single_contour.push_back(*contour);
     cv::drawContours(edge_image_no_inner, single_contour, -1, cv::Scalar(255, 255, 255));
   }
+
   distanceTransform(~edge_image_no_inner, sdf_image, CV_DIST_L2, CV_DIST_MASK_PRECISE);
 
   //flip the sign of the distance image for outside pixels

@@ -17,7 +17,7 @@ Renderer &Renderer::Instance() {
 void Renderer::DrawMesh(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image, const Pose &pose, const boost::shared_ptr<MonocularCamera> camera){
 
   Renderer &r = Renderer::Instance();
-  while (!r.AddModel(mesh, pose)){ boost::this_thread::sleep(boost::posix_time::milliseconds(100)); }// Sleep(5);
+  while (!r.AddModel(mesh, pose)){ boost::this_thread::sleep(boost::posix_time::milliseconds(10)); }// Sleep(5);
 
   while (!r.RetrieveRenderedModel(canvas, z_buffer, binary_image)){ boost::this_thread::sleep(boost::posix_time::milliseconds(100)); }
 
@@ -26,7 +26,7 @@ void Renderer::DrawMesh(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat 
 void Renderer::DrawStereoMesh(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image, const Pose &pose, const boost::shared_ptr<MonocularCamera> camera){
   
   Renderer &r = Renderer::Instance();
-  while (!r.AddModel(mesh, pose)){ boost::this_thread::sleep(boost::posix_time::milliseconds(100)); }// Sleep(5);
+  while (!r.AddModel(mesh, pose)){ boost::this_thread::sleep(boost::posix_time::milliseconds(10)); }// Sleep(5);
 
   while (!r.RetrieveRenderedModel(canvas, z_buffer, binary_image)){ boost::this_thread::sleep(boost::posix_time::milliseconds(100)); }
 

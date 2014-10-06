@@ -34,6 +34,13 @@ namespace ttrk{
      */
     void operator()(boost::shared_ptr<sv::Frame> image, const bool found);
 
+    /**
+    * Run tracking on a frame.
+    * @param image The image pulled from the video file or image file.
+    * @param found The success of the detection system. Stops tracking and sets the tracker up to perform tracking recovery when object is detected again.
+    */
+    void Run(boost::shared_ptr<sv::Frame> image, const bool found);
+
   
     /**
      * Get a ptr to the frame now that the detector has finished classifying it
@@ -49,7 +56,8 @@ namespace ttrk{
      */
     void Tracking(const bool toggle);
 
-    std::vector<KalmanTracker> &TrackedModels() { return tracked_models_; }
+    std::vector<KalmanTracker> TrackedModels() { return tracked_models_; }
+
 
   protected:
 

@@ -19,4 +19,34 @@ Model::Model(const std::string &model_parameter_file){
   */
 }
 
+void Model::InitGL(){
 
+  if (model_->getVertices().size() == 0){
+    throw std::runtime_error("Error, model is not loaded");
+  }
+
+
+
+}
+
+
+void Model::Render(){
+
+  auto meshes_textures_transforms = GetRenderableMeshes();
+
+  for (auto mesh_tex_trans = meshes_textures_transforms.begin(); mesh_tex_trans != meshes_textures_transforms.end(); ++mesh_tex_trans){
+
+    auto texture = mesh_tex_trans->get<1>();
+
+    ci::gl::pushModelView();
+    ci::gl::multModelView(mesh_tex_trans->get<2>());
+
+    const auto trimesh = mesh_tex_trans->get<0>();
+    ci::gl::draw(*trimesh);
+
+    ci::gl::popModelView();
+
+
+  }
+
+}

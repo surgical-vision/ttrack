@@ -28,7 +28,7 @@ namespace ttrk{
     * @param[in] intrinsic The intrinsic matrix of the camera.
     * @param[in] distortion The distortion parameters of the camera.
     */
-    MonocularCamera(const cv::Mat &intrinsic, const cv::Mat &distortion):intrinsic_matrix_(intrinsic),distortion_params_(distortion){}
+    MonocularCamera(const cv::Mat &intrinsic, const cv::Mat &distortion, const int image_width, const int image_height):intrinsic_matrix_(intrinsic),distortion_params_(distortion),image_width_(image_width), image_height_(image_height){}
 
     /**
     * Construct a camera setting its parameters to /f$f_{x} = 1000, f_{y} = 1000, c_{x} = 0.5\times ImageWidth, c_{y} = 0.5\times ImageHeight \f$.
@@ -40,7 +40,8 @@ namespace ttrk{
     */
     virtual ~MonocularCamera(){};
 
-
+    void SetGLProjectionMatrix() const;
+    
     cv::Mat GetUnprojectedImagePlane(const int width, const int height);
 
     /** 
@@ -68,13 +69,18 @@ namespace ttrk{
     double Fy() const { return intrinsic_matrix_.at<double>(1,1); }
     double Px() const { return intrinsic_matrix_.at<double>(0,2); }
     double Py() const { return intrinsic_matrix_.at<double>(1,2); }
-    
+    int Width() const { return image_width_; }
+    int Height() const { return image_height_; }
+
     friend class StereoCamera;
 
   protected:
       
     cv::Mat intrinsic_matrix_; /**< The internal camera parameters. */
     cv::Mat distortion_params_; /**< The camera distortion parameters. */
+
+    int image_width_;
+    int image_height_;
 
   private:
 
@@ -118,6 +124,9 @@ namespace ttrk{
     void ReprojectTo3D(const cv::Mat &image, cv::Mat &point_cloud,const std::vector<cv::Vec2i> &connected_region) const ;
     cv::Vec3d ReprojectPointTo3D(const cv::Point2i &left, const cv::Point2i &right);
     cv::Mat GetP1() { return P1(cv::Range(0,3),cv::Range(0,3));}
+
+    void SetupGLCameraFromLeft() const;
+    void SetupGLCameraFromRight() const;
 
     void InitRectified() {
       throw(std::runtime_error("Error,here"));

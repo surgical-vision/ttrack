@@ -53,12 +53,7 @@ void TTrackApp::setup(){
   
   shader_ = gl::GlslProg( loadResource( RES_SHADER_VERT ), loadResource( RES_SHADER_FRAG ) );
   
-  //if (::STEREO){
-  //setWindowSize(2 * WINDOW_WIDTH, WINDOW_HEIGHT);
-  //}
-  //else{
   setWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
-  //}
 
   left_params_ = CalibParams(::LEFT_FX, ::LEFT_FY, ::LEFT_PX, ::LEFT_PY);
   right_params_ = CalibParams(::RIGHT_FX, ::RIGHT_FY, ::RIGHT_PX, ::RIGHT_PY);
@@ -66,32 +61,51 @@ void TTrackApp::setup(){
   window_framebuffer_.reset(new gl::Fbo(WINDOW_WIDTH, WINDOW_HEIGHT));
   left_external_framebuffer_.reset(new gl::Fbo(WINDOW_WIDTH, WINDOW_HEIGHT));
   right_external_framebuffer_.reset(new gl::Fbo(WINDOW_WIDTH, WINDOW_HEIGHT));
-  boost::thread main_thread(boost::ref(ttrack));
+  
+  //boost::thread main_thread(boost::ref(ttrack));
  
 }
 
 void TTrackApp::update(){
 
-  returnRenderable(); //check to see if the renderer has processed any frames
-
   auto &ttrack = ttrk::TTrack::Instance();
-  if (!ttrack.GetLatestUpdate(irs_)){
-    return;
-  }
-  
-  //load the 'background' frames from ttrack
+  auto tracked_models = ttrack.GetUpdate();
+
   ci::ImageSourceRef img;
   if (::STEREO){
-    boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(irs_->first);
+    //boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(irs_->first);
+    boost::shared_ptr<const sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<const sv::StereoFrame>(ttrack.GetPtrToCurrentFrame());
     img = ci::fromOcv(stereo_frame->GetLeftImage());
     left_frame_texture_ = gl::Texture(img);
     img = ci::fromOcv(stereo_frame->GetRightImage());
     right_frame_texture_ = gl::Texture(img);
   }
   else{
-    img = ci::fromOcv(irs_->first->GetImageROI());
+    img = ci::fromOcv(ttrack.GetPtrToCurrentFrame()->GetImageROI());
     left_frame_texture_ = gl::Texture(img);
   }
+
+
+  //returnRenderable(); //check to see if the renderer has processed any frames
+
+  //auto &ttrack = ttrk::TTrack::Instance();
+  //if (!ttrack.GetLatestUpdate(irs_)){
+  //  return;
+  //}
+  //
+  ////load the 'background' frames from ttrack
+  //ci::ImageSourceRef img;
+  //if (::STEREO){
+  //  boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(irs_->first);
+  //  img = ci::fromOcv(stereo_frame->GetLeftImage());
+  //  left_frame_texture_ = gl::Texture(img);
+  //  img = ci::fromOcv(stereo_frame->GetRightImage());
+  //  right_frame_texture_ = gl::Texture(img);
+  //}
+  //else{
+  //  img = ci::fromOcv(irs_->first->GetImageROI());
+  //  left_frame_texture_ = gl::Texture(img);
+  //}
 
 }
 
@@ -182,8 +196,8 @@ void TTrackApp::setupEye(const CalibParams &params){
   up_dir = ci::Quatf(params.stereo_camera_rotation.xyz(), params.stereo_camera_rotation.w) * up_dir;
   cam.setViewDirection(view_dir);
   cam.setWorldUp(up_dir);
-  cam.setNearClip(1.0f);
-  cam.setFarClip(1000.0f);
+  cam.setNearClip(GL_NEAR);
+  cam.setFarClip(GL_FAR);
   maya_cam_.setCurrentCam(cam);
 
   gl::setMatrices(maya_cam_.getCamera());
@@ -216,9 +230,9 @@ void TTrackApp::drawModelOnEye(boost::shared_ptr<gl::Fbo> framebuffer, const gl:
 
   gl::multModelView(pose.AsCiMatrixForOpenGL());
   
-  shader_.bind();
+  //shader_.bind();
   drawModelAtPose(mesh, pose);
-  shader_.unbind(); //if we render the background frame with the shader bound we get a stupid specular reflection in the middle of it
+  //shader_.unbind(); //if we render the background frame with the shader bound we get a stupid specular reflection in the middle of it
 
   glViewport(viewport_cache[0], viewport_cache[1], viewport_cache[2], viewport_cache[3]);
 

@@ -39,6 +39,8 @@ namespace ttrk{
     */
     virtual ~Model(){}
 
+    virtual void Render();
+
     
     typedef boost::tuple<boost::shared_ptr<ci::TriMesh>, boost::shared_ptr<ci::gl::Texture>, ci::Matrix44d> MeshTextureAndTransform;
     //typedef std::pair< boost::shared_ptr<ci::TriMesh> , ci::Matrix44d > MeshAndTransform;
@@ -61,6 +63,8 @@ namespace ttrk{
     virtual std::vector< MeshTextureAndTransform > GetRenderableMeshes() { ci::Matrix44d eye; eye.setToIdentity(); std::vector<MeshTextureAndTransform> v; v.push_back(MeshTextureAndTransform(model_,texture_,eye)); return v; }
 
   protected:
+
+    void InitGL();
 
     Model() {} // load nothing - only useful for the derived classes which need to delay loading
 

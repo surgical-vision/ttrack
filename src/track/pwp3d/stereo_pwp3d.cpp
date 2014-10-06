@@ -115,11 +115,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
  
   //using namespace ceres;
   frame_ = frame;
-  
-  cv::Mat sdf_image__, front_intersection_image__, back_intersection_image__;
-  return current_model.CurrentPose();
-  
-
+ 
   boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
   SetBlurringScaleFactor(stereo_frame->GetLeftImage().cols);
   const int NUM_STEPS = 15;
@@ -156,7 +152,7 @@ Pose StereoPWP3D::TrackTargetInFrame(KalmanTracker current_model, boost::shared_
     //(x,y,z,w,r1,r2,r3)
     PoseDerivs image_pose_derivatives = PoseDerivs::Zeros();
     cv::Mat left_canvas, right_canvas, left_z_buffer, right_z_buffer, left_binary_image, right_binary_image;
-    GetRenderedModelAtPose(current_model, left_canvas, left_z_buffer, left_binary_image, right_canvas, right_z_buffer, right_binary_image);
+    //GetRenderedModelAtPose(current_model, left_canvas, left_z_buffer, left_binary_image, right_canvas, right_z_buffer, right_binary_image);
 
     for(current_eye_ = LEFT; ;current_eye_++){ //iterate over the eyes
 

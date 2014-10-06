@@ -7,4 +7,7 @@ const int _O2_ = 1;
 const int _O3_ = 1;
 const int _XYZ_ = 0;
 
+const int GL_FAR = 1000;
+const int GL_NEAR = 1;
+
 #endif

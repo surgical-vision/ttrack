@@ -2,6 +2,8 @@
 #define __PWD3D_HPP__
 
 //#include <ceres/ceres.h>
+#include <cinder/gl/gl.h>
+#include <cinder/gl/Fbo.h>
 
 #include "../localizer.hpp"
 #include "../../utils/camera.hpp"
@@ -14,7 +16,9 @@ namespace ttrk {
   class PWP3D : public Localizer {
   public: 
 
-    PWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera), register_points_(camera), k_delta_function_std_(2.5), k_heaviside_width_(0.3) {  }
+    PWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera), register_points_(camera), k_delta_function_std_(2.5), k_heaviside_width_(0.3) { 
+      framebuffer_.reset(new ci::gl::Fbo(camera_->Width(), camera_->Height()));
+    }
 
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame) = 0;
     
@@ -29,6 +33,8 @@ namespace ttrk {
     */
     void ProcessSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &z_buffer, cv::Mat &sdf_image, cv::Mat &binary_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image);
     
+    void RenderModelToSDFAndIntersection(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image, const Pose &pose, const boost::shared_ptr<MonocularCamera> camera);
+
     
     //const cv::Mat ProjectShapeToSDF(KalmanTracker &current_model);
 
@@ -91,6 +97,7 @@ namespace ttrk {
     bool GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const;
 
     boost::shared_ptr<sv::Frame> frame_;
+    boost::scoped_ptr<ci::gl::Fbo> framebuffer_;
 
     std::string DEBUG_DIR_;
     boost::shared_ptr<MonocularCamera> camera_;

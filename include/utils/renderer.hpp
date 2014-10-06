@@ -50,7 +50,6 @@ namespace ttrk {
     bool RetrieveRenderedModel(cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image);
     bool RetrieveStereoRenderedModel(cv::Mat &left_canvas, cv::Mat &right_canvas, cv::Mat &left_z_buffer, cv::Mat &right_z_buffer, cv::Mat &left_binary_image, cv::Mat &right_binary_image);
     
-
   private:
 
     Renderer();

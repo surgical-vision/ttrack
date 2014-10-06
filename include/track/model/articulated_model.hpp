@@ -37,7 +37,6 @@ namespace ttrk {
 
   };
 
-
   class ArticulatedTree {
 
   public:
@@ -62,6 +61,8 @@ namespace ttrk {
 
   public:
 
+    
+
     /**
     * Construct a cylinder using its minimal parameters.
     * @param[in] model_parameter_file A datafile which contains the parameters of each articulated component in the model.
@@ -85,7 +86,7 @@ namespace ttrk {
                                           articulated_model_->RootNode()->children_[0]->children_[1]->GetTransform()));  
       return v; 
     }
-  
+ 
   protected:
 
     void LoadFromJsonFile(const std::string &json_file);

@@ -32,6 +32,14 @@ void Detect::operator()(boost::shared_ptr<sv::Frame> image){
   
 }
 
+void Detect::Run(boost::shared_ptr<sv::Frame> image){
+
+    SetHandleToFrame(image);
+    ClassifyFrame();
+
+}
+
+
 void Detect::ClassifyFrame(){
 
   cv::Mat target = frame_->GetClassificationMap();

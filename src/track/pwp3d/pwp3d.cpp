@@ -2,6 +2,7 @@
 #include <cinder/app/AppBasic.h>
 #include <boost/math/special_functions/fpclassify.hpp>
 #include <ctime>
+#include <CinderOpenCV.h>
 
 #include "../../../include/track/pwp3d/pwp3d.hpp"
 #include "../../../include/utils/helpers.hpp"
@@ -172,6 +173,39 @@ void PWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, con
   
 }
 
+void PWP3D::RenderModelToSDFAndIntersection(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image, const Pose &pose, const boost::shared_ptr<MonocularCamera> camera){
+
+  assert(framebuffer_->getWidth() == camera->Width() && framebuffer_->getHeight() == camera->Height());
+
+  framebuffer_->bindFramebuffer();
+  
+  GLint viewport_cache[4];
+  glGetIntegerv(GL_VIEWPORT, viewport_cache);
+  glViewport(0, 0, framebuffer_->getWidth(), framebuffer_->getHeight());
+
+  camera->SetGLProjectionMatrix();
+  
+  ci::Matrix44f pose_transform = pose.AsCiMatrixForOpenGL();
+
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+
+  glMultMatrixf(pose_transform.m);
+
+  mesh->Render();
+
+  glPopMatrix();
+
+  glViewport(viewport_cache[0], viewport_cache[1], viewport_cache[2], viewport_cache[3]);
+
+  framebuffer_->unbindFramebuffer();
+
+  canvas = ci::toOcv(framebuffer_->getTexture());
+  z_buffer = ci::toOcv(framebuffer_->getDepthTexture());
+  binary_image = z_buffer != GL_FAR;
+}
+
+
 void PWP3D::ProcessSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &z_buffer, cv::Mat &sdf_image, cv::Mat &binary_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image) {
 
   //find all the pixels which project to intersection points on the model
@@ -181,8 +215,8 @@ void PWP3D::ProcessSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat
 
   //blocks here
   cv::Mat canvas;
-  Renderer::DrawMesh(current_model.PtrToModel(), canvas, z_buffer, binary_image, current_model.CurrentPose(), camera_);
-
+  //Renderer::DrawMesh(current_model.PtrToModel(), canvas, z_buffer, binary_image, current_model.CurrentPose(), camera_);
+  RenderModelToSDFAndIntersection(current_model.PtrToModel(), canvas, z_buffer, binary_image, current_model.CurrentPose(), camera_);
   cv::Mat unprojected_image_plane = camera_->GetUnprojectedImagePlane(front_intersection_image.cols, front_intersection_image.rows);
   //find the set of pixels which correspond to the drawn object and create the intersection image
 

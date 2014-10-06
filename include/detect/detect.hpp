@@ -39,6 +39,12 @@ namespace ttrk{
      * @param[in] image The image pulled from the camera, video file or image file.
      */
     void operator()(boost::shared_ptr<sv::Frame> image); 
+    
+    /**
+    * Run detection on a frame.
+    * @param[in] image The image pulled from the camera, video file or image file.
+    */
+    void Run(boost::shared_ptr<sv::Frame> image);
 
     /**
      * Has the detector found a candidate for the object in the frame.

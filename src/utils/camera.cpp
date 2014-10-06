@@ -2,8 +2,11 @@
 #include <boost/filesystem.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
+#include <cinder/gl/gl.h>
+#include <cinder/Camera.h>
 
 #include "../../include/utils/camera.hpp"
+#include "../../include/constants.hpp"
 #include "../../include/utils/helpers.hpp"
 
 using namespace ttrk;
@@ -18,15 +21,17 @@ MonocularCamera::MonocularCamera(const std::string &calibration_filename){
     fs["Camera_Matrix"] >> intrinsic_matrix_;
     fs["Distortion_Coefficients"] >> distortion_params_;
 
-
+    cv::Mat image_dims;
+    fs["Image_Dimensions"] >> image_dims;
+    image_width_ = image_dims.at<int>(0);
+    image_height_ = image_dims.at<int>(1);
+    
   }catch(cv::Exception& e){
 
     std::cerr << "Error while reading from camara calibration file.\n" << e.msg << "\n";
     SAFE_EXIT();
 
   }
-
-
 
 }
 
@@ -80,6 +85,28 @@ cv::Point3d MonocularCamera::UnProjectPoint(const cv::Point2i &point) const {
 
 }
 
+void MonocularCamera::SetGLProjectionMatrix() const {
+
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+
+  const int near_clip_distance = GL_NEAR;
+  const int far_clip_distance = GL_FAR;
+  ci::Matrix44f gl_projection_matrix_;
+  //setup openGL projection matrix
+  gl_projection_matrix_.setToNull();
+  gl_projection_matrix_.m00 = (float)intrinsic_matrix_.at<double>(0, 0);
+  gl_projection_matrix_.m11 = (float)intrinsic_matrix_.at<double>(1, 1);
+  gl_projection_matrix_.m02 = (float)-intrinsic_matrix_.at<double>(0, 2);
+  gl_projection_matrix_.m12 = (float)-intrinsic_matrix_.at<double>(1, 2);
+  gl_projection_matrix_.m22 = (float)(near_clip_distance + far_clip_distance);
+  gl_projection_matrix_.m23 = (float)(near_clip_distance * far_clip_distance);
+  gl_projection_matrix_.m32 = -1;
+
+  glMultMatrixf(gl_projection_matrix_.m);
+
+}
+
 cv::Point2d MonocularCamera::ProjectPoint(const cv::Point3d &point) const {
 
   std::vector<cv::Point2d> projected_point;
@@ -103,29 +130,28 @@ StereoCamera::StereoCamera(const std::string &calibration_filename):rectified_(f
 
   try{
 
+    cv::Mat image_dims;
     cv::Mat l_intrinsic, l_distortion;
     cv::Mat r_intrinsic, r_distortion;
-    fs.open(calibration_filename,cv::FileStorage::READ); 
+    fs.open(calibration_filename, cv::FileStorage::READ);
+
+    fs["Image_Dimensions"] >> image_dims;
+    int image_width = image_dims.at<int>(0);
+    int image_height = image_dims.at<int>(1);
 
     fs["Left_Camera_Matrix"] >> l_intrinsic;
     fs["Left_Distortion_Coefficients"] >> l_distortion;
-    left_eye_.reset( new MonocularCamera(l_intrinsic, l_distortion) );
+    left_eye_.reset(new MonocularCamera(l_intrinsic, l_distortion, image_width, image_height));
     rectified_left_eye_.reset( new MonocularCamera );
 
     fs["Right_Camera_Matrix"] >> r_intrinsic;
     fs["Right_Distortion_Coefficients"] >> r_distortion;
-    right_eye_.reset( new MonocularCamera(r_intrinsic, r_distortion) );
+    right_eye_.reset(new MonocularCamera(r_intrinsic, r_distortion, image_width, image_height));
     rectified_right_eye_.reset( new MonocularCamera );
 
     cv::Mat rotation(3,3,CV_64FC1),translation(3,1,CV_64FC1);
     fs["Extrinsic_Camera_Rotation"] >> rotation;
-
-    /*
-    cv::Mat nrot = -cv::Mat::eye(3,3,CV_64FC1);
-    nrot.at<double>(2,2) = 1; 
-    rotation = nrot * rotation * nrot;
-    */
-    
+   
     fs["Extrinsic_Camera_Translation"] >> translation;
 
     for(int r=0;r<3;r++){
@@ -167,7 +193,57 @@ void TestReproject(const cv::Mat &disparity_map, cv::Mat &reprojected_point_clou
 
     }
   }
-  
+
+}
+
+void StereoCamera::SetupGLCameraFromRight() const{
+
+  right_eye_->SetGLProjectionMatrix();
+
+  ci::CameraPersp camP;
+
+  ci::Vec3f eye_point(0, 0, 0);
+  ci::Vec3f view_direction(0, 0, 1);
+  ci::Vec3f world_up(0, -1, 0);
+
+  ci::Matrix33f extrinsic_rotation;
+  for (int r = 0; r < 3; ++r){
+    for (int c = 0; c < 3; ++c){
+      extrinsic_rotation.at(r, c) = extrinsic_matrix_.at<double>(c, r); //needs transposing as ci is column major
+    }
+  }
+
+  view_direction = extrinsic_rotation * view_direction;
+  world_up = extrinsic_rotation * world_up;
+
+  camP.setEyePoint(ci::Vec3f(extrinsic_matrix_.at<double>(0, 3), extrinsic_matrix_.at<double>(1, 3), extrinsic_matrix_.at<double>(2, 3)));
+  camP.setViewDirection(view_direction);
+  camP.setWorldUp(world_up);
+
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glMultMatrixf(camP.getModelViewMatrix().m);
+
+
+}
+
+void StereoCamera::SetupGLCameraFromLeft() const{
+
+  left_eye_->SetGLProjectionMatrix();
+
+  ci::CameraPersp camP;
+
+  ci::Vec3f eye_point(0, 0, 0);
+  ci::Vec3f view_direction(0, 0, 1);
+  ci::Vec3f world_up(0, -1, 0);
+
+  camP.setEyePoint(eye_point);
+  camP.setViewDirection(view_direction);
+  camP.setWorldUp(world_up);
+
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glMultMatrixf(camP.getModelViewMatrix().m);
 
 }
 
@@ -176,7 +252,6 @@ cv::Vec3d StereoCamera::ReprojectPointTo3D(const cv::Point2i &left, const cv::Po
   int vertical_disparity = std::abs(left.y - right.y);
   if (vertical_disparity > 40){
 
-    //std::cerr << "THIS IS BAD";
     return cv::Vec3d(0,0,0);
 
   }else{

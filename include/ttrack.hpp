@@ -56,6 +56,8 @@ namespace ttrk{
 
     void operator()() { Run(); }
 
+    std::vector<KalmanTracker> GetUpdate();
+
     /**
      * A method to start running the main method of the class. Loops getting a new frame from the video file, classifying it and then detecting the 
      * instruments in it. Per-frame pose is saved in out_posefile file and video in the out_videofile file.
@@ -92,7 +94,8 @@ namespace ttrk{
 
 
     bool GetLatestUpdate(ImageRenderSet &irs); 
-    
+    boost::shared_ptr<const sv::Frame> GetPtrToCurrentFrame() const;
+
   protected:
     
     void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type);

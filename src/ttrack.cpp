@@ -72,9 +72,19 @@ void TTrack::SetUp(const std::string &model_parameter_file, const std::string &c
   
 }
 
+std::vector<KalmanTracker> TTrack::GetUpdate(){
+    
+    detector_->Run(GetPtrToNewFrame());
+    tracker_->Run(GetPtrToClassifiedFrame(), detector_->Found());
+    
+    return tracker_->TrackedModels();
+
+}
+
+
 void TTrack::Run(){
 
-  (*detector_)( GetPtrToNewFrame() ); 
+  detector_->Run( GetPtrToNewFrame() ); 
   
   while( !handler_->Done() ){ //signals done by reading an empty image file either from a video or a directory of images
     
@@ -167,6 +177,10 @@ void TTrack::DrawModel(cv::Mat &frame) const {
 
   }
 
+}
+
+boost::shared_ptr<const sv::Frame> TTrack::GetPtrToCurrentFrame() const {
+  return frame_;
 }
 
 boost::shared_ptr<sv::Frame> TTrack::GetPtrToNewFrame(){

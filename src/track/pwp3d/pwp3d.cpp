@@ -1,5 +1,8 @@
 #include <cinder/ImageIo.h>
 #include <cinder/app/AppBasic.h>
+#include <cinder/Camera.h>
+#include <cinder/gl/Light.h>
+
 #include <boost/math/special_functions/fpclassify.hpp>
 #include <ctime>
 #include <CinderOpenCV.h>
@@ -7,8 +10,25 @@
 #include "../../../include/track/pwp3d/pwp3d.hpp"
 #include "../../../include/utils/helpers.hpp"
 #include "../../../include/utils/renderer.hpp"
+#include "../../../include/resources.hpp"
 
 using namespace ttrk;
+
+PWP3D::PWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera), register_points_(camera), k_delta_function_std_(2.5), k_heaviside_width_(0.3) {
+
+  framebuffer_.reset(new ci::gl::Fbo(camera_->Width(), camera_->Height()));
+
+  front_depth_ = ci::gl::GlslProg(ci::app::loadResource(PWP3D_FRONT_DEPTH_VERT), ci::app::loadResource(PWP3D_FRONT_DEPTH_FRAG));
+
+  LoadShaders();
+
+}
+
+void PWP3D::LoadShaders(){
+
+  front_depth_ = ci::gl::GlslProg(ci::app::loadResource(RES_SHADER_VERT), ci::app::loadResource(RES_SHADER_FRAG));
+
+}
 
 void PWP3D::ApplyGradientDescentStep(PoseDerivs &jacobian, Pose &pose, const size_t step, const size_t pixel_count){
 
@@ -58,7 +78,6 @@ void PWP3D::ScaleJacobian(PoseDerivs &jacobian, const size_t step_number, const 
   }
   
 }
-
 
 double PWP3D::GetRegionAgreement(const int r, const int c, const double sdf) {
   
@@ -179,30 +198,81 @@ void PWP3D::RenderModelToSDFAndIntersection(boost::shared_ptr<Model> mesh, cv::M
 
   framebuffer_->bindFramebuffer();
   
-  GLint viewport_cache[4];
-  glGetIntegerv(GL_VIEWPORT, viewport_cache);
-  glViewport(0, 0, framebuffer_->getWidth(), framebuffer_->getHeight());
+  glEnable(GL_LIGHTING);
 
-  camera->SetGLProjectionMatrix();
+  //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  ci::gl::clear(ci::Color(0, 0, 0));
+
+  ci::gl::Light light(ci::gl::Light::DIRECTIONAL, 0);
+  //light.lookAt(ci::Vec3f(1, 5, 1), ci::Vec3f(0, 0, 0));
+  light.lookAt(ci::Vec3f(0, 0, 0), ci::Vec3f(0, 0, 1));
+  light.setAmbient(ci::Color(0.3f, 0.3f, 0.3f));
+  light.setDiffuse(ci::Color(0.5f, 0.5f, 0.5f));
+  light.setSpecular(ci::Color(0.5f, 0.5f, 0.5f));
+  light.setShadowParams(60.0f, 0.5f, 8.0f);
+  //light.update(camera->);
+  light.enable();
+
+ /* ci::gl::Light light2(ci::gl::Light::DIRECTIONAL, 1);
+  light.lookAt(ci::Vec3f(1, 5, 1), ci::Vec3f(0, 0, 0));
+  light2.lookAt(ci::Vec3f(50, 0, 0), ci::Vec3f(0, 0, 0));
+  light2.setAmbient(ci::Color(0.3f, 0.3f, 0.3f));
+  light2.setDiffuse(ci::Color(0.5f, 0.5f, 0.5f));
+  light2.setSpecular(ci::Color(0.5f, 0.5f, 0.5f));
+  light2.setShadowParams(60.0f, 0.5f, 8.0f);
+  light2.update(cam);
+  light2.enable();
+
+
+  ci::gl::Light light3(ci::gl::Light::DIRECTIONAL, 2);
+  light3.lookAt(ci::Vec3f(0, 0, 50), ci::Vec3f(0, 0, 0));
+  light3.setAmbient(ci::Color(0.3f, 0.3f, 0.3f));
+  light3.setDiffuse(ci::Color(0.5f, 0.5f, 0.5f));
+  light3.setSpecular(ci::Color(0.5f, 0.5f, 0.5f));
+  light3.setShadowParams(60.0f, 0.5f, 8.0f);
+  light3.update(cam);
+  light3.enable();*/
   
-  ci::Matrix44f pose_transform = pose.AsCiMatrixForOpenGL();
+  ci::gl::enableDepthRead();
+  ci::gl::enableDepthWrite();
+  ci::gl::pushMatrices();
+  
+  camera->SetupCameraForDrawing(framebuffer_->getWidth(), framebuffer_->getHeight());
 
+  ci::Matrix44f pose_transform = pose.AsCiMatrixForOpenGL();
   glMatrixMode(GL_MODELVIEW);
   glPushMatrix();
-
   glMultMatrixf(pose_transform.m);
+
+  //front_depth_.bind();
 
   mesh->Render();
 
+  //front_depth_.unbind();
+
   glPopMatrix();
 
-  glViewport(viewport_cache[0], viewport_cache[1], viewport_cache[2], viewport_cache[3]);
+  //glViewport(viewport_cache[0], viewport_cache[1], viewport_cache[2], viewport_cache[3]);
+
+  light.disable();
+//  light2.disable();
+//  light3.disable();
+
+  glDisable(GL_LIGHTING);
+
+  glFinish();
 
   framebuffer_->unbindFramebuffer();
 
   canvas = ci::toOcv(framebuffer_->getTexture());
   z_buffer = ci::toOcv(framebuffer_->getDepthTexture());
-  binary_image = z_buffer != GL_FAR;
+  binary_image = z_buffer != 1.0f;
+
+  cv::imwrite("../canvas.png", canvas);
+  cv::imwrite("../z_buffer.png", z_buffer);
+
+  cv::imwrite("../binary_image.png", binary_image * 255);
+
 }
 
 

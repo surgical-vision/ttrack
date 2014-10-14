@@ -4,6 +4,7 @@
 //#include <ceres/ceres.h>
 #include <cinder/gl/gl.h>
 #include <cinder/gl/Fbo.h>
+#include <cinder/gl/GlslProg.h>
 
 #include "../localizer.hpp"
 #include "../../utils/camera.hpp"
@@ -16,13 +17,13 @@ namespace ttrk {
   class PWP3D : public Localizer {
   public: 
 
-    PWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera), register_points_(camera), k_delta_function_std_(2.5), k_heaviside_width_(0.3) { 
-      framebuffer_.reset(new ci::gl::Fbo(camera_->Width(), camera_->Height()));
-    }
+    PWP3D(boost::shared_ptr<MonocularCamera> camera);
 
     virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame) = 0;
     
   protected:
+
+    virtual void LoadShaders();
 
     virtual void GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection) = 0;
 
@@ -98,6 +99,9 @@ namespace ttrk {
 
     boost::shared_ptr<sv::Frame> frame_;
     boost::scoped_ptr<ci::gl::Fbo> framebuffer_;
+
+    ci::gl::GlslProg front_depth_;
+    ci::gl::GlslProg back_depth_;
 
     std::string DEBUG_DIR_;
     boost::shared_ptr<MonocularCamera> camera_;

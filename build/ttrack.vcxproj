@@ -125,6 +125,7 @@
     <ClCompile Include="..\src\track\kalman.cpp" />
     <ClCompile Include="..\src\track\model\articulated_model.cpp" />
     <ClCompile Include="..\src\track\model\model.cpp" />
+    <ClCompile Include="..\src\track\model\node.cpp" />
     <ClCompile Include="..\src\track\pwp3d\mono_pwp3d.cpp" />
     <ClCompile Include="..\src\track\pwp3d\pose.cpp" />
     <ClCompile Include="..\src\track\pwp3d\pwp3d.cpp" />
@@ -147,6 +148,8 @@
     <None Include="..\resources\cinder_app_icon.ico" />
     <None Include="..\resources\phong_frag.glsl" />
     <None Include="..\resources\phong_vert.glsl" />
+    <None Include="..\resources\pwp3d_front_depth_frag.glsl" />
+    <None Include="..\resources\pwp3d_front_depth_vert.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\constants.hpp" />
@@ -161,6 +164,7 @@
     <ClInclude Include="..\include\track\localizer.hpp" />
     <ClInclude Include="..\include\track\model\articulated_model.hpp" />
     <ClInclude Include="..\include\track\model\model.hpp" />
+    <ClInclude Include="..\include\track\model\node.hpp" />
     <ClInclude Include="..\include\track\pose.hpp" />
     <ClInclude Include="..\include\track\pwp3d\mono_pwp3d.hpp" />
     <ClInclude Include="..\include\track\pwp3d\pwp3d.hpp" />
@@ -182,6 +186,7 @@
     <ClInclude Include="..\include\utils\quaternion.hpp" />
     <ClInclude Include="..\include\utils\renderer.hpp" />
     <ClInclude Include="..\include\utils\result_plotter.hpp" />
+    <ClInclude Include="..\resources\resource.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

@@ -5,125 +5,34 @@
 #include <cinder/gl/gl.h>
 
 #include "model.hpp"
+#include "node.hpp"
 
 namespace ttrk {
 
-
-  struct ArticulatedNode  {
-
-    typedef boost::shared_ptr<ArticulatedNode> Ptr;
-
-    ci::Matrix44d GetTransform();
-    void LoadData(ci::JsonTree &tree, ArticulatedNode::Ptr parent, const std::string &root_dir) ;
-    void Rotate(const double angle) { articulation_.rotate(Axis(),angle); }
-    ci::Vec3d Axis() { return axis_of_rotation_; }
-    
-    
-    ci::Vec3d center_of_mass_;
-    ci::Vec3d axis_of_rotation_;
-
-    bool movable_;
-
-    ci::Matrix44d	transform_; //const
-    ci::Matrix44d articulation_;
-    double min_angle_;
-    double max_angle_;
-
-    ArticulatedNode::Ptr parent_;
-    std::vector<ArticulatedNode::Ptr> children_;
-
-    boost::shared_ptr<ci::TriMesh> model_;   
-    boost::shared_ptr<ci::gl::Texture> texture_;
-
-  };
-
-  class ArticulatedTree {
-
-  public:
-
-    ArticulatedTree() : root_node_(new ArticulatedNode()) {}
-    ArticulatedNode::Ptr RootNode() { return root_node_; }
-    
-  protected:
-
-    ArticulatedNode::Ptr root_node_;
-    
-  };
-
-
-
-   /**
-  * @class MISTool
-  * @brief A simple implementation of a MIS tool that is built out of primitives
-  * Subclass this to create a simple MIS Tool 
+  /**
+  * @class DenavitHartenbergArticulatedModel
+  * @brief A specialisation of the Model to handle articulated models where the articulation is modelled with the DH parameters.
+  * This class implements a transform function computing the SE3 to the coordinate system of each of it's articulated components using
+  * DH transforms.
   */
-  class ArticulatedTool : public Model {
+  class DenavitHartenbergArticulatedModel : public Model {
 
   public:
-
-    
 
     /**
-    * Construct a cylinder using its minimal parameters.
-    * @param[in] model_parameter_file A datafile which contains the parameters of each articulated component in the model.
+    * Default constructor.
+    * @param[in] model_parameter_file The file containing the locations of meshes and DH parameters for this model.
     */
-    ArticulatedTool(const std::string &model_parameter_file);
-
-    virtual std::vector< MeshTextureAndTransform > GetRenderableMeshes() { 
-      std::vector<MeshTextureAndTransform> v; 
-      //HACK need to write iterators that return depth first and breadth first search of tree
-      v.push_back(MeshTextureAndTransform(articulated_model_->RootNode()->model_,
-                                          articulated_model_->RootNode()->texture_,
-                                          articulated_model_->RootNode()->GetTransform()));  
-      v.push_back(MeshTextureAndTransform(articulated_model_->RootNode()->children_[0]->model_,
-                                          articulated_model_->RootNode()->children_[0]->texture_,
-                                          articulated_model_->RootNode()->children_[0]->GetTransform()));  
-      v.push_back(MeshTextureAndTransform(articulated_model_->RootNode()->children_[0]->children_[0]->model_,
-                                          articulated_model_->RootNode()->children_[0]->children_[0]->texture_,
-                                          articulated_model_->RootNode()->children_[0]->children_[0]->GetTransform()));  
-      v.push_back(MeshTextureAndTransform(articulated_model_->RootNode()->children_[0]->children_[1]->model_,
-                                          articulated_model_->RootNode()->children_[0]->children_[1]->texture_,
-                                          articulated_model_->RootNode()->children_[0]->children_[1]->GetTransform()));  
-      return v; 
-    }
- 
-  protected:
-
-    void LoadFromJsonFile(const std::string &json_file);
-    void ParseJsonTree(ci::JsonTree &jt, ArticulatedNode::Ptr node, ArticulatedNode::Ptr parent, const std::string &root_dir);
-  
-    boost::shared_ptr<ArticulatedTree> articulated_model_;
+    explicit DenavitHartenbergArticulatedModel(const std::string &model_parameter_file);       
+    
+    /**
+    * Specialization of the JSON parsing function to enable the DH parameters to be loaded.
+    * @param[in] jt The JSON tree containing the data.
+    * @param[in] root_dir The directory containing the files of interest.
+    */
+    virtual void ParseJson(ci::JsonTree &jt, const std::string &root_dir);
 
   };
-
-
-
-  class IntuitiveSurgicalLND : public ArticulatedTool {
-
-  public:
-
-    IntuitiveSurgicalLND(const std::string &model_parameter_file) : ArticulatedTool(model_parameter_file) {
-      body_ =  articulated_model_->RootNode()->children_[0];
-      clasper_left_ = body_->children_[0];
-      clasper_right_ = body_->children_[1];
-    }
-
-
-    void RotateHead(const double angle);
-    void RotateClaspers(const double angle_1, const double angle_2);
-
-  protected:
-
-    ArticulatedNode::Ptr clasper_left_;
-    ArticulatedNode::Ptr clasper_right_;
-    ArticulatedNode::Ptr body_;
-
-  };
-
-
-
-
-
 
 }
 

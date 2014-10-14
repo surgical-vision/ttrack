@@ -1,11 +1,11 @@
-#ifndef _MODEL_HPP_
-#define _MODEL_HPP_
+#ifndef __MODEL_HPP__
+#define __MODEL_HPP__
 
-
-
+#include <cinder/Json.h>
 #include <cinder/TriMesh.h>
 #include <cinder/gl/gl.h>
 #include <cinder/gl/Texture.h>
+#include <cinder/gl/Vbo.h>
 #include <utility>
 #include <boost/tuple/tuple.hpp>
 
@@ -16,7 +16,7 @@
 #include "../pose.hpp"
 #include "../../utils/primitives.hpp"
 #include "../../utils/camera.hpp"
-
+#include "node.hpp"
 
 namespace ttrk{
 
@@ -30,21 +30,21 @@ namespace ttrk{
   public:
 
     /**
-    * Construct an empty model.
+    * Construct the model from a configuration file.
     */
-    Model(const std::string &model_parameter_file);
+    explicit Model(const std::string &model_parameter_file);
     
     /**
     * Delete the model.
     */
     virtual ~Model(){}
 
+    /**
+    * Render the nodes that make up this model.
+    */
     virtual void Render();
 
-    
-    typedef boost::tuple<boost::shared_ptr<ci::TriMesh>, boost::shared_ptr<ci::gl::Texture>, ci::Matrix44d> MeshTextureAndTransform;
-    //typedef std::pair< boost::shared_ptr<ci::TriMesh> , ci::Matrix44d > MeshAndTransform;
-    
+
     /**
     * Get an intersection between the model and a ray cast from the camera. This is needed in the tracking methods. 
     * Warning: the mesh cache MUST be updated to the current pose using Model::UpdateMeshCache() before calling this function as it assumes that the mesh is stored with the correct pose. It is too slow to check for every call.
@@ -53,24 +53,40 @@ namespace ttrk{
     * @param[out] back The back intersection of the ray and the shape. In the rare case that the intersection is exactly on an edge of the shape this will just be set to same as the front.
     * @return bool The success of the intersection test.
     */
-    virtual bool GetIntersection(const cv::Vec3d &ray, cv::Vec3d &front, cv::Vec3d &back) const { throw(std::runtime_error("Not implemented!\n")); return true; }
+    //virtual bool GetIntersection(const cv::Vec3d &ray, cv::Vec3d &front, cv::Vec3d &back) const = 0;
 
     virtual cv::Vec3d PrincipalAxis() const { return cv::Vec3d(1,0,0); }
 
     cv::Vec3d GetTrackedPoint() const { return tracked_point_; }
     cv::Vec3d SetTrackedPoint(const cv::Vec3d &tracked_point) { tracked_point_ = tracked_point ; }
 
-    virtual std::vector< MeshTextureAndTransform > GetRenderableMeshes() { ci::Matrix44d eye; eye.setToIdentity(); std::vector<MeshTextureAndTransform> v; v.push_back(MeshTextureAndTransform(model_,texture_,eye)); return v; }
-
   protected:
 
+
+    /**
+    * Load the model from a config file.
+    * @param[in] filename The filepath to the config file.
+    */
+    virtual void LoadFromFile(const std::string &filename);
+
+    /**
+    * Load the model from a JSON config file.
+    * @param[in] filename The filepath to the config file.
+    */
+    void LoadJson(const std::string &filename);
+
+    /**
+    * Parse the JSON file and load the data for each node.
+    * @param[in] tree The JSON tree containing the data.
+    * @param[in] root_dir The directory containing the data to load.
+    */
+    virtual void ParseJson(ci::JsonTree &tree, const std::string &root_dir) = 0;
     void InitGL();
 
     Model() {} // load nothing - only useful for the derived classes which need to delay loading
 
+    Node::Ptr model_;
     cv::Vec3d tracked_point_;
-    boost::shared_ptr<ci::TriMesh> model_;
-    boost::shared_ptr<ci::gl::Texture> texture_;
     
   };
  

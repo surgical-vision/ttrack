@@ -126,6 +126,9 @@
     <ClCompile Include="..\src\utils\renderer.cpp">
       <Filter>Source Files\utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\track\model\node.cpp">
+      <Filter>Source Files\track\model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\resources\cinder_app_icon.ico">
@@ -135,6 +138,12 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="..\resources\phong_vert.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\resources\pwp3d_front_depth_frag.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\resources\pwp3d_front_depth_vert.glsl">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
@@ -239,6 +248,12 @@
       <Filter>Header Files\track\model</Filter>
     </ClInclude>
     <ClInclude Include="..\include\track\model\articulated_model.hpp">
+      <Filter>Header Files\track\model</Filter>
+    </ClInclude>
+    <ClInclude Include="..\resources\resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\track\model\node.hpp">
       <Filter>Header Files\track\model</Filter>
     </ClInclude>
   </ItemGroup>

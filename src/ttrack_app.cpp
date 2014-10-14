@@ -262,23 +262,15 @@ void TTrackApp::checkRenderer(){
 
 void TTrackApp::drawModelAtPose(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose){
   
-  auto meshes_textures_transforms = mesh->GetRenderableMeshes();
   ci::Matrix44d current_pose = pose.AsCiMatrixForOpenGL();
+  ci::gl::pushModelView();
 
-  for (auto mesh_tex_trans = meshes_textures_transforms.begin(); mesh_tex_trans != meshes_textures_transforms.end(); ++mesh_tex_trans){
+  ci::gl::multModelView(current_pose);
 
-    auto texture = mesh_tex_trans->get<1>();
+  mesh->Render();
 
-    gl::pushModelView();
-    gl::multModelView(mesh_tex_trans->get<2>());
+  ci::gl::popModelView();
 
-    const auto trimesh = mesh_tex_trans->get<0>();
-    gl::draw(*trimesh);
-
-    gl::popModelView();
-
-
-  }
 }
 
 void TTrackApp::draw(){

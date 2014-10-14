@@ -41,7 +41,8 @@ namespace ttrk{
     virtual ~MonocularCamera(){};
 
     void SetGLProjectionMatrix() const;
-    
+    void SetupCameraForDrawing(const int viewport_width, const int viewport_height) const;
+
     cv::Mat GetUnprojectedImagePlane(const int width, const int height);
 
     /** 

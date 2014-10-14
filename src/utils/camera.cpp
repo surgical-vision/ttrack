@@ -4,6 +4,8 @@
 #include <opencv2/calib3d.hpp>
 #include <cinder/gl/gl.h>
 #include <cinder/Camera.h>
+#include <cinder/app/AppBasic.h>
+#include <cinder/gl/Light.h>
 
 #include "../../include/utils/camera.hpp"
 #include "../../include/constants.hpp"
@@ -85,6 +87,23 @@ cv::Point3d MonocularCamera::UnProjectPoint(const cv::Point2i &point) const {
 
 }
 
+void MonocularCamera::SetupCameraForDrawing(const int viewport_width, const int viewport_height) const {
+  
+  glViewport(0, 0, viewport_width, viewport_height);
+
+  ci::CameraPersp cam;
+  cam.setEyePoint(ci::Vec3f(0, 0, 0));
+  cam.setViewDirection(ci::Vec3f(0, 0, -1));
+  cam.setWorldUp(ci::Vec3f(0, 1, 0));
+ 
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+  glMultMatrixf(cam.getModelViewMatrix().m);
+
+  SetGLProjectionMatrix();
+
+}
+
 void MonocularCamera::SetGLProjectionMatrix() const {
 
   glMatrixMode(GL_PROJECTION);
@@ -92,17 +111,22 @@ void MonocularCamera::SetGLProjectionMatrix() const {
 
   const int near_clip_distance = GL_NEAR;
   const int far_clip_distance = GL_FAR;
+
   ci::Matrix44f gl_projection_matrix_;
   //setup openGL projection matrix
+
+  ci::app::console() << "intrinsic = " << intrinsic_matrix_ << std::endl;
+
   gl_projection_matrix_.setToNull();
   gl_projection_matrix_.m00 = (float)intrinsic_matrix_.at<double>(0, 0);
   gl_projection_matrix_.m11 = (float)intrinsic_matrix_.at<double>(1, 1);
   gl_projection_matrix_.m02 = (float)-intrinsic_matrix_.at<double>(0, 2);
-  gl_projection_matrix_.m12 = (float)-intrinsic_matrix_.at<double>(1, 2);
+  gl_projection_matrix_.m12 = (float)-(image_height_ - intrinsic_matrix_.at<double>(1, 2));
   gl_projection_matrix_.m22 = (float)(near_clip_distance + far_clip_distance);
   gl_projection_matrix_.m23 = (float)(near_clip_distance * far_clip_distance);
   gl_projection_matrix_.m32 = -1;
 
+  glOrtho(0, image_width_, 0, image_height_, GL_NEAR, GL_FAR);
   glMultMatrixf(gl_projection_matrix_.m);
 
 }

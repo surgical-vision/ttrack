@@ -22,7 +22,7 @@ bool MonocularToolTracker::Init(){
 
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
-    KalmanTracker new_tracker( boost::shared_ptr<Model>(new ArticulatedTool(model_parameter_file_)) );
+    KalmanTracker new_tracker(boost::shared_ptr<Model>(new DenavitHartenbergArticulatedModel(model_parameter_file_)));
     tracked_models_.push_back( new_tracker ); 
     Init2DPoseFromMOITensor(*connected_region,tracked_models_.back());
 
@@ -122,15 +122,13 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
 
   tracked_model.SetPose(center_of_mass_3d,central_axis_3d);
 
-  boost::shared_ptr<ArticulatedTool> tool = boost::dynamic_pointer_cast<ArticulatedTool>(tracked_model.PtrToModel());
-
-  cv::Point2i tip = camera_->ProjectPointToPixel( tracked_model.CurrentPose().Transform(tool->GetTrackedPoint()));
+  cv::Point2i tip = camera_->ProjectPointToPixel(tracked_model.CurrentPose().Transform(tracked_model.PtrToModel()->GetTrackedPoint()));
 
   while( !cv::Rect(0,0,frame_->GetImageROI().cols,frame_->GetImageROI().rows).contains(tip) ){
     z *= 1.1;
     center_of_mass_3d = cv::Vec3d(camera_->UnProjectPoint(cv::Point2d(center_of_mass))) * z;
     tracked_model.SetPose(center_of_mass_3d,central_axis_3d);
-    tip = camera_->ProjectPointToPixel( tracked_model.CurrentPose().Transform(tool->GetTrackedPoint()));
+    tip = camera_->ProjectPointToPixel(tracked_model.CurrentPose().Transform(tracked_model.PtrToModel()->GetTrackedPoint()));
   }
 
   ShiftCenter(center_of_mass,central_axis, 2 * l2_distance(cv::Vec2d(tip.x,tip.y),cv::Vec2d(center_of_mass))); // 2 * to turn center to tip distnace to whole distance

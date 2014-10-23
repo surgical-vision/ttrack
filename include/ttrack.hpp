@@ -42,8 +42,8 @@ namespace ttrk{
     
   public:
     
-    typedef std::pair<boost::shared_ptr<sv::Frame>,std::vector<KalmanTracker> > ImageRenderSetContainer;
-    typedef boost::shared_ptr<ImageRenderSetContainer> ImageRenderSet;
+    //typedef std::pair<boost::shared_ptr<sv::Frame>, std::vector<boost::shared_ptr<Model>> > ImageRenderSetContainer;
+    //typedef boost::shared_ptr<ImageRenderSetContainer> ImageRenderSet;
 
     static void Destroy();
     ~TTrack();
@@ -54,9 +54,9 @@ namespace ttrk{
     //static boost::shared_ptr<TTrack> Instance(); 
     static TTrack &Instance();
 
-    void operator()() { Run(); }
+    void operator()() { RunThreaded(); }
 
-    std::vector<KalmanTracker> GetUpdate();
+    void TTrack::GetUpdate(std::vector<boost::shared_ptr<Model> > &models);
 
     /**
      * A method to start running the main method of the class. Loops getting a new frame from the video file, classifying it and then detecting the 
@@ -93,19 +93,19 @@ namespace ttrk{
     //void SetUp(std::string root_dir, const ClassifierType classifier_type, const CameraType camera_type);
 
 
-    bool GetLatestUpdate(ImageRenderSet &irs); 
+    //bool GetLatestUpdate(ImageRenderSet &irs); 
     boost::shared_ptr<const sv::Frame> GetPtrToCurrentFrame() const;
 
   protected:
     
     void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type);
 
-    void AddToQueue();
+    //void AddToQueue();
 
     /**
      * Draw the model at the current pose onto the canvas image ready for it to be saved
      */
-    void DrawModel(cv::Mat &image) const;
+    //void DrawModel(cv::Mat &image) const;
 
     /**
      * Grab a ptr to a new frame. This is the interface to use if reading from images or reading from a videofile.
@@ -122,7 +122,7 @@ namespace ttrk{
      * The main method of the class. Called by RunImages or RunVideo which do the
      * appropriate setup calls first. Loops calling the methods of the Tracker and the Detector.
      */
-    void Run();
+    void RunThreaded();
     
     /**
      * Save the results, if required
@@ -139,7 +139,7 @@ namespace ttrk{
     CameraType camera_type_;
 
     boost::mutex mutex_;
-    std::queue< ImageRenderSet > processed_frames_;
+    //std::queue< ImageRenderSet > processed_frames_;
 
   private:
 

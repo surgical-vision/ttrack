@@ -6,7 +6,7 @@
 using namespace ttrk;
 
 void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
-  
+  Run(image, found);
 } 
 
 void Tracker::Run(boost::shared_ptr<sv::Frame> image, const bool found){
@@ -23,7 +23,7 @@ void Tracker::Run(boost::shared_ptr<sv::Frame> image, const bool found){
         //need this as init constructs new tracking models
         tracked_models_.clear(); //get rid of anything we were tracking before
 
-        if (!Init() || !InitKalmanFilter()) //do any custom initalisation in the virtual Init function
+        if (!Init() || !InitTemporalModels()) //do any custom initalisation in the virtual Init function
             return;
         tracking_ = true;
 
@@ -32,25 +32,26 @@ void Tracker::Run(boost::shared_ptr<sv::Frame> image, const bool found){
     //track each model that we know about
     for (current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++){
 
-        Pose pose_measurement = localizer_->TrackTargetInFrame(*current_model_, frame_);
-        current_model_->UpdatePose(pose_measurement);
-
-        //if( localizer_->ModelInFrame( *current_model_, frame_->GetClassificationMapROI() ))
-        //DrawModelOnFrame(*current_model_,frame_->GetImage());
-        //else
-        //tracking_ = false;
+        localizer_->TrackTargetInFrame(current_model_->model, frame_);
+        current_model_->temporal_tracker->UpdatePoseWithMotionModel(current_model_->model);
 
     }
 
 }
 
 
-bool Tracker::InitKalmanFilter(){
+bool Tracker::InitTemporalModels(){
 
   for(auto i = tracked_models_.begin(); i!=tracked_models_.end();i++)
-    i->Init();
+    i->temporal_tracker->Init();
       
   return true;
+
+}
+
+void Tracker::GetTrackedModels(std::vector <boost::shared_ptr<Model> > &models){
+      
+  std::transform(tracked_models_.begin(), tracked_models_.end(), std::back_inserter(models), [](TemporalTrackedModel &m) { return m.model; });  
 
 }
 

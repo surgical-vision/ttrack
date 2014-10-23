@@ -53,6 +53,12 @@ namespace ttrk {
     */
     void Render();
 
+    /**
+    * Compute the jacobian for a 3D point (passed in world coordinates) with respect to this coordinate frame.
+    * This will recursively call the parent frames right up to the base frame and return a 3-vector for each.
+    */
+    void ComputeJacobianForPoint(const ci::Vec3f &point, std::vector<ci::Vec3f> &jacobian);
+
   protected:
 
     /**
@@ -109,11 +115,15 @@ namespace ttrk {
 
     ci::Matrix44f ComputeDHTransform() const;
 
+    enum JointType { Rotation, Translation, Fixed };
+
+    JointType type_; /**< The joint type of the DH element. Dictates whether the update is applied to d or @theta. */
     double alpha_; /**< @alpha in the DH parameter set. Angle about the common normal between links. */
     double theta_; /**< @theta in the DH parameter set. Angle about the previous joint axis. */
     double a_; /**< a in the DH parameter set. Length of the common normal. */
-    double d_; /**< d in the DH parameter set.  Offset along previous joint axis to the common normal. */
-     
+    double d_; /**< d in the DH parameter set. Offset along previous joint axis to the common normal. */
+    double update_; /**< The update to the DH set to compute the transformation. */
+
   };
 
 }

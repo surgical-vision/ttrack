@@ -16,24 +16,10 @@ void Node::LoadMeshAndTexture(ci::JsonTree &tree, const std::string &root_dir){
   if (!boost::filesystem::exists(mat_file)) throw(std::runtime_error("Error, the file doesn't exist!\n"));
 
   ci::ObjLoader loader(ci::loadFile(obj_file.string()), ci::loadFile(mat_file.string()));
-  loader.load(&model_);
+  loader.load(&model_, true, false, false);
   vbo_ = ci::gl::VboMesh(model_);
 
-  //boost::filesystem::path tex_file = boost::filesystem::path(root_dir) / boost::filesystem::path(tree["texture"].getValue<std::string>());
-  //if(!boost::filesystem::exists(file)) throw(std::runtime_error("Error, the file doens't exist!\n"));
-
-  ci::gl::Texture::Format format;
-  format.enableMipmapping(true);
-
 }
-
-GLfloat mat_ambient[] = { 0.6, 0.3, 0.4, 1.0 };
-GLfloat mat_diffuse[] = { 0.3, 0.5, 0.8, 1.0 };
-GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
-GLfloat mat_emission[] = { 0.0, 0.1, 0.3, 0.0 };
-
-GLfloat mat_shininess[] = { 128.0 };
-GLfloat no_shininess[] = { 0.0 };
 
 void Node::Render(){
   
@@ -46,13 +32,6 @@ void Node::Render(){
   ci::gl::multModelView(GetRelativeTransform());
 
   glEnable(GL_COLOR_MATERIAL);
-
-  if (model_.getColorsRGB().size() != 0){
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, model_.getColorsRGB()[0]);
-  }
-  //glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
-  //glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-  //glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
 
   if (model_.getNumVertices() != 0)
     ci::gl::draw(vbo_);
@@ -99,22 +78,35 @@ void DHNode::LoadData(ci::JsonTree &tree, Node::Ptr parent, const std::string &r
   try{
     LoadMeshAndTexture(tree, root_dir);
   }
-  catch (ci::JsonTree::Exception){
+  catch (ci::JsonTree::Exception &){
 
   }
 
   try{
+    
     alpha_ = tree["dh"]["alpha"].getValue<double>();
     theta_ = tree["dh"]["theta"].getValue<double>();
     a_ = tree["dh"]["a"].getValue<double>();
     d_ = tree["dh"]["d"].getValue<double>();
+    
+    if (tree["dh"]["type"].getValue<std::string>() == "rotation")
+      type_ = Rotation;
+    else if (tree["dh"]["type"].getValue<std::string>() == "translation")
+      type_ = Translation;
+    else if (tree["dh"]["type"].getValue<std::string>() == "fixed")
+      type_ = Fixed;
+    else
+      throw std::runtime_error("Error, bad value in JSON file.");
   }
-  catch (ci::JsonTree::Exception){
+  catch (ci::JsonTree::Exception &){
+
     //should just give the identity transform for this node (useful e.g. for the root node).
     alpha_ = M_PI / 2;
     theta_ = M_PI / 2;
     a_ = 0.0;
     d_ = 0.0;
+    type_ = Fixed;
+
   }
 
   ci::JsonTree children = tree.getChild("children");
@@ -164,7 +156,7 @@ ci::Matrix44f glhMultMatrixRight(const ci::Matrix44f &A, ci::Matrix44f &B)
   M[_13] = B[_10] * A[_03] + B[_11] * A[_13] + B[_12] * A[_23] + B[_13] * A[_33];
   M[_23] = B[_20] * A[_03] + B[_21] * A[_13] + B[_22] * A[_23] + B[_23] * A[_33];
   M[_33] = B[_30] * A[_03] + B[_31] * A[_13] + B[_32] * A[_23] + B[_33] * A[_33];
-  for (unsigned int i = 0; i < 16; i++)
+  for (unsigned int i = 0; i < 16; ++i)
     B[i] = M[i];
 
   return B;
@@ -202,7 +194,12 @@ ci::Matrix44f DHNode::ComputeDHTransform() const {
   ci::Matrix44f DH;
   DH.setToIdentity();
   
-  glhDenavitHartenberg(a_, alpha_, d_, theta_, DH.m);
+  if (type_ == Rotation)
+    glhDenavitHartenberg(a_, alpha_, d_ + update_, theta_, DH.m);
+  else if (type_ == Translation)
+    glhDenavitHartenberg(a_, alpha_, d_, theta_ + update_, DH.m);
+  else
+    glhDenavitHartenberg(a_, alpha_, d_, theta_, DH.m);
 
   return DH;
 

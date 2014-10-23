@@ -25,19 +25,19 @@ namespace ttrk {
 
     boost::shared_ptr<sv::StereoFrame> StereoFrame() { return boost::dynamic_pointer_cast<sv::StereoFrame,sv::Frame>(frame_); }
     
-    virtual void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const;
+    //virtual void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const;
   
   protected:
 
     void ShiftToTip(const cv::Vec3d &central_axis, cv::Vec3d &center_of_mass); 
-    void InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3d &center_of_mass_3d, cv::Vec3d &central_axis_3d, boost::shared_ptr<MonocularCamera> cam, KalmanTracker &tm);
+    void InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3d &center_of_mass_3d, cv::Vec3d &central_axis_3d, boost::shared_ptr<MonocularCamera> cam, boost::shared_ptr<Model> tm);
     cv::Vec2d FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &connected_region) const;
 
     virtual void SetHandleToFrame(boost::shared_ptr<sv::Frame> image);
 
     //void CreateDisparityImage();
 
-    void Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, KalmanTracker &tracked_model);
+    void Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, boost::shared_ptr<Model> tracked_model);
 
     cv::Vec3d FindCenterOfMass(const cv::Mat &point_cloud) const ; 
     //cv::Vec3d FindClusterMode(const cv::Mat &point_cloud, const cv::Mat &classification_map) const ;

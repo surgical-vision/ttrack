@@ -11,7 +11,6 @@
 #include "../include/utils/helpers.hpp"
 #include "../include/track/stt/stereo_tool_tracker.hpp"
 #include "../include/track/stt/monocular_tool_tracker.hpp"
-#include "../include/utils/result_plotter.hpp"
 
 using namespace ttrk;
 
@@ -72,17 +71,17 @@ void TTrack::SetUp(const std::string &model_parameter_file, const std::string &c
   
 }
 
-std::vector<KalmanTracker> TTrack::GetUpdate(){
+void TTrack::GetUpdate(std::vector<boost::shared_ptr<Model> > &models){
     
     detector_->Run(GetPtrToNewFrame());
     tracker_->Run(GetPtrToClassifiedFrame(), detector_->Found());
     
-    return tracker_->TrackedModels();
+    tracker_->GetTrackedModels(models);
 
 }
 
 
-void TTrack::Run(){
+void TTrack::RunThreaded(){
 
   detector_->Run( GetPtrToNewFrame() ); 
   
@@ -94,8 +93,6 @@ void TTrack::Run(){
     TrackThread.join();
     DetectThread.join();
  
-    AddToQueue();
-
   }
   
 }  
@@ -108,28 +105,6 @@ void TTrack::GetWindowSize(int &width, int &height) {
 }
 
 
-void TTrack::AddToQueue(){
-
-  boost::interprocess::scoped_lock<boost::mutex> m(mutex_);
-
-  ImageRenderSet irs( new ImageRenderSetContainer(frame_, tracker_->TrackedModels()) );
-
-  processed_frames_.push(irs);
-
-}
-
-bool TTrack::GetLatestUpdate(ImageRenderSet &irs) {
-
-  boost::interprocess::scoped_lock<boost::mutex> m(mutex_);
-
-  if( processed_frames_.empty() ) return false;
-
-  irs = processed_frames_.front();
-
-  processed_frames_.pop();
-  return true;
-}
-
 void TTrack::SaveFrame(){
 
   boost::shared_ptr<sv::Frame> frame = tracker_->GetPtrToFinishedFrame();
@@ -141,41 +116,30 @@ void TTrack::SaveFrame(){
 
 void TTrack::SaveResults() const {
   
-  boost::shared_ptr<const sv::Frame> frame = tracker_->GetPtrToFinishedFrame();
-  std::vector<KalmanTracker> &tracked_models = tracker_->TrackedModels();
+  //boost::shared_ptr<const sv::Frame> frame = tracker_->GetPtrToFinishedFrame();
+  //std::vector<KalmanTracker> &tracked_models = tracker_->TrackedModels();
 
-  for( size_t i = 0 ; i < tracked_models.size() ; i++ ){
+  //for( size_t i = 0 ; i < tracked_models.size() ; i++ ){
 
-    KalmanTracker &model = tracked_models[i];
-    
-    boost::shared_ptr<std::ofstream> results_file = model.SaveFile();
+  //  KalmanTracker &model = tracked_models[i];
+  //  
+  //  boost::shared_ptr<std::ofstream> results_file = model.SaveFile();
 
-    if( !results_file->is_open() ){
-      
-      std::stringstream ss; ss << results_dir_ + "/model_pose" << i << ".txt";
-      results_file->open( ss.str(),  std::ofstream::out);
-      
-    }
+  //  if( !results_file->is_open() ){
+  //    
+  //    std::stringstream ss; ss << results_dir_ + "/model_pose" << i << ".txt";
+  //    results_file->open( ss.str(),  std::ofstream::out);
+  //    
+  //  }
 
-    cv::Vec3d angle_axis = model.CurrentPose().rotation_.AngleAxis();
-    cv::Vec3d translation = model.CurrentPose().translation_;
-    cv::Vec3d point_of_interest = model.CurrentPose().Transform(model.PtrToModel()->GetTrackedPoint());
+  //  cv::Vec3d angle_axis = model.CurrentPose().rotation_.AngleAxis();
+  //  cv::Vec3d translation = model.CurrentPose().translation_;
+  //  cv::Vec3d point_of_interest = model.CurrentPose().Transform(model.PtrToModel()->GetTrackedPoint());
 
-    *results_file << translation[0] << "," << translation[1] << "," << translation[2] << "," << angle_axis[0] << "," << angle_axis[1] << "," << angle_axis[2] << "," << point_of_interest[0] << "," << point_of_interest[1] << "," << point_of_interest[2] << "\n" ;
-    results_file->flush();
+  //  *results_file << translation[0] << "," << translation[1] << "," << translation[2] << "," << angle_axis[0] << "," << angle_axis[1] << "," << angle_axis[2] << "," << point_of_interest[0] << "," << point_of_interest[1] << "," << point_of_interest[2] << "\n" ;
+  //  results_file->flush();
 
-  }
-
-}
-
-void TTrack::DrawModel(cv::Mat &frame) const {
-
-  //for each model that we are tracking 
-  for(auto tracked_model = tracker_->TrackedModels().begin(); tracked_model != tracker_->TrackedModels().end(); tracked_model++){
- 
-    tracker_->DrawModelOnFrame(*tracked_model,frame);
-
-  }
+  //}
 
 }
 

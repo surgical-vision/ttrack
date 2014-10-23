@@ -19,18 +19,18 @@ namespace ttrk {
 
     StereoPWP3D(boost::shared_ptr<StereoCamera> camera) : PWP3D(camera->rectified_left_eye()) , stereo_camera_(camera) {}
 
-    virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame);
+    virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
     
   protected:   
 
-    void GetRenderedModelAtPose(const KalmanTracker &current_model, cv::Mat &left_canvas, cv::Mat &left_z_buffer, cv::Mat &left_binary_image, cv::Mat &right_canvas, cv::Mat &right_z_buffer, cv::Mat &right_binary_image) const;
-    virtual void GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection);
-    void GetFastDOFDerivsLeft(const Pose &pose, double *pose_derivs, double *intersection);
-    void GetFastDOFDerivsRight(const Pose &pose, double *pose_derivs, double *intersection);
+    //void GetRenderedModelAtPose(const boost::shared_ptr<Model> current_model, cv::Mat &left_canvas, cv::Mat &left_z_buffer, cv::Mat &left_binary_image, cv::Mat &right_canvas, cv::Mat &right_z_buffer, cv::Mat &right_binary_image) const;
+    //virtual void GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection);
+    //void GetFastDOFDerivsLeft(const Pose &pose, double *pose_derivs, double *intersection);
+    //void GetFastDOFDerivsRight(const Pose &pose, double *pose_derivs, double *intersection);
     
-    bool SwapEye(Pose &pose);
-    void SwapToRight(Pose &pose);
-    void SwapToLeft(Pose &pose);
+    //bool SwapEye(Pose &pose);
+    //void SwapToRight(Pose &pose);
+    //void SwapToLeft(Pose &pose);
 
     CameraEye current_eye_;
     boost::shared_ptr<StereoCamera> stereo_camera_;

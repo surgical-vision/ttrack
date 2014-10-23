@@ -7,13 +7,10 @@
 #include "../../../include/track/stt/stereo_tool_tracker.hpp"
 #include "../../../include/track/pwp3d/stereo_pwp3d.hpp"
 
-#include "../../../include/utils/quasi_dense_stereo.hpp"
+#include "../../../include/track/model/articulated_model.hpp"
 #include "../../../include/utils/helpers.hpp"
 
 using namespace ttrk;
-
-#define STEREO_SGBM
-#undef QUASI
 
 StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, const std::string &calibration_file) :SurgicalToolTracker(model_parameter_file), camera_(new StereoCamera(calibration_file)){
 
@@ -42,11 +39,12 @@ bool StereoToolTracker::Init() {
   //for each connected region find the corresponding connected region in the other frame
   for (auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
-    KalmanTracker new_tracker(boost::shared_ptr<Model>(new DenavitHartenbergArticulatedModel(model_parameter_file_)));
-
+    TemporalTrackedModel new_tracker;
     tracked_models_.push_back(new_tracker);
 
-    Init3DPoseFromMOITensor(*connected_region, tracked_models_.back());//,corresponding_connected_region);
+    tracked_models_.back().model.reset(new DenavitHartenbergArticulatedModel(model_parameter_file_));
+
+    Init3DPoseFromMOITensor(*connected_region, tracked_models_.back().model);//,corresponding_connected_region);
 
   }
 
@@ -71,7 +69,7 @@ cv::Vec2d StereoToolTracker::FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &
 
 }
 
-void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3d &center_of_mass_3d, cv::Vec3d &central_axis_3d, boost::shared_ptr<MonocularCamera> camera, KalmanTracker &tm) {
+void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3d &center_of_mass_3d, cv::Vec3d &central_axis_3d, boost::shared_ptr<MonocularCamera> camera, boost::shared_ptr<Model> tm) {
 
   /*cv::Vec2d center_of_mass = FindCenterOfMassIn2D(connected_region);
 
@@ -178,9 +176,9 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
   //tm.SetPose(Pose(cv::Vec3d(-18,0,4.5),sv::Quaternion(boost::math::quaternion<double>(0.4,1,0,0))));
   //tm.SetPose(Pose(cv::Vec3d(-18,-1.6,-2.8),sv::Quaternion(boost::math::quaternion<double>(0.4,1.2,0,0.1))));
 
-  cv::Mat rot = (cv::Mat_<double>(3, 3) << -0.629972, -0.211834, -0.747169, -0.49922, 0.847433, 0.180655, -0.594908, 0.486809, -0.639611);
-  tm.SetPose(Pose(cv::Vec3d(-16.3274, 8.70154, 85.1892), sv::Quaternion(rot)));
-
+  //cv::Mat rot = (cv::Mat_<double>(3, 3) << -0.629972, -0.211834, -0.747169, -0.49922, 0.847433, 0.180655, -0.594908, 0.486809, -0.639611);
+  //tm.SetPose(Pose(cv::Vec3d(-16.3274, 8.70154, 85.1892), sv::Quaternion(rot)));
+  throw std::runtime_error("erro this");
 }
 
 void StereoToolTracker::ShiftToTip(const cv::Vec3d &central_axis, cv::Vec3d &center_of_mass) {//, KalmanTracker &tracked_model){
@@ -209,7 +207,7 @@ void StereoToolTracker::ShiftToTip(const cv::Vec3d &central_axis, cv::Vec3d &cen
 }
 
 
-void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, KalmanTracker &tracked_model) {
+void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, boost::shared_ptr<Model> tracked_model) {
 
   cv::Vec3d left_center_of_mass, left_central_axis, right_center_of_mass, right_central_axis;
   InitIn2D(region, left_center_of_mass, left_central_axis, camera_->rectified_left_eye(), tracked_model);
@@ -279,29 +277,6 @@ cv::Vec3d StereoToolTracker::FindCenterOfMass(const cv::Mat &point_cloud) const 
   return com;
 
 }
-
-void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const {
-  /*
-  boost::shared_ptr<std::vector<Object *> > transformed_points = tracked_model.ModelPointsAtCurrentPose();
-  for(auto point = transformed_points->begin(); point != transformed_points->end(); point++ ){
-
-  cv::Vec2d projected = camera_->rectified_left_eye()->ProjectPoint(point->vertex_);
-
-  for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
-
-  const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
-  cv::Vec2d projected_neighbour = camera_->rectified_left_eye()->ProjectPoint( neighbour.vertex_ );
-
-  if(canvas.channels() == 3)
-  line(canvas,cv::Point2d(projected),cv::Point2d(projected_neighbour),cv::Scalar(255,123,25),1,CV_AA);
-  if(canvas.channels() == 1)
-  line(canvas,cv::Point2d(projected),cv::Point2d(projected_neighbour),(unsigned char)255,1,CV_AA);
-  }
-
-  }
-  */
-}
-
 
 void StereoToolTracker::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){
 

@@ -3,8 +3,8 @@
 
 #include "../../include/detect/im_mask_set.hpp"
 #include "../../include/headers.hpp"
-#include "../../include/utils/exceptions.hpp"
 #include "../../include/utils/helpers.hpp"
+#include "../../include/utils/exceptions.hpp"
 
 using namespace ttrk;
 

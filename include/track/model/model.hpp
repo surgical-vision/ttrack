@@ -14,7 +14,6 @@
 #include <math.h>
 
 #include "../pose.hpp"
-#include "../../utils/primitives.hpp"
 #include "../../utils/camera.hpp"
 #include "node.hpp"
 
@@ -43,8 +42,7 @@ namespace ttrk{
     * Render the nodes that make up this model.
     */
     virtual void Render();
-
-
+    
     /**
     * Get an intersection between the model and a ray cast from the camera. This is needed in the tracking methods. 
     * Warning: the mesh cache MUST be updated to the current pose using Model::UpdateMeshCache() before calling this function as it assumes that the mesh is stored with the correct pose. It is too slow to check for every call.
@@ -57,11 +55,7 @@ namespace ttrk{
 
     virtual cv::Vec3d PrincipalAxis() const { return cv::Vec3d(1,0,0); }
 
-    cv::Vec3d GetTrackedPoint() const { return tracked_point_; }
-    cv::Vec3d SetTrackedPoint(const cv::Vec3d &tracked_point) { tracked_point_ = tracked_point ; }
-
   protected:
-
 
     /**
     * Load the model from a config file.
@@ -85,8 +79,8 @@ namespace ttrk{
 
     Model() {} // load nothing - only useful for the derived classes which need to delay loading
 
-    Node::Ptr model_;
-    cv::Vec3d tracked_point_;
+    Node::Ptr model_; /**< A tree representation of the model as a sequence of coordinate systems with some attached geometry. */
+    Pose world_to_model_coordinates_; /**< The transform from world coordinates (or camera) to the 'base' coordinates of the model. */
     
   };
  

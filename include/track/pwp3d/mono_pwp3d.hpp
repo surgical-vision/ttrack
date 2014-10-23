@@ -12,13 +12,13 @@ namespace ttrk {
 
     MonoPWP3D(boost::shared_ptr<MonocularCamera> camera) : PWP3D(camera) {}
 
-    virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame);
+    virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
 
   protected:
 
-    void GetRenderedModelAtPose(const KalmanTracker &current_model, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image) const;
+    //void GetRenderedModelAtPose(const boost::shared_ptr<Model> model, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image) const;
 
-    virtual void GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection);
+    //virtual void GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection);
 
   };
 

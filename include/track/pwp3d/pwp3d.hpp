@@ -5,6 +5,7 @@
 #include <cinder/gl/gl.h>
 #include <cinder/gl/Fbo.h>
 #include <cinder/gl/GlslProg.h>
+#include <cinder/gl/Texture.h>
 
 #include "../localizer.hpp"
 #include "../../utils/camera.hpp"
@@ -15,26 +16,27 @@
 namespace ttrk {
 
   class PWP3D : public Localizer {
+
   public: 
 
     PWP3D(boost::shared_ptr<MonocularCamera> camera);
 
-    virtual Pose TrackTargetInFrame(KalmanTracker model, boost::shared_ptr<sv::Frame> frame) = 0;
+    virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame) = 0;
     
   protected:
 
     virtual void LoadShaders();
 
-    virtual void GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection) = 0;
+    //virtual void GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection) = 0;
 
     /**
     * Construct a signed distance function of the outer contour of the shape projected into the image plane.
     * @param[in] current_model The model which will be projected to the image plane.
     * @return The image containin the signed distance function. Will be a single channel floating point image.
     */
-    void ProcessSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &z_buffer, cv::Mat &sdf_image, cv::Mat &binary_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image);
+    void ProcessSDFAndIntersectionImage(boost::shared_ptr<Model> mesh, cv::Mat &z_buffer, cv::Mat &sdf_image, cv::Mat &binary_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image);
     
-    void RenderModelToSDFAndIntersection(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image, const Pose &pose, const boost::shared_ptr<MonocularCamera> camera);
+    void RenderModelToSDFAndIntersection(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image, const boost::shared_ptr<MonocularCamera> camera);
 
     
     //const cv::Mat ProjectShapeToSDF(KalmanTracker &current_model);
@@ -48,16 +50,16 @@ namespace ttrk {
     * @param[in] dSDFdy The derivative of the signed distance function /f$\frac{\partial SDF}{\partial y}/f$ at the current pixel.
     * @return The pose derivitives as a vector.
     */
-    void GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const double dSDFdx, const double dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image, PoseDerivs &pd);
+    //void GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const double dSDFdx, const double dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image, PoseDerivs &pd);
 
-    bool HasGradientDescentConverged_UsingEnergy(std::vector<double> &energy_values) const ;
+    //bool HasGradientDescentConverged_UsingEnergy(std::vector<double> &energy_values) const ;
 
     /**
     * Apply some scaling to the pose derivatives to modify the step size.
     * @param[in] jacobian The pose derivatives.
     * @param[in] step_id The number of steps done. Used for scaling down the step size.
     */
-    void ScaleJacobian(PoseDerivs &jacobian, const size_t step_number, const size_t pixel_count) const;
+    //void ScaleJacobian(PoseDerivs &jacobian, const size_t step_number, const size_t pixel_count) const;
 
 
     inline double DeltaFunction(double x,const double std){
@@ -74,7 +76,7 @@ namespace ttrk {
     * Applys one step of gradient descent to the pose. 
     * @param[in]    jacobian The pose update of the target object.
     */    
-    void ApplyGradientDescentStep(PoseDerivs &jacobian, Pose &pose, const size_t step,  const size_t pixel_count);
+    //void ApplyGradientDescentStep(PoseDerivs &jacobian, Pose &pose, const size_t step,  const size_t pixel_count);
 
     /**
     * Compute the first part of the derivative, getting a weight for each contribution based on the region agreements.
@@ -98,10 +100,11 @@ namespace ttrk {
     bool GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const;
 
     boost::shared_ptr<sv::Frame> frame_;
-    boost::scoped_ptr<ci::gl::Fbo> framebuffer_;
+    ci::gl::Fbo front_depth_framebuffer_; /**< Framebuffer to write the front depth values into. */
+    ci::gl::Fbo back_depth_framebuffer_; /**< Framebuffer to write the back depth values into. Has 2 colour buffers. */
 
     ci::gl::GlslProg front_depth_;
-    ci::gl::GlslProg back_depth_;
+    ci::gl::GlslProg back_depth_and_contour_;
 
     std::string DEBUG_DIR_;
     boost::shared_ptr<MonocularCamera> camera_;

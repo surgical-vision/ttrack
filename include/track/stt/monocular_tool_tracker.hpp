@@ -18,7 +18,7 @@ namespace ttrk {
     * @return The success of the initialisation.
     */
     virtual bool Init();
-    virtual void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const;
+    //virtual void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const;
     
   protected:
 
@@ -28,7 +28,7 @@ namespace ttrk {
     * @param[in] A connected region of pixels.
     */
     
-    void Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> &connected_region, KalmanTracker &tracked_model);
+    void Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> &connected_region, boost::shared_ptr<Model> tracked_model);
     
     /**
     * Finds the center of mass of a connceted region of pixels.

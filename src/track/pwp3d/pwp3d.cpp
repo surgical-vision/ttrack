@@ -9,16 +9,18 @@
 
 #include "../../../include/track/pwp3d/pwp3d.hpp"
 #include "../../../include/utils/helpers.hpp"
-#include "../../../include/utils/renderer.hpp"
 #include "../../../include/resources.hpp"
+#include "../../../include/constants.hpp"
 
 using namespace ttrk;
 
 PWP3D::PWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera), register_points_(camera), k_delta_function_std_(2.5), k_heaviside_width_(0.3) {
 
-  framebuffer_.reset(new ci::gl::Fbo(camera_->Width(), camera_->Height()));
-
-  front_depth_ = ci::gl::GlslProg(ci::app::loadResource(PWP3D_FRONT_DEPTH_VERT), ci::app::loadResource(PWP3D_FRONT_DEPTH_FRAG));
+  front_depth_framebuffer_ = ci::gl::Fbo(camera_->Width(), camera_->Height());
+  //need 2 colour buffers for back contour
+  ci::gl::Fbo::Format format;
+  format.enableColorBuffer(true, 2);
+  back_depth_framebuffer_ = ci::gl::Fbo(camera_->Width(), camera_->Height(), format);
 
   LoadShaders();
 
@@ -26,58 +28,59 @@ PWP3D::PWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera), regis
 
 void PWP3D::LoadShaders(){
 
-  front_depth_ = ci::gl::GlslProg(ci::app::loadResource(RES_SHADER_VERT), ci::app::loadResource(RES_SHADER_FRAG));
+  front_depth_ = ci::gl::GlslProg(ci::app::loadResource(PWP3D_FRONT_DEPTH_VERT), ci::app::loadResource(PWP3D_FRONT_DEPTH_FRAG));
+  back_depth_and_contour_ = ci::gl::GlslProg(ci::app::loadResource(PWP3D_BACK_DEPTH_AND_CONTOUR_VERT), ci::app::loadResource(PWP3D_BACK_DEPTH_AND_CONTOUR_FRAG));
 
 }
 
-void PWP3D::ApplyGradientDescentStep(PoseDerivs &jacobian, Pose &pose, const size_t step, const size_t pixel_count){
+//void PWP3D::ApplyGradientDescentStep(PoseDerivs &jacobian, Pose &pose, const size_t step, const size_t pixel_count){
+//
+//  ScaleJacobian(jacobian,step,pixel_count);
+//
+//  //update the translation
+//  cv::Vec3d translation(jacobian[0],jacobian[1],jacobian[2]);
+//  pose.translation_ = pose.translation_ + translation;
+//
+//  //update the rotation
+//  sv::Quaternion rotation(boost::math::quaternion<double>(jacobian[3],jacobian[4],jacobian[5],jacobian[6]));
+//
+//  pose.rotation_ = pose.rotation_ + rotation;
+//  pose.rotation_ = pose.rotation_.Normalize();
+//
+//}
 
-  ScaleJacobian(jacobian,step,pixel_count);
-
-  //update the translation
-  cv::Vec3d translation(jacobian[0],jacobian[1],jacobian[2]);
-  pose.translation_ = pose.translation_ + translation;
-
-  //update the rotation
-  sv::Quaternion rotation(boost::math::quaternion<double>(jacobian[3],jacobian[4],jacobian[5],jacobian[6]));
-
-  pose.rotation_ = pose.rotation_ + rotation;
-  pose.rotation_ = pose.rotation_.Normalize();
-
-}
-
-void PWP3D::ScaleJacobian(PoseDerivs &jacobian, const size_t step_number, const size_t pixel_count) const {
-
-  const double SCALE_FACTOR =  (1.0/(pixel_count)) * 3;
-    
-  const double XY_scale = 0.2 * 0.005 * SCALE_FACTOR;
-  const double Z_scale = 0.5 * 0.005 * SCALE_FACTOR;
-  double R_SCALE = 10 * 0.00008 * SCALE_FACTOR;
-  
-  jacobian[0] *= XY_scale;//* 25;
-  jacobian[1] *= XY_scale ;
-  jacobian[2] *= Z_scale; //* camera_->Fx()/4;
-  
-  double largest = std::abs(jacobian[0]);
-  if( largest < std::abs(jacobian[1]) ) largest = std::abs(jacobian[1]);
-  if( largest < std::abs(jacobian[2]) ) largest = std::abs(jacobian[2]);
-
-  jacobian[0] = 0.5 * (jacobian[0]*0.2)/largest;
-  jacobian[1] = 0.5 * (jacobian[1]*0.2)/largest;
-  jacobian[2] = 0.5 * (jacobian[2]*0.4)/largest;
-
-  //jacobian.at<double>(5,0) *= 3;
-
-  largest = std::abs(jacobian[3]);
-  if( largest < std::abs(jacobian[4]) ) largest = std::abs(jacobian[4]);
-  if( largest < std::abs(jacobian[5]) ) largest = std::abs(jacobian[5]);
-  if( largest < std::abs(jacobian[6]) ) largest = std::abs(jacobian[6]);
-
-  for(int i=3;i<7;i++){
-    jacobian[i] *= 0.5 * (0.007 / largest);
-  }
-  
-}
+//void PWP3D::ScaleJacobian(PoseDerivs &jacobian, const size_t step_number, const size_t pixel_count) const {
+//
+//  const double SCALE_FACTOR =  (1.0/(pixel_count)) * 3;
+//    
+//  const double XY_scale = 0.2 * 0.005 * SCALE_FACTOR;
+//  const double Z_scale = 0.5 * 0.005 * SCALE_FACTOR;
+//  double R_SCALE = 10 * 0.00008 * SCALE_FACTOR;
+//  
+//  jacobian[0] *= XY_scale;//* 25;
+//  jacobian[1] *= XY_scale ;
+//  jacobian[2] *= Z_scale; //* camera_->Fx()/4;
+//  
+//  double largest = std::abs(jacobian[0]);
+//  if( largest < std::abs(jacobian[1]) ) largest = std::abs(jacobian[1]);
+//  if( largest < std::abs(jacobian[2]) ) largest = std::abs(jacobian[2]);
+//
+//  jacobian[0] = 0.5 * (jacobian[0]*0.2)/largest;
+//  jacobian[1] = 0.5 * (jacobian[1]*0.2)/largest;
+//  jacobian[2] = 0.5 * (jacobian[2]*0.4)/largest;
+//
+//  //jacobian.at<double>(5,0) *= 3;
+//
+//  largest = std::abs(jacobian[3]);
+//  if( largest < std::abs(jacobian[4]) ) largest = std::abs(jacobian[4]);
+//  if( largest < std::abs(jacobian[5]) ) largest = std::abs(jacobian[5]);
+//  if( largest < std::abs(jacobian[6]) ) largest = std::abs(jacobian[6]);
+//
+//  for(int i=3;i<7;i++){
+//    jacobian[i] *= 0.5 * (0.007 / largest);
+//  }
+//  
+//}
 
 double PWP3D::GetRegionAgreement(const int r, const int c, const double sdf) {
   
@@ -140,143 +143,114 @@ bool PWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat &sdf,
   return GetTargetIntersections(min_point.y,min_point.x,front_intersection,back_intersection,front_intersection_image,back_intersection_image);
 }
 
-void PWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const double dSDFdx, const double dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image, PoseDerivs &pd){
+//void PWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const double dSDFdx, const double dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image, PoseDerivs &pd){
+//
+//   //find the (x,y,z) coordinates of the front and back intersection between the ray from the current pixel and the target object. return zero vector for no intersection.
+//  double front_intersection[3];
+//  double back_intersection[3];
+//  bool intersects = GetTargetIntersections(r,c,front_intersection,back_intersection,front_intersection_image,back_intersection_image);
+//  
+//  //because the derivative only works for points which project to the target and we need it to be defined for points outside the contour, 'pretend' that a small region of these points actually hit the contour
+//  if(!intersects) {
+//    intersects = GetNearestIntersection(r,c,sdf,front_intersection,back_intersection,front_intersection_image,back_intersection_image);
+//    if(!intersects){
+//      pd = PoseDerivs::Zeros();
+//      return;
+//    }
+//  }
+//
+//#ifdef _DEBUG
+//  if( (front_intersection[0] == 0.0 && front_intersection[1] == 0.0 && front_intersection[2] == 0.0) || (back_intersection[0] == 0.0 && back_intersection[1] == 0.0 && back_intersection[2] == 0.0) )
+//    throw(std::runtime_error("Error, this is a value we should not get!\n"));
+//  if( front_intersection[2] == 0.0 || back_intersection[2] == 0.0 )
+//    throw(std::runtime_error("Error, this is a value we should not get!\n"));
+//#endif
+//
+//  const double z_inv_sq_front = 1.0/(front_intersection[2]*front_intersection[2]);
+//  const double z_inv_sq_back = 1.0/(back_intersection[2]*back_intersection[2]);
+//
+//  static double derivs_front[21];
+//  static double derivs_back[21];
+//  static bool first = true;
+//  if(first) {
+//    current_model.CurrentPose().SetupFastDOFDerivs(derivs_front);
+//    current_model.CurrentPose().SetupFastDOFDerivs(derivs_back);
+//    first = false;
+//  }
+//
+//  GetFastDOFDerivs(current_model.CurrentPose(),derivs_front,front_intersection);
+//  GetFastDOFDerivs(current_model.CurrentPose(),derivs_back,back_intersection);
+//  
+//  for(int dof=0;dof<PoseDerivs::NUM_VALS;dof++){
+//    
+//    //compute the derivative for each dof
+//    const double *dof_derivatives_front = derivs_front+(3*dof);
+//    const double *dof_derivatives_back = derivs_back+(3*dof);
+//
+//    pd[dof] = dSDFdx * (camera_->Fx() * (z_inv_sq_front*((front_intersection[2]*dof_derivatives_front[0]) - (front_intersection[0]*dof_derivatives_front[2]))) + camera_->Fx() * (z_inv_sq_back*((back_intersection[2]*dof_derivatives_back[0]) - (back_intersection[0]*dof_derivatives_back[2]))));
+//    pd[dof] += dSDFdy * (camera_->Fy() * (z_inv_sq_front*((front_intersection[2]*dof_derivatives_front[1]) - (front_intersection[1]*dof_derivatives_front[2]))) + camera_->Fy() * (z_inv_sq_back*((back_intersection[2]*dof_derivatives_back[1]) - (back_intersection[1]*dof_derivatives_back[2]))));
+//    pd[dof] *= DeltaFunction(sdf.at<float>(r,c), k_delta_function_std_ * blurring_scale_factor_ );
+//  
+//  }
+//  
+//}
 
-   //find the (x,y,z) coordinates of the front and back intersection between the ray from the current pixel and the target object. return zero vector for no intersection.
-  double front_intersection[3];
-  double back_intersection[3];
-  bool intersects = GetTargetIntersections(r,c,front_intersection,back_intersection,front_intersection_image,back_intersection_image);
-  
-  //because the derivative only works for points which project to the target and we need it to be defined for points outside the contour, 'pretend' that a small region of these points actually hit the contour
-  if(!intersects) {
-    intersects = GetNearestIntersection(r,c,sdf,front_intersection,back_intersection,front_intersection_image,back_intersection_image);
-    if(!intersects){
-      pd = PoseDerivs::Zeros();
-      return;
-    }
-  }
+void PWP3D::RenderModelToSDFAndIntersection(boost::shared_ptr<Model> mesh, cv::Mat &front_depth, cv::Mat &back_depth, cv::Mat &contour, const boost::shared_ptr<MonocularCamera> camera){
 
-#ifdef _DEBUG
-  if( (front_intersection[0] == 0.0 && front_intersection[1] == 0.0 && front_intersection[2] == 0.0) || (back_intersection[0] == 0.0 && back_intersection[1] == 0.0 && back_intersection[2] == 0.0) )
-    throw(std::runtime_error("Error, this is a value we should not get!\n"));
-  if( front_intersection[2] == 0.0 || back_intersection[2] == 0.0 )
-    throw(std::runtime_error("Error, this is a value we should not get!\n"));
-#endif
+  assert(front_depth_framebuffer_.getWidth() == camera->Width() && front_depth_framebuffer_.getHeight() == camera->Height());
 
-  const double z_inv_sq_front = 1.0/(front_intersection[2]*front_intersection[2]);
-  const double z_inv_sq_back = 1.0/(back_intersection[2]*back_intersection[2]);
-
-  static double derivs_front[21];
-  static double derivs_back[21];
-  static bool first = true;
-  if(first) {
-    current_model.CurrentPose().SetupFastDOFDerivs(derivs_front);
-    current_model.CurrentPose().SetupFastDOFDerivs(derivs_back);
-    first = false;
-  }
-
-  GetFastDOFDerivs(current_model.CurrentPose(),derivs_front,front_intersection);
-  GetFastDOFDerivs(current_model.CurrentPose(),derivs_back,back_intersection);
-  
-  for(int dof=0;dof<PoseDerivs::NUM_VALS;dof++){
-    
-    //compute the derivative for each dof
-    const double *dof_derivatives_front = derivs_front+(3*dof);
-    const double *dof_derivatives_back = derivs_back+(3*dof);
-
-    pd[dof] = dSDFdx * (camera_->Fx() * (z_inv_sq_front*((front_intersection[2]*dof_derivatives_front[0]) - (front_intersection[0]*dof_derivatives_front[2]))) + camera_->Fx() * (z_inv_sq_back*((back_intersection[2]*dof_derivatives_back[0]) - (back_intersection[0]*dof_derivatives_back[2]))));
-    pd[dof] += dSDFdy * (camera_->Fy() * (z_inv_sq_front*((front_intersection[2]*dof_derivatives_front[1]) - (front_intersection[1]*dof_derivatives_front[2]))) + camera_->Fy() * (z_inv_sq_back*((back_intersection[2]*dof_derivatives_back[1]) - (back_intersection[1]*dof_derivatives_back[2]))));
-    pd[dof] *= DeltaFunction(sdf.at<float>(r,c), k_delta_function_std_ * blurring_scale_factor_ );
-  
-  }
-  
-}
-
-void PWP3D::RenderModelToSDFAndIntersection(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image, const Pose &pose, const boost::shared_ptr<MonocularCamera> camera){
-
-  assert(framebuffer_->getWidth() == camera->Width() && framebuffer_->getHeight() == camera->Height());
-
-  framebuffer_->bindFramebuffer();
-  
-  glEnable(GL_LIGHTING);
-
-  //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  ci::gl::clear(ci::Color(0, 0, 0));
-
-  ci::gl::Light light(ci::gl::Light::DIRECTIONAL, 0);
-  //light.lookAt(ci::Vec3f(1, 5, 1), ci::Vec3f(0, 0, 0));
-  light.lookAt(ci::Vec3f(0, 0, 0), ci::Vec3f(0, 0, 1));
-  light.setAmbient(ci::Color(0.3f, 0.3f, 0.3f));
-  light.setDiffuse(ci::Color(0.5f, 0.5f, 0.5f));
-  light.setSpecular(ci::Color(0.5f, 0.5f, 0.5f));
-  light.setShadowParams(60.0f, 0.5f, 8.0f);
-  //light.update(camera->);
-  light.enable();
-
- /* ci::gl::Light light2(ci::gl::Light::DIRECTIONAL, 1);
-  light.lookAt(ci::Vec3f(1, 5, 1), ci::Vec3f(0, 0, 0));
-  light2.lookAt(ci::Vec3f(50, 0, 0), ci::Vec3f(0, 0, 0));
-  light2.setAmbient(ci::Color(0.3f, 0.3f, 0.3f));
-  light2.setDiffuse(ci::Color(0.5f, 0.5f, 0.5f));
-  light2.setSpecular(ci::Color(0.5f, 0.5f, 0.5f));
-  light2.setShadowParams(60.0f, 0.5f, 8.0f);
-  light2.update(cam);
-  light2.enable();
-
-
-  ci::gl::Light light3(ci::gl::Light::DIRECTIONAL, 2);
-  light3.lookAt(ci::Vec3f(0, 0, 50), ci::Vec3f(0, 0, 0));
-  light3.setAmbient(ci::Color(0.3f, 0.3f, 0.3f));
-  light3.setDiffuse(ci::Color(0.5f, 0.5f, 0.5f));
-  light3.setSpecular(ci::Color(0.5f, 0.5f, 0.5f));
-  light3.setShadowParams(60.0f, 0.5f, 8.0f);
-  light3.update(cam);
-  light3.enable();*/
-  
-  ci::gl::enableDepthRead();
-  ci::gl::enableDepthWrite();
-  ci::gl::pushMatrices();
-  
-  camera->SetupCameraForDrawing(framebuffer_->getWidth(), framebuffer_->getHeight());
-
-  ci::Matrix44f pose_transform = pose.AsCiMatrixForOpenGL();
-  glMatrixMode(GL_MODELVIEW);
-  glPushMatrix();
-  glMultMatrixf(pose_transform.m);
-
-  //front_depth_.bind();
-
-  mesh->Render();
-
-  //front_depth_.unbind();
-
-  glPopMatrix();
-
-  //glViewport(viewport_cache[0], viewport_cache[1], viewport_cache[2], viewport_cache[3]);
-
-  light.disable();
-//  light2.disable();
-//  light3.disable();
-
+  //setup viewport and buffer flags etc
   glDisable(GL_LIGHTING);
+  glViewport(0, 0, front_depth_framebuffer_.getWidth(), front_depth_framebuffer_.getHeight());
+  glScissor(0, 0, front_depth_framebuffer_.getWidth(), front_depth_framebuffer_.getHeight());
+  glClearColor(GL_FAR, GL_FAR, GL_FAR, GL_FAR);
+  glClearDepth(1.0f);
+  glDepthFunc(GL_LESS);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+  //setup camera/transform/matrices etc
+  ci::gl::pushMatrices();
+  camera->SetupCameraForDrawing(front_depth_framebuffer_.getWidth(), front_depth_framebuffer_.getHeight());
+
+  //model does its own glMultModelView transform
+  //render front surface 3D coordinates
+  front_depth_framebuffer_.bindFramebuffer();
+  front_depth_.bind();
+  mesh->Render();
+  front_depth_.unbind();
+  front_depth_framebuffer_.unbindFramebuffer();
+
+  //render back surface 3D coordinates and also get contour
+  back_depth_framebuffer_.bindFramebuffer();
+  back_depth_and_contour_.bind();
+  back_depth_and_contour_.uniform("tex_w", float(front_depth_framebuffer_.getWidth()));
+  back_depth_and_contour_.uniform("tex_h", float(front_depth_framebuffer_.getHeight()));
+  back_depth_and_contour_.uniform("far", GL_FAR);
+  //set the front framebuffer's texture to be accessible to the shader
+  back_depth_and_contour_.uniform("tex_fd", (int)front_depth_framebuffer_.getTexture().getId());
+  mesh->Render();
+  back_depth_and_contour_.unbind();
+  back_depth_framebuffer_.unbindFramebuffer();
+
+  //finish up
+  glPopMatrix();
+  //neccessary to get the results NOW.
   glFinish();
 
-  framebuffer_->unbindFramebuffer();
 
-  canvas = ci::toOcv(framebuffer_->getTexture());
-  z_buffer = ci::toOcv(framebuffer_->getDepthTexture());
-  binary_image = z_buffer != 1.0f;
+  front_depth = ci::toOcv(front_depth_framebuffer_.getTexture());
+  back_depth = ci::toOcv(back_depth_framebuffer_.getTexture(0));
+  contour = ci::toOcv(back_depth_framebuffer_.getTexture(1));
 
-  cv::imwrite("../canvas.png", canvas);
-  cv::imwrite("../z_buffer.png", z_buffer);
+  cv::imwrite("../front_depth.png", front_depth);
+  cv::imwrite("../back_depth.png", back_depth);
 
-  cv::imwrite("../binary_image.png", binary_image * 255);
+  cv::imwrite("../contour.png", contour * 255);
 
 }
 
 
-void PWP3D::ProcessSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat &z_buffer, cv::Mat &sdf_image, cv::Mat &binary_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image) {
+void PWP3D::ProcessSDFAndIntersectionImage(boost::shared_ptr<Model> current_model, cv::Mat &z_buffer, cv::Mat &sdf_image, cv::Mat &binary_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image) {
 
   //find all the pixels which project to intersection points on the model
   sdf_image = cv::Mat(frame_->GetImageROI().size(),CV_32FC1);
@@ -286,7 +260,7 @@ void PWP3D::ProcessSDFAndIntersectionImage(KalmanTracker &current_model, cv::Mat
   //blocks here
   cv::Mat canvas;
   //Renderer::DrawMesh(current_model.PtrToModel(), canvas, z_buffer, binary_image, current_model.CurrentPose(), camera_);
-  RenderModelToSDFAndIntersection(current_model.PtrToModel(), canvas, z_buffer, binary_image, current_model.CurrentPose(), camera_);
+  RenderModelToSDFAndIntersection(current_model, canvas, z_buffer, binary_image, camera_);
   cv::Mat unprojected_image_plane = camera_->GetUnprojectedImagePlane(front_intersection_image.cols, front_intersection_image.rows);
   //find the set of pixels which correspond to the drawn object and create the intersection image
 

@@ -4,13 +4,14 @@
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/io.hpp>
 #include <boost/scoped_ptr.hpp>
+#include <algorithm>
+#include <vector>
 
 #include "../headers.hpp"
 #include "../../deps/image/image/image.hpp"
-#include "kalman.hpp"
 #include "localizer.hpp"
-#include "model/articulated_model.hpp"
-
+#include "model/model.hpp"
+#include "temporal/temporal.hpp"
 
 namespace ttrk{
 
@@ -48,24 +49,21 @@ namespace ttrk{
      */
     boost::shared_ptr<sv::Frame> GetPtrToFinishedFrame();
 
-    virtual void DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const = 0;
-
     /**
      * Toggle tracking on or not. If it's off, init is called on each new frame .
      * @param toggle Set True for on, False for off.
      */
     void Tracking(const bool toggle);
 
-    std::vector<KalmanTracker> TrackedModels() { return tracked_models_; }
-
+    void GetTrackedModels(std::vector<boost::shared_ptr<Model> > &models);
 
   protected:
 
     /**
-    * Initialises the Kalman Filter by setting the state transition matrix, the measurement matrix and the coviariance matrices.
+    * Initialises the Temporal Model.
     * @return The success of the initilisation.
     */    
-    bool InitKalmanFilter();
+    bool InitTemporalModels();
 
     /**
     * Updates the intenal handle to point at the currently classified frame.
@@ -79,8 +77,14 @@ namespace ttrk{
     */
     virtual bool Init() = 0;
 
-    std::vector<KalmanTracker> tracked_models_; /**< a vector of tracked models. TODO: switch this out for point cloud mesh or some better data structure. */
-    std::vector<KalmanTracker>::iterator current_model_; /**< A reference to the currently tracked model. */
+    struct TemporalTrackedModel {
+      boost::shared_ptr<Model> model;
+      boost::shared_ptr<TemporalTracker> temporal_tracker;
+    };
+
+    std::vector<TemporalTrackedModel> tracked_models_; /**< a vector of tracked models. TODO: switch this out for point cloud mesh or some better data structure. */
+    std::vector<TemporalTrackedModel>::iterator current_model_; /**< A reference to the currently tracked model. */
+    
     boost::shared_ptr<Localizer> localizer_;
 
     

@@ -7,6 +7,9 @@
 
 #define PWP3D_FRONT_DEPTH_FRAG  CINDER_RESOURCE(../resources/, pwp3d_front_depth_frag.glsl, 130, GLSL)
 #define PWP3D_FRONT_DEPTH_VERT  CINDER_RESOURCE(../resources/, pwp3d_front_depth_vert.glsl, 131, GLSL)
+#define PWP3D_BACK_DEPTH_AND_CONTOUR_FRAG  CINDER_RESOURCE(../resources/, pwp3d_back_depth_contour_frag.glsl, 132, GLSL)
+#define PWP3D_BACK_DEPTH_AND_CONTOUR_VERT  CINDER_RESOURCE(../resources/, pwp3d_back_depth_contour_vert.glsl, 133, GLSL)
+
 #endif
 
 

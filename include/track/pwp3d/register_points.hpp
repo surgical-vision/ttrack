@@ -3,7 +3,6 @@
 #include "../../headers.hpp"
 #include "../pose.hpp"
 #include "../../utils/camera.hpp"
-#include "../kalman.hpp"
 
 namespace ttrk {
 
@@ -61,21 +60,21 @@ namespace ttrk {
 
     PointRegistration(boost::shared_ptr<MonocularCamera> camera);
 
-    void GetPointDerivative(const cv::Point3d &world, cv::Point2d &image, const Pose &pose, PoseDerivs &pd) const ;
+    //void GetPointDerivative(const cv::Point3d &world, cv::Point2d &image, const Pose &pose, PoseDerivs &pd) const ;
     
-    void FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, boost::shared_ptr<Model> model, const Pose &pose, cv::Mat &save_image);    
+    //void FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, boost::shared_ptr<Model> model, const Pose &pose, cv::Mat &save_image);    
   
-    void ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame> frame, KalmanTracker current_model, const cv::Mat &shape_image );
+    //void ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame> frame, boost::shared_ptr<Model> current_model, const cv::Mat &shape_image );
 
   protected:
 
-    void GetDescriptors(const cv::Mat &frame, std::vector<Descriptor> &ds);
-    void MatchDescriptorsToModel(std::vector<Descriptor> &d1, std::vector<Descriptor> &d2, std::vector<DescriptorMatches> &dm);
-    void ReadKeypoints(const std::string filename, std::vector<Descriptor> &descriptors, int count);
-    
-    void FindCorrespondingMatches(std::vector<Descriptor> &right_ds, std::vector<DescriptorMatches> &matched_ds);
+    //void GetDescriptors(const cv::Mat &frame, std::vector<Descriptor> &ds);
+    //void MatchDescriptorsToModel(std::vector<Descriptor> &d1, std::vector<Descriptor> &d2, std::vector<DescriptorMatches> &dm);
+    //void ReadKeypoints(const std::string filename, std::vector<Descriptor> &descriptors, int count);
+    //
+    //void FindCorrespondingMatches(std::vector<Descriptor> &right_ds, std::vector<DescriptorMatches> &matched_ds);
 
-    void FindPointCorrespondences(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &matched_pair);
+    //void FindPointCorrespondences(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &matched_pair);
     
   private:
 

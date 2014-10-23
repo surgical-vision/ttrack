@@ -9,7 +9,7 @@
 #include <cinder/gl/Fbo.h>
 
 #include "ttrack.hpp"
-#include "utils/renderer.hpp"
+//#include "utils/renderer.hpp"
 
 using namespace ci;
 using namespace ci::app;
@@ -48,10 +48,10 @@ public:
 protected:
 
   void drawMeshes();
-  void drawModelOnEye(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture &background, boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose, const CalibParams &params);
-  void drawModelAtPose(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose);
+  void drawModelOnEye(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture &background, boost::shared_ptr<ttrk::Model> mesh, const CalibParams &params);
+  void drawModelAtPose(boost::shared_ptr<ttrk::Model> mesh);
   bool returnRenderable();
-  void drawRenderable(boost::shared_ptr<ttrk::Model> mesh, const ttrk::Pose &pose);
+  void drawRenderable(boost::shared_ptr<ttrk::Model> mesh);
   void setGlProjectionFromCameraCalibration(const CalibParams &params);
   void checkRenderer();
   void convertZBufferToDepth(cv::Mat &zbuffer) const;
@@ -66,7 +66,7 @@ protected:
   boost::shared_ptr<gl::Fbo> window_framebuffer_;
   boost::shared_ptr<gl::Fbo> left_external_framebuffer_;
   boost::shared_ptr<gl::Fbo> right_external_framebuffer_;
-  std::unique_ptr<ttrk::Renderable> to_render_;
+  //std::unique_ptr<ttrk::Renderable> to_render_;
   
   CalibParams left_params_;
   CalibParams right_params_;
@@ -77,7 +77,7 @@ protected:
   // keep track of the mouse
   Vec2i	mouse_pos_;
 
-  ttrk::TTrack::ImageRenderSet irs_;
+  //ttrk::TTrack::ImageRenderSet irs_;
 
 };
 

@@ -1,10 +1,10 @@
 #include <fstream>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+#include <cinder/gl/gl.h>
 
 #include "../../../include/track/model/model.hpp"
 #include "../../../include/utils/helpers.hpp"
-#include "../../../include/utils/primitives.hpp"
 
 using namespace ttrk;
 
@@ -55,6 +55,11 @@ void Model::LoadJson(const std::string &filename){
 
 void Model::Render(){
 
+  ci::gl::pushModelView();
+  ci::gl::multModelView(world_to_model_coordinates_);
+
   model_->Render();
+
+  ci::gl::popModelView();
 
 }

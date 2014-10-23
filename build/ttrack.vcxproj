@@ -122,18 +122,18 @@
     <ClCompile Include="..\src\detect\im_mask_set.cpp" />
     <ClCompile Include="..\src\detect\randomforest.cpp" />
     <ClCompile Include="..\src\detect\supportvectormachine.cpp" />
-    <ClCompile Include="..\src\track\kalman.cpp" />
     <ClCompile Include="..\src\track\model\articulated_model.cpp" />
     <ClCompile Include="..\src\track\model\model.cpp" />
     <ClCompile Include="..\src\track\model\node.cpp" />
+    <ClCompile Include="..\src\track\pose.cpp" />
     <ClCompile Include="..\src\track\pwp3d\mono_pwp3d.cpp" />
-    <ClCompile Include="..\src\track\pwp3d\pose.cpp" />
     <ClCompile Include="..\src\track\pwp3d\pwp3d.cpp" />
     <ClCompile Include="..\src\track\pwp3d\register_points.cpp" />
     <ClCompile Include="..\src\track\pwp3d\stereo_pwp3d.cpp" />
     <ClCompile Include="..\src\track\stt\monocular_tool_tracker.cpp" />
     <ClCompile Include="..\src\track\stt\stereo_tool_tracker.cpp" />
     <ClCompile Include="..\src\track\stt\surgical_tool_tracker.cpp" />
+    <ClCompile Include="..\src\track\temporal\temporal.cpp" />
     <ClCompile Include="..\src\track\tracker.cpp" />
     <ClCompile Include="..\src\ttrack.cpp" />
     <ClCompile Include="..\src\ttrack_app.cpp" />
@@ -142,12 +142,13 @@
     <ClCompile Include="..\src\utils\helpers.cpp" />
     <ClCompile Include="..\src\utils\nd_image.cpp" />
     <ClCompile Include="..\src\utils\quaternion.cpp" />
-    <ClCompile Include="..\src\utils\renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\resources\cinder_app_icon.ico" />
     <None Include="..\resources\phong_frag.glsl" />
     <None Include="..\resources\phong_vert.glsl" />
+    <None Include="..\resources\pwp3d_back_depth_contour_frag.glsl" />
+    <None Include="..\resources\pwp3d_back_depth_contour_vert.glsl" />
     <None Include="..\resources\pwp3d_front_depth_frag.glsl" />
     <None Include="..\resources\pwp3d_front_depth_vert.glsl" />
   </ItemGroup>
@@ -160,7 +161,7 @@
     <ClInclude Include="..\include\detect\supportvectormachine.hpp" />
     <ClInclude Include="..\include\headers.hpp" />
     <ClInclude Include="..\include\resources.hpp" />
-    <ClInclude Include="..\include\track\kalman.hpp" />
+    <ClInclude Include="..\include\track\articulated\articulated_level_set.hpp" />
     <ClInclude Include="..\include\track\localizer.hpp" />
     <ClInclude Include="..\include\track\model\articulated_model.hpp" />
     <ClInclude Include="..\include\track\model\model.hpp" />
@@ -173,19 +174,16 @@
     <ClInclude Include="..\include\track\stt\monocular_tool_tracker.hpp" />
     <ClInclude Include="..\include\track\stt\stereo_tool_tracker.hpp" />
     <ClInclude Include="..\include\track\stt\surgical_tool_tracker.hpp" />
+    <ClInclude Include="..\include\track\temporal\temporal.hpp" />
     <ClInclude Include="..\include\track\tracker.hpp" />
     <ClInclude Include="..\include\ttrack.hpp" />
     <ClInclude Include="..\include\ttrack_app.hpp" />
     <ClInclude Include="..\include\utils\camera.hpp" />
     <ClInclude Include="..\include\utils\exceptions.hpp" />
-    <ClInclude Include="..\include\utils\frame.hpp" />
     <ClInclude Include="..\include\utils\handler.hpp" />
     <ClInclude Include="..\include\utils\helpers.hpp" />
     <ClInclude Include="..\include\utils\nd_image.hpp" />
-    <ClInclude Include="..\include\utils\primitives.hpp" />
     <ClInclude Include="..\include\utils\quaternion.hpp" />
-    <ClInclude Include="..\include\utils\renderer.hpp" />
-    <ClInclude Include="..\include\utils\result_plotter.hpp" />
     <ClInclude Include="..\resources\resource.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>

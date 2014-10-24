@@ -14,13 +14,17 @@
 
 using namespace ttrk;
 
-PWP3D::PWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera), register_points_(camera), k_delta_function_std_(2.5), k_heaviside_width_(0.3) {
+PWP3D::PWP3D(const int width, const int height) : k_delta_function_std_(2.5), k_heaviside_width_(0.3) {
 
-  front_depth_framebuffer_ = ci::gl::Fbo(camera_->Width(), camera_->Height());
-  //need 2 colour buffers for back contour
+  //need the colour buffer to be 32bit
   ci::gl::Fbo::Format format;
+  format.setColorInternalFormat(GL_RGBA32F);
+  format.enableColorBuffer(true, 1);
+  front_depth_framebuffer_ = ci::gl::Fbo(width, height, format);
+  
+  //need 2 colour buffers for back contour
   format.enableColorBuffer(true, 2);
-  back_depth_framebuffer_ = ci::gl::Fbo(camera_->Width(), camera_->Height(), format);
+  back_depth_framebuffer_ = ci::gl::Fbo(width, height, format);
 
   LoadShaders();
 
@@ -85,7 +89,7 @@ void PWP3D::LoadShaders(){
 double PWP3D::GetRegionAgreement(const int r, const int c, const double sdf) {
   
   const double pixel_probability = (double)frame_->GetClassificationMapROI().at<unsigned char>(r,c)/255.0;
-  const double heaviside_value = Heaviside(sdf, k_heaviside_width_ * blurring_scale_factor_);
+  const double heaviside_value = Heaviside(sdf, k_heaviside_width_ * BLUR_WIDTH);
     
 #ifdef _DEBUG
   const double region_agreement =  (2*pixel_probability - 1)/(heaviside_value*pixel_probability + (1.0-heaviside_value)*(1-pixel_probability));
@@ -195,7 +199,7 @@ bool PWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat &sdf,
 //  
 //}
 
-void PWP3D::RenderModelToSDFAndIntersection(boost::shared_ptr<Model> mesh, cv::Mat &front_depth, cv::Mat &back_depth, cv::Mat &contour, const boost::shared_ptr<MonocularCamera> camera){
+void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_depth, cv::Mat &back_depth, cv::Mat &contour){
 
   assert(front_depth_framebuffer_.getWidth() == camera->Width() && front_depth_framebuffer_.getHeight() == camera->Height());
 
@@ -222,9 +226,15 @@ void PWP3D::RenderModelToSDFAndIntersection(boost::shared_ptr<Model> mesh, cv::M
 
   //render back surface 3D coordinates and also get contour
   back_depth_framebuffer_.bindFramebuffer();
+  glScissor(0, 0, back_depth_framebuffer_.getWidth(), back_depth_framebuffer_.getHeight());
+  glClearColor(GL_FAR, GL_FAR, GL_FAR, GL_FAR);
+  glClearDepth(1.0f);
+  glDepthFunc(GL_GREATER);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
   back_depth_and_contour_.bind();
-  back_depth_and_contour_.uniform("tex_w", float(front_depth_framebuffer_.getWidth()));
-  back_depth_and_contour_.uniform("tex_h", float(front_depth_framebuffer_.getHeight()));
+  back_depth_and_contour_.uniform("tex_w", float(back_depth_framebuffer_.getWidth()));
+  back_depth_and_contour_.uniform("tex_h", float(back_depth_framebuffer_.getHeight()));
   back_depth_and_contour_.uniform("far", GL_FAR);
   //set the front framebuffer's texture to be accessible to the shader
   back_depth_and_contour_.uniform("tex_fd", (int)front_depth_framebuffer_.getTexture().getId());
@@ -242,15 +252,9 @@ void PWP3D::RenderModelToSDFAndIntersection(boost::shared_ptr<Model> mesh, cv::M
   back_depth = ci::toOcv(back_depth_framebuffer_.getTexture(0));
   contour = ci::toOcv(back_depth_framebuffer_.getTexture(1));
 
-  cv::imwrite("../front_depth.png", front_depth);
-  cv::imwrite("../back_depth.png", back_depth);
-
-  cv::imwrite("../contour.png", contour * 255);
-
 }
 
-
-void PWP3D::ProcessSDFAndIntersectionImage(boost::shared_ptr<Model> current_model, cv::Mat &z_buffer, cv::Mat &sdf_image, cv::Mat &binary_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image) {
+void PWP3D::ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &sdf_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image) {
 
   //find all the pixels which project to intersection points on the model
   sdf_image = cv::Mat(frame_->GetImageROI().size(),CV_32FC1);
@@ -258,43 +262,39 @@ void PWP3D::ProcessSDFAndIntersectionImage(boost::shared_ptr<Model> current_mode
   back_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_32FC3);
 
   //blocks here
-  cv::Mat canvas;
-  //Renderer::DrawMesh(current_model.PtrToModel(), canvas, z_buffer, binary_image, current_model.CurrentPose(), camera_);
-  RenderModelToSDFAndIntersection(current_model, canvas, z_buffer, binary_image, camera_);
-  cv::Mat unprojected_image_plane = camera_->GetUnprojectedImagePlane(front_intersection_image.cols, front_intersection_image.rows);
-  //find the set of pixels which correspond to the drawn object and create the intersection image
+  cv::Mat front_depth, back_depth, contour;
+  
+  RenderModelForDepthAndContour(mesh, camera, front_depth, back_depth, contour );
+  cv::Mat unprojected_image_plane = camera->GetUnprojectedImagePlane(front_intersection_image.cols, front_intersection_image.rows);
 
   for (int r = 0; r < front_intersection_image.rows; r++){
     for (int c = 0; c < front_intersection_image.cols; c++){
-      const cv::Vec2f &unprojected_pixel = unprojected_image_plane.at<cv::Vec2f>(r, c);
-      front_intersection_image.at<cv::Vec3f>(r, c) = z_buffer.at<float>(r, c)*cv::Vec3f(unprojected_pixel[0], unprojected_pixel[1], 1);
+
+      if (front_depth.at<float>(r, c) != GL_FAR){
+        const cv::Vec2f &unprojected_pixel = unprojected_image_plane.at<cv::Vec2f>(r, c);
+        front_intersection_image.at<cv::Vec3f>(r, c) = front_depth.at<float>(r, c)*cv::Vec3f(unprojected_pixel[0], unprojected_pixel[1], 1);
+      }
+      else{
+        front_intersection_image.at<cv::Vec3f>(r, c) = cv::Vec3f(GL_FAR, GL_FAR, GL_FAR);
+      }
+      if (back_depth.at<float>(r, c) != GL_FAR){
+        const cv::Vec2f &unprojected_pixel = unprojected_image_plane.at<cv::Vec2f>(r, c);
+        back_intersection_image.at<cv::Vec3f>(r, c) = back_depth.at<float>(r, c)*cv::Vec3f(unprojected_pixel[0], unprojected_pixel[1], 1);
+      }
+      else{
+        back_intersection_image.at<cv::Vec3f>(r, c) = cv::Vec3f(GL_FAR, GL_FAR, GL_FAR);
+      }
+
     }
   }
 
-  back_intersection_image = front_intersection_image.clone(); 
 
-  //take this binary image and find the outer contour of it. then make a distance image from that contour.
-  cv::Mat edge_image(binary_image.size(), CV_8UC1);
-  cv::Canny(binary_image, edge_image, 1, 100);
-  std::vector<std::vector<cv::Point> > output_contours;
-  
-  cv::findContours(edge_image, output_contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE); //CV_RETR_EXTERNAL only returns the outer contours
-  cv::Mat edge_image_no_inner = cv::Mat::zeros(edge_image.size(), CV_8UC1);
-  
-  //a shitty hack to clear out some islands in the center of the contour. no idea why the come out of the z buffer.
-  for (auto contour = output_contours.begin(); contour != output_contours.end(); ++contour){
-    if (contour->size() < 100) continue;
-    std::vector<std::vector<cv::Point> > single_contour;
-    single_contour.push_back(*contour);
-    cv::drawContours(edge_image_no_inner, single_contour, -1, cv::Scalar(255, 255, 255));
-  }
-
-  distanceTransform(~edge_image_no_inner, sdf_image, CV_DIST_L2, CV_DIST_MASK_PRECISE);
+  distanceTransform(contour, sdf_image, CV_DIST_L2, CV_DIST_MASK_PRECISE);
 
   //flip the sign of the distance image for outside pixels
   for(int r=0;r<sdf_image.rows;r++){
     for(int c=0;c<sdf_image.cols;c++){
-      if (binary_image.at<unsigned char>(r, c) != 255)
+      if (front_depth.at<float>(r, c) == GL_FAR)
         sdf_image.at<float>(r,c) *= -1;
     }
   }

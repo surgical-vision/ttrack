@@ -113,18 +113,13 @@ struct CostFunctor {
 void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
  
   ////using namespace ceres;
-  //frame_ = frame;
+  frame_ = frame;
  
   //boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
   //SetBlurringScaleFactor(stereo_frame->GetLeftImage().cols);
   //const int NUM_STEPS = 15;
   //cv::Vec3d initial_translation = current_model.CurrentPose().translation_;
 
-
-  ///*cv::Mat sdf_image,front_intersection_image,back_intersection_image;
-  //GetSDFAndIntersectionImage(current_model,sdf_image,front_intersection_image,back_intersection_image);
-  //register_points_.ComputeDescriptorsForPointTracking(frame_,current_model,sdf_image);
-  //SAFE_EXIT();*/
 
   //// Build the problem.
   ////ceres::Problem problem;
@@ -145,9 +140,16 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
   ////Solver::Summary summary;
   ////Solve(options, &problem, &summary);
 
-  ////iterate until convergence
-  //for(int step=0,pixel_count=0; step < NUM_STEPS; step++,pixel_count=0){
+  cv::Mat left_sdf_image, left_front_intersection, left_back_intersection;
+  cv::Mat right_sdf_image, right_front_intersection, right_back_intersection;
 
+  //iterate until convergence
+  for (int step = 0; step < NUM_STEPS; ++step){
+
+    ProcessSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), left_sdf_image, left_front_intersection, left_back_intersection);
+    ProcessSDFAndIntersectionImage(current_model, stereo_camera_->right_eye(), right_sdf_image, right_front_intersection, right_back_intersection);
+
+  }
   //  //(x,y,z,w,r1,r2,r3)
   //  PoseDerivs image_pose_derivatives = PoseDerivs::Zeros();
   //  cv::Mat left_canvas, right_canvas, left_z_buffer, right_z_buffer, left_binary_image, right_binary_image;

@@ -17,7 +17,7 @@ namespace ttrk {
 
   public: 
 
-    StereoPWP3D(boost::shared_ptr<StereoCamera> camera) : PWP3D(camera->rectified_left_eye()) , stereo_camera_(camera) {}
+    StereoPWP3D(boost::shared_ptr<StereoCamera> camera) : PWP3D(camera->left_eye()->Width(), camera->left_eye()->Height()), stereo_camera_(camera) {}
 
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
     

@@ -15,8 +15,6 @@ namespace ttrk{
 
   public:
    
-    const cv::Mat distortion_params() const { return distortion_params_; }
-    const cv::Mat intrinsic_params() const { return intrinsic_matrix_; }
     /**
     * Construct a camera with a calibration file. This file should be in the opencv calibration xml format.
     * @param[in] calibration_filename The url of the calibration file.
@@ -25,10 +23,11 @@ namespace ttrk{
 
     /**
     * Construct a camera directly specifying the intrinsic and distortion parameters. 
-    * @param[in] intrinsic The intrinsic matrix of the camera.
     * @param[in] distortion The distortion parameters of the camera.
+    * @param[in] image_width The width of the image plane in pixels.
+    * @param[in] image_width The height of the image plane in pixels.
     */
-    MonocularCamera(const cv::Mat &intrinsic, const cv::Mat &distortion, const int image_width, const int image_height):intrinsic_matrix_(intrinsic),distortion_params_(distortion),image_width_(image_width), image_height_(image_height){}
+    MonocularCamera(const cv::Mat &intrinsic, const cv::Mat &distortion, const int image_width, const int image_height);
 
     /**
     * Construct a camera setting its parameters to /f$f_{x} = 1000, f_{y} = 1000, c_{x} = 0.5\times ImageWidth, c_{y} = 0.5\times ImageHeight \f$.
@@ -66,22 +65,28 @@ namespace ttrk{
     */
     cv::Point3d UnProjectPoint(const cv::Point2i &point) const;
 
-    double Fx() const { return intrinsic_matrix_.at<double>(0,0); }
-    double Fy() const { return intrinsic_matrix_.at<double>(1,1); }
-    double Px() const { return intrinsic_matrix_.at<double>(0,2); }
-    double Py() const { return intrinsic_matrix_.at<double>(1,2); }
+    double Fx() const { return fx_; }
+    double Fy() const { return fy_; }
+    double Px() const { return px_; }
+    double Py() const { return py_; }
     int Width() const { return image_width_; }
     int Height() const { return image_height_; }
-
+    inline cv::Mat CameraMatrix() const;
     friend class StereoCamera;
 
   protected:
       
-    cv::Mat intrinsic_matrix_; /**< The internal camera parameters. */
+    float fx_; /**< The camera focal length in units of horizontal pixel length. */
+    float fy_; /**< The camera focal length in units of vertical pixel length. */
+    float px_; /**< The camera horizontal principal point in units of horizontal pixel length. */
+    float py_; /**< The camera horizontal principal point in units of vertical pixel length. */
     cv::Mat distortion_params_; /**< The camera distortion parameters. */
 
-    int image_width_;
-    int image_height_;
+    int image_width_; /**< The width of the image plane in pixels. */
+    int image_height_; /**< The height of the image plane in pixels. */
+
+    ci::Vec3f camera_center_; /**< The center of the camera with respect to the camera coordinate system (useful for offsetting a camera in stereo/trinocular rig). */
+    ci::Matrix33f rotation_; /**< The orientation of the camera with respect to the camera coordinate system (useful for offsetting a camera in stereo/trinocular rig). */
 
   private:
 
@@ -109,57 +114,25 @@ namespace ttrk{
     * @return The left eye of the camera.
     */
     boost::shared_ptr<MonocularCamera> left_eye() const { return left_eye_; }
-    boost::shared_ptr<MonocularCamera> rectified_left_eye() const { if(IsRectified()) return rectified_left_eye_; else  return left_eye_; }
+    
     /**
     * Get a reference to the right eye of the camera.
     * @return The right eye of the camera.
     */
     boost::shared_ptr<MonocularCamera> right_eye() const { return right_eye_; }
-    boost::shared_ptr<MonocularCamera> rectified_right_eye() const { if(IsRectified()) return rectified_right_eye_; else return right_eye_;}
-
-    void Rectify(const cv::Size image_size);
-    bool IsRectified() const { return rectified_; }
-    void RemapLeftFrame(cv::Mat &image) const ;
-    void RemapRightFrame(cv::Mat &image) const ;
-
-    void ReprojectTo3D(const cv::Mat &image, cv::Mat &point_cloud,const std::vector<cv::Vec2i> &connected_region) const ;
-    cv::Vec3d ReprojectPointTo3D(const cv::Point2i &left, const cv::Point2i &right);
-    cv::Mat GetP1() { return P1(cv::Range(0,3),cv::Range(0,3));}
-
+    
     void SetupGLCameraFromLeft() const;
     void SetupGLCameraFromRight() const;
 
-    void InitRectified() {
-      throw(std::runtime_error("Error,here"));
-      rectified_left_eye_->intrinsic_matrix_ = P1(cv::Range(0,3),cv::Range(0,3));
-      rectified_right_eye_->intrinsic_matrix_ = P2(cv::Range(0,3),cv::Range(0,3));
-      rectified_left_eye_->distortion_params_ = cv::Mat::zeros(1,5,CV_64FC1);
-      rectified_right_eye_->distortion_params_ = cv::Mat::zeros(1,5,CV_64FC1);
-    }
-
-    cv::Rect ROILeft() const { return roi1; }
-
-    cv::Mat ExtrinsicRotation() const { return extrinsic_matrix_(cv::Rect(0,0,3,3)); }
-    cv::Vec3d ExtrinsicTranslation() const { return cv::Vec3d(extrinsic_matrix_.at<double>(0,3), extrinsic_matrix_.at<double>(1,3),extrinsic_matrix_.at<double>(2,3)); }
+    inline ci::Matrix33f ciExtrinsicRotation() const { return right_eye_->rotation_; }
+    inline ci::Vec3f ciExtrinsicTranslation() const { return right_eye_->camera_center_; }
+    inline cv::Mat cvExtrinsicRotation() const;
+    inline cv::Vec3d cvExtrinsicTranslation() const;
     
   protected:
 
-    bool rectified_;
-
     boost::shared_ptr<MonocularCamera> left_eye_; /**< The left camera of the stereo rig. */
     boost::shared_ptr<MonocularCamera> right_eye_; /**< The right camera of the stereo rig. */
-    boost::shared_ptr<MonocularCamera> rectified_left_eye_;
-    boost::shared_ptr<MonocularCamera> rectified_right_eye_;
-    cv::Mat extrinsic_matrix_; /**< The rotation and translation between the image planes of the two cameras. */
-
-    cv::Mat reprojection_matrix_;
-    cv::Mat P1,P2,R1,R2;
-    cv::Rect roi1, roi2;
-    cv::Mat mapx_left_;
-    cv::Mat mapy_left_;
-    cv::Mat mapx_right_;
-    cv::Mat mapy_right_;
-
 
   private:
 

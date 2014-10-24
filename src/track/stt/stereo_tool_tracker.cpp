@@ -210,7 +210,7 @@ void StereoToolTracker::ShiftToTip(const cv::Vec3d &central_axis, cv::Vec3d &cen
 void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, boost::shared_ptr<Model> tracked_model) {
 
   cv::Vec3d left_center_of_mass, left_central_axis, right_center_of_mass, right_central_axis;
-  InitIn2D(region, left_center_of_mass, left_central_axis, camera_->rectified_left_eye(), tracked_model);
+  InitIn2D(region, left_center_of_mass, left_central_axis, camera_->left_eye(), tracked_model);
 
 }
 

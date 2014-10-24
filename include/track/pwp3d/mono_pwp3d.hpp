@@ -10,7 +10,7 @@ namespace ttrk {
 
   public: 
 
-    MonoPWP3D(boost::shared_ptr<MonocularCamera> camera) : PWP3D(camera) {}
+    MonoPWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera), PWP3D(camera->Width(), camera->Height()) {}
 
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
 
@@ -19,6 +19,8 @@ namespace ttrk {
     //void GetRenderedModelAtPose(const boost::shared_ptr<Model> model, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image) const;
 
     //virtual void GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection);
+
+    boost::shared_ptr<MonocularCamera> camera_;
 
   };
 

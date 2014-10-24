@@ -11,35 +11,44 @@
 #include "../../utils/camera.hpp"
 #include "../../../deps/image/image/image.hpp"
 #include "../pose.hpp"
-#include "register_points.hpp"
 
 namespace ttrk {
 
   class PWP3D : public Localizer {
 
   public: 
-
-    PWP3D(boost::shared_ptr<MonocularCamera> camera);
-
-    virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame) = 0;
     
   protected:
 
-    virtual void LoadShaders();
-
-    //virtual void GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection) = 0;
+    /**
+    * Default constructor. Sets up internal framebuffers etc.
+    */
+    PWP3D(const int width, const int height);
 
     /**
-    * Construct a signed distance function of the outer contour of the shape projected into the image plane.
-    * @param[in] current_model The model which will be projected to the image plane.
-    * @return The image containin the signed distance function. Will be a single channel floating point image.
+    * Load the shaders we use to compute the projections and contours for the pose estimation.
     */
-    void ProcessSDFAndIntersectionImage(boost::shared_ptr<Model> mesh, cv::Mat &z_buffer, cv::Mat &sdf_image, cv::Mat &binary_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image);
-    
-    void RenderModelToSDFAndIntersection(boost::shared_ptr<Model> mesh, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image, const boost::shared_ptr<MonocularCamera> camera);
+    virtual void LoadShaders();
 
+    /**
+    * Construct a signed distance function and the intersection images which hold the 3D points in camera space which each point on the image plane projects to. Points outside the contour project to GL_FAR.
+    * @param[in] mesh The model which will be projected to the image plane.
+    * @param[in] camera The camera model used for the projection.
+    * @param[out] sdf_image A 32 bit single channel floating point image of the distance from each pixel to the contour. Positive values inside contour and negative values outside.
+    * @param[out] front_intersection_image A 32 bit 3 channel image of the first 3D point that a ray cast from a pixel inside the contour projects to on the model (in camera coordinates).
+    * @param[out] front_intersection_image A 32 bit 3 channel image of the last 3D point that a ray cast from a pixel inside the contour projects to on the model (in camera coordinates).
+    */
+    void ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &sdf_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image);
     
-    //const cv::Mat ProjectShapeToSDF(KalmanTracker &current_model);
+    /**
+    * Render the mesh in the current pose getting the depth of the each pixel and the outer contour.
+    * @param[in] mesh The model which will be projected to the image plane.
+    * @param[in] camera The camera model to use for the projection.
+    * @param[out] front_depth A 32 bit single channel image of the depth of the first 3D point that a ray cast from a pixel inside the contour projects to on the model (in camera coordinates).
+    * @param[out] back_depth A 32 bit single channel image of the depth of the last 3D point that a ray cast from a pixel inside the contour projects to on the model (in camera coordinates).
+    * @param[out] contour An 8 bit single channel image which is 0 at every point that is not on the outer contour of the projected mesh and 255 where it is.
+    */
+    void RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_depth, cv::Mat &back_depth, cv::Mat &contour);
 
     /**
     * Get the second part of the derivative. The derivative of the contour w.r.t the pose parameters.
@@ -69,7 +78,7 @@ namespace ttrk {
     }
 
     inline void SetBlurringScaleFactor(const int image_width){
-      blurring_scale_factor_ = 0.3 + (0.7 * image_width/1900); 
+      BLUR_WIDTH = 0.3 + (0.7 * image_width / 1900);
     }
 
     /**
@@ -107,11 +116,9 @@ namespace ttrk {
     ci::gl::GlslProg back_depth_and_contour_;
 
     std::string DEBUG_DIR_;
-    boost::shared_ptr<MonocularCamera> camera_;
 
-    PointRegistration register_points_;
-
-    double blurring_scale_factor_;
+    size_t NUM_STEPS;
+    double BLUR_WIDTH;
     const double k_delta_function_std_;
     const double k_heaviside_width_;
 

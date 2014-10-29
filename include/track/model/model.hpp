@@ -44,18 +44,38 @@ namespace ttrk{
     virtual void Render();
     
     /**
-    * Get an intersection between the model and a ray cast from the camera. This is needed in the tracking methods. 
-    * Warning: the mesh cache MUST be updated to the current pose using Model::UpdateMeshCache() before calling this function as it assumes that the mesh is stored with the correct pose. It is too slow to check for every call.
-    * @param[in] ray The ray cast from the camera
-    * @param[out] front The front intersection of the ray and the shape.
-    * @param[out] back The back intersection of the ray and the shape. In the rare case that the intersection is exactly on an edge of the shape this will just be set to same as the front.
-    * @return bool The success of the intersection test.
+    * Get the principal axis of the Model. This may not be entirely meaningful for all shapes.
+    * @return The principal axis in model coordinates.
     */
-    //virtual bool GetIntersection(const cv::Vec3d &ray, cv::Vec3d &front, cv::Vec3d &back) const = 0;
+    cv::Vec3f PrincipalAxis() const { return principal_axis_; }
 
-    virtual cv::Vec3d PrincipalAxis() const { return cv::Vec3d(1,0,0); }
+    /**
+    * Set the principal axis of the Model. This may not be entirely meaningful for all shapes.
+    * @param[in] p_axis The principal axis in model coordinates.
+    */
+    void SetPrincipalAxis(const cv::Vec3f &p_axis) { principal_axis_ = p_axis; }
+
+    /**
+    * Set the principal axis of the Model. This may not be entirely meaningful for all shapes.
+    * @param[in] pose The new model pose.
+    */
+    void SetPose(const Pose &pose) { world_to_model_coordinates_ = pose; }
+
+    /**
+    * Get a single component for the model (only relevant if the model is made of several components). The index is 
+    * currently quite arbitrary and is computed from the order in which the components are added.
+    * @return The Node component wrapped in a Model.
+    */
+    virtual boost::shared_ptr<Model> GetComponent(const std::size_t component_idx) = 0;
 
   protected:
+
+    /**
+    * Construct a model from a single component of the model - useful for situations where the model is made up of several components.
+    * @param[in] component The Model component to use in constructing this instance.
+    * @param[in] world_to_model_transform
+    */
+    Model(Node::Ptr component, const ci::Matrix44f &world_to_model_transform);
 
     /**
     * Load the model from a config file.
@@ -75,14 +95,22 @@ namespace ttrk{
     * @param[in] root_dir The directory containing the data to load.
     */
     virtual void ParseJson(ci::JsonTree &tree, const std::string &root_dir) = 0;
-    void InitGL();
 
-    Model() {} // load nothing - only useful for the derived classes which need to delay loading
+
+    /**
+    * Load nothing - only useful for the derived classes which need to delay loading
+    */
+    Model() {} 
 
     Node::Ptr model_; /**< A tree representation of the model as a sequence of coordinate systems with some attached geometry. */
+    
     Pose world_to_model_coordinates_; /**< The transform from world coordinates (or camera) to the 'base' coordinates of the model. */
     
+    cv::Vec3f principal_axis_; /**< The principal axis of the shape, this is not entirely meaningful for all shapes but can be useful for things shaped like cylinders. */
+
   };
+
+
  
 }
 

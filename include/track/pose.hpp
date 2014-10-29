@@ -18,6 +18,21 @@ namespace ttrk {
 
   public:
 
+    /**
+    * Construct an empty pose. Rotation is set to identity and translation to zero vector.
+    */
+    Pose() {}
+
+    /**
+    * Default construction of pose from rotation and translation from base coordinate system.
+    * @param[in] rotation The rotation as a quaternion.
+    * @param[in] translation The translation as a 3-vector.
+    */
+
+    Pose(const sv::Quaternion &rotation, const ci::Vec3f &translation) : rotation_(rotation), translation_(translation) {}
+
+    Pose(const ci::Matrix44f &t);
+
     std::vector<ci::Vec3f> ComputeJacobian(const ci::Vec3f &point) const;
 
     operator ci::Matrix44f() const;

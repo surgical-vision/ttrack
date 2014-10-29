@@ -138,6 +138,9 @@
     <ClCompile Include="..\src\track\pose.cpp">
       <Filter>Source Files\track</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\track\articulated\articulated_level_set.cpp">
+      <Filter>Source Files\track\articulated</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\resources\cinder_app_icon.ico">
@@ -159,6 +162,9 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="..\resources\pwp3d_back_depth_contour_vert.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\resources\glsl3.bin">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
@@ -261,6 +267,9 @@
     </ClInclude>
     <ClInclude Include="..\include\utils\exceptions.hpp">
       <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\track\model\dh_helpers.hpp">
+      <Filter>Header Files\track\model</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

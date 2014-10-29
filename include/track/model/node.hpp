@@ -32,9 +32,10 @@ namespace ttrk {
     
     /**
     * Get the transform between the world coordinate system and this node.
+    * @param[in] base_frame_pose The transform from World Coordinates to the base frame of the object.
     * @return The world transform in a 4x4 float matrix.
     */
-    virtual ci::Matrix44f GetWorldTransform() const = 0;
+    virtual ci::Matrix44f GetWorldTransform(const ci::Matrix44f &base_frame_pose) const = 0;
     
     /**
     * Get the transform between the this node and the parent node.
@@ -58,6 +59,10 @@ namespace ttrk {
     * This will recursively call the parent frames right up to the base frame and return a 3-vector for each.
     */
     void ComputeJacobianForPoint(const ci::Vec3f &point, std::vector<ci::Vec3f> &jacobian);
+
+    Node::Ptr GetParent() { return parent_; }
+    std::vector< Node::Ptr> GetChildren() { return children_; }
+    Node::Ptr GetChildByIdx(std::size_t &curr_idx, const std::size_t target_idx);
 
   protected:
 
@@ -101,9 +106,10 @@ namespace ttrk {
 
     /**
     * Get the transform between the world coordinate system and this node using the DH transform.
+    * @param[in] base_frame_pose The transform from World Coordinates to the base frame of the object.
     * @return The world transform in a 4x4 float matrix.
     */
-    virtual ci::Matrix44f GetWorldTransform() const;
+    virtual ci::Matrix44f GetWorldTransform(const ci::Matrix44f &base_frame_pose) const;
 
     /**
     * Get the transform between the this node and the parent node using the DH transforms.

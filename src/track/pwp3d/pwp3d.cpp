@@ -203,32 +203,38 @@ void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, c
 
   assert(front_depth_framebuffer_.getWidth() == camera->Width() && front_depth_framebuffer_.getHeight() == camera->Height());
 
-  //setup viewport and buffer flags etc
-  glDisable(GL_LIGHTING);
-  glViewport(0, 0, front_depth_framebuffer_.getWidth(), front_depth_framebuffer_.getHeight());
-  glScissor(0, 0, front_depth_framebuffer_.getWidth(), front_depth_framebuffer_.getHeight());
-  glClearColor(GL_FAR, GL_FAR, GL_FAR, GL_FAR);
-  glClearDepth(1.0f);
-  glDepthFunc(GL_LESS);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
   //setup camera/transform/matrices etc
   ci::gl::pushMatrices();
   camera->SetupCameraForDrawing(front_depth_framebuffer_.getWidth(), front_depth_framebuffer_.getHeight());
 
-  //model does its own glMultModelView transform
-  //render front surface 3D coordinates
+  ci::gl::enableDepthWrite();
+  ci::gl::enableDepthRead();
+
+  // Render front depth 
   front_depth_framebuffer_.bindFramebuffer();
+  glViewport(0, 0, front_depth_framebuffer_.getWidth(), front_depth_framebuffer_.getHeight());
+  glScissor(0, 0, front_depth_framebuffer_.getWidth(), front_depth_framebuffer_.getHeight());
+  glClearColor(GL_FAR, GL_FAR, GL_FAR, GL_FAR);
+
+  glClearDepth(1.0f);
+  glDepthFunc(GL_LESS);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  //bind the front depth shader and render
   front_depth_.bind();
   mesh->Render();
   front_depth_.unbind();
+  
   front_depth_framebuffer_.unbindFramebuffer();
+  glFinish();
 
-  //render back surface 3D coordinates and also get contour
+  // Render back depth + contour 
   back_depth_framebuffer_.bindFramebuffer();
+  glViewport(0, 0, back_depth_framebuffer_.getWidth(), back_depth_framebuffer_.getHeight());
   glScissor(0, 0, back_depth_framebuffer_.getWidth(), back_depth_framebuffer_.getHeight());
   glClearColor(GL_FAR, GL_FAR, GL_FAR, GL_FAR);
-  glClearDepth(1.0f);
+
+  glClearDepth(0.0f);
   glDepthFunc(GL_GREATER);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -236,21 +242,39 @@ void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, c
   back_depth_and_contour_.uniform("tex_w", float(back_depth_framebuffer_.getWidth()));
   back_depth_and_contour_.uniform("tex_h", float(back_depth_framebuffer_.getHeight()));
   back_depth_and_contour_.uniform("far", GL_FAR);
-  //set the front framebuffer's texture to be accessible to the shader
-  back_depth_and_contour_.uniform("tex_fd", (int)front_depth_framebuffer_.getTexture().getId());
+  
+  ci::gl::Texture tex_fd = front_depth_framebuffer_.getTexture(0);
+  tex_fd.enableAndBind();
+  back_depth_and_contour_.uniform("tex_fd", 0); //bind it to the current texture
+   
   mesh->Render();
+
+  tex_fd.unbind();
+  
   back_depth_and_contour_.unbind();
+
   back_depth_framebuffer_.unbindFramebuffer();
 
-  //finish up
+  //Bring depth test back to normal mode
+  glClearDepth(1.0f);
+  glDepthFunc(GL_LESS);
+
   glPopMatrix();
   //neccessary to get the results NOW.
   glFinish();
 
-
   front_depth = ci::toOcv(front_depth_framebuffer_.getTexture());
   back_depth = ci::toOcv(back_depth_framebuffer_.getTexture(0));
-  contour = ci::toOcv(back_depth_framebuffer_.getTexture(1));
+  cv::Mat mcontour = ci::toOcv(back_depth_framebuffer_.getTexture(1));
+  contour = cv::Mat(mcontour.size(), CV_8UC1);
+  float *src = (float *)mcontour.data;
+  unsigned char *dst = (unsigned char*)contour.data;
+
+  for (int r = 0; r < mcontour.rows; ++r){
+    for (int c = 0; c < mcontour.cols; ++c){
+      dst[r * mcontour.cols + c] = src[(r * mcontour.cols + c)*4];
+    }
+  }
 
 }
 
@@ -261,23 +285,23 @@ void PWP3D::ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, 
   front_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_32FC3);
   back_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_32FC3);
 
-  //blocks here
+
   cv::Mat front_depth, back_depth, contour;
-  
   RenderModelForDepthAndContour(mesh, camera, front_depth, back_depth, contour );
+  
   cv::Mat unprojected_image_plane = camera->GetUnprojectedImagePlane(front_intersection_image.cols, front_intersection_image.rows);
 
   for (int r = 0; r < front_intersection_image.rows; r++){
     for (int c = 0; c < front_intersection_image.cols; c++){
 
-      if (front_depth.at<float>(r, c) != GL_FAR){
+      if (front_depth.at<cv::Vec4f>(r, c)[0] != 0){
         const cv::Vec2f &unprojected_pixel = unprojected_image_plane.at<cv::Vec2f>(r, c);
         front_intersection_image.at<cv::Vec3f>(r, c) = front_depth.at<float>(r, c)*cv::Vec3f(unprojected_pixel[0], unprojected_pixel[1], 1);
       }
       else{
         front_intersection_image.at<cv::Vec3f>(r, c) = cv::Vec3f(GL_FAR, GL_FAR, GL_FAR);
       }
-      if (back_depth.at<float>(r, c) != GL_FAR){
+      if (back_depth.at<cv::Vec4f>(r, c)[0] != GL_FAR){
         const cv::Vec2f &unprojected_pixel = unprojected_image_plane.at<cv::Vec2f>(r, c);
         back_intersection_image.at<cv::Vec3f>(r, c) = back_depth.at<float>(r, c)*cv::Vec3f(unprojected_pixel[0], unprojected_pixel[1], 1);
       }

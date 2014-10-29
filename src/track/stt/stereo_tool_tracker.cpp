@@ -43,6 +43,7 @@ bool StereoToolTracker::Init() {
     tracked_models_.push_back(new_tracker);
 
     tracked_models_.back().model.reset(new DenavitHartenbergArticulatedModel(model_parameter_file_));
+    tracked_models_.back().temporal_tracker.reset(new KalmanFilterTracker);
 
     Init3DPoseFromMOITensor(*connected_region, tracked_models_.back().model);//,corresponding_connected_region);
 
@@ -70,6 +71,11 @@ cv::Vec2d StereoToolTracker::FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &
 }
 
 void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3d &center_of_mass_3d, cv::Vec3d &central_axis_3d, boost::shared_ptr<MonocularCamera> camera, boost::shared_ptr<Model> tm) {
+
+  cv::Mat rot = (cv::Mat_<double>(3, 3) << -0.629972, -0.211834, -0.747169, -0.49922, 0.847433, 0.180655, -0.594908, 0.486809, -0.639611);
+  Pose p(sv::Quaternion(rot), ci::Vec3f(-16.3274f, 8.70154f, 85.1892f));
+
+  tm->SetPose(p);
 
   /*cv::Vec2d center_of_mass = FindCenterOfMassIn2D(connected_region);
 
@@ -178,7 +184,8 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
 
   //cv::Mat rot = (cv::Mat_<double>(3, 3) << -0.629972, -0.211834, -0.747169, -0.49922, 0.847433, 0.180655, -0.594908, 0.486809, -0.639611);
   //tm.SetPose(Pose(cv::Vec3d(-16.3274, 8.70154, 85.1892), sv::Quaternion(rot)));
-  throw std::runtime_error("erro this");
+  
+  
 }
 
 void StereoToolTracker::ShiftToTip(const cv::Vec3d &central_axis, cv::Vec3d &center_of_mass) {//, KalmanTracker &tracked_model){

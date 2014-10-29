@@ -56,10 +56,10 @@ MonocularCamera::MonocularCamera(const cv::Mat &intrinsic, const cv::Mat &distor
 cv::Mat MonocularCamera::CameraMatrix() const { 
 
   cv::Mat cm = cv::Mat::eye(3, 3, CV_32FC1);  
-  cm.at<double>(0, 0) = fx_;
-  cm.at<double>(1, 1) = fy_;
-  cm.at<double>(0, 2) = px_;
-  cm.at<double>(1, 2) = py_;
+  cm.at<float>(0, 0) = fx_;
+  cm.at<float>(1, 1) = fy_;
+  cm.at<float>(0, 2) = px_;
+  cm.at<float>(1, 2) = py_;
   return cm;
 
 }

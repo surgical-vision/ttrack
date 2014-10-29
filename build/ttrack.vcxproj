@@ -122,6 +122,7 @@
     <ClCompile Include="..\src\detect\im_mask_set.cpp" />
     <ClCompile Include="..\src\detect\randomforest.cpp" />
     <ClCompile Include="..\src\detect\supportvectormachine.cpp" />
+    <ClCompile Include="..\src\track\articulated\articulated_level_set.cpp" />
     <ClCompile Include="..\src\track\model\articulated_model.cpp" />
     <ClCompile Include="..\src\track\model\model.cpp" />
     <ClCompile Include="..\src\track\model\node.cpp" />
@@ -145,6 +146,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\resources\cinder_app_icon.ico" />
+    <None Include="..\resources\glsl3.bin" />
     <None Include="..\resources\phong_frag.glsl" />
     <None Include="..\resources\phong_vert.glsl" />
     <None Include="..\resources\pwp3d_back_depth_contour_frag.glsl" />
@@ -164,6 +166,7 @@
     <ClInclude Include="..\include\track\articulated\articulated_level_set.hpp" />
     <ClInclude Include="..\include\track\localizer.hpp" />
     <ClInclude Include="..\include\track\model\articulated_model.hpp" />
+    <ClInclude Include="..\include\track\model\dh_helpers.hpp" />
     <ClInclude Include="..\include\track\model\model.hpp" />
     <ClInclude Include="..\include\track\model\node.hpp" />
     <ClInclude Include="..\include\track\pose.hpp" />

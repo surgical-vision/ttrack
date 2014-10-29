@@ -14,9 +14,12 @@ Model::Model(const std::string &model_parameter_file){
 
 }
 
-void Model::InitGL(){
 
-  
+Model::Model(Node::Ptr component, const ci::Matrix44f &world_to_model_transform){
+
+  model_ = component;
+  world_to_model_coordinates_ = Pose(component->GetWorldTransform(world_to_model_transform)); //need to write the get world transform bit
+
 }
 
 void Model::LoadFromFile(const std::string &filename){

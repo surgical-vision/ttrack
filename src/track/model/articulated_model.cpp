@@ -24,3 +24,9 @@ void DenavitHartenbergArticulatedModel::ParseJson(ci::JsonTree &jt, const std::s
 }
 
 
+boost::shared_ptr<Model> DenavitHartenbergArticulatedModel::GetComponent(const std::size_t component_idx){
+
+  std::size_t cnt = 0;
+  return boost::shared_ptr<Model>(new DenavitHartenbergArticulatedModel(model_->GetChildByIdx(cnt, component_idx), world_to_model_coordinates_));
+
+}

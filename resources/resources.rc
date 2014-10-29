@@ -20,6 +20,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 129                     GLSL                    "./../resources/phong_vert.glsl"
 130                     GLSL                    "./../resources/pwp3d_front_depth_frag.glsl"
 131                     GLSL                    "./../resources/pwp3d_front_depth_vert.glsl"
+132                     GLSL                    "./../resources/pwp3d_back_depth_contour_frag.glsl"
+133                     GLSL                    "./../resources/pwp3d_back_depth_contour_vert.glsl"
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

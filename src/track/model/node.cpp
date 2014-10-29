@@ -4,6 +4,8 @@
 #include <cinder/gl/Light.h>
 
 #include "../../../include/track/model/node.hpp"
+#include "../../../include/track/model/dh_helpers.hpp"
+
 
 using namespace ttrk;
 
@@ -46,12 +48,31 @@ void Node::Render(){
 
 }
 
-ci::Matrix44f DHNode::GetWorldTransform() const {
-  throw std::runtime_error("Not implemented");
-  return ci::Matrix44f();
+Node::Ptr Node::GetChildByIdx(std::size_t &curr_idx, const std::size_t target_idx){
+
+  if (curr_idx == target_idx) return boost::shared_ptr<Node>(this);
+
+  for (size_t i = 0; i < children_.size(); ++i){
+    Node::Ptr c = children_[i]->GetChildByIdx(curr_idx, target_idx);
+    if (c != 0x0) return c;
+    curr_idx++;
+  }
+
 }
 
-ci::Matrix44f glhMultMatrixRight(const ci::Matrix44f &A, ci::Matrix44f &B);
+
+ci::Matrix44f DHNode::GetWorldTransform(const ci::Matrix44f &base_frame_transform) const {
+  
+  if (parent_ != 0x0){
+    DHNode::Ptr p = boost::dynamic_pointer_cast<DHNode>(parent_);
+    //return p->ComputeDHTransform() * ComputeDHTransform();
+    return glhMultMatrixRight(p->GetWorldTransform(base_frame_transform), ComputeDHTransform());
+  }
+  else{ 
+    return base_frame_transform;
+  }
+
+}
 
 ci::Matrix44f DHNode::GetRelativeTransform() const {
 
@@ -61,7 +82,9 @@ ci::Matrix44f DHNode::GetRelativeTransform() const {
     return glhMultMatrixRight(p->GetRelativeTransform(), ComputeDHTransform());
   }
   else{
-    return ComputeDHTransform();
+    ci::Matrix44f m;
+    m.setToIdentity();
+    return m;// ComputeDHTransform();
   }
 
 }
@@ -81,6 +104,8 @@ void DHNode::LoadData(ci::JsonTree &tree, Node::Ptr parent, const std::string &r
   catch (ci::JsonTree::Exception &){
 
   }
+
+  update_ = 0.0;
 
   try{
     
@@ -118,76 +143,6 @@ void DHNode::LoadData(ci::JsonTree &tree, Node::Ptr parent, const std::string &r
 
 }
 
-// OpenGL matrix offsets
-#define _00 0
-#define _10 1
-#define _20 2
-#define _30 3
-#define _01 4
-#define _11 5
-#define _21 6
-#define _31 7
-#define _02 8
-#define _12 9
-#define _22 10
-#define _32 11
-#define _03 12
-#define _13 13
-#define _23 14
-#define _33 15
-
-ci::Matrix44f glhMultMatrixRight(const ci::Matrix44f &A, ci::Matrix44f &B)
-{
-  
-  GLfloat M[16];
-  M[_00] = B[_00] * A[_00] + B[_01] * A[_10] + B[_02] * A[_20] + B[_03] * A[_30];
-  M[_10] = B[_10] * A[_00] + B[_11] * A[_10] + B[_12] * A[_20] + B[_13] * A[_30];
-  M[_20] = B[_20] * A[_00] + B[_21] * A[_10] + B[_22] * A[_20] + B[_23] * A[_30];
-  M[_30] = B[_30] * A[_00] + B[_31] * A[_10] + B[_32] * A[_20] + B[_33] * A[_30];
-  M[_01] = B[_00] * A[_01] + B[_01] * A[_11] + B[_02] * A[_21] + B[_03] * A[_31];
-  M[_11] = B[_10] * A[_01] + B[_11] * A[_11] + B[_12] * A[_21] + B[_13] * A[_31];
-  M[_21] = B[_20] * A[_01] + B[_21] * A[_11] + B[_22] * A[_21] + B[_23] * A[_31];
-  M[_31] = B[_30] * A[_01] + B[_31] * A[_11] + B[_32] * A[_21] + B[_33] * A[_31];
-  M[_02] = B[_00] * A[_02] + B[_01] * A[_12] + B[_02] * A[_22] + B[_03] * A[_32];
-  M[_12] = B[_10] * A[_02] + B[_11] * A[_12] + B[_12] * A[_22] + B[_13] * A[_32];
-  M[_22] = B[_20] * A[_02] + B[_21] * A[_12] + B[_22] * A[_22] + B[_23] * A[_32];
-  M[_32] = B[_30] * A[_02] + B[_31] * A[_12] + B[_32] * A[_22] + B[_33] * A[_32];
-  M[_03] = B[_00] * A[_03] + B[_01] * A[_13] + B[_02] * A[_23] + B[_03] * A[_33];
-  M[_13] = B[_10] * A[_03] + B[_11] * A[_13] + B[_12] * A[_23] + B[_13] * A[_33];
-  M[_23] = B[_20] * A[_03] + B[_21] * A[_13] + B[_22] * A[_23] + B[_23] * A[_33];
-  M[_33] = B[_30] * A[_03] + B[_31] * A[_13] + B[_32] * A[_23] + B[_33] * A[_33];
-  for (unsigned int i = 0; i < 16; ++i)
-    B[i] = M[i];
-
-  return B;
-}
-
-void glhDenavitHartenberg(GLfloat a, GLfloat alpha, GLfloat d, GLfloat theta, GLfloat* A) {
-
-  GLfloat sa = sin(alpha);
-  GLfloat ca = cos(alpha);
-  GLfloat st = sin(theta);
-  GLfloat ct = cos(theta);
-
-  A[_00] = ct;
-  A[_10] = ca * st;
-  A[_20] = sa * st;
-  A[_30] = 0.0;
-  A[_01] = -st;
-  A[_11] = ca * ct;
-  A[_21] = sa * ct;
-  A[_31] = 0.0;
-  A[_02] = 0.0;
-  A[_12] = -sa;
-  A[_22] = ca;
-  A[_32] = 0.0;
-  A[_03] = a;
-  A[_13] = -sa * d;
-  A[_23] = ca * d;
-  A[_33] = 1.0;
-
-}
-
 
 ci::Matrix44f DHNode::ComputeDHTransform() const {
   
@@ -204,3 +159,28 @@ ci::Matrix44f DHNode::ComputeDHTransform() const {
   return DH;
 
 }
+
+/*
+
+extendChain(mDaVinciChain.mPSM2OriginPSM2Tip[4], A, psm.jnt_pos[4]);
+wrist_pitch = ci::Matrix44d(A);
+
+//don't actually care about wrist yaw as the clasper pose 'contains' this information
+extendChain(mDaVinciChain.mPSM2OriginPSM2Tip[5], A, psm.jnt_pos[5]);
+ci::Matrix44d wrist_yaw = ci::Matrix44d(A);
+
+//transform into the clasper reference frame
+extendChain(mDaVinciChain.mPSM2OriginPSM2Tip[6], A, 0);  //no dh param here as this just points in the direction of the instrument head
+
+//rotate the instrument claspers around the clasper axis
+grip1 = ci::Matrix44d(A);
+grip2 = ci::Matrix44d(A);
+
+//this is the angle between the claspers, so each clasper rotates 0.5*angle away from the center point
+double val = psm.jnt_pos[6];
+grip1.rotate(ci::Vec3d(0, 1, 0), 0.5*val);
+
+grip2.rotate(ci::Vec3d(0, 0, 1), M_PI);
+grip2.rotate(ci::Vec3d(0, 1, 0), 0.5*val);
+
+*/

@@ -23,6 +23,15 @@ Pose::operator ci::Matrix44f() const {
 
 }
 
+Pose::Pose(const ci::Matrix44f &t) : translation_(t.getTranslate().xyz()) {
+
+  ci::Matrix33f r = t.subMatrix33(0, 0).transposed(); //cinder is column major and ocv is row
+  cv::Mat rotation(3, 3, CV_64FC1, &r.m );
+  
+  rotation_ = sv::Quaternion(rotation);
+
+}
+
 
 //const int PoseDerivs::NUM_VALS = 7;
 //

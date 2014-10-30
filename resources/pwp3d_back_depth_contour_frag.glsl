@@ -10,19 +10,21 @@ void main(void)
 {
 	
 	gl_FragData[0] = vec4(depth, depth, depth, depth);
-    //gl_FragData[1] = vec4(far,far,far,far);
-
-	vec2 p = gl_FragCoord.xy;
-	gl_FragData[1] = vec4(texture2D(tex_fd, vec2( (p.x)/tex_w, (p.y)/tex_h) ).x,1.0,2.0,3.0);
 	
-	//if( texture2D(tex_fd, vec2( (p.x-1.0)/tex_w, (p.y-1.0)/tex_h ) ).x == far ||
-    //    texture2D(tex_fd, vec2( (p.x)/tex_w,     (p.y-1.0)/tex_h ) ).x == far ||
-    //    texture2D(tex_fd, vec2( (p.x+1.0)/tex_w, (p.y-1.0)/tex_h ) ).x == far ||
-    //    texture2D(tex_fd, vec2( (p.x+1.0)/tex_w, (p.y)/tex_h ) ).x     == far ||
-    //    texture2D(tex_fd, vec2( (p.x+1.0)/tex_w, (p.y+1.0)/tex_h ) ).x == far ||
-    //    texture2D(tex_fd, vec2( (p.x)/tex_w,     (p.y+1.0)/tex_h ) ).x == far ||
-    //    texture2D(tex_fd, vec2( (p.x-1.0)/tex_w, (p.y+1.0)/tex_h ) ).x == far ||
-    //    texture2D(tex_fd, vec2( (p.x-1.0)/tex_w, (p.y)/tex_h ) ).x     == far)
-    //    gl_FragData[1] = vec4(0.0, 0.0, 0.0, 0.0);
+	vec2 p = gl_FragCoord.xy;
+
+	if(texture2D(tex_fd, vec2( (p.x-1.0)/tex_w, (p.y-1.0)/tex_h ) ).x == far ||
+	   texture2D(tex_fd, vec2( (p.x)/tex_w,     (p.y-1.0)/tex_h ) ).x == far ||
+       texture2D(tex_fd, vec2( (p.x+1.0)/tex_w, (p.y-1.0)/tex_h ) ).x == far ||
+       texture2D(tex_fd, vec2( (p.x+1.0)/tex_w, (p.y)/tex_h ) ).x     == far ||
+       texture2D(tex_fd, vec2( (p.x+1.0)/tex_w, (p.y+1.0)/tex_h ) ).x == far ||
+       texture2D(tex_fd, vec2( (p.x)/tex_w,     (p.y+1.0)/tex_h ) ).x == far ||
+       texture2D(tex_fd, vec2( (p.x-1.0)/tex_w, (p.y+1.0)/tex_h ) ).x == far ||
+       texture2D(tex_fd, vec2( (p.x-1.0)/tex_w, (p.y)/tex_h ) ).x     == far)
+		gl_FragData[1] = vec4(0.0,0.0,0.0,0.0);				  
+	else
+		gl_FragData[1] = vec4(far,far,far,far);
+	
+	
 		
 }

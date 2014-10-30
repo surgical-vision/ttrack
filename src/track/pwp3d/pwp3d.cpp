@@ -6,6 +6,7 @@
 #include <boost/math/special_functions/fpclassify.hpp>
 #include <ctime>
 #include <CinderOpenCV.h>
+#include <cinder/CinderMath.h>
 
 #include "../../../include/track/pwp3d/pwp3d.hpp"
 #include "../../../include/utils/helpers.hpp"
@@ -14,7 +15,7 @@
 
 using namespace ttrk;
 
-PWP3D::PWP3D(const int width, const int height) : k_delta_function_std_(2.5), k_heaviside_width_(0.3) {
+PWP3D::PWP3D(const int width, const int height) {
 
   //need the colour buffer to be 32bit
   ci::gl::Fbo::Format format;
@@ -28,6 +29,8 @@ PWP3D::PWP3D(const int width, const int height) : k_delta_function_std_(2.5), k_
 
   LoadShaders();
 
+  HEAVYSIDE_WIDTH = 3;
+
 }
 
 void PWP3D::LoadShaders(){
@@ -36,6 +39,103 @@ void PWP3D::LoadShaders(){
   back_depth_and_contour_ = ci::gl::GlslProg(ci::app::loadResource(PWP3D_BACK_DEPTH_AND_CONTOUR_VERT), ci::app::loadResource(PWP3D_BACK_DEPTH_AND_CONTOUR_FRAG));
 
 }
+
+void PWP3D::UpdateJacobian(const float region_agreement, const float dsdf_dx, const float dsdf_dy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_image, float *jacobian, const int num_dofs){
+
+
+}
+
+bool PWP3D::FindClosestIntersection(const float *sdf_im, const int r, const int c, const int height, const int width, int &closest_r, int &closest_c) const {
+  
+  const float &sdf_val = sdf_im[r * width + c];
+  const float ceil_sdf = ceil(sdf_val); 
+  for (int w_c = c - ceil_sdf; w_c <= c + ceil_sdf; w_c++){
+    
+    const int up_idx = (r + ceil_sdf)*width + w_c;
+    const int down_idx = (r - ceil_sdf)*width + w_c;
+    if (sdf_im[up_idx] >= 0.0){
+      closest_r = r + ceil_sdf;
+      closest_c = w_c;
+      return true;
+    }
+    else if (sdf_im[down_idx] >= 0.0){
+      closest_r = r - ceil_sdf;
+      closest_c = w_c;
+      return true;
+    }
+  }
+
+  for (int w_r = r - ceil_sdf; w_r <= r + ceil_sdf; w_r++){
+
+    const int left_idx = w_r*width + c - ceil_sdf;
+    const int right_idx = w_r*width + c + ceil_sdf;
+    if (sdf_im[left_idx] >= 0.0){
+      closest_r = w_r;
+      closest_c = c - ceil_sdf;
+      return true;
+    }
+    else if (sdf_im[right_idx] >= 0.0){
+      closest_r = w_r;
+      closest_c = c + ceil_sdf;
+      return true;
+    }
+  }
+  
+  return false;
+
+}
+
+float PWP3D::GetRegionAgreement(const int r, const int c, const float sdf) {
+  
+  const float pixel_probability = (float)frame_->GetClassificationMapROI().at<unsigned char>(r,c)/255.0;
+  const float heaviside_value = HeavisideFunction(sdf);
+    
+  return (2*pixel_probability - 1)/(heaviside_value*pixel_probability + (1.0-heaviside_value)*(1-pixel_probability));
+
+}
+
+//bool PWP3D::GetTargetIntersections(const int r, const int c, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const {
+//
+//  const int index = (r*front_intersection_image.cols + c)*3;
+//  memcpy(front_intersection, ((double *)front_intersection_image.data)+index, 3*sizeof(double));
+//  memcpy(back_intersection, ((double *)back_intersection_image.data)+index, 3*sizeof(double));
+//
+//  return !(front_intersection[0] == 0.0 && front_intersection[1] == 0.0 && front_intersection[2] == 0.0); 
+//
+//}
+
+//bool PWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const {
+//
+//  static const int search_range= 20; //has to be larger than border for search to work!
+//
+//  cv::Point2i min_point;
+//  const cv::Point2i start_pt(c,r);
+//  float min_dist = std::numeric_limits<float>::max();
+//  int max_r = r+search_range, min_r = r-search_range, max_c = c+search_range, min_c = c-search_range;
+//  if(max_r >= sdf.rows) max_r = sdf.rows-1;
+//  if(max_c >= sdf.cols) max_c = sdf.cols-1;
+//  if(min_r < 0) min_r = 0;
+//  if(min_c < 0) min_c = 0;
+//
+//  for(int row=min_r;row<max_r;row++){
+//    for(int col=min_c;col<max_c;col++){
+//      
+//      if(sdf.at<float>(row,col) > 1.5 || sdf.at<float>(row,col) < 0.5) continue; //too far 'inside' or outside - we want teh tangent rays. need to aim for points 1 pixel inside to avoid slight inaccuracies reporting a miss.
+//      const cv::Point2i test_pt(col,row);
+//      const cv::Point2i dist = test_pt - start_pt;
+//      float dist_val = (float)sqrt((float)dist.x*dist.x + dist.y*dist.y);
+//      if(dist_val < min_dist){
+//        min_dist = dist_val;
+//        min_point = test_pt;
+//      }
+//    }
+//  }
+//
+//  if(min_dist == std::numeric_limits<float>::max()) return false;
+//
+//  return GetTargetIntersections(min_point.y,min_point.x,front_intersection,back_intersection,front_intersection_image,back_intersection_image);
+//}
+
 
 //void PWP3D::ApplyGradientDescentStep(PoseDerivs &jacobian, Pose &pose, const size_t step, const size_t pixel_count){
 //
@@ -86,66 +186,6 @@ void PWP3D::LoadShaders(){
 //  
 //}
 
-double PWP3D::GetRegionAgreement(const int r, const int c, const double sdf) {
-  
-  const double pixel_probability = (double)frame_->GetClassificationMapROI().at<unsigned char>(r,c)/255.0;
-  const double heaviside_value = Heaviside(sdf, k_heaviside_width_ * BLUR_WIDTH);
-    
-#ifdef _DEBUG
-  const double region_agreement =  (2*pixel_probability - 1)/(heaviside_value*pixel_probability + (1.0-heaviside_value)*(1-pixel_probability));
-  if(region_agreement == std::numeric_limits<double>::infinity())
-    return 0.0;
-#endif
-  return (2*pixel_probability - 1)/(heaviside_value*pixel_probability + (1.0-heaviside_value)*(1-pixel_probability));
-
-}
-
-bool PWP3D::GetTargetIntersections(const int r, const int c, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const {
-
-#ifdef _DEBUG 
-  if(front_intersection_image.type() != CV_64FC3) throw(std::runtime_error("Error, the type of the front intersection matrix should be 3xfloat\n"));
-  if(back_intersection_image.type() != CV_64FC3) throw(std::runtime_error("Error, the type of the back intersection matrix should be 3xfloat\n"));
-#endif
-
-  const int index = (r*front_intersection_image.cols + c)*3;
-  memcpy(front_intersection, ((double *)front_intersection_image.data)+index, 3*sizeof(double));
-  memcpy(back_intersection, ((double *)back_intersection_image.data)+index, 3*sizeof(double));
-
-  return !(front_intersection[0] == 0.0 && front_intersection[1] == 0.0 && front_intersection[2] == 0.0); 
-
-}
-
-bool PWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const {
-
-  static const int search_range= 20; //has to be larger than border for search to work!
-
-  cv::Point2i min_point;
-  const cv::Point2i start_pt(c,r);
-  float min_dist = std::numeric_limits<float>::max();
-  int max_r = r+search_range, min_r = r-search_range, max_c = c+search_range, min_c = c-search_range;
-  if(max_r >= sdf.rows) max_r = sdf.rows-1;
-  if(max_c >= sdf.cols) max_c = sdf.cols-1;
-  if(min_r < 0) min_r = 0;
-  if(min_c < 0) min_c = 0;
-
-  for(int row=min_r;row<max_r;row++){
-    for(int col=min_c;col<max_c;col++){
-      
-      if(sdf.at<float>(row,col) > 1.5 || sdf.at<float>(row,col) < 0.5) continue; //too far 'inside' or outside - we want teh tangent rays. need to aim for points 1 pixel inside to avoid slight inaccuracies reporting a miss.
-      const cv::Point2i test_pt(col,row);
-      const cv::Point2i dist = test_pt - start_pt;
-      float dist_val = (float)sqrt((float)dist.x*dist.x + dist.y*dist.y);
-      if(dist_val < min_dist){
-        min_dist = dist_val;
-        min_point = test_pt;
-      }
-    }
-  }
-
-  if(min_dist == std::numeric_limits<float>::max()) return false;
-
-  return GetTargetIntersections(min_point.y,min_point.x,front_intersection,back_intersection,front_intersection_image,back_intersection_image);
-}
 
 //void PWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const double dSDFdx, const double dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image, PoseDerivs &pd){
 //
@@ -241,7 +281,7 @@ void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, c
   back_depth_and_contour_.bind();
   back_depth_and_contour_.uniform("tex_w", float(back_depth_framebuffer_.getWidth()));
   back_depth_and_contour_.uniform("tex_h", float(back_depth_framebuffer_.getHeight()));
-  back_depth_and_contour_.uniform("far", GL_FAR);
+  back_depth_and_contour_.uniform("far", float(GL_FAR));
   
   ci::gl::Texture tex_fd = front_depth_framebuffer_.getTexture(0);
   tex_fd.enableAndBind();
@@ -294,16 +334,16 @@ void PWP3D::ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, 
   for (int r = 0; r < front_intersection_image.rows; r++){
     for (int c = 0; c < front_intersection_image.cols; c++){
 
-      if (front_depth.at<cv::Vec4f>(r, c)[0] != 0){
+      if (std::abs(front_depth.at<cv::Vec4f>(r, c)[0] - GL_FAR) > EPS){
         const cv::Vec2f &unprojected_pixel = unprojected_image_plane.at<cv::Vec2f>(r, c);
-        front_intersection_image.at<cv::Vec3f>(r, c) = front_depth.at<float>(r, c)*cv::Vec3f(unprojected_pixel[0], unprojected_pixel[1], 1);
+        front_intersection_image.at<cv::Vec3f>(r, c) = front_depth.at<cv::Vec4f>(r, c)[0]*cv::Vec3f(unprojected_pixel[0], unprojected_pixel[1], 1);
       }
       else{
         front_intersection_image.at<cv::Vec3f>(r, c) = cv::Vec3f(GL_FAR, GL_FAR, GL_FAR);
       }
-      if (back_depth.at<cv::Vec4f>(r, c)[0] != GL_FAR){
+      if (std::abs(back_depth.at<cv::Vec4f>(r, c)[0] - GL_FAR) > EPS){
         const cv::Vec2f &unprojected_pixel = unprojected_image_plane.at<cv::Vec2f>(r, c);
-        back_intersection_image.at<cv::Vec3f>(r, c) = back_depth.at<float>(r, c)*cv::Vec3f(unprojected_pixel[0], unprojected_pixel[1], 1);
+        back_intersection_image.at<cv::Vec3f>(r, c) = back_depth.at<cv::Vec4f>(r, c)[0]*cv::Vec3f(unprojected_pixel[0], unprojected_pixel[1], 1);
       }
       else{
         back_intersection_image.at<cv::Vec3f>(r, c) = cv::Vec3f(GL_FAR, GL_FAR, GL_FAR);
@@ -318,7 +358,7 @@ void PWP3D::ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, 
   //flip the sign of the distance image for outside pixels
   for(int r=0;r<sdf_image.rows;r++){
     for(int c=0;c<sdf_image.cols;c++){
-      if (front_depth.at<float>(r, c) == GL_FAR)
+      if (std::abs(front_depth.at<cv::Vec4f>(r, c)[0] - GL_FAR) < EPS)
         sdf_image.at<float>(r,c) *= -1;
     }
   }

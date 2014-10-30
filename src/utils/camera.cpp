@@ -121,8 +121,8 @@ void MonocularCamera::SetupCameraForDrawing(const int viewport_width, const int 
   ci::CameraPersp camP;
 
   ci::Vec3f eye_point(0, 0, 0);
-  ci::Vec3f view_direction(0, 0, 1);
-  ci::Vec3f world_up(0, -1, 0);
+  ci::Vec3f view_direction(0, 0, -1);
+  ci::Vec3f world_up(0, 1, 0);
 
   view_direction = rotation_ * view_direction;
   world_up = rotation_ * world_up;
@@ -131,18 +131,18 @@ void MonocularCamera::SetupCameraForDrawing(const int viewport_width, const int 
   camP.setViewDirection(view_direction);
   camP.setWorldUp(world_up);
 
-  glMatrixMode(GL_PROJECTION);
+  glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   glMultMatrixf(camP.getModelViewMatrix().m);
 
-  ci::CameraPersp cam;
-  cam.setEyePoint(ci::Vec3f(0, 0, 0));
-  cam.setViewDirection(ci::Vec3f(0, 0, -1));
-  cam.setWorldUp(ci::Vec3f(0, 1, 0));
+  //ci::CameraPersp cam;
+  //cam.setEyePoint(ci::Vec3f(0, 0, 0));
+  //cam.setViewDirection(ci::Vec3f(0, 0, -1));
+  //cam.setWorldUp(ci::Vec3f(0, 1, 0));
  
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-  glMultMatrixf(cam.getModelViewMatrix().m);
+  //glMatrixMode(GL_MODELVIEW);
+  //glLoadIdentity();
+  //glMultMatrixf(cam.getModelViewMatrix().m);
 
   SetGLProjectionMatrix();
 

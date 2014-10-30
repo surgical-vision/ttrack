@@ -140,18 +140,6 @@ namespace ttrk{
 
   }
 
-
-  /**
-  * Computes a smoothed heaviside function.
-  * @param[in] x The value on the x-axis.
-  * @param[in] a The smoothing value.
-  * @ The smoothed heaviside value. Will be between 0-1.
-  */
-
-  inline double Heaviside(double x, double a){
-    return 1.0/(1.0 + exp(-a*x));
-  }
-
   /**
   * A quick version of a rounding function.
   * @param[in] r The value to round.

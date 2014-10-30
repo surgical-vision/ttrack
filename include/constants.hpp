@@ -9,5 +9,6 @@ const int _XYZ_ = 0;
 
 const int GL_FAR = 1000;
 const int GL_NEAR = 1;
+const float EPS = 0.000001;
 
 #endif

@@ -10,6 +10,7 @@ namespace ttrk{
   /**
   * @class MonocularCamera
   * @brief A class representing a monocular camera. Projects points onto the image plane and generates unprojected rays from pixels.
+  * This camera setup mirrors an OpenGL setup where the right handed (in world space) camera points down the -z direction.
   */
   class MonocularCamera {
 

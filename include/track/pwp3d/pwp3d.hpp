@@ -22,6 +22,8 @@ namespace ttrk {
 
     /**
     * Default constructor. Sets up internal framebuffers etc.
+    * @param[in] width The width of the window/framebuffer.
+    * @param[in] height The height of the window/framebuffer.
     */
     PWP3D(const int width, const int height);
 
@@ -51,15 +53,55 @@ namespace ttrk {
     void RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_depth, cv::Mat &back_depth, cv::Mat &contour);
 
     /**
-    * Get the second part of the derivative. The derivative of the contour w.r.t the pose parameters.
+    * Compute the first part of the derivative, getting a weight for each contribution based on the region agreements.
     * @param[in] r The row index of the current pixel.
     * @param[in] c The column index of the current pixel.
-    * @param[in] sdf The value of the signed distance function for (r,c).
-    * @param[in] dSDFdx The derivative of the signed distance function /f$\frac{\partial SDF}{\partial x}/f$ at the current pixel.
-    * @param[in] dSDFdy The derivative of the signed distance function /f$\frac{\partial SDF}{\partial y}/f$ at the current pixel.
-    * @return The pose derivitives as a vector.
+    * @param[in] sdf The signed distance function image.
     */
-    //void GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const double dSDFdx, const double dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image, PoseDerivs &pd);
+    float GetRegionAgreement(const int r, const int c, const float sdf);
+
+    /** 
+    * Update the jacobian by computing the second part of the derivative and multiplying by the region agreement.
+    * @param[in] region_agreement Whether the pixel in question agrees with the foreground probability model.
+    * @param[in] dsdf_dx The derivative of the signed distance function /f$\frac{\partial SDF}{\partial x}/f$ at the current pixel.
+    * @param[in] dsdf_dy The derivative of the signed distance function /f$\frac{\partial SDF}{\partial y}/f$ at the current pixel
+    * @param[in] front_intersection_point The 3D point on the near side of the mesh that the current pixel projects to. For pixels that project just miss the contour the closest intersection point is chosen (mathematical hack...).
+    * @param[in] back_intersection_point  The 3D point on the far side of the mesh mesh that the current pixel projects to.
+    * @param[out] jacobian The current jacobian values, these are updated.
+    * @param[in] num_dofs The number of degrees of freedom in the jacobian.
+    */
+    void UpdateJacobian(const float region_agreement, const float dsdf_dx, const float dsdf_dy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_image, float *jacobian, const int num_dofs);
+
+    /**
+    * Find the closest intersection point for pixels which project 'very close' to the target mesh. This is done by searching the sdf_im for the closest zero value to (r,c).
+    * @param[in] sdf_im A pointer to the image data for the Signed Distance Function image.
+    * @param[in] r The row value of the current pixel.
+    * @param[in] c The column value of the current pixel.
+    * @param[in] height The height of the image we are using.
+    * @param[in] width. The width of the image we are using.
+    * @param[out] closest_r The output row of the pixel in the signed distance function which has zero value which is closest to (r,c).
+    * @param[out] closest_c The output column of the pixel in the signed distance function which has zero value which is closest to (r,c).
+    * @return The success of the search.
+    */
+    bool FindClosestIntersection(const float *sdf_im, const int r, const int c, const int height, const int width, int &closest_r, int &closest_c) const;
+
+    /**
+    * Compute a smoothed heaviside function output for a given value.
+    * @param[in] x The input value.
+    * @return The value scaled to between 0-1 with a smoothed logistic function manner.
+    */
+    float HeavisideFunction(const float x){
+      return 0.5f*(1.0f + x / float(HEAVYSIDE_WIDTH) + (1.0 / M_PI)*sin((M_PI*x) / float(HEAVYSIDE_WIDTH)));
+    }
+
+    /**
+    * Compute a smoothed delta function output for a given value. This is basically a Gaussian approximation where the standard deviation is close to zero.
+    * @param[in] x The input value.
+    * @return The output value.
+    */
+    float DeltaFunction(const float x){
+      return (1.0f / 2.0f / HEAVYSIDE_WIDTH)*(1.0f + cos(M_PI*x / HEAVYSIDE_WIDTH));
+    }
 
     //bool HasGradientDescentConverged_UsingEnergy(std::vector<double> &energy_values) const ;
 
@@ -70,30 +112,12 @@ namespace ttrk {
     */
     //void ScaleJacobian(PoseDerivs &jacobian, const size_t step_number, const size_t pixel_count) const;
 
-
-    inline double DeltaFunction(double x,const double std){
-      //return (1.0f / float(M_PI)) * (1 / (x * x + 1.0f) + float(1e-3));
-      //double std = 2.5; // ----0.05
-      return (1.0/(std*sqrt(2*M_PI)))*exp(-((x*x)/(2*std*std)));
-    }
-
-    inline void SetBlurringScaleFactor(const int image_width){
-      BLUR_WIDTH = 0.3 + (0.7 * image_width / 1900);
-    }
-
     /**
     * Applys one step of gradient descent to the pose. 
     * @param[in]    jacobian The pose update of the target object.
     */    
     //void ApplyGradientDescentStep(PoseDerivs &jacobian, Pose &pose, const size_t step,  const size_t pixel_count);
 
-    /**
-    * Compute the first part of the derivative, getting a weight for each contribution based on the region agreements.
-    * @param[in] r The row index of the current pixel.
-    * @param[in] c The column index of the current pixel.
-    * @param[in] sdf The signed distance function image.
-    */
-    double GetRegionAgreement(const int r, const int c, const double sdf) ;
 
 
     /**
@@ -104,9 +128,9 @@ namespace ttrk {
     * @param[out] back_intersection The intersection between the ray and the back of the object.
     * @return bool The success of the intersection test.
     */
-    bool GetTargetIntersections(const int r, const int c, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const ;
+    //bool GetTargetIntersections(const int r, const int c, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const ;
 
-    bool GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const;
+    //bool GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const;
 
     boost::shared_ptr<sv::Frame> frame_;
     ci::gl::Fbo front_depth_framebuffer_; /**< Framebuffer to write the front depth values into. */
@@ -118,9 +142,7 @@ namespace ttrk {
     std::string DEBUG_DIR_;
 
     size_t NUM_STEPS;
-    double BLUR_WIDTH;
-    const double k_delta_function_std_;
-    const double k_heaviside_width_;
+    int HEAVYSIDE_WIDTH;
 
   };
 

@@ -14,17 +14,17 @@
 
 using namespace ttrk;
 
-void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type, const std::string &left_media_file,const std::string &right_media_file){
+void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const std::string &left_media_file,const std::string &right_media_file){
   
-  SetUp(model_parameter_file,camera_calibration_file,classifier_path,results_dir,classifier_type,camera_type);
+  SetUp(model_parameter_file,camera_calibration_file,classifier_path,results_dir,classifier_type,CameraType::STEREO);
   tracker_->Tracking(false); 
   handler_.reset(new StereoVideoHandler(left_media_file,right_media_file, results_dir_ + "/tracked_video.avi"));
 
 }
 
-void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type, const std::string &media_file){
+void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const std::string &media_file){
 
-  SetUp(model_parameter_file,camera_calibration_file,classifier_path,results_dir,classifier_type,camera_type);
+  SetUp(model_parameter_file, camera_calibration_file, classifier_path, results_dir, classifier_type, CameraType::MONOCULAR);
   tracker_->Tracking(false); 
   if(IS_VIDEO(boost::filesystem::path(media_file).extension().string()))
     handler_.reset(new VideoHandler(media_file, results_dir_ + "/tracked_video.avi"));
@@ -97,13 +97,22 @@ void TTrack::RunThreaded(){
   
 }  
 
-void TTrack::GetWindowSize(int &width, int &height) {
+ClassifierType TTrack::ClassifierFromString(const std::string &classifier_name){
 
-  width = handler_->GetFrameWidth();
-  height = handler_->GetFrameHeight();
+  if (classifier_name == "RF" || classifier_name == "rf"){
+    return ClassifierType::RF;
+  }
+  else if (classifier_name == "SVM" || classifier_name == "svm"){
+    return ClassifierType::SVM;
+  }
+  else if (classifier_name == "NB" || classifier_name == "nb"){
+    return ClassifierType::NBAYES;
+  }
+  else{
+    throw std::runtime_error("Error, bad classifier type");
+  }
 
 }
-
 
 void TTrack::SaveFrame(){
 

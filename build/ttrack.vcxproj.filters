@@ -271,6 +271,9 @@
     <ClInclude Include="..\include\track\model\dh_helpers.hpp">
       <Filter>Header Files\track\model</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\utils\config_reader.hpp">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\resources\resources.rc">

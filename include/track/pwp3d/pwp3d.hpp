@@ -14,9 +14,11 @@
 
 namespace ttrk {
 
+  /**
+  * @class PWP3D
+  * @brief An abstract base class to do most of the PWP3D tracking functionality. Specialized by monocular and stereo versions for excact cost function update.
+  */
   class PWP3D : public Localizer {
-
-  public: 
     
   protected:
 
@@ -63,14 +65,17 @@ namespace ttrk {
     /** 
     * Update the jacobian by computing the second part of the derivative and multiplying by the region agreement.
     * @param[in] region_agreement Whether the pixel in question agrees with the foreground probability model.
+    * @param[in] sdf The value of the signed distance function at the pixel in question.
     * @param[in] dsdf_dx The derivative of the signed distance function /f$\frac{\partial SDF}{\partial x}/f$ at the current pixel.
     * @param[in] dsdf_dy The derivative of the signed distance function /f$\frac{\partial SDF}{\partial y}/f$ at the current pixel
+    * @param[in] fx The camera focal length in x-pixel units.
+    * @param[in] fy The camera focal length in y-pixels units.
     * @param[in] front_intersection_point The 3D point on the near side of the mesh that the current pixel projects to. For pixels that project just miss the contour the closest intersection point is chosen (mathematical hack...).
     * @param[in] back_intersection_point  The 3D point on the far side of the mesh mesh that the current pixel projects to.
+    * @param[in] model The currently tracked model. This is used to compute the jacobian.
     * @param[out] jacobian The current jacobian values, these are updated.
-    * @param[in] num_dofs The number of degrees of freedom in the jacobian.
     */
-    void UpdateJacobian(const float region_agreement, const float dsdf_dx, const float dsdf_dy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_image, float *jacobian, const int num_dofs);
+    void UpdateJacobian(const float region_agreement, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_image, const boost::shared_ptr<const Model> model, float *jacobian);
 
     /**
     * Find the closest intersection point for pixels which project 'very close' to the target mesh. This is done by searching the sdf_im for the closest zero value to (r,c).
@@ -91,7 +96,7 @@ namespace ttrk {
     * @return The value scaled to between 0-1 with a smoothed logistic function manner.
     */
     float HeavisideFunction(const float x){
-      return 0.5f*(1.0f + x / float(HEAVYSIDE_WIDTH) + (1.0 / M_PI)*sin((M_PI*x) / float(HEAVYSIDE_WIDTH)));
+      return 0.5f*(1.0f + x / float(HEAVYSIDE_WIDTH) + (1.0f / float(M_PI))*sin((float(M_PI)*x) / float(HEAVYSIDE_WIDTH)));
     }
 
     /**
@@ -100,49 +105,19 @@ namespace ttrk {
     * @return The output value.
     */
     float DeltaFunction(const float x){
-      return (1.0f / 2.0f / HEAVYSIDE_WIDTH)*(1.0f + cos(M_PI*x / HEAVYSIDE_WIDTH));
+      return (1.0f / 2.0f / HEAVYSIDE_WIDTH)*(1.0f + cos(float(M_PI)*x / HEAVYSIDE_WIDTH));
     }
 
-    //bool HasGradientDescentConverged_UsingEnergy(std::vector<double> &energy_values) const ;
-
-    /**
-    * Apply some scaling to the pose derivatives to modify the step size.
-    * @param[in] jacobian The pose derivatives.
-    * @param[in] step_id The number of steps done. Used for scaling down the step size.
-    */
-    //void ScaleJacobian(PoseDerivs &jacobian, const size_t step_number, const size_t pixel_count) const;
-
-    /**
-    * Applys one step of gradient descent to the pose. 
-    * @param[in]    jacobian The pose update of the target object.
-    */    
-    //void ApplyGradientDescentStep(PoseDerivs &jacobian, Pose &pose, const size_t step,  const size_t pixel_count);
-
-
-
-    /**
-    * Finds an intersection between a ray cast from the current pixel through the tracked object.
-    * @param[in] r The row index of the pixel.
-    * @prarm[in] c The column index of the pixel.
-    * @param[out] front_intersection The intersection between the ray and the front of the object.
-    * @param[out] back_intersection The intersection between the ray and the back of the object.
-    * @return bool The success of the intersection test.
-    */
-    //bool GetTargetIntersections(const int r, const int c, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const ;
-
-    //bool GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const;
-
-    boost::shared_ptr<sv::Frame> frame_;
+    boost::shared_ptr<sv::Frame> frame_; /**< Just a reference to the current frame, probably not really useful, may be removed. */
+    
     ci::gl::Fbo front_depth_framebuffer_; /**< Framebuffer to write the front depth values into. */
     ci::gl::Fbo back_depth_framebuffer_; /**< Framebuffer to write the back depth values into. Has 2 colour buffers. */
 
-    ci::gl::GlslProg front_depth_;
-    ci::gl::GlslProg back_depth_and_contour_;
+    ci::gl::GlslProg front_depth_;  /**< Shader to compute the front depth buffer. */
+    ci::gl::GlslProg back_depth_and_contour_;  /**< Shader to compute the back depth buffer and contour. */
 
-    std::string DEBUG_DIR_;
-
-    size_t NUM_STEPS;
-    int HEAVYSIDE_WIDTH;
+    size_t NUM_STEPS;  /**< Number of step for the optimization. */
+    int HEAVYSIDE_WIDTH;  /**< Width of the heaviside blurring function. */
 
   };
 

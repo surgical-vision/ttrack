@@ -98,8 +98,8 @@ void TTrackApp::draw(){
     drawModelOnEye(right_external_framebuffer_, right_frame_texture_, models_to_draw_[i], camera_->right_eye());
   }
   
-  gl::draw(left_external_framebuffer_->getTexture(), ci::Rectf(0, left_external_framebuffer_->getHeight(), left_external_framebuffer_->getWidth(), 0));
-  gl::draw(right_external_framebuffer_->getTexture(), ci::Rectf(right_external_framebuffer_->getWidth(), right_external_framebuffer_->getHeight(), 2 * right_external_framebuffer_->getWidth(), 0));
+  gl::draw(left_external_framebuffer_->getTexture(), ci::Rectf(0.0f, (float)left_external_framebuffer_->getHeight(), (float)left_external_framebuffer_->getWidth(), 0.0f));
+  gl::draw(right_external_framebuffer_->getTexture(), ci::Rectf((float)right_external_framebuffer_->getWidth(), (float)right_external_framebuffer_->getHeight(), 2.0f * (float)right_external_framebuffer_->getWidth(), 0.0f));
 
 
 }

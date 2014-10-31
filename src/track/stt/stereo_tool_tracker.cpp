@@ -75,7 +75,7 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
   cv::Mat rot = (cv::Mat_<double>(3, 3) << -0.629972, -0.211834, -0.747169, -0.49922, 0.847433, 0.180655, -0.594908, 0.486809, -0.639611);
   Pose p(sv::Quaternion(rot), ci::Vec3f(-16.3274f, 8.70154f, 85.1892f));
 
-  tm->SetPose(p);
+  tm->SetBasePose(p);
 
   /*cv::Vec2d center_of_mass = FindCenterOfMassIn2D(connected_region);
 

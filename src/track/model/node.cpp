@@ -54,12 +54,41 @@ Node::Ptr Node::GetChildByIdx(std::size_t &curr_idx, const std::size_t target_id
 
   for (size_t i = 0; i < children_.size(); ++i){
     Node::Ptr c = children_[i]->GetChildByIdx(curr_idx, target_idx);
-    if (c != 0x0) return c;
+    if (c != nullptr) return c;
     curr_idx++;
+  }
+
+  return Node::Ptr(nullptr);
+
+}
+
+
+void Node::ComputeJacobianForPoint(const ci::Vec3f &point, std::vector<ci::Vec3f> &jacobian){
+
+  //the node with null parent is the root node so it's pose is basically just the base pose.
+  if (parent_ != nullptr){
+    jacobian.push_back(ci::Vec3f(0.0f, 0.0f, 0.0f)); //just for testing
+  }
+
+  for (size_t i = 0; i < children_.size(); ++i){
+    children_[i]->ComputeJacobianForPoint(point, jacobian);
   }
 
 }
 
+void DHNode::UpdatePose(std::vector<float>::iterator &updates){
+ 
+  //the node with null parent is the root node so it's pose is basically just the base pose and therefore there is not an update
+  if (parent_ != nullptr){
+    update_ = *updates;
+    ++updates;
+  }
+
+  for (size_t i = 0; i < children_.size(); ++i){
+    children_[i]->UpdatePose(updates);
+  }
+
+}
 
 ci::Matrix44f DHNode::GetWorldTransform(const ci::Matrix44f &base_frame_transform) const {
   
@@ -109,10 +138,10 @@ void DHNode::LoadData(ci::JsonTree &tree, Node::Ptr parent, const std::string &r
 
   try{
     
-    alpha_ = tree["dh"]["alpha"].getValue<double>();
-    theta_ = tree["dh"]["theta"].getValue<double>();
-    a_ = tree["dh"]["a"].getValue<double>();
-    d_ = tree["dh"]["d"].getValue<double>();
+    alpha_ = tree["dh"]["alpha"].getValue<float>();
+    theta_ = tree["dh"]["theta"].getValue<float>();
+    a_ = tree["dh"]["a"].getValue<float>();
+    d_ = tree["dh"]["d"].getValue<float>();
     
     if (tree["dh"]["type"].getValue<std::string>() == "rotation")
       type_ = Rotation;
@@ -126,16 +155,16 @@ void DHNode::LoadData(ci::JsonTree &tree, Node::Ptr parent, const std::string &r
   catch (ci::JsonTree::Exception &){
 
     //should just give the identity transform for this node (useful e.g. for the root node).
-    alpha_ = M_PI / 2;
-    theta_ = M_PI / 2;
-    a_ = 0.0;
-    d_ = 0.0;
+    alpha_ = (float)M_PI / 2;
+    theta_ = (float)M_PI / 2;
+    a_ = 0.0f;
+    d_ = 0.0f;
     type_ = Fixed;
 
   }
 
   ci::JsonTree children = tree.getChild("children");
-  for (int i = 0; i < children.getChildren().size(); ++i){
+  for (size_t i = 0; i < children.getChildren().size(); ++i){
     Node::Ptr n(new DHNode);
     n->LoadData(children[i], DHNode::Ptr(this), root_dir);
     AddChild(n);

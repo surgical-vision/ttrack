@@ -66,3 +66,28 @@ void Model::Render(){
   ci::gl::popModelView();
 
 }
+
+void Model::UpdatePose(std::vector<float> &updates){
+  
+  std::vector<float> updates_to_base(updates.begin(), updates.begin() + world_to_model_coordinates_.GetNumDofs());
+  std::vector<float> updates_to_end(updates.begin() + world_to_model_coordinates_.GetNumDofs(), updates.end());
+
+  world_to_model_coordinates_.UpdatePose(updates_to_base);
+
+  model_->UpdatePose(updates_to_end.begin());
+
+}
+
+
+std::vector<ci::Vec3f> Model::ComputeJacobian(const ci::Vec3f &point) const {
+
+  //compute the jacobian for the base pose
+  std::vector<ci::Vec3f> r = world_to_model_coordinates_.ComputeJacobian(point);
+
+  //pass this vector into the articualted nodes and get their jacobians too
+  model_->ComputeJacobianForPoint(point, r);
+
+  return r;
+
+}
+

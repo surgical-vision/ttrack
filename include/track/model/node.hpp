@@ -57,8 +57,16 @@ namespace ttrk {
     /**
     * Compute the jacobian for a 3D point (passed in world coordinates) with respect to this coordinate frame.
     * This will recursively call the parent frames right up to the base frame and return a 3-vector for each.
+    * @param[in] point The 3D point in the target coordinate frame (usually camera).
+    * @param[in] jacobian The jacobian which is added to by each of the joints. This needs to be a reference pass as it's filled in base to tip (roughly).
     */
-    void ComputeJacobianForPoint(const ci::Vec3f &point, std::vector<ci::Vec3f> &jacobian);
+    virtual void ComputeJacobianForPoint(const ci::Vec3f &point, std::vector<ci::Vec3f> &jacobian);
+
+    /**
+    * Update the pose of the model using the jacobians (with whatever cost function modification).
+    * @param[in] updates The update vector iterator, there should be N for the rigid base part of the model (probably 6-7) and then one for each component of the articulated components (if there are any). The order is supposed to be the same as the order they came out from ComputeJacobians.
+    */
+    virtual void UpdatePose(std::vector<float>::iterator &updates) = 0;
 
     Node::Ptr GetParent() { return parent_; }
     std::vector< Node::Ptr> GetChildren() { return children_; }
@@ -74,7 +82,7 @@ namespace ttrk {
     void LoadMeshAndTexture(ci::JsonTree &tree, const std::string &root_dir);
 
     Node::Ptr parent_; /**< This node's parent. */
-    std::vector< Node::Ptr> children_; /**< This node's children. */
+    std::vector< Node::Ptr > children_; /**< This node's children. */
 
     ci::TriMesh model_; /**< The 3D mesh that the model represents. */
     ci::gl::VboMesh	vbo_; /**< VBO to store the model for faster drawing. */
@@ -117,6 +125,12 @@ namespace ttrk {
     */
     virtual ci::Matrix44f GetRelativeTransform() const;
 
+    /**
+    * Update the pose of the model using the jacobians (with whatever cost function modification).
+    * @param[in] updates The update vector, there should be N for the rigid base part of the model (probably 6-7) and then one for each component of the articulated components (if there are any). The order is supposed to be the same as the order they came out from ComputeJacobians.
+    */
+    virtual void UpdatePose(std::vector<float>::iterator &updates);
+
   protected:
 
     ci::Matrix44f ComputeDHTransform() const;
@@ -124,11 +138,11 @@ namespace ttrk {
     enum JointType { Rotation, Translation, Fixed };
 
     JointType type_; /**< The joint type of the DH element. Dictates whether the update is applied to d or @theta. */
-    double alpha_; /**< @alpha in the DH parameter set. Angle about the common normal between links. */
-    double theta_; /**< @theta in the DH parameter set. Angle about the previous joint axis. */
-    double a_; /**< a in the DH parameter set. Length of the common normal. */
-    double d_; /**< d in the DH parameter set. Offset along previous joint axis to the common normal. */
-    double update_; /**< The update to the DH set to compute the transformation. */
+    float alpha_; /**< @alpha in the DH parameter set. Angle about the common normal between links. */
+    float theta_; /**< @theta in the DH parameter set. Angle about the previous joint axis. */
+    float a_; /**< a in the DH parameter set. Length of the common normal. */
+    float d_; /**< d in the DH parameter set. Offset along previous joint axis to the common normal. */
+    float update_; /**< The update to the DH set to compute the transformation. */
 
   };
 

@@ -23,10 +23,10 @@ MonocularCamera::MonocularCamera(const std::string &calibration_filename){
     fs.open(calibration_filename,cv::FileStorage::READ); 
     fs["Camera_Matrix"] >> cam_matrix;
 
-    fx_ = cam_matrix.at<double>(0, 0);
-    fy_ = cam_matrix.at<double>(1, 1);
-    px_ = cam_matrix.at<double>(0, 2);
-    py_ = cam_matrix.at<double>(1, 2);
+    fx_ = (float)cam_matrix.at<double>(0, 0);
+    fy_ = (float)cam_matrix.at<double>(1, 1);
+    px_ = (float)cam_matrix.at<double>(0, 2);
+    py_ = (float)cam_matrix.at<double>(1, 2);
 
     fs["Distortion_Coefficients"] >> distortion_params_;
 
@@ -46,10 +46,10 @@ MonocularCamera::MonocularCamera(const std::string &calibration_filename){
 
 MonocularCamera::MonocularCamera(const cv::Mat &intrinsic, const cv::Mat &distortion, const int image_width, const int image_height) :distortion_params_(distortion), image_width_(image_width), image_height_(image_height){
 
-  fx_ = intrinsic.at<double>(0, 0);
-  fy_ = intrinsic.at<double>(1, 1);
-  px_ = intrinsic.at<double>(0, 2);
-  py_ = intrinsic.at<double>(1, 2);
+  fx_ = (float)intrinsic.at<double>(0, 0);
+  fy_ = (float)intrinsic.at<double>(1, 1);
+  px_ = (float)intrinsic.at<double>(0, 2);
+  py_ = (float)intrinsic.at<double>(1, 2);
 
 }
 
@@ -79,7 +79,7 @@ cv::Mat MonocularCamera::GetUnprojectedImagePlane(const int width, const int hei
     points.reserve(width*height);
     for (int r = 0; r < height; ++r){
       for (int c = 0; c < width; ++c){
-        points.push_back(cv::Vec2f(c, r));
+        points.push_back(cv::Vec2f((float)c, (float)r));
       }
     }
 
@@ -220,9 +220,9 @@ StereoCamera::StereoCamera(const std::string &calibration_filename) {
 
     for(int r=0;r<3;r++){
       for(int c=0;c<3;c++){
-        right_eye_->rotation_.at(r,c) = rotation.at<double>(r,c);
+        right_eye_->rotation_.at(r, c) = (float)rotation.at<double>(r, c);
       }
-      right_eye_->camera_center_[r] = translation.at<double>(r, 0);
+      right_eye_->camera_center_[r] = (float)translation.at<double>(r, 0);
     }
 
     left_eye_->rotation_.setToIdentity();

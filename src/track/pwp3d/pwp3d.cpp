@@ -40,16 +40,37 @@ void PWP3D::LoadShaders(){
 
 }
 
-void PWP3D::UpdateJacobian(const float region_agreement, const float dsdf_dx, const float dsdf_dy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_image, float *jacobian, const int num_dofs){
+void PWP3D::UpdateJacobian(const float region_agreement, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_point, const boost::shared_ptr<const Model> model, float *jacobian){
 
+  const float z_inv_sq_front = 1.0f / (front_intersection_point[2] * front_intersection_point[2]);
+  const float z_inv_sq_back = 1.0f / (back_intersection_point[2] * back_intersection_point[2]);
+
+  //compute the derivatives
+  std::vector<ci::Vec3f> front_jacs = model->ComputeJacobian(front_intersection_point);
+  std::vector<ci::Vec3f> back_jacs = model->ComputeJacobian(back_intersection_point);
+
+  //for each degree of freedom, compute the jacobian update
+  for (size_t dof = 0; dof < front_jacs.size(); ++dof){
+
+    const ci::Vec3f &dof_derivatives_front = front_jacs[dof];
+    const ci::Vec3f &dof_derivatives_back = back_jacs[dof];
+
+    //actually compute the cost function equation for the degree of freedom in question
+    float pval = dsdf_dx * (fx * (z_inv_sq_front*((front_intersection_point[2] * dof_derivatives_front[0]) - (front_intersection_point[0] * dof_derivatives_front[2]))) + fx * (z_inv_sq_back*((back_intersection_point[2] * dof_derivatives_back[0]) - (back_intersection_point[0] * dof_derivatives_back[2]))));
+    pval += dsdf_dy * (fy * (z_inv_sq_front*((front_intersection_point[2] * dof_derivatives_front[1]) - (front_intersection_point[1] * dof_derivatives_front[2]))) + fy * (z_inv_sq_back*((back_intersection_point[2] * dof_derivatives_back[1]) - (back_intersection_point[1] * dof_derivatives_back[2]))));
+    pval *= DeltaFunction(sdf);
+
+    jacobian[dof] += region_agreement * pval;
+
+  }
 
 }
 
 bool PWP3D::FindClosestIntersection(const float *sdf_im, const int r, const int c, const int height, const int width, int &closest_r, int &closest_c) const {
   
   const float &sdf_val = sdf_im[r * width + c];
-  const float ceil_sdf = ceil(sdf_val); 
-  for (int w_c = c - ceil_sdf; w_c <= c + ceil_sdf; w_c++){
+  const int ceil_sdf = (int)std::abs(ceil(sdf_val));
+  for (int w_c = c - ceil_sdf; w_c <= c + ceil_sdf; ++w_c){
     
     const int up_idx = (r + ceil_sdf)*width + w_c;
     const int down_idx = (r - ceil_sdf)*width + w_c;
@@ -65,7 +86,7 @@ bool PWP3D::FindClosestIntersection(const float *sdf_im, const int r, const int 
     }
   }
 
-  for (int w_r = r - ceil_sdf; w_r <= r + ceil_sdf; w_r++){
+  for (int w_r = r - ceil_sdf; w_r <= r + ceil_sdf; ++w_r){
 
     const int left_idx = w_r*width + c - ceil_sdf;
     const int right_idx = w_r*width + c + ceil_sdf;
@@ -87,54 +108,12 @@ bool PWP3D::FindClosestIntersection(const float *sdf_im, const int r, const int 
 
 float PWP3D::GetRegionAgreement(const int r, const int c, const float sdf) {
   
-  const float pixel_probability = (float)frame_->GetClassificationMapROI().at<unsigned char>(r,c)/255.0;
+  const float pixel_probability = (float)frame_->GetClassificationMapROI().at<unsigned char>(r,c)/255.0f;
   const float heaviside_value = HeavisideFunction(sdf);
     
-  return (2*pixel_probability - 1)/(heaviside_value*pixel_probability + (1.0-heaviside_value)*(1-pixel_probability));
+  return (2.0f*pixel_probability - 1.0f)/(heaviside_value*pixel_probability + (1.0f-heaviside_value)*(1.0f-pixel_probability));
 
 }
-
-//bool PWP3D::GetTargetIntersections(const int r, const int c, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const {
-//
-//  const int index = (r*front_intersection_image.cols + c)*3;
-//  memcpy(front_intersection, ((double *)front_intersection_image.data)+index, 3*sizeof(double));
-//  memcpy(back_intersection, ((double *)back_intersection_image.data)+index, 3*sizeof(double));
-//
-//  return !(front_intersection[0] == 0.0 && front_intersection[1] == 0.0 && front_intersection[2] == 0.0); 
-//
-//}
-
-//bool PWP3D::GetNearestIntersection(const int r, const int c, const cv::Mat &sdf, double *front_intersection, double *back_intersection, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image) const {
-//
-//  static const int search_range= 20; //has to be larger than border for search to work!
-//
-//  cv::Point2i min_point;
-//  const cv::Point2i start_pt(c,r);
-//  float min_dist = std::numeric_limits<float>::max();
-//  int max_r = r+search_range, min_r = r-search_range, max_c = c+search_range, min_c = c-search_range;
-//  if(max_r >= sdf.rows) max_r = sdf.rows-1;
-//  if(max_c >= sdf.cols) max_c = sdf.cols-1;
-//  if(min_r < 0) min_r = 0;
-//  if(min_c < 0) min_c = 0;
-//
-//  for(int row=min_r;row<max_r;row++){
-//    for(int col=min_c;col<max_c;col++){
-//      
-//      if(sdf.at<float>(row,col) > 1.5 || sdf.at<float>(row,col) < 0.5) continue; //too far 'inside' or outside - we want teh tangent rays. need to aim for points 1 pixel inside to avoid slight inaccuracies reporting a miss.
-//      const cv::Point2i test_pt(col,row);
-//      const cv::Point2i dist = test_pt - start_pt;
-//      float dist_val = (float)sqrt((float)dist.x*dist.x + dist.y*dist.y);
-//      if(dist_val < min_dist){
-//        min_dist = dist_val;
-//        min_point = test_pt;
-//      }
-//    }
-//  }
-//
-//  if(min_dist == std::numeric_limits<float>::max()) return false;
-//
-//  return GetTargetIntersections(min_point.y,min_point.x,front_intersection,back_intersection,front_intersection_image,back_intersection_image);
-//}
 
 
 //void PWP3D::ApplyGradientDescentStep(PoseDerivs &jacobian, Pose &pose, const size_t step, const size_t pixel_count){
@@ -186,59 +165,6 @@ float PWP3D::GetRegionAgreement(const int r, const int c, const float sdf) {
 //  
 //}
 
-
-//void PWP3D::GetPoseDerivatives(const int r, const int c, const cv::Mat &sdf, const double dSDFdx, const double dSDFdy, KalmanTracker &current_model, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image, PoseDerivs &pd){
-//
-//   //find the (x,y,z) coordinates of the front and back intersection between the ray from the current pixel and the target object. return zero vector for no intersection.
-//  double front_intersection[3];
-//  double back_intersection[3];
-//  bool intersects = GetTargetIntersections(r,c,front_intersection,back_intersection,front_intersection_image,back_intersection_image);
-//  
-//  //because the derivative only works for points which project to the target and we need it to be defined for points outside the contour, 'pretend' that a small region of these points actually hit the contour
-//  if(!intersects) {
-//    intersects = GetNearestIntersection(r,c,sdf,front_intersection,back_intersection,front_intersection_image,back_intersection_image);
-//    if(!intersects){
-//      pd = PoseDerivs::Zeros();
-//      return;
-//    }
-//  }
-//
-//#ifdef _DEBUG
-//  if( (front_intersection[0] == 0.0 && front_intersection[1] == 0.0 && front_intersection[2] == 0.0) || (back_intersection[0] == 0.0 && back_intersection[1] == 0.0 && back_intersection[2] == 0.0) )
-//    throw(std::runtime_error("Error, this is a value we should not get!\n"));
-//  if( front_intersection[2] == 0.0 || back_intersection[2] == 0.0 )
-//    throw(std::runtime_error("Error, this is a value we should not get!\n"));
-//#endif
-//
-//  const double z_inv_sq_front = 1.0/(front_intersection[2]*front_intersection[2]);
-//  const double z_inv_sq_back = 1.0/(back_intersection[2]*back_intersection[2]);
-//
-//  static double derivs_front[21];
-//  static double derivs_back[21];
-//  static bool first = true;
-//  if(first) {
-//    current_model.CurrentPose().SetupFastDOFDerivs(derivs_front);
-//    current_model.CurrentPose().SetupFastDOFDerivs(derivs_back);
-//    first = false;
-//  }
-//
-//  GetFastDOFDerivs(current_model.CurrentPose(),derivs_front,front_intersection);
-//  GetFastDOFDerivs(current_model.CurrentPose(),derivs_back,back_intersection);
-//  
-//  for(int dof=0;dof<PoseDerivs::NUM_VALS;dof++){
-//    
-//    //compute the derivative for each dof
-//    const double *dof_derivatives_front = derivs_front+(3*dof);
-//    const double *dof_derivatives_back = derivs_back+(3*dof);
-//
-//    pd[dof] = dSDFdx * (camera_->Fx() * (z_inv_sq_front*((front_intersection[2]*dof_derivatives_front[0]) - (front_intersection[0]*dof_derivatives_front[2]))) + camera_->Fx() * (z_inv_sq_back*((back_intersection[2]*dof_derivatives_back[0]) - (back_intersection[0]*dof_derivatives_back[2]))));
-//    pd[dof] += dSDFdy * (camera_->Fy() * (z_inv_sq_front*((front_intersection[2]*dof_derivatives_front[1]) - (front_intersection[1]*dof_derivatives_front[2]))) + camera_->Fy() * (z_inv_sq_back*((back_intersection[2]*dof_derivatives_back[1]) - (back_intersection[1]*dof_derivatives_back[2]))));
-//    pd[dof] *= DeltaFunction(sdf.at<float>(r,c), k_delta_function_std_ * blurring_scale_factor_ );
-//  
-//  }
-//  
-//}
-
 void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_depth, cv::Mat &back_depth, cv::Mat &contour){
 
   assert(front_depth_framebuffer_.getWidth() == camera->Width() && front_depth_framebuffer_.getHeight() == camera->Height());
@@ -254,7 +180,7 @@ void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, c
   front_depth_framebuffer_.bindFramebuffer();
   glViewport(0, 0, front_depth_framebuffer_.getWidth(), front_depth_framebuffer_.getHeight());
   glScissor(0, 0, front_depth_framebuffer_.getWidth(), front_depth_framebuffer_.getHeight());
-  glClearColor(GL_FAR, GL_FAR, GL_FAR, GL_FAR);
+  glClearColor((float)GL_FAR, (float)GL_FAR, (float)GL_FAR, (float)GL_FAR);
 
   glClearDepth(1.0f);
   glDepthFunc(GL_LESS);
@@ -272,7 +198,7 @@ void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, c
   back_depth_framebuffer_.bindFramebuffer();
   glViewport(0, 0, back_depth_framebuffer_.getWidth(), back_depth_framebuffer_.getHeight());
   glScissor(0, 0, back_depth_framebuffer_.getWidth(), back_depth_framebuffer_.getHeight());
-  glClearColor(GL_FAR, GL_FAR, GL_FAR, GL_FAR);
+  glClearColor((float)GL_FAR, (float)GL_FAR, (float)GL_FAR, (float)GL_FAR);
 
   glClearDepth(0.0f);
   glDepthFunc(GL_GREATER);
@@ -312,7 +238,7 @@ void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, c
 
   for (int r = 0; r < mcontour.rows; ++r){
     for (int c = 0; c < mcontour.cols; ++c){
-      dst[r * mcontour.cols + c] = src[(r * mcontour.cols + c)*4];
+      dst[r * mcontour.cols + c] = (unsigned char)src[(r * mcontour.cols + c)*4];
     }
   }
 
@@ -339,14 +265,14 @@ void PWP3D::ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, 
         front_intersection_image.at<cv::Vec3f>(r, c) = front_depth.at<cv::Vec4f>(r, c)[0]*cv::Vec3f(unprojected_pixel[0], unprojected_pixel[1], 1);
       }
       else{
-        front_intersection_image.at<cv::Vec3f>(r, c) = cv::Vec3f(GL_FAR, GL_FAR, GL_FAR);
+        front_intersection_image.at<cv::Vec3f>(r, c) = cv::Vec3f((int)GL_FAR, (int)GL_FAR, (int)GL_FAR);
       }
       if (std::abs(back_depth.at<cv::Vec4f>(r, c)[0] - GL_FAR) > EPS){
         const cv::Vec2f &unprojected_pixel = unprojected_image_plane.at<cv::Vec2f>(r, c);
         back_intersection_image.at<cv::Vec3f>(r, c) = back_depth.at<cv::Vec4f>(r, c)[0]*cv::Vec3f(unprojected_pixel[0], unprojected_pixel[1], 1);
       }
       else{
-        back_intersection_image.at<cv::Vec3f>(r, c) = cv::Vec3f(GL_FAR, GL_FAR, GL_FAR);
+        back_intersection_image.at<cv::Vec3f>(r, c) = cv::Vec3f((int)GL_FAR, (int)GL_FAR, (int)GL_FAR);
       }
 
     }

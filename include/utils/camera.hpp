@@ -66,12 +66,13 @@ namespace ttrk{
     */
     cv::Point3d UnProjectPoint(const cv::Point2i &point) const;
 
-    double Fx() const { return fx_; }
-    double Fy() const { return fy_; }
-    double Px() const { return px_; }
-    double Py() const { return py_; }
+    float Fx() const { return fx_; }
+    float Fy() const { return fy_; }
+    float Px() const { return px_; }
+    float Py() const { return py_; }
     int Width() const { return image_width_; }
     int Height() const { return image_height_; }
+
     inline cv::Mat CameraMatrix() const;
     friend class StereoCamera;
 

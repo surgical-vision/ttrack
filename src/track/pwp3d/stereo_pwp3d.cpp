@@ -31,9 +31,12 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
 
   cv::Mat left_sdf_image, left_front_intersection, left_back_intersection;
   cv::Mat right_sdf_image, right_front_intersection, right_back_intersection;
+  const int NUM_JACS = current_model->GetBasePose().GetNumDofs();
+  float *jacs = new float[NUM_JACS]; 
+  memset(jacs, 0, NUM_JACS * sizeof(float));
 
   //iterate until steps or convergences
-  for (int step = 0; step < NUM_STEPS; ++step){
+  for (size_t step = 0; step < NUM_STEPS; ++step){
 
     ProcessSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), left_sdf_image, left_front_intersection, left_back_intersection);
     ProcessSDFAndIntersectionImage(current_model, stereo_camera_->right_eye(), right_sdf_image, right_front_intersection, right_back_intersection);
@@ -52,33 +55,37 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
     float *back_intersection_data = (float *)back_intersection_image.data;
     float *dsdf_dx_data = (float *)dsdf_dx.data;
     float *dsdf_dy_data = (float *)dsdf_dy.data;
-    const int NUM_JACS = 7;
-    float jacs[NUM_JACS]; memset(jacs, 0, NUM_JACS * sizeof(float));
+    
 
     for (int r = 0; r < classification_image.rows; ++r){
       for (int c = 0; c < classification_image.cols; ++c){
         
-        int i = r*classification_image.rows + c;
-                
+        int i = r*classification_image.cols + c;
+          
         if (sdf_im_data[i] <= float(HEAVYSIDE_WIDTH) - 1e-1 && sdf_im_data[i] >= -float(HEAVYSIDE_WIDTH) + 1e-1){
 
           //P_f - P_b / (H * P_f + (1 - H) * P_b)
           const float region_agreement = GetRegionAgreement(r, c, sdf_im_data[i]);
 
-          if (i < 0.0) {
+          //find the closest point on the contour if this point is outside the contour
+          if (sdf_im_data[i] < 0.0) {
             int closest_r, closest_c;
             bool found = FindClosestIntersection(sdf_im_data, r, c, sdf_image.rows, sdf_image.cols, closest_r, closest_c);
             if (!found) continue; //should this be allowed to happen?
             i = closest_r * sdf_image.cols + closest_c;
           }
 
-          UpdateJacobian(region_agreement, dsdf_dx_data[i], dsdf_dy_data[i], cv::Vec3f(&front_intersection_data[i * 3]), cv::Vec3f(&front_intersection_data[i * 3]), jacs, NUM_JACS);
+          //update the jacobian
+          UpdateJacobian(region_agreement, sdf_im_data[i], dsdf_dx_data[i], dsdf_dy_data[i], stereo_camera_->left_eye()->Fx(), stereo_camera_->left_eye()->Fy(), cv::Vec3f(&front_intersection_data[i * 3]), cv::Vec3f(&back_intersection_data[i * 3]), current_model, jacs) ;
 
         }
       }
     }
 
   }
+
+  delete [] jacs;
+
   //  //(x,y,z,w,r1,r2,r3)
   //  PoseDerivs image_pose_derivatives = PoseDerivs::Zeros();
   //  cv::Mat left_canvas, right_canvas, left_z_buffer, right_z_buffer, left_binary_image, right_binary_image;

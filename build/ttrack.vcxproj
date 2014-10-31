@@ -182,6 +182,7 @@
     <ClInclude Include="..\include\ttrack.hpp" />
     <ClInclude Include="..\include\ttrack_app.hpp" />
     <ClInclude Include="..\include\utils\camera.hpp" />
+    <ClInclude Include="..\include\utils\config_reader.hpp" />
     <ClInclude Include="..\include\utils\exceptions.hpp" />
     <ClInclude Include="..\include\utils\handler.hpp" />
     <ClInclude Include="..\include\utils\helpers.hpp" />

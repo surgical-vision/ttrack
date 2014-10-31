@@ -16,6 +16,7 @@
 #include "../include/headers.hpp"
 #include "../include/ttrack_app.hpp"
 #include "../include/resources.hpp"
+#include "../include/utils/config_reader.hpp"
 
 using namespace ci;
 using namespace ci::app;
@@ -27,28 +28,69 @@ namespace {
 
 }
 
-void TTrackApp::setup(){
 
-  const std::string root_dir = "z:/phd/ttrack/data/lnd";
+void TTrackApp::SetupFromConfig(const std::string &path){
+
+  ttrk::ConfigReader reader(path);
+
+  const std::string root_dir = reader.get_element("root-dir");
+
+  if (!boost::filesystem::is_directory(reader.get_element("root-dir")))
+    throw std::runtime_error("Error, cannot file config dir!");
+
+  if (!boost::filesystem::is_directory(reader.get_element("output-dir"))){
+    boost::filesystem::create_directory(reader.get_element("output-dir"));
+  }
 
   auto &ttrack = ttrk::TTrack::Instance();
-  ttrack.SetUp(root_dir + "/" + "model/model.json", root_dir + "/" + "camera/config.xml", root_dir + "/" + "classifier/config.xml", root_dir + "/" + "results/", ttrk::RF, ttrk::STEREO, root_dir + "/left.avi", root_dir + "/right.avi");
-  
-  camera_.reset(new ttrk::StereoCamera(root_dir + "/camera/config.xml"));
+  ttrack.SetUp(root_dir + "/" + reader.get_element("trackable"), root_dir + "/" + reader.get_element("camera-config"), root_dir + "/" + reader.get_element("classifier-config"), reader.get_element("output-dir"), ttrk::TTrack::ClassifierFromString(reader.get_element("classifier-type")), root_dir + "/" + reader.get_element("left-video"), root_dir + "/" + reader.get_element("right-video"));
 
-  shader_ = gl::GlslProg( loadResource( RES_SHADER_VERT ), loadResource( RES_SHADER_FRAG ) );
-  
-  setWindowSize(camera_->left_eye()->Width(), camera_->left_eye()->Height());
+  camera_.reset(new ttrk::StereoCamera(root_dir + "/" + reader.get_element("camera-config")));
 
-  window_framebuffer_.reset(new gl::Fbo(camera_->left_eye()->Width(), camera_->left_eye()->Height()));
+  setWindowSize(2*camera_->left_eye()->Width(), camera_->left_eye()->Height());
+
   left_external_framebuffer_.reset(new gl::Fbo(camera_->left_eye()->Width(), camera_->left_eye()->Height()));
   right_external_framebuffer_.reset(new gl::Fbo(camera_->left_eye()->Width(), camera_->left_eye()->Height()));
+
+}
+
+void TTrackApp::setup(){
+
+  std::vector<std::string> cmd_line_args = getArgs();
+
+  if (cmd_line_args.size() == 2){
+
+    try{
+
+      SetupFromConfig(cmd_line_args[1]);
+
+    }
+    catch (std::runtime_error){
+
+      ci::app::console() << "Error, input file is bad!\n";
+
+    }
+
+  }
+  else{
+
+    const int default_width = 600, default_height = 500;
+    setWindowSize(2*default_width, default_height);
+    left_external_framebuffer_.reset(new gl::Fbo(default_width, default_height));
+    right_external_framebuffer_.reset(new gl::Fbo(default_width, default_height));
+
+  }
   
+  shader_ = gl::GlslProg(loadResource(RES_SHADER_VERT), loadResource(RES_SHADER_FRAG));
+
+
 }
 
 void TTrackApp::update(){
 
   auto &ttrack = ttrk::TTrack::Instance();
+  if (!ttrack.IsRunning()) return;
+
   ttrack.GetUpdate(models_to_draw_);
 
   boost::shared_ptr<const sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<const sv::StereoFrame>(ttrack.GetPtrToCurrentFrame());
@@ -68,22 +110,42 @@ void TTrackApp::shutdown(){
 
 }
 
-
-void TTrackApp::drawModelOnEye(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture &background, boost::shared_ptr<ttrk::Model> mesh, const boost::shared_ptr<ttrk::MonocularCamera> cam){
+void TTrackApp::drawBackground(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture &background, const boost::shared_ptr<ttrk::MonocularCamera> cam){
 
   framebuffer->bindFramebuffer();
 
   gl::clear(Color(0, 0, 0));
 
-  //gl::disableDepthRead();
+  if (!background || background.getWidth() == 0 || background.getHeight() == 0) return;
+
+  gl::disableDepthRead();
+  gl::disableDepthWrite();
+
+  glDisable(GL_LIGHTING);
+
+  cam->SetupCameraForDrawing(framebuffer->getWidth(), framebuffer->getHeight());
+  gl::draw(background);
+
+  glEnable(GL_LIGHTING);
+
+  gl::disableDepthRead();
+  gl::disableDepthWrite();
+
+  framebuffer->unbindFramebuffer();
+
+}
+
+void TTrackApp::drawModelOnEye(boost::shared_ptr<gl::Fbo> framebuffer, boost::shared_ptr<ttrk::Model> mesh, const boost::shared_ptr<ttrk::MonocularCamera> cam){
+
+  framebuffer->bindFramebuffer();
+
+  gl::clear(Color(0, 0, 0));
+
   gl::enableDepthRead();
   gl::enableDepthWrite();
 
   cam->SetupCameraForDrawing(framebuffer->getWidth(), framebuffer->getHeight());
 
-  if (background.getWidth() > 0 && background.getHeight() > 0)
-    gl::draw(background);
-  
   mesh->Render();
 
   framebuffer->unbindFramebuffer();
@@ -93,21 +155,40 @@ void TTrackApp::draw(){
 
   gl::clear(ci::Color(0, 0, 0), true);
 
-  for (size_t i = 0; i < models_to_draw_.size(); ++i){
-    drawModelOnEye(left_external_framebuffer_, left_frame_texture_, models_to_draw_[i], camera_->left_eye());
-    drawModelOnEye(right_external_framebuffer_, right_frame_texture_, models_to_draw_[i], camera_->right_eye());
+  auto &ttrack = ttrk::TTrack::Instance();
+  if (ttrack.IsRunning()){
+
+    drawBackground(left_external_framebuffer_, left_frame_texture_, camera_->left_eye());
+    drawBackground(right_external_framebuffer_, right_frame_texture_, camera_->right_eye());
+
+    for (size_t i = 0; i < models_to_draw_.size(); ++i){
+      drawModelOnEye(left_external_framebuffer_, models_to_draw_[i], camera_->left_eye());
+      drawModelOnEye(right_external_framebuffer_, models_to_draw_[i], camera_->right_eye());
+    }
+
   }
-  
+
   gl::draw(left_external_framebuffer_->getTexture(), ci::Rectf(0.0f, (float)left_external_framebuffer_->getHeight(), (float)left_external_framebuffer_->getWidth(), 0.0f));
   gl::draw(right_external_framebuffer_->getTexture(), ci::Rectf((float)right_external_framebuffer_->getWidth(), (float)right_external_framebuffer_->getHeight(), 2.0f * (float)right_external_framebuffer_->getWidth(), 0.0f));
 
 
 }
 
+void TTrackApp::fileDrop(FileDropEvent f_event){
 
-void TTrackApp::keyDown( KeyEvent event ){
+  try{
+    for (size_t i = 0; i < f_event.getNumFiles(); ++i)
+      SetupFromConfig(f_event.getFile(i).string());
+  }
+  catch (std::runtime_error){
+    ci::app::console() << "Error loading from this config file\n";
+  }
 
-  if(event.getChar() == ' '){
+}
+
+void TTrackApp::keyDown(KeyEvent k_event){
+
+  if (k_event.getChar() == ' '){
 
     quit();
 
@@ -115,22 +196,22 @@ void TTrackApp::keyDown( KeyEvent event ){
   
 }
 
-void TTrackApp::mouseMove( MouseEvent event ){
+void TTrackApp::mouseMove(MouseEvent m_event){
   // keep track of the mouse
-  mouse_pos_ = event.getPos();
+  mouse_pos_ = m_event.getPos();
 }
 
-void TTrackApp::mouseDown( MouseEvent event ){	
+void TTrackApp::mouseDown(MouseEvent m_event){
   // let the camera handle the interaction
-  maya_cam_.mouseDown( event.getPos() );
+  maya_cam_.mouseDown(m_event.getPos());
 }
 
-void TTrackApp::mouseDrag( MouseEvent event ){
+void TTrackApp::mouseDrag(MouseEvent m_event){
   // keep track of the mouse
-  mouse_pos_ = event.getPos();
+  mouse_pos_ = m_event.getPos();
 
   // let the camera handle the interaction
-  maya_cam_.mouseDrag( event.getPos(), event.isLeftDown(), event.isMiddleDown(), event.isRightDown() );
+  maya_cam_.mouseDrag(m_event.getPos(), m_event.isLeftDown(), m_event.isMiddleDown(), m_event.isRightDown());
 }
 
 void TTrackApp::resize(){
@@ -138,8 +219,6 @@ void TTrackApp::resize(){
   cam.setAspectRatio( getWindowAspectRatio() );
   maya_cam_.setCurrentCam( cam );
 }
-
-
 
 CINDER_APP_NATIVE( TTrackApp, RendererGl )
 

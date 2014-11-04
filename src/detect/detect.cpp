@@ -26,10 +26,10 @@ Detect::Detect(const std::string &classifier_path, ClassifierType classifier_typ
 Detect::~Detect(){}
 
 void Detect::operator()(boost::shared_ptr<sv::Frame> image){
-  
+
   SetHandleToFrame(image);
   ClassifyFrame();
-  
+
 }
 
 void Detect::Run(boost::shared_ptr<sv::Frame> image){
@@ -45,16 +45,24 @@ void Detect::ClassifyFrame(){
   cv::Mat target = frame_->GetClassificationMap();
   cv::Mat left = target(cv::Rect(0, 0, target.cols / 2, target.rows));
   cv::Mat right = target(cv::Rect(target.cols / 2, 0, target.cols / 2, target.rows));
-  cv::Mat tmp = cv::imread("../data/lnd/left_classification.png", 0);
-  tmp.copyTo(left);
-  tmp = cv::imread("../data/lnd/right_classification.png", 0);
-  tmp.copyTo(right);
+
+  cv::Mat tmp = cv::imread("../data/lnd2/left.png", 0);
+  tmp.convertTo(tmp, CV_32FC1);
+  cv::flip(tmp, left, 0);
+  //tmp.copyTo(left);
+
+  tmp = cv::imread("../data/lnd2/right.png", 0);
+  tmp.convertTo(tmp,CV_32FC1);
+  cv::flip(tmp, right, 0);
+  //tmp.copyTo(right);
+
   
+
   return;
 
   assert(Loaded());
   assert(frame_->GetImageROI().type() == CV_8UC3);
-  
+
   cv::Mat whole_frame = frame_->GetImage();
   NDImage nd_image(whole_frame);
   const int rows = whole_frame.rows;
@@ -66,17 +74,17 @@ void Detect::ClassifyFrame(){
   size_t pixel_count = 0;
 
   //unsigned char *frame_data = (unsigned char *)frame_->PtrToClassificationMap()->data;
-  unsigned char *frame_data = (unsigned char *)frame_->GetClassificationMap().data;
+  float *frame_data = (float *)frame_->GetClassificationMap().data;
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
 
       const int index = r*cols + c;
-      
-      //cv::Mat pix = nd_image.GetPixelData(r,c);
-      
+
+      cv::Mat pix = nd_image.GetPixelData(r,c);
+
       //const unsigned char prediction = (unsigned char)255*classifier_->PredictClass(pix);
-      const unsigned char prediction = (unsigned char)1.0;// (255.0*classifier_->PredictProb(pix, 1));
-      
+      const float prediction = 255 * (const float)classifier_->PredictProb(pix, 1); //need to be between 0 - 255 for later processing stage
+
       frame_data[index] = prediction;
 
       pixel_count += prediction > 0;
@@ -92,8 +100,8 @@ void Detect::ClassifyFrame(){
 void Detect::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){
 
   //if the image is null then we must be at the last frame
-  if(image == 0x0) { 
-    found_ = false; 
+  if(image == 0x0) {
+    found_ = false;
     return;
   }
 
@@ -103,14 +111,14 @@ void Detect::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){
 
 }
 
-void Detect::ResetHandleToFrame(){  
+void Detect::ResetHandleToFrame(){
 
   frame_.reset();
 
 }
 
 void Detect::SetupClassifier(const ClassifierType type){
- 
+
   classifier_.reset();
 
   //construct the classifier from scratch
@@ -119,10 +127,10 @@ void Detect::SetupClassifier(const ClassifierType type){
     switch(type){
 
       case RF: classifier_ = boost::static_pointer_cast<BaseClassifier, RandomForest>(boost::shared_ptr<RandomForest>(new RandomForest)); break;
-      case SVM: classifier_ = boost::static_pointer_cast<BaseClassifier, SupportVectorMachine>(boost::shared_ptr<SupportVectorMachine>(new SupportVectorMachine )); break;    
+      case SVM: classifier_ = boost::static_pointer_cast<BaseClassifier, SupportVectorMachine>(boost::shared_ptr<SupportVectorMachine>(new SupportVectorMachine )); break;
       case NBAYES: throw("NBAYES not supported"); //NOT YET IMPLEMENTED!
       default: classifier_ = boost::static_pointer_cast<BaseClassifier, RandomForest>(boost::shared_ptr<RandomForest>(new RandomForest)); break;
-      
+
     }
 
   }catch(std::bad_alloc &e){
@@ -133,7 +141,7 @@ void Detect::SetupClassifier(const ClassifierType type){
 #if defined (DEBUG) || defined(_DEBUG_)
   assert(classifier_.get()); //check it actually points to something now
 #endif
-} 
+}
 
 void Detect::LoadClassifier(const std::string &classifier_path){
   if(!boost::filesystem::exists(classifier_path)) throw(std::runtime_error("Error, the classifier at: " + classifier_path + " does not exist. Exiting...\n"));

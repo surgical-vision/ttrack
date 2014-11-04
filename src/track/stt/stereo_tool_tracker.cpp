@@ -28,12 +28,9 @@ bool StereoToolTracker::Init() {
   std::vector<std::vector<cv::Vec2i> >connected_regions;
 
   if (!FindConnectedRegions(stereo_frame_->GetClassificationMapROI(), connected_regions)) {
-#ifdef SAVEDEBUG_1
-    std::cerr << "NO connected regions in the classification image found!\n";
-    cv::imwrite("./debug/bad_classification.png", frame_->GetImageROI());
-    cv::imwrite("./debug/bad_image.png", frame_->GetClassificationMapROI());
-#endif
+
     return false;
+
   }
 
   //for each connected region find the corresponding connected region in the other frame
@@ -72,10 +69,18 @@ cv::Vec2d StereoToolTracker::FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &
 
 void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3d &center_of_mass_3d, cv::Vec3d &central_axis_3d, boost::shared_ptr<MonocularCamera> camera, boost::shared_ptr<Model> tm) {
 
-  cv::Mat rot = (cv::Mat_<double>(3, 3) << -0.629972, -0.211834, -0.747169, -0.49922, 0.847433, 0.180655, -0.594908, 0.486809, -0.639611);
-  Pose p(sv::Quaternion(rot), ci::Vec3f(-16.3274f, 8.70154f, 85.1892f));
+  //cv::Mat rot = (cv::Mat_<double>(3, 3) << -0.629972, -0.211834, -0.747169, -0.49922, 0.847433, 0.180655, -0.594908, 0.486809, -0.639611);
+  //Pose p(sv::Quaternion(rot), ci::Vec3f(-16.3274f, 8.70154f, 85.1892f));
+
+  cv::Mat rot = (cv::Mat_<double>(3, 3) << -0.713394, 0.534849, -0.452776, 
+                                           -0.659542, -0.730794, 0.175912,
+                                           -0.2368, 0.424119, 0.874099);
+  Pose p(sv::Quaternion(rot), ci::Vec3f(6.83781f, -5.04529, 58.9899));
+
 
   tm->SetBasePose(p);
+
+  tm->UpdatePose(std::vector<float>({ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.754216f, 0.548696f, 0.0f, 0.523177f/2, -0.523177f/2,}));
 
   /*cv::Vec2d center_of_mass = FindCenterOfMassIn2D(connected_region);
 

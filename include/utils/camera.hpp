@@ -1,5 +1,8 @@
 #ifndef __CAMERA_HPP__
 #define __CAMERA_HPP__
+
+#include <cinder/gl/Light.h>
+
 #include "../headers.hpp"
 #include "../../deps/image/image/image.hpp"
 
@@ -40,8 +43,10 @@ namespace ttrk{
     */
     virtual ~MonocularCamera(){};
 
-    void SetGLProjectionMatrix() const;
-    void SetupCameraForDrawing(const int viewport_width, const int viewport_height) const;
+    
+    void SetupCameraForDrawing() const;
+
+    void ShutDownCameraAfterDrawing() const;
 
     cv::Mat GetUnprojectedImagePlane(const int width, const int height);
 
@@ -78,6 +83,8 @@ namespace ttrk{
 
   protected:
       
+    void SetGLProjectionMatrix() const;
+
     float fx_; /**< The camera focal length in units of horizontal pixel length. */
     float fy_; /**< The camera focal length in units of vertical pixel length. */
     float px_; /**< The camera horizontal principal point in units of horizontal pixel length. */
@@ -88,7 +95,12 @@ namespace ttrk{
     int image_height_; /**< The height of the image plane in pixels. */
 
     ci::Vec3f camera_center_; /**< The center of the camera with respect to the camera coordinate system (useful for offsetting a camera in stereo/trinocular rig). */
-    ci::Matrix33f rotation_; /**< The orientation of the camera with respect to the camera coordinate system (useful for offsetting a camera in stereo/trinocular rig). */
+    ci::Vec3f world_up_;
+    ci::Vec3f look_at_;
+   
+    ci::Matrix33f rotation_;
+
+    boost::shared_ptr<ci::gl::Light> light_; /**< Each camera has a ref to the scene light to shine on things. */
 
   private:
 
@@ -122,9 +134,7 @@ namespace ttrk{
     * @return The right eye of the camera.
     */
     boost::shared_ptr<MonocularCamera> right_eye() const { return right_eye_; }
-    
-    void SetupGLCameraFromLeft() const;
-    void SetupGLCameraFromRight() const;
+
 
     inline ci::Matrix33f ciExtrinsicRotation() const { return right_eye_->rotation_; }
     inline ci::Vec3f ciExtrinsicTranslation() const { return right_eye_->camera_center_; }

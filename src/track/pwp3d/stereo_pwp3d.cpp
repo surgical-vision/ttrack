@@ -9,6 +9,8 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
    
   frame_ = frame;
 
+  NUM_STEPS = 1;
+
   ////using namespace ceres;
   //// Build the problem.
   ////ceres::Problem problem;
@@ -40,6 +42,8 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
 
     ProcessSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), left_sdf_image, left_front_intersection, left_back_intersection);
     ProcessSDFAndIntersectionImage(current_model, stereo_camera_->right_eye(), right_sdf_image, right_front_intersection, right_back_intersection);
+
+    continue;
 
     cv::Mat dsdf_dx, dsdf_dy;
     cv::Scharr(left_sdf_image, dsdf_dx, CV_32FC1, 1, 0);

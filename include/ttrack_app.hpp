@@ -47,11 +47,13 @@ public:
 
 protected:
 
+  void drawEye(boost::shared_ptr<gl::Fbo> framebuffer, gl::Texture &background, const boost::shared_ptr<ttrk::MonocularCamera> cam);
+
   void SetupFromConfig(const std::string &path);
   
   void drawModelOnEye(boost::shared_ptr<gl::Fbo> framebuffer, const boost::shared_ptr<ttrk::Model> mesh, const boost::shared_ptr<ttrk::MonocularCamera> cam);
   
-  void drawBackground(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture &background, const boost::shared_ptr<ttrk::MonocularCamera> cam);
+  void drawBackground(gl::Texture &background);
   
   gl::GlslProg shader_;
  

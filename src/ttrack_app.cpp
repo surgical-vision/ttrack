@@ -43,7 +43,7 @@ void TTrackApp::SetupFromConfig(const std::string &path){
   }
 
   auto &ttrack = ttrk::TTrack::Instance();
-  ttrack.SetUp(root_dir + "/" + reader.get_element("trackable"), root_dir + "/" + reader.get_element("camera-config"), root_dir + "/" + reader.get_element("classifier-config"), reader.get_element("output-dir"), ttrk::TTrack::ClassifierFromString(reader.get_element("classifier-type")), root_dir + "/" + reader.get_element("left-video"), root_dir + "/" + reader.get_element("right-video"));
+  ttrack.SetUp(root_dir + "/" + reader.get_element("trackable"), root_dir + "/" + reader.get_element("camera-config"), root_dir + "/" + reader.get_element("classifier-config"), reader.get_element("output-dir"), ttrk::TTrack::ClassifierFromString(reader.get_element("classifier-type")), root_dir + "/" + reader.get_element("left-input-video"), root_dir + "/" + reader.get_element("right-input-video"));
 
   camera_.reset(new ttrk::StereoCamera(root_dir + "/" + reader.get_element("camera-config")));
 
@@ -76,6 +76,7 @@ void TTrackApp::setup(){
 
     const int default_width = 600, default_height = 500;
     setWindowSize(2*default_width, default_height);
+    
     left_external_framebuffer_.reset(new gl::Fbo(default_width, default_height));
     right_external_framebuffer_.reset(new gl::Fbo(default_width, default_height));
 
@@ -91,13 +92,13 @@ void TTrackApp::update(){
   auto &ttrack = ttrk::TTrack::Instance();
   if (!ttrack.IsRunning()) return;
 
+  models_to_draw_.clear();
   ttrack.GetUpdate(models_to_draw_);
 
   boost::shared_ptr<const sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<const sv::StereoFrame>(ttrack.GetPtrToCurrentFrame());
-  ci::ImageSourceRef img = ci::fromOcv(stereo_frame->GetLeftImage());
-  left_frame_texture_ = gl::Texture(img);
-  img = ci::fromOcv(stereo_frame->GetRightImage());
-  right_frame_texture_ = gl::Texture(img);
+
+  left_frame_texture_ = ci::fromOcv(stereo_frame->GetLeftImage());
+  right_frame_texture_ = ci::fromOcv(stereo_frame->GetRightImage());
 
 }
 
@@ -106,50 +107,75 @@ void TTrackApp::shutdown(){
   //_CrtMemDumpAllObjectsSince(0x0);
   //_CrtDumpMemoryLeaks();
   //system("pause");
+  
+  ttrk::TTrack::Destroy();
+
   cinder::app::AppNative::shutdown();
 
 }
 
-void TTrackApp::drawBackground(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture &background, const boost::shared_ptr<ttrk::MonocularCamera> cam){
-
-  framebuffer->bindFramebuffer();
-
-  gl::clear(Color(0, 0, 0));
+void TTrackApp::drawBackground(gl::Texture &background){
 
   if (!background || background.getWidth() == 0 || background.getHeight() == 0) return;
 
-  gl::disableDepthRead();
-  gl::disableDepthWrite();
+  GLint vp[4];
+  glGetIntegerv(GL_VIEWPORT, vp);
+  glViewport(0, 0, background.getWidth(), background.getHeight());
+  glScissor(0, 0, background.getWidth(), background.getHeight());
 
-  glDisable(GL_LIGHTING);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  cam->SetupCameraForDrawing(framebuffer->getWidth(), framebuffer->getHeight());
+  glMatrixMode(GL_PROJECTION);
+  glPushMatrix();
+  glLoadIdentity();
+  glOrtho(0, background.getWidth(), 0, background.getHeight(), 0, 1);
+
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+  glLoadIdentity();
+
+  glDisable(GL_DEPTH_TEST);
+
+  background.setFlipped(true);
+
   gl::draw(background);
 
-  glEnable(GL_LIGHTING);
+  glMatrixMode(GL_PROJECTION);
+  glPopMatrix();
+  glMatrixMode(GL_MODELVIEW);
+  glPopMatrix();
 
-  gl::disableDepthRead();
-  gl::disableDepthWrite();
-
-  framebuffer->unbindFramebuffer();
+  glViewport(vp[0], vp[1], vp[2], vp[3]);
 
 }
 
-void TTrackApp::drawModelOnEye(boost::shared_ptr<gl::Fbo> framebuffer, boost::shared_ptr<ttrk::Model> mesh, const boost::shared_ptr<ttrk::MonocularCamera> cam){
+void TTrackApp::drawEye(boost::shared_ptr<ci::gl::Fbo> framebuffer, ci::gl::Texture &background, const boost::shared_ptr<ttrk::MonocularCamera> cam){
 
   framebuffer->bindFramebuffer();
 
-  gl::clear(Color(0, 0, 0));
+  ci::gl::clear(Color(0, 0, 0));
 
-  gl::enableDepthRead();
-  gl::enableDepthWrite();
+  ci::gl::disableDepthRead();
 
-  cam->SetupCameraForDrawing(framebuffer->getWidth(), framebuffer->getHeight());
+  drawBackground(background);
 
-  mesh->Render();
+  ci::gl::enableDepthRead();
+  ci::gl::enableDepthWrite();
+  ci::gl::pushMatrices();
+
+  cam->SetupCameraForDrawing();
+
+  for (size_t i = 0; i < models_to_draw_.size(); ++i){
+    models_to_draw_[i]->Render();
+  }
+
+  cam->ShutDownCameraAfterDrawing();
+
+  ci::gl::popMatrices();
 
   framebuffer->unbindFramebuffer();
 }
+
 
 void TTrackApp::draw(){
 
@@ -158,15 +184,12 @@ void TTrackApp::draw(){
   auto &ttrack = ttrk::TTrack::Instance();
   if (ttrack.IsRunning()){
 
-    drawBackground(left_external_framebuffer_, left_frame_texture_, camera_->left_eye());
-    drawBackground(right_external_framebuffer_, right_frame_texture_, camera_->right_eye());
-
-    for (size_t i = 0; i < models_to_draw_.size(); ++i){
-      drawModelOnEye(left_external_framebuffer_, models_to_draw_[i], camera_->left_eye());
-      drawModelOnEye(right_external_framebuffer_, models_to_draw_[i], camera_->right_eye());
-    }
+    drawEye(left_external_framebuffer_, left_frame_texture_, camera_->left_eye());
+    drawEye(right_external_framebuffer_, right_frame_texture_, camera_->right_eye());
 
   }
+
+  glViewport(0, 0, 2 * camera_->left_eye()->Width(), camera_->left_eye()->Height());
 
   gl::draw(left_external_framebuffer_->getTexture(), ci::Rectf(0.0f, (float)left_external_framebuffer_->getHeight(), (float)left_external_framebuffer_->getWidth(), 0.0f));
   gl::draw(right_external_framebuffer_->getTexture(), ci::Rectf((float)right_external_framebuffer_->getWidth(), (float)right_external_framebuffer_->getHeight(), 2.0f * (float)right_external_framebuffer_->getWidth(), 0.0f));

@@ -1,7 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>--classifier_type=RF --classifier_file=../data/lnd/classifier/config.xml --stereo --left_video_file=../data/lnd/left.avi --right_video_file=../data/lnd/right.avi --model_file=../data/lnd/model/model.json --camera_calibration_file=../data/lnd/camera/config.xml results_dir ../debug </LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>z:/phd/ttrack/data/lnd2/app.cfg</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LocalDebuggerCommandArguments>Z:\phd\ttrack\data\lnd2\app.cfg</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

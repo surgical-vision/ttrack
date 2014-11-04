@@ -9,6 +9,8 @@
 
 using namespace ttrk;
 
+Node::~Node(){ }
+
 void Node::LoadMeshAndTexture(ci::JsonTree &tree, const std::string &root_dir){
 
   boost::filesystem::path obj_file = boost::filesystem::path(root_dir) / boost::filesystem::path(tree["obj-file"].getValue<std::string>());
@@ -31,12 +33,13 @@ void Node::Render(){
 
   ci::app::console() << "Rendering at transform = \n" << x << std::endl;
 
-  ci::gl::multModelView(GetRelativeTransform());
+  ci::gl::multModelView(x);
 
   glEnable(GL_COLOR_MATERIAL);
 
   if (model_.getNumVertices() != 0)
-    ci::gl::draw(vbo_);
+    ci::gl::draw(model_);
+    //ci::gl::draw(vbo_);
 
   glDisable(GL_COLOR_MATERIAL);
 
@@ -93,7 +96,7 @@ void DHNode::UpdatePose(std::vector<float>::iterator &updates){
 ci::Matrix44f DHNode::GetWorldTransform(const ci::Matrix44f &base_frame_transform) const {
   
   if (parent_ != 0x0){
-    DHNode::Ptr p = boost::dynamic_pointer_cast<DHNode>(parent_);
+    DHNode *p = dynamic_cast<DHNode *>(parent_);
     //return p->ComputeDHTransform() * ComputeDHTransform();
     return glhMultMatrixRight(p->GetWorldTransform(base_frame_transform), ComputeDHTransform());
   }
@@ -106,9 +109,9 @@ ci::Matrix44f DHNode::GetWorldTransform(const ci::Matrix44f &base_frame_transfor
 ci::Matrix44f DHNode::GetRelativeTransform() const {
 
   if (parent_ != 0x0){
-    DHNode::Ptr p = boost::dynamic_pointer_cast<DHNode>(parent_);
+    DHNode *p = dynamic_cast<DHNode *>(parent_);
     //return p->ComputeDHTransform() * ComputeDHTransform();
-    return glhMultMatrixRight(p->GetRelativeTransform(), ComputeDHTransform());
+    return glhMultMatrixRight(ComputeDHTransform(), p->GetRelativeTransform());
   }
   else{
     ci::Matrix44f m;
@@ -118,10 +121,10 @@ ci::Matrix44f DHNode::GetRelativeTransform() const {
 
 }
 
-void DHNode::LoadData(ci::JsonTree &tree, Node::Ptr parent, const std::string &root_dir){
+void DHNode::LoadData(ci::JsonTree &tree, Node *parent, const std::string &root_dir){
 
   if (parent != 0x0){
-    parent_ = boost::dynamic_pointer_cast<DHNode>(parent);
+    parent_ = dynamic_cast<DHNode *>(parent);
   }
   else{
     parent_ = 0x0;
@@ -151,39 +154,64 @@ void DHNode::LoadData(ci::JsonTree &tree, Node::Ptr parent, const std::string &r
       type_ = Fixed;
     else
       throw std::runtime_error("Error, bad value in JSON file.");
+
+    alt_axis_ = ci::Vec3f(0, 0, 0);
+
   }
   catch (ci::JsonTree::Exception &){
+
+    try{
+
+      ci::JsonTree rotate_axis = tree.getChild("rotate");
+      alt_axis_[0] = rotate_axis[0].getValue<float>();
+      alt_axis_[1] = rotate_axis[1].getValue<float>();
+      alt_axis_[2] = rotate_axis[2].getValue<float>();
+      type_ = Alternative;
+
+    }
+    catch (ci::JsonTree::Exception &){
+
+      type_ = Fixed;
+
+    }
 
     //should just give the identity transform for this node (useful e.g. for the root node).
     alpha_ = (float)M_PI / 2;
     theta_ = (float)M_PI / 2;
     a_ = 0.0f;
     d_ = 0.0f;
-    type_ = Fixed;
+    
 
   }
 
   ci::JsonTree children = tree.getChild("children");
   for (size_t i = 0; i < children.getChildren().size(); ++i){
     Node::Ptr n(new DHNode);
-    n->LoadData(children[i], DHNode::Ptr(this), root_dir);
+    n->LoadData(children[i], this, root_dir);
     AddChild(n);
   }
 
 }
 
+void DHNode::createFixedTransform(const ci::Vec3f &axis, const float rads, ci::Matrix44f &output) const {
+
+  output = ci::Matrix44f::createRotation(axis, rads);
+
+}
 
 ci::Matrix44f DHNode::ComputeDHTransform() const {
   
   ci::Matrix44f DH;
   DH.setToIdentity();
   
-  if (type_ == Rotation)
+  if (type_ == Translation)
     glhDenavitHartenberg(a_, alpha_, d_ + update_, theta_, DH.m);
-  else if (type_ == Translation)
+  else if (type_ == Rotation)
     glhDenavitHartenberg(a_, alpha_, d_, theta_ + update_, DH.m);
-  else
+  else if (type_ == Fixed)
     glhDenavitHartenberg(a_, alpha_, d_, theta_, DH.m);
+  else if (type_ == Alternative)
+    createFixedTransform(alt_axis_, update_, DH);
 
   return DH;
 

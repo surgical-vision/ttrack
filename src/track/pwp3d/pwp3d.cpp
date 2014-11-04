@@ -108,7 +108,7 @@ bool PWP3D::FindClosestIntersection(const float *sdf_im, const int r, const int 
 
 float PWP3D::GetRegionAgreement(const int r, const int c, const float sdf) {
   
-  const float pixel_probability = (float)frame_->GetClassificationMapROI().at<unsigned char>(r,c)/255.0f;
+  const float pixel_probability = frame_->GetClassificationMapROI().at<float>(r,c);
   const float heaviside_value = HeavisideFunction(sdf);
     
   return (2.0f*pixel_probability - 1.0f)/(heaviside_value*pixel_probability + (1.0f-heaviside_value)*(1.0f-pixel_probability));
@@ -171,33 +171,31 @@ void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, c
 
   //setup camera/transform/matrices etc
   ci::gl::pushMatrices();
-  camera->SetupCameraForDrawing(front_depth_framebuffer_.getWidth(), front_depth_framebuffer_.getHeight());
+
+  camera->SetupCameraForDrawing();
 
   ci::gl::enableDepthWrite();
   ci::gl::enableDepthRead();
+  glDisable(GL_LIGHTING);
 
-  // Render front depth 
+  //// Render front depth 
   front_depth_framebuffer_.bindFramebuffer();
-  glViewport(0, 0, front_depth_framebuffer_.getWidth(), front_depth_framebuffer_.getHeight());
-  glScissor(0, 0, front_depth_framebuffer_.getWidth(), front_depth_framebuffer_.getHeight());
   glClearColor((float)GL_FAR, (float)GL_FAR, (float)GL_FAR, (float)GL_FAR);
 
   glClearDepth(1.0f);
   glDepthFunc(GL_LESS);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  //bind the front depth shader and render
+  ////bind the front depth shader and render
   front_depth_.bind();
   mesh->Render();
   front_depth_.unbind();
-  
+ 
   front_depth_framebuffer_.unbindFramebuffer();
   glFinish();
 
-  // Render back depth + contour 
+  //// Render back depth + contour 
   back_depth_framebuffer_.bindFramebuffer();
-  glViewport(0, 0, back_depth_framebuffer_.getWidth(), back_depth_framebuffer_.getHeight());
-  glScissor(0, 0, back_depth_framebuffer_.getWidth(), back_depth_framebuffer_.getHeight());
   glClearColor((float)GL_FAR, (float)GL_FAR, (float)GL_FAR, (float)GL_FAR);
 
   glClearDepth(0.0f);
@@ -212,11 +210,9 @@ void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, c
   ci::gl::Texture tex_fd = front_depth_framebuffer_.getTexture(0);
   tex_fd.enableAndBind();
   back_depth_and_contour_.uniform("tex_fd", 0); //bind it to the current texture
-   
   mesh->Render();
-
+  tex_fd.disable();
   tex_fd.unbind();
-  
   back_depth_and_contour_.unbind();
 
   back_depth_framebuffer_.unbindFramebuffer();
@@ -225,9 +221,12 @@ void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, c
   glClearDepth(1.0f);
   glDepthFunc(GL_LESS);
 
-  glPopMatrix();
   //neccessary to get the results NOW.
   glFinish();
+
+  ci::gl::popMatrices();
+
+  camera->ShutDownCameraAfterDrawing();
 
   front_depth = ci::toOcv(front_depth_framebuffer_.getTexture());
   back_depth = ci::toOcv(back_depth_framebuffer_.getTexture(0));

@@ -114,35 +114,33 @@ cv::Point3d MonocularCamera::UnProjectPoint(const cv::Point2i &point) const {
 
 }
 
-void MonocularCamera::SetupCameraForDrawing(const int viewport_width, const int viewport_height) const {
-  
-  glViewport(0, 0, viewport_width, viewport_height);
+void MonocularCamera::ShutDownCameraAfterDrawing() const {
+
+  light_->disable();
+  glDisable(GL_LIGHTING);
+
+}
+
+void MonocularCamera::SetupCameraForDrawing() const {
+
+  //glViewport(0, 0, image_width_, image_height_);
 
   ci::CameraPersp camP;
 
-  ci::Vec3f eye_point(0, 0, 0);
-  ci::Vec3f view_direction(0, 0, -1);
-  ci::Vec3f world_up(0, 1, 0);
-
-  view_direction = rotation_ * view_direction;
-  world_up = rotation_ * world_up;
-
   camP.setEyePoint(camera_center_);
-  camP.setViewDirection(view_direction);
-  camP.setWorldUp(world_up);
+  camP.setViewDirection(look_at_);
+  camP.setWorldUp(world_up_);
 
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-  glMultMatrixf(camP.getModelViewMatrix().m);
-
-  //ci::CameraPersp cam;
-  //cam.setEyePoint(ci::Vec3f(0, 0, 0));
-  //cam.setViewDirection(ci::Vec3f(0, 0, -1));
-  //cam.setWorldUp(ci::Vec3f(0, 1, 0));
- 
+  ci::gl::setMatrices(camP);
   //glMatrixMode(GL_MODELVIEW);
   //glLoadIdentity();
-  //glMultMatrixf(cam.getModelViewMatrix().m);
+  //glMultMatrixf(camP.getModelViewMatrix().m);
+
+  glEnable(GL_LIGHTING);
+
+  light_->setPosition(camera_center_);
+  light_->lookAt(camera_center_, look_at_);
+  light_->enable();
 
   SetGLProjectionMatrix();
 
@@ -150,14 +148,12 @@ void MonocularCamera::SetupCameraForDrawing(const int viewport_width, const int 
 
 void MonocularCamera::SetGLProjectionMatrix() const {
 
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
+  glViewport(0, 0, image_width_, image_height_);
 
   const int near_clip_distance = GL_NEAR;
   const int far_clip_distance = GL_FAR;
 
   ci::Matrix44f gl_projection_matrix_;
-
 
   gl_projection_matrix_.setToNull();
   gl_projection_matrix_.m00 = fx_;
@@ -168,7 +164,9 @@ void MonocularCamera::SetGLProjectionMatrix() const {
   gl_projection_matrix_.m23 = (float)(near_clip_distance * far_clip_distance);
   gl_projection_matrix_.m32 = -1;
 
-  glOrtho(0, image_width_, 0, image_height_, GL_NEAR, GL_FAR);
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glOrtho(0, image_width_, 0, image_height_, near_clip_distance, far_clip_distance);
   glMultMatrixf(gl_projection_matrix_.m);
 
 }
@@ -218,15 +216,28 @@ StereoCamera::StereoCamera(const std::string &calibration_filename) {
    
     fs["Extrinsic_Camera_Translation"] >> translation;
 
-    for(int r=0;r<3;r++){
-      for(int c=0;c<3;c++){
-        right_eye_->rotation_.at(r, c) = (float)rotation.at<double>(r, c);
+    rotation = rotation.inv();
+    translation = -1 * translation;
+
+    for (int r = 0; r < 3; ++r){
+      for (int c = 0; c < 3; ++c){
+        right_eye_->rotation_.at(r, c) = rotation.at<double>(r, c);
       }
-      right_eye_->camera_center_[r] = (float)translation.at<double>(r, 0);
     }
 
-    left_eye_->rotation_.setToIdentity();
     left_eye_->camera_center_ = ci::Vec3f(0, 0, 0);
+    left_eye_->look_at_ = ci::Vec3f(0, 0, 1);
+    left_eye_->world_up_ = ci::Vec3f(0, 0, -1);
+
+    right_eye_->camera_center_ = ci::Vec3f(translation.at<double>(0, 0), translation.at<double>(1, 0), translation.at<double>(2, 0));
+    right_eye_->look_at_ = right_eye_->rotation_ * left_eye_->look_at_;
+    right_eye_->world_up_ = right_eye_->rotation_ * left_eye_->world_up_;
+
+    left_eye_->light_.reset(new ci::gl::Light(ci::gl::Light::DIRECTIONAL,0));
+    left_eye_->light_->setPosition(left_eye_->camera_center_);
+    left_eye_->light_->lookAt(left_eye_->camera_center_, left_eye_->camera_center_ + left_eye_->look_at_);
+    
+    right_eye_->light_ = left_eye_->light_;
 
   }catch(cv::Exception& e){
 
@@ -234,51 +245,6 @@ StereoCamera::StereoCamera(const std::string &calibration_filename) {
     SAFE_EXIT();
 
   }
-
-}
-
-
-void StereoCamera::SetupGLCameraFromRight() const{
-
-  right_eye_->SetGLProjectionMatrix();
-
-  ci::CameraPersp camP;
-
-  ci::Vec3f eye_point(0, 0, 0);
-  ci::Vec3f view_direction(0, 0, 1);
-  ci::Vec3f world_up(0, -1, 0);
-
-  view_direction = ciExtrinsicRotation() * view_direction;
-  world_up = ciExtrinsicRotation() * world_up;
-
-  camP.setEyePoint(ci::Vec3f(ciExtrinsicTranslation()));
-  camP.setViewDirection(view_direction);
-  camP.setWorldUp(world_up);
-
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  glMultMatrixf(camP.getModelViewMatrix().m);
-
-
-}
-
-void StereoCamera::SetupGLCameraFromLeft() const{
-
-  left_eye_->SetGLProjectionMatrix();
-
-  ci::CameraPersp camP;
-
-  ci::Vec3f eye_point(0, 0, 0);
-  ci::Vec3f view_direction(0, 0, 1);
-  ci::Vec3f world_up(0, -1, 0);
-
-  camP.setEyePoint(eye_point);
-  camP.setViewDirection(view_direction);
-  camP.setWorldUp(world_up);
-
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  glMultMatrixf(camP.getModelViewMatrix().m);
 
 }
 

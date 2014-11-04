@@ -22,13 +22,15 @@ namespace ttrk {
     */
     typedef boost::shared_ptr<Node> Ptr;
     
+    virtual ~Node();
+
     /**
     * Pure virtual function for loading the data. Overwritten in the implementations of Node to handle different loading types.
     * @param[in] tree The JSON tree that we will parse to get the files and the children.
     * @param[in] parent The parent of this node.
     * @param[in] root_dir The root directory where the files are stored.
     */
-    virtual void LoadData(ci::JsonTree &tree, Node::Ptr parent, const std::string &root_dir) = 0;
+    virtual void LoadData(ci::JsonTree &tree, Node *parent, const std::string &root_dir) = 0;
     
     /**
     * Get the transform between the world coordinate system and this node.
@@ -68,8 +70,10 @@ namespace ttrk {
     */
     virtual void UpdatePose(std::vector<float>::iterator &updates) = 0;
 
-    Node::Ptr GetParent() { return parent_; }
+    Node *GetParent() { return parent_; }
+    
     std::vector< Node::Ptr> GetChildren() { return children_; }
+    
     Node::Ptr GetChildByIdx(std::size_t &curr_idx, const std::size_t target_idx);
 
   protected:
@@ -81,7 +85,7 @@ namespace ttrk {
     */
     void LoadMeshAndTexture(ci::JsonTree &tree, const std::string &root_dir);
 
-    Node::Ptr parent_; /**< This node's parent. */
+    Node *parent_; /**< This node's parent. We can use a raw pointer here at it has no ownership. */
     std::vector< Node::Ptr > children_; /**< This node's children. */
 
     ci::TriMesh model_; /**< The 3D mesh that the model represents. */
@@ -110,7 +114,7 @@ namespace ttrk {
     * @param[in] parent The parent of this node.
     * @param[in] root_dir The root directory where the files are stored.
     */
-    virtual void LoadData(ci::JsonTree &tree, Node::Ptr parent, const std::string &root_dir);
+    virtual void LoadData(ci::JsonTree &tree, Node *parent, const std::string &root_dir);
 
     /**
     * Get the transform between the world coordinate system and this node using the DH transform.
@@ -135,7 +139,9 @@ namespace ttrk {
 
     ci::Matrix44f ComputeDHTransform() const;
 
-    enum JointType { Rotation, Translation, Fixed };
+    void createFixedTransform(const ci::Vec3f &axis, const float rads, ci::Matrix44f &output) const;
+
+    enum JointType { Rotation, Translation, Fixed, Alternative };
 
     JointType type_; /**< The joint type of the DH element. Dictates whether the update is applied to d or @theta. */
     float alpha_; /**< @alpha in the DH parameter set. Angle about the common normal between links. */
@@ -143,6 +149,8 @@ namespace ttrk {
     float a_; /**< a in the DH parameter set. Length of the common normal. */
     float d_; /**< d in the DH parameter set. Offset along previous joint axis to the common normal. */
     float update_; /**< The update to the DH set to compute the transformation. */
+
+    ci::Vec3f alt_axis_;
 
   };
 

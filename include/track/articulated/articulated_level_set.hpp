@@ -18,6 +18,12 @@ namespace ttrk {
 
     std::vector<StereoPWP3D> component_trackers_; /**< A selection of trackers each of which compute the level sets for each articulated component. */
     
+    struct ComponentData {
+
+
+
+    };
+
   };
 
 

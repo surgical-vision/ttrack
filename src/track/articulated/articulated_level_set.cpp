@@ -2,6 +2,13 @@
 
 using namespace ttrk;
 
+
+void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame){
+
+
+
+}
+
 void ArticulatedLevelSet::ProcessArticulatedSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &sdf_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image){
 
   //generate each signed distance function for each component - this allows us to know which component of the articulated model
@@ -11,8 +18,9 @@ void ArticulatedLevelSet::ProcessArticulatedSDFAndIntersectionImage(const boost:
 
   //  Model &m = mesh->
 
-
   //}
+
+
 
 
 }

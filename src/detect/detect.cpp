@@ -48,13 +48,13 @@ void Detect::ClassifyFrame(){
 
   cv::Mat tmp = cv::imread("../data/lnd2/left.png", 0);
   tmp.convertTo(tmp, CV_32FC1);
-  cv::flip(tmp, left, 0);
-  //tmp.copyTo(left);
+  //cv::flip(tmp, left, 0);
+  tmp.copyTo(left);
 
   tmp = cv::imread("../data/lnd2/right.png", 0);
   tmp.convertTo(tmp,CV_32FC1);
-  cv::flip(tmp, right, 0);
-  //tmp.copyTo(right);
+  //cv::flip(tmp, right, 0);
+  tmp.copyTo(right);
 
   
 

@@ -228,11 +228,20 @@ void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, c
 
   camera->ShutDownCameraAfterDrawing();
 
-  front_depth = ci::toOcv(front_depth_framebuffer_.getTexture());
-  back_depth = ci::toOcv(back_depth_framebuffer_.getTexture(0));
+  front_depth_framebuffer_.getTexture();
+  back_depth_framebuffer_.getTexture();
+  back_depth_framebuffer_.getTexture(1);
+
+  cv::Mat front_depth_flipped = ci::toOcv(front_depth_framebuffer_.getTexture());
+  cv::Mat back_depth_flipped = ci::toOcv(back_depth_framebuffer_.getTexture(0));
   cv::Mat mcontour = ci::toOcv(back_depth_framebuffer_.getTexture(1));
+  cv::Mat fmcontour;
+  cv::flip(front_depth_flipped, front_depth, 0);
+  cv::flip(back_depth_flipped, back_depth, 0);
+  cv::flip(mcontour, fmcontour, 0);
+
   contour = cv::Mat(mcontour.size(), CV_8UC1);
-  float *src = (float *)mcontour.data;
+  float *src = (float *)fmcontour.data;
   unsigned char *dst = (unsigned char*)contour.data;
 
   for (int r = 0; r < mcontour.rows; ++r){

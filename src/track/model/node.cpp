@@ -27,23 +27,21 @@ void Node::LoadMeshAndTexture(ci::JsonTree &tree, const std::string &root_dir){
 
 void Node::Render(){
   
-  ci::gl::pushModelView();
+  if (drawing_flag_){
 
-  auto x = GetRelativeTransform();
+    ci::gl::pushModelView();
 
-  ci::app::console() << "Rendering at transform = \n" << x << std::endl;
+    ci::gl::multModelView(GetRelativeTransform());
 
-  ci::gl::multModelView(x);
+    glEnable(GL_COLOR_MATERIAL);
 
-  glEnable(GL_COLOR_MATERIAL);
+    if (model_.getNumVertices() != 0)
+      ci::gl::draw(vbo_);
 
-  if (model_.getNumVertices() != 0)
-    ci::gl::draw(model_);
-    //ci::gl::draw(vbo_);
+    glDisable(GL_COLOR_MATERIAL);
 
-  glDisable(GL_COLOR_MATERIAL);
-
-  ci::gl::popModelView();
+    ci::gl::popModelView();
+  }
 
   for (size_t i = 0; i < children_.size(); ++i){
     children_[i]->Render();
@@ -51,14 +49,17 @@ void Node::Render(){
 
 }
 
+
+
 Node::Ptr Node::GetChildByIdx(std::size_t &curr_idx, const std::size_t target_idx){
 
   if (curr_idx == target_idx) return boost::shared_ptr<Node>(this);
+  
+  curr_idx++;
 
   for (size_t i = 0; i < children_.size(); ++i){
     Node::Ptr c = children_[i]->GetChildByIdx(curr_idx, target_idx);
     if (c != nullptr) return c;
-    curr_idx++;
   }
 
   return Node::Ptr(nullptr);
@@ -70,6 +71,14 @@ void Node::ComputeJacobianForPoint(const ci::Vec3f &point, std::vector<ci::Vec3f
 
   //the node with null parent is the root node so it's pose is basically just the base pose.
   if (parent_ != nullptr){
+
+    //derivative of transform k = 
+    //T_1 = transform from frame which point resides to parent of this frame (i.e. closest frame to point)
+    //T_2 = transform from parent of this frame to this frame
+    //T_3 = transfrom from this frame to origin - with GetRelativeTransform
+    
+
+
     jacobian.push_back(ci::Vec3f(0.0f, 0.0f, 0.0f)); //just for testing
   }
 
@@ -198,6 +207,29 @@ void DHNode::createFixedTransform(const ci::Vec3f &axis, const float rads, ci::M
   output = ci::Matrix44f::createRotation(axis, rads);
 
 }
+
+
+ci::Matrix44f DHNode::GetTransformBetweenNodes(const Node *from, const Node *to){
+
+  //reached the last coordinate system in the chain.
+  if (from == this){
+    return ComputeDHTransform();
+  }
+  if (parent_ != 0x0){
+    DHNode *p = dynamic_cast<DHNode *>(parent_);
+
+    return glhMultMatrixRight(ComputeDHTransform(), p->GetRelativeTransform());
+  }
+  else{
+    ci::Matrix44f m;
+    m.setToIdentity();
+    return m;// ComputeDHTransform();
+  }
+
+
+
+}
+
 
 ci::Matrix44f DHNode::ComputeDHTransform() const {
   

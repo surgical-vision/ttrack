@@ -20,7 +20,7 @@ namespace ttrk {
   */
   class PWP3D : public Localizer {
     
-  protected:
+  public:
 
     /**
     * Default constructor. Sets up internal framebuffers etc.

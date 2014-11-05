@@ -17,6 +17,8 @@ namespace ttrk {
 
   public:
     
+    Node() : drawing_flag_(true) {}
+
     /**
     * @typedef Get a pointer to this type.
     */
@@ -76,6 +78,12 @@ namespace ttrk {
     
     Node::Ptr GetChildByIdx(std::size_t &curr_idx, const std::size_t target_idx);
 
+    virtual ci::Matrix44f GetTransformBetweenNodes(const Node *from, const Node *to) = 0;
+
+    void SetDraw(const bool draw_on) { drawing_flag_ = draw_on; }
+
+    bool HasMesh() const { return model_.getNumVertices() > 0; }
+
   protected:
 
     /**
@@ -91,6 +99,8 @@ namespace ttrk {
     ci::TriMesh model_; /**< The 3D mesh that the model represents. */
     ci::gl::VboMesh	vbo_; /**< VBO to store the model for faster drawing. */
     ci::gl::Texture texture_; /**< The texture for the model. */
+
+    bool drawing_flag_; /**< Switch on to enable drawing of this component. */
 
   };
 
@@ -135,8 +145,19 @@ namespace ttrk {
     */
     virtual void UpdatePose(std::vector<float>::iterator &updates);
 
+    /**
+    * Get the transform from the first coordinate system to the next one
+    *
+    */
+    virtual ci::Matrix44f GetTransformBetweenNodes(const Node *from, const Node *to);
+
+
   protected:
 
+    /**
+    * Compute the rigid transform from this coordinate system to the next one using the DH parameters.
+    * @return The 4x4 transform.
+    */
     ci::Matrix44f ComputeDHTransform() const;
 
     void createFixedTransform(const ci::Vec3f &axis, const float rads, ci::Matrix44f &output) const;

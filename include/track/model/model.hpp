@@ -95,6 +95,7 @@ namespace ttrk{
     */
     std::vector<ci::Vec3f> ComputeJacobian(const cv::Vec3f &point) const { return ComputeJacobian(ci::Vec3f(point[0], point[1], point[2])); }
 
+    Node::Ptr GetModel() { return model_; } //will remove this?
 
   protected:
 

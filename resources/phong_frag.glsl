@@ -20,7 +20,7 @@ void main()
 	vec4 Iamb = ambient;    
 
 	// diffuse term
-	vec4 Idiff = texture2D( tex0, gl_TexCoord[0].st) * diffuse; 
+	vec4 Idiff = diffuse; 
 	Idiff *= max(dot(N,L), 0.0);
 	Idiff = clamp(Idiff, 0.0, 1.0);     
 
@@ -30,5 +30,6 @@ void main()
 	Ispec = clamp(Ispec, 0.0, 1.0); 
 
 	// final color 
-	gl_FragColor = Iamb + Idiff + Ispec;	
+	//(Iamb + Idiff + Ispec) * 
+	gl_FragColor = texture2D( tex0, gl_TexCoord[0].st) ;
 }

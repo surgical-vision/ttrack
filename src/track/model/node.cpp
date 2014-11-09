@@ -2,6 +2,7 @@
 #include <cinder/gl/Texture.h>
 #include <cinder/app/App.h>
 #include <cinder/gl/Light.h>
+#include <cinder/ImageIo.h>
 
 #include "../../../include/track/model/node.hpp"
 #include "../../../include/track/model/dh_helpers.hpp"
@@ -19,46 +20,58 @@ void Node::LoadMeshAndTexture(ci::JsonTree &tree, const std::string &root_dir){
   boost::filesystem::path mat_file = boost::filesystem::path(root_dir) / boost::filesystem::path(tree["mtl-file"].getValue<std::string>());
   if (!boost::filesystem::exists(mat_file)) throw(std::runtime_error("Error, the file doesn't exist!\n"));
 
-  ci::ObjLoader loader(ci::loadFile(obj_file.string()), ci::loadFile(mat_file.string()));
-  loader.load(&model_, true, false, false);
+  boost::filesystem::path texture_file = boost::filesystem::path(root_dir) / boost::filesystem::path(tree["tex-file"].getValue<std::string>());
+  if (!boost::filesystem::exists(texture_file)) throw(std::runtime_error("Error, the file doesn't exist!\n"));
+
+  ci::ObjLoader loader(ci::loadFile(obj_file.string()), ci::loadFile(mat_file.string()), true);
+  loader.load(&model_, true, true, false);
+
+  texture_ = ci::gl::Texture( ci::loadImage( texture_file.string() ));
+
   vbo_ = ci::gl::VboMesh(model_);
 
 }
 
-void Node::Render(){
+void Node::Render(bool bind_texture){
   
   if (drawing_flag_){
 
     ci::gl::pushModelView();
 
-    ci::gl::multModelView(GetRelativeTransform());
+    ci::gl::multModelView(GetRelativeTransformToRoot()); 
 
-    glEnable(GL_COLOR_MATERIAL);
+    if (bind_texture && texture_)
+      texture_.enableAndBind();
+    else
+      glEnable(GL_COLOR_MATERIAL);
 
     if (model_.getNumVertices() != 0)
       ci::gl::draw(vbo_);
 
-    glDisable(GL_COLOR_MATERIAL);
+    if (bind_texture && texture_){
+      texture_.disable();
+      texture_.unbind();
+    }
+    else{
+      glDisable(GL_COLOR_MATERIAL);
+    }
+
 
     ci::gl::popModelView();
   }
 
   for (size_t i = 0; i < children_.size(); ++i){
-    children_[i]->Render();
+    children_[i]->Render(bind_texture);
   }
 
 }
 
+Node::Ptr Node::GetChildByIdx(const std::size_t target_idx){
 
-
-Node::Ptr Node::GetChildByIdx(std::size_t &curr_idx, const std::size_t target_idx){
-
-  if (curr_idx == target_idx) return boost::shared_ptr<Node>(this);
-  
-  curr_idx++;
+  if (idx_ == target_idx) return boost::shared_ptr<Node>(this);
 
   for (size_t i = 0; i < children_.size(); ++i){
-    Node::Ptr c = children_[i]->GetChildByIdx(curr_idx, target_idx);
+    Node::Ptr c = children_[i]->GetChildByIdx(target_idx);
     if (c != nullptr) return c;
   }
 
@@ -66,24 +79,47 @@ Node::Ptr Node::GetChildByIdx(std::size_t &curr_idx, const std::size_t target_id
 
 }
 
+Node::ConstPtr Node::GetChildByIdx(const std::size_t target_idx) const{
 
-void Node::ComputeJacobianForPoint(const ci::Vec3f &point, std::vector<ci::Vec3f> &jacobian){
+  if (idx_ == target_idx) return Node::ConstPtr(this);
+
+  for (size_t i = 0; i < children_.size(); ++i){
+    Node::ConstPtr c = children_[i]->GetChildByIdx(target_idx);
+    if (c != nullptr) return c;
+  }
+
+  return Node::ConstPtr(nullptr);
+
+}
+
+void Node::ComputeJacobianForPoint(const ci::Vec3f &point, const int target_frame_index, std::vector<ci::Vec3f> &jacobian) const {
+
+  //point should be in the reference frame of the camera
 
   //the node with null parent is the root node so it's pose is basically just the base pose.
   if (parent_ != nullptr){
 
     //derivative of transform k = 
     //T_1 = transform from frame which point resides to parent of this frame (i.e. closest frame to point)
-    //T_2 = transform from parent of this frame to this frame
+    //z = rotation axis of point
     //T_3 = transfrom from this frame to origin - with GetRelativeTransform
     
+    ci::Matrix44f T_1 = GetRelativeTransformToChild(target_frame_index);
 
+    ci::Vec4f z(GetAxis(),1);
 
-    jacobian.push_back(ci::Vec3f(0.0f, 0.0f, 0.0f)); //just for testing
+    ci::Matrix44f T_3 = GetRelativeTransformToRoot();
+
+    ci::Vec4f end = T_3 * ci::Vec4f(point, 1);
+
+    ci::Vec4f jac = T_1 * (z.cross(end));
+
+    jacobian.push_back(ci::Vec3f(jac[0], jac[1], jac[2])); 
+
   }
 
   for (size_t i = 0; i < children_.size(); ++i){
-    children_[i]->ComputeJacobianForPoint(point, jacobian);
+    children_[i]->ComputeJacobianForPoint(point, target_frame_index, jacobian);
   }
 
 }
@@ -102,12 +138,19 @@ void DHNode::UpdatePose(std::vector<float>::iterator &updates){
 
 }
 
+ci::Matrix44f DHNode::GetRelativeTransformToChild(const int child_idx) const{
+
+  Node::ConstPtr child = GetChildByIdx(child_idx);
+  return GetTransformBetweenNodes(child.get(), this);
+
+}
+
 ci::Matrix44f DHNode::GetWorldTransform(const ci::Matrix44f &base_frame_transform) const {
   
   if (parent_ != 0x0){
     DHNode *p = dynamic_cast<DHNode *>(parent_);
     //return p->ComputeDHTransform() * ComputeDHTransform();
-    return glhMultMatrixRight(p->GetWorldTransform(base_frame_transform), ComputeDHTransform());
+    return glhMultMatrixRight(ComputeDHTransform(), p->GetWorldTransform(base_frame_transform));
   }
   else{ 
     return base_frame_transform;
@@ -115,12 +158,12 @@ ci::Matrix44f DHNode::GetWorldTransform(const ci::Matrix44f &base_frame_transfor
 
 }
 
-ci::Matrix44f DHNode::GetRelativeTransform() const {
+ci::Matrix44f DHNode::GetRelativeTransformToRoot() const {
 
   if (parent_ != 0x0){
     DHNode *p = dynamic_cast<DHNode *>(parent_);
     //return p->ComputeDHTransform() * ComputeDHTransform();
-    return glhMultMatrixRight(ComputeDHTransform(), p->GetRelativeTransform());
+    return glhMultMatrixRight(ComputeDHTransform(), p->GetRelativeTransformToRoot());
   }
   else{
     ci::Matrix44f m;
@@ -130,8 +173,13 @@ ci::Matrix44f DHNode::GetRelativeTransform() const {
 
 }
 
-void DHNode::LoadData(ci::JsonTree &tree, Node *parent, const std::string &root_dir){
+void DHNode::LoadData(ci::JsonTree &tree, Node *parent, const std::string &root_dir, size_t &idx){
+  
+  //set and increase the index
+  idx_ = idx;
+  idx++;
 
+  //set the parent
   if (parent != 0x0){
     parent_ = dynamic_cast<DHNode *>(parent);
   }
@@ -139,6 +187,7 @@ void DHNode::LoadData(ci::JsonTree &tree, Node *parent, const std::string &root_
     parent_ = 0x0;
   }
 
+  //load the visual data (texture, vertices etc)
   try{
     LoadMeshAndTexture(tree, root_dir);
   }
@@ -148,6 +197,7 @@ void DHNode::LoadData(ci::JsonTree &tree, Node *parent, const std::string &root_
 
   update_ = 0.0;
 
+  //set up the dh param stuff
   try{
     
     alpha_ = tree["dh"]["alpha"].getValue<float>();
@@ -196,7 +246,7 @@ void DHNode::LoadData(ci::JsonTree &tree, Node *parent, const std::string &root_
   ci::JsonTree children = tree.getChild("children");
   for (size_t i = 0; i < children.getChildren().size(); ++i){
     Node::Ptr n(new DHNode);
-    n->LoadData(children[i], this, root_dir);
+    n->LoadData(children[i], this, root_dir, idx);
     AddChild(n);
   }
 
@@ -208,8 +258,7 @@ void DHNode::createFixedTransform(const ci::Vec3f &axis, const float rads, ci::M
 
 }
 
-
-ci::Matrix44f DHNode::GetTransformBetweenNodes(const Node *from, const Node *to){
+ci::Matrix44f DHNode::GetTransformBetweenNodes(const Node *from, const Node *to) const {
 
   //reached the last coordinate system in the chain.
   if (from == this){
@@ -218,7 +267,7 @@ ci::Matrix44f DHNode::GetTransformBetweenNodes(const Node *from, const Node *to)
   if (parent_ != 0x0){
     DHNode *p = dynamic_cast<DHNode *>(parent_);
 
-    return glhMultMatrixRight(ComputeDHTransform(), p->GetRelativeTransform());
+    return glhMultMatrixRight(ComputeDHTransform(), p->GetRelativeTransformToRoot());
   }
   else{
     ci::Matrix44f m;
@@ -229,7 +278,6 @@ ci::Matrix44f DHNode::GetTransformBetweenNodes(const Node *from, const Node *to)
 
 
 }
-
 
 ci::Matrix44f DHNode::ComputeDHTransform() const {
   

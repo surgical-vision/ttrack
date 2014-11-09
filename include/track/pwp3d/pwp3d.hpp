@@ -95,7 +95,7 @@ namespace ttrk {
     * @param[in] x The input value.
     * @return The value scaled to between 0-1 with a smoothed logistic function manner.
     */
-    float HeavisideFunction(const float x){
+    float HeavisideFunction(const float x) const {
       return 0.5f*(1.0f + x / float(HEAVYSIDE_WIDTH) + (1.0f / float(M_PI))*sin((float(M_PI)*x) / float(HEAVYSIDE_WIDTH)));
     }
 
@@ -104,9 +104,17 @@ namespace ttrk {
     * @param[in] x The input value.
     * @return The output value.
     */
-    float DeltaFunction(const float x){
+    float DeltaFunction(const float x) const {
       return (1.0f / 2.0f / HEAVYSIDE_WIDTH)*(1.0f + cos(float(M_PI)*x / HEAVYSIDE_WIDTH));
     }
+
+    /**
+    * Set the reference to the current image. 
+    * @param[in] frame The new frame to process.
+    */
+    void SetFrame(boost::shared_ptr<sv::Frame> frame) { frame_ = frame; }
+  
+  protected:
 
     boost::shared_ptr<sv::Frame> frame_; /**< Just a reference to the current frame, probably not really useful, may be removed. */
     

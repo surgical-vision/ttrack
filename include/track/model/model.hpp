@@ -41,7 +41,7 @@ namespace ttrk{
     /**
     * Render the nodes that make up this model.
     */
-    virtual void Render();
+    virtual void Render(bool bind_texture = false);
     
     /**
     * Get the principal axis of the Model. This may not be entirely meaningful for all shapes.
@@ -73,7 +73,7 @@ namespace ttrk{
     * @param[in] component_idx The index of the component. The indexes are quite an arbitrary choice as there's no obvious way to number tree nodes (AFAIK).
     * @return The Pose of the request node in the world coordinate system.
     */
-    Pose GetComponentPose(const std::size_t component_idx) { size_t curr_idx = 0;  return Pose(model_->GetChildByIdx(curr_idx, component_idx)->GetWorldTransform(world_to_model_coordinates_)); }
+    Pose GetComponentPose(const std::size_t component_idx) { return Pose(model_->GetChildByIdx(component_idx)->GetWorldTransform(world_to_model_coordinates_)); }
 
     /**
     * Update the pose of the model. For a rigid model this just updates the 6/7 dofs of the camera to model coordinate transform. If there are articulated components then this vector updates them too. The order of the updates should be the same order that they come out of the ComputeJacobian function.
@@ -86,16 +86,18 @@ namespace ttrk{
     * @param[in] point The 3D point used to compute the jacobian.
     * @return The jacobian in the form \f$ \mathbf{J} = \bigg[ \big(\frac{\partial X}{\partial \lambda_{0}},\frac{\partial Y}{\partial \lambda_{0}},\frac{\partial Z}{\partial \lambda_{0}}\big), \big(\frac{\partial X}{\partial \lambda_{1}},\frac{\partial Y}{\partial \lambda_{1}},\frac{\partial Z}{\partial \lambda_{1}}\big), ... \big(\frac{\partial X}{\partial \lambda_{n}},\frac{\partial Y}{\partial \lambda_{n}},\frac{\partial Z}{\partial \lambda_{n}}\big) \bigg] \f$
     */
-    virtual std::vector<ci::Vec3f> ComputeJacobian(const ci::Vec3f &point) const;
+    virtual std::vector<ci::Vec3f> ComputeJacobian(const ci::Vec3f &point, const int target_frame_idx) const;
 
     /**
     * Compute the Jacobian of the pose w.r.t some point.
     * @param[in] point The 3D point used to compute the jacobian.
     * @return The jacobian in the form \f$ \mathbf{J} = \bigg[ \big(\frac{\partial X}{\partial \lambda_{0}},\frac{\partial Y}{\partial \lambda_{0}},\frac{\partial Z}{\partial \lambda_{0}}\big), \big(\frac{\partial X}{\partial \lambda_{1}},\frac{\partial Y}{\partial \lambda_{1}},\frac{\partial Z}{\partial \lambda_{1}}\big), ... \big(\frac{\partial X}{\partial \lambda_{n}},\frac{\partial Y}{\partial \lambda_{n}},\frac{\partial Z}{\partial \lambda_{n}}\big) \bigg] \f$
     */
-    std::vector<ci::Vec3f> ComputeJacobian(const cv::Vec3f &point) const { return ComputeJacobian(ci::Vec3f(point[0], point[1], point[2])); }
+    std::vector<ci::Vec3f> ComputeJacobian(const cv::Vec3f &point, const int target_frame_idx) const { return ComputeJacobian(ci::Vec3f(point[0], point[1], point[2]), target_frame_idx); }
 
     Node::Ptr GetModel() { return model_; } //will remove this?
+
+    const Node::Ptr GetModel() const { return model_; }
 
   protected:
 

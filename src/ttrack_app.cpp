@@ -162,12 +162,17 @@ void TTrackApp::drawEye(boost::shared_ptr<ci::gl::Fbo> framebuffer, ci::gl::Text
   ci::gl::enableDepthRead();
   ci::gl::enableDepthWrite();
   ci::gl::pushMatrices();
-
+    
   cam->SetupCameraForDrawing();
 
+  //shader_.bind();
+  //shader_.uniform("tex0", 0);
+
   for (size_t i = 0; i < models_to_draw_.size(); ++i){
-    models_to_draw_[i]->Render();
+    models_to_draw_[i]->Render(false);
   }
+
+  //shader_.unbind();
 
   cam->ShutDownCameraAfterDrawing();
 

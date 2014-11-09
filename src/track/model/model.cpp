@@ -16,7 +16,6 @@ Model::Model(const std::string &model_parameter_file){
 
 }
 
-
 Model::Model(Node::Ptr component, const ci::Matrix44f &world_to_model_transform){
 
   model_ = component;
@@ -53,18 +52,17 @@ void Model::LoadJson(const std::string &filename){
     std::cout << e.what() << "\n";
     std::cout.flush();
 
-  }
+  } 
 
 }
 
-
-void Model::Render(){
+void Model::Render(bool bind_texture){
 
   ci::gl::pushModelView();
 
   ci::gl::multModelView(world_to_model_coordinates_);
   
-  model_->Render();
+  model_->Render(bind_texture);
 
   ci::gl::popModelView();
 
@@ -81,14 +79,13 @@ void Model::UpdatePose(std::vector<float> &updates){
 
 }
 
-
-std::vector<ci::Vec3f> Model::ComputeJacobian(const ci::Vec3f &point) const {
+std::vector<ci::Vec3f> Model::ComputeJacobian(const ci::Vec3f &point, const int target_frame_idx) const {
 
   //compute the jacobian for the base pose
   std::vector<ci::Vec3f> r = world_to_model_coordinates_.ComputeJacobian(point);
 
   //pass this vector into the articualted nodes and get their jacobians too
-  model_->ComputeJacobianForPoint(point, r);
+  model_->ComputeJacobianForPoint(point, target_frame_idx,  r);
 
   return r;
 

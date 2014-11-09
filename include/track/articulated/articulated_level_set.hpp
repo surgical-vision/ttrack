@@ -7,23 +7,30 @@
 
 namespace ttrk {
 
-  class ArticulatedLevelSet : public Localizer {
+  class ArticulatedLevelSet : public PWP3D {
 
   public:
 
-    ArticulatedLevelSet(boost::shared_ptr<StereoCamera> camera) : stereo_camera_(camera) {}
+    ArticulatedLevelSet(boost::shared_ptr<StereoCamera> camera) : stereo_camera_(camera) , PWP3D(camera->left_eye()->Width(), camera->left_eye()->Height()) {}
 
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
 
   protected:
 
-    void ProcessArticulatedSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &sdf_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image);
+    /**
+    * Get the region agreement for the pixel in a multiclass labelling setup. The multiclass classification in binarized in a one-vs-all strategy.
+    * @param[in] row_idx The row index for the classification image.
+    * @param[in] col_idx The col index for the classification image.
+    * @param[in] sdf_value The signed distance function value for the current pixel.
+    * @param[in] target_label The target label for the pixel, needed to do one-vs-all classification.
+    */
+    float GetRegionAgreement(const int row_idx, const int col_idx, const float sdf_value, const int target_label) const;
 
-    std::vector<StereoPWP3D> component_trackers_; /**< A selection of trackers each of which compute the level sets for each articulated component. */
+    void ProcessArticulatedSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &sdf_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image, cv::Mat &frame_idx_image);
+
+    void UpdateArticulatedJacobian(const float region_agreement, const int frame_idx, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_image, const boost::shared_ptr<const Model> model, std::vector<float> &jacobian);
+
     
-    ci::gl::GlslProg front_depth_;  /**< Shader to compute the front depth buffer. */
-    ci::gl::GlslProg back_depth_and_contour_;  /**< Shader to compute the back depth buffer and contour. */
-
     struct ComponentData {
 
       cv::Mat sdf_image_;
@@ -48,7 +55,10 @@ namespace ttrk {
 
     };
 
+    boost::shared_ptr<sv::Frame> frame_;
+
     boost::shared_ptr<StereoCamera> stereo_camera_;
+
 
   };
 

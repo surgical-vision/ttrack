@@ -4,6 +4,7 @@
 #include <cinder/Json.h>
 #include <cinder/gl/gl.h>
 #include <cinder/gl/Vbo.h>
+#include <cinder/gl/GlslProg.h>
 
 namespace ttrk {
 
@@ -17,13 +18,24 @@ namespace ttrk {
 
   public:
     
-    Node() : drawing_flag_(true) {}
-
     /**
     * @typedef Get a pointer to this type.
     */
     typedef boost::shared_ptr<Node> Ptr;
-    
+
+    /**
+    * @typedef Get a const pointer to this type.
+    */
+    typedef boost::shared_ptr<const Node> ConstPtr;
+
+    /**
+    * Default constructor. Sets the drawing flag to true.
+    */
+    Node() : drawing_flag_(true) {}
+
+    /**
+    * Default destructor.
+    */
     virtual ~Node();
 
     /**
@@ -31,8 +43,9 @@ namespace ttrk {
     * @param[in] tree The JSON tree that we will parse to get the files and the children.
     * @param[in] parent The parent of this node.
     * @param[in] root_dir The root directory where the files are stored.
+    * @param[in] idx The index of this node, useful for accessing nodes.
     */
-    virtual void LoadData(ci::JsonTree &tree, Node *parent, const std::string &root_dir) = 0;
+    virtual void LoadData(ci::JsonTree &tree, Node *parent, const std::string &root_dir, size_t &idx) = 0;
     
     /**
     * Get the transform between the world coordinate system and this node.
@@ -42,11 +55,18 @@ namespace ttrk {
     virtual ci::Matrix44f GetWorldTransform(const ci::Matrix44f &base_frame_pose) const = 0;
     
     /**
-    * Get the transform between the this node and the parent node.
+    * Get the transform between the this node and the root node.
     * @return The transform in a 4x4 float matrix.
     */
-    virtual ci::Matrix44f GetRelativeTransform() const = 0;
+    virtual ci::Matrix44f GetRelativeTransformToRoot() const = 0;
     
+    /**
+    * Get the transform between the this node and one of its child nodes.
+    * @param[in] child_idx The index of the child node.
+    * @return The transform in a 4x4 float matrix.
+    */
+    virtual ci::Matrix44f GetRelativeTransformToChild(const int child_idx) const = 0;
+
     /**
     * Add a child node to this node.
     * @param[in] child The child node to add.
@@ -55,16 +75,18 @@ namespace ttrk {
 
     /**
     * Render a node element, will recursively call Render on all child nodes.
+    * @param[in] bind_texture This flag instructs the node to bind its texture (if it has one) to the default texture target before drawing.
     */
-    void Render();
+    void Render(bool bind_texture = false);
 
     /**
     * Compute the jacobian for a 3D point (passed in world coordinates) with respect to this coordinate frame.
     * This will recursively call the parent frames right up to the base frame and return a 3-vector for each.
     * @param[in] point The 3D point in the target coordinate frame (usually camera).
-    * @param[in] jacobian The jacobian which is added to by each of the joints. This needs to be a reference pass as it's filled in base to tip (roughly).
+    * @param[in] target_frame_idx The index (using the flat indexing system) of the joint which the 3D point belongs to.
+    * @param[out] jacobian The jacobian which is added to by each of the joints. This needs to be a reference pass as it's filled in base to tip (roughly).
     */
-    virtual void ComputeJacobianForPoint(const ci::Vec3f &point, std::vector<ci::Vec3f> &jacobian);
+    virtual void ComputeJacobianForPoint(const ci::Vec3f &point, const int target_frame_idx, std::vector<ci::Vec3f> &jacobian) const;
 
     /**
     * Update the pose of the model using the jacobians (with whatever cost function modification).
@@ -74,17 +96,23 @@ namespace ttrk {
 
     Node *GetParent() { return parent_; }
     
-    std::vector< Node::Ptr> GetChildren() { return children_; }
+    std::vector< Node::Ptr > GetChildren() { return children_; }
     
-    Node::Ptr GetChildByIdx(std::size_t &curr_idx, const std::size_t target_idx);
+    Node::Ptr GetChildByIdx(const std::size_t target_idx);
 
-    virtual ci::Matrix44f GetTransformBetweenNodes(const Node *from, const Node *to) = 0;
+    Node::ConstPtr GetChildByIdx(const std::size_t target_idx) const;
+
+    virtual ci::Matrix44f GetTransformBetweenNodes(const Node *from, const Node *to) const = 0;
 
     void SetDraw(const bool draw_on) { drawing_flag_ = draw_on; }
 
     bool HasMesh() const { return model_.getNumVertices() > 0; }
 
+    size_t GetIdx() const { return idx_; }
+
   protected:
+
+    virtual ci::Vec3f GetAxis() const = 0;
 
     /**
     * Load the mesh and texture from the JSON file.
@@ -101,6 +129,8 @@ namespace ttrk {
     ci::gl::Texture texture_; /**< The texture for the model. */
 
     bool drawing_flag_; /**< Switch on to enable drawing of this component. */
+
+    size_t idx_; /**< Each node has an index for finding it in the tree. */
 
   };
 
@@ -123,8 +153,9 @@ namespace ttrk {
     * @param[in] tree The JSON tree that we will parse to get the files and the children.
     * @param[in] parent The parent of this node.
     * @param[in] root_dir The root directory where the files are stored.
+    * @param[in] idx The index of this node (useful for accessing nodes).
     */
-    virtual void LoadData(ci::JsonTree &tree, Node *parent, const std::string &root_dir);
+    virtual void LoadData(ci::JsonTree &tree, Node *parent, const std::string &root_dir, size_t &idx);
 
     /**
     * Get the transform between the world coordinate system and this node using the DH transform.
@@ -137,7 +168,13 @@ namespace ttrk {
     * Get the transform between the this node and the parent node using the DH transforms.
     * @return The transform in a 4x4 float matrix.
     */
-    virtual ci::Matrix44f GetRelativeTransform() const;
+    virtual ci::Matrix44f GetRelativeTransformToRoot() const;
+
+    /**
+    * Get the transform between the this node and one of its child nodes using the DH transforms.
+    * @return The transform in a 4x4 float matrix.
+    */
+    virtual ci::Matrix44f GetRelativeTransformToChild(const int child_idx) const;
 
     /**
     * Update the pose of the model using the jacobians (with whatever cost function modification).
@@ -149,13 +186,15 @@ namespace ttrk {
     * Get the transform from the first coordinate system to the next one
     *
     */
-    virtual ci::Matrix44f GetTransformBetweenNodes(const Node *from, const Node *to);
+    virtual ci::Matrix44f GetTransformBetweenNodes(const Node *from, const Node *to) const;
 
 
   protected:
 
+    virtual ci::Vec3f GetAxis() const { return ci::Vec3f::zAxis(); }
+
     /**
-    * Compute the rigid transform from this coordinate system to the next one using the DH parameters.
+    * Compute the rigid transform from from the parent of this coordinate system to this one using the DH parameters.
     * @return The 4x4 transform.
     */
     ci::Matrix44f ComputeDHTransform() const;

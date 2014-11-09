@@ -46,8 +46,8 @@ void PWP3D::UpdateJacobian(const float region_agreement, const float sdf, const 
   const float z_inv_sq_back = 1.0f / (back_intersection_point[2] * back_intersection_point[2]);
 
   //compute the derivatives
-  std::vector<ci::Vec3f> front_jacs = model->ComputeJacobian(front_intersection_point);
-  std::vector<ci::Vec3f> back_jacs = model->ComputeJacobian(back_intersection_point);
+  std::vector<ci::Vec3f> front_jacs = model->ComputeJacobian(front_intersection_point, 0);
+  std::vector<ci::Vec3f> back_jacs = model->ComputeJacobian(back_intersection_point, 0);
 
   //for each degree of freedom, compute the jacobian update
   for (size_t dof = 0; dof < front_jacs.size(); ++dof){
@@ -210,6 +210,7 @@ void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, c
   ci::gl::Texture tex_fd = front_depth_framebuffer_.getTexture(0);
   tex_fd.enableAndBind();
   back_depth_and_contour_.uniform("tex_fd", 0); //bind it to the current texture
+  //back_depth_and_contour_.uniform("tex_cols", 1);
   mesh->Render();
   tex_fd.disable();
   tex_fd.unbind();

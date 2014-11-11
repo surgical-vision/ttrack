@@ -20,7 +20,7 @@ void SurgicalToolTracker::GetContours(const cv::Mat &image, std::vector<std::vec
 
   //threshold the image to 0 & 255 values
   cv::Mat thresholded,thresholded8bit;
-  threshold(image,thresholded,50,255,cv::THRESH_BINARY);
+  threshold(image,thresholded,0.4,1.0,cv::THRESH_BINARY);
   thresholded.convertTo(thresholded8bit,CV_8U);
  
   //find contours around the 255 'blobs' in the image

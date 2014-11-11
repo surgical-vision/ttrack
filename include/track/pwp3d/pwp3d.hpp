@@ -29,6 +29,8 @@ namespace ttrk {
     */
     PWP3D(const int width, const int height);
 
+    ~PWP3D();
+
     /**
     * Load the shaders we use to compute the projections and contours for the pose estimation.
     */

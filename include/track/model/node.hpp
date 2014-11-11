@@ -98,9 +98,9 @@ namespace ttrk {
     
     std::vector< Node::Ptr > GetChildren() { return children_; }
     
-    Node::Ptr GetChildByIdx(const std::size_t target_idx);
+    Node *GetChildByIdx(const std::size_t target_idx);
 
-    Node::ConstPtr GetChildByIdx(const std::size_t target_idx) const;
+    const Node *GetChildByIdx(const std::size_t target_idx) const;
 
     virtual ci::Matrix44f GetTransformBetweenNodes(const Node *from, const Node *to) const = 0;
 

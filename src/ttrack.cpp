@@ -72,11 +72,11 @@ void TTrack::SetUp(const std::string &model_parameter_file, const std::string &c
 }
 
 void TTrack::GetUpdate(std::vector<boost::shared_ptr<Model> > &models){
-    
-    detector_->Run(GetPtrToNewFrame());
-    tracker_->Run(GetPtrToClassifiedFrame(), detector_->Found());
-    
-    tracker_->GetTrackedModels(models);
+
+  detector_->Run(GetPtrToNewFrame());
+  tracker_->Run(GetPtrToClassifiedFrame(), detector_->Found());
+
+  tracker_->GetTrackedModels(models);
 
 }
 
@@ -158,8 +158,10 @@ boost::shared_ptr<const sv::Frame> TTrack::GetPtrToCurrentFrame() const {
 
 boost::shared_ptr<sv::Frame> TTrack::GetPtrToNewFrame(){
   
-  cv::Mat test = handler_->GetNewFrame();
-  
+  static cv::Mat stest = handler_->GetNewFrame();
+    
+  cv::Mat test = stest.clone();
+
   //if the input data has run out test will be empty, if this is so
   //reset the frame_ pointer to empty and return it. this will signal to 
   //the tracking/detect loop to stop

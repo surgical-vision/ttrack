@@ -33,7 +33,11 @@ Pose::Pose(const ci::Matrix44f &t) : translation_(t.getTranslate().xyz()) {
 
 }
 
-std::vector<ci::Vec3f> Pose::ComputeJacobian(const ci::Vec3f &point) const {
+std::vector<ci::Vec3f> Pose::ComputeJacobian(const ci::Vec3f &point_) const {
+
+  ci::Matrix44f self_pose = *this;
+  
+  ci::Vec3f point = self_pose.inverted() * point_;
 
   std::vector<ci::Vec3f> data(7);
 

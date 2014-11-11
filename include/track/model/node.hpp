@@ -73,6 +73,8 @@ namespace ttrk {
     */
     void AddChild(Node::Ptr child) { children_.push_back(child); }
 
+    virtual ci::Matrix44f GetTransformToParent() const = 0;
+
     /**
     * Render a node element, will recursively call Render on all child nodes.
     * @param[in] bind_texture This flag instructs the node to bind its texture (if it has one) to the default texture target before drawing.
@@ -82,17 +84,20 @@ namespace ttrk {
     /**
     * Compute the jacobian for a 3D point (passed in world coordinates) with respect to this coordinate frame.
     * This will recursively call the parent frames right up to the base frame and return a 3-vector for each.
+    * @param[in] world_transform The world transform from camera coordinates to model root coordinates.
     * @param[in] point The 3D point in the target coordinate frame (usually camera).
     * @param[in] target_frame_idx The index (using the flat indexing system) of the joint which the 3D point belongs to.
     * @param[out] jacobian The jacobian which is added to by each of the joints. This needs to be a reference pass as it's filled in base to tip (roughly).
     */
-    virtual void ComputeJacobianForPoint(const ci::Vec3f &point, const int target_frame_idx, std::vector<ci::Vec3f> &jacobian) const;
+    virtual void ComputeJacobianForPoint(const ci::Matrix44f &world_transform, const ci::Vec3f &point, const int target_frame_idx, std::vector<ci::Vec3f> &jacobian) const;
 
     /**
     * Update the pose of the model using the jacobians (with whatever cost function modification).
     * @param[in] updates The update vector iterator, there should be N for the rigid base part of the model (probably 6-7) and then one for each component of the articulated components (if there are any). The order is supposed to be the same as the order they came out from ComputeJacobians.
     */
     virtual void UpdatePose(std::vector<float>::iterator &updates) = 0;
+
+    bool NodeIsChild(const size_t child_idx) const;
 
     Node *GetParent() { return parent_; }
     
@@ -102,13 +107,13 @@ namespace ttrk {
 
     const Node *GetChildByIdx(const std::size_t target_idx) const;
 
-    virtual ci::Matrix44f GetTransformBetweenNodes(const Node *from, const Node *to) const = 0;
-
     void SetDraw(const bool draw_on) { drawing_flag_ = draw_on; }
 
     bool HasMesh() const { return model_.getNumVertices() > 0; }
 
     size_t GetIdx() const { return idx_; }
+
+    virtual ci::Matrix44f GetRelativeTransformToNodeByIdx(const int target_idx) const = 0;
 
   protected:
 
@@ -182,22 +187,22 @@ namespace ttrk {
     */
     virtual void UpdatePose(std::vector<float>::iterator &updates);
 
-    /**
-    * Get the transform from the first coordinate system to the next one
-    *
-    */
-    virtual ci::Matrix44f GetTransformBetweenNodes(const Node *from, const Node *to) const;
-
-
-  protected:
-
-    virtual ci::Vec3f GetAxis() const { return ci::Vec3f::zAxis(); }
+    virtual ci::Matrix44f GetRelativeTransformToNodeByIdx(const int target_idx) const;
 
     /**
     * Compute the rigid transform from from the parent of this coordinate system to this one using the DH parameters.
     * @return The 4x4 transform.
     */
-    ci::Matrix44f ComputeDHTransform() const;
+
+    virtual ci::Matrix44f GetTransformToParent() const;
+
+  protected:
+
+    virtual ci::Vec3f GetAxis() const { return ci::Vec3f::zAxis(); }
+
+   
+
+    
 
     void createFixedTransform(const ci::Vec3f &axis, const float rads, ci::Matrix44f &output) const;
 

@@ -71,10 +71,13 @@ void Model::Render(bool bind_texture){
 void Model::UpdatePose(std::vector<float> &updates){
   
   std::vector<float> updates_to_base(updates.begin(), updates.begin() + world_to_model_coordinates_.GetNumDofs());
-  std::vector<float> updates_to_end(updates.begin() + world_to_model_coordinates_.GetNumDofs(), updates.end());
-
   world_to_model_coordinates_.UpdatePose(updates_to_base);
 
+  //if these are the same, we have no articulated components to track
+  if (updates.size() == world_to_model_coordinates_.GetNumDofs())
+    return;
+
+  std::vector<float> updates_to_end(updates.begin() + world_to_model_coordinates_.GetNumDofs(), updates.end());
   model_->UpdatePose(updates_to_end.begin());
 
 }
@@ -85,7 +88,7 @@ std::vector<ci::Vec3f> Model::ComputeJacobian(const ci::Vec3f &point, const int 
   std::vector<ci::Vec3f> r = world_to_model_coordinates_.ComputeJacobian(point);
 
   //pass this vector into the articualted nodes and get their jacobians too
-  model_->ComputeJacobianForPoint(point, target_frame_idx,  r);
+  model_->ComputeJacobianForPoint(world_to_model_coordinates_, point, target_frame_idx, r);
 
   return r;
 

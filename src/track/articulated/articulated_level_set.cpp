@@ -8,6 +8,7 @@
 using namespace ttrk;
 
 
+
 void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
 
   frame_ = frame;
@@ -32,8 +33,8 @@ void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mo
   for (size_t step = 0; step < NUM_STEPS; ++step){
 
     //for prototyping the articulated jacs, we use a vector. this will be flattened for faster estimation later
-    cv::Matx<float, 12, 1> j_sum = cv::Matx<float, 12, 1>::zeros();
-    cv::Matx<float, 12, 12> h_sum = cv::Matx<float, 12, 12>::zeros();
+    cv::Matx<float, PRECISION, 1> j_sum = cv::Matx<float, PRECISION, 1>::zeros();
+    cv::Matx<float, PRECISION, PRECISION> h_sum = cv::Matx<float, PRECISION, PRECISION>::zeros();
 
     ProcessArticulatedSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), left_sdf_image, left_front_intersection, left_back_intersection, left_index_image);
     //ProcessArticulatedSDFAndIntersectionImage(current_model, stereo_camera_->right_eye(), right_sdf_image, right_front_intersection, right_back_intersection, right_index_image);
@@ -79,48 +80,63 @@ void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mo
             i = closest_r * sdf_image.cols + closest_c;
           }
 
-          cv::Matx<float, 1, 12> jacs;
-          for (int j = 0; j < 12; ++j){
+          cv::Matx<float, 1, PRECISION> jacs;
+          for (int j = 0; j < PRECISION; ++j){
             jacs(j) = 0.0f;
           }
           
           //update the jacobian
-          UpdateArticulatedJacobian(region_agreement, index_image_data[i], sdf_im_data[i], dsdf_dx_data[i], dsdf_dy_data[i], stereo_camera_->left_eye()->Fx(), stereo_camera_->left_eye()->Fy(), front_intersection_image.at<cv::Vec3f>(r, c), back_intersection_image.at<cv::Vec3f>(r, c), current_model, jacs);
+          UpdateArticulatedJacobian(region_agreement, index_image_data[i], sdf_im_data[i], dsdf_dx_data[i], dsdf_dy_data[i], stereo_camera_->left_eye()->Fx(), stereo_camera_->left_eye()->Fy(), front_intersection_image.at<cv::Vec3f>(i), back_intersection_image.at<cv::Vec3f>(i), current_model, jacs);
 
           j_sum += jacs.t();
-          h_sum += jacs.t() * jacs;
+          //h_sum += jacs.t() * jacs;
 
         }
       }
     }
 
-    j_sum = h_sum.inv() * j_sum;// *error_value;
+    //j_sum = h_sum.inv() * j_sum * 100000;// *error_value;
 
-    //float t_norm = (jacs[0] * jacs[0]) + (jacs[1] * jacs[1]) + (jacs[2] * jacs[2]);
-    //t_norm = std::sqrt(t_norm);
-    //for (int t = 0; t < 3; ++t){
-    //  jacs[t] /= t_norm;
-    //}
+    float t_norm = (j_sum(0) * j_sum(0)) + (j_sum(1) * j_sum(1)) + (j_sum(2) * j_sum(2));
+    t_norm = std::sqrt(t_norm) * 40;
+    for (int t = 0; t < 3; ++t){
+      j_sum(t) /= t_norm;
+    }
 
-    //float max_element = std::numeric_limits<float>::min();
+    float max_element = std::numeric_limits<float>::min();
 
-    //for (int rt = 3; rt < jacs.size(); ++rt){
-    //  if (std::abs(jacs[rt]) > max_element){
-    //    max_element = std::abs(jacs[rt]);
-    //  }
-    //}
+    for (int rt = 3; rt < 7; ++rt){
+      if (std::abs(j_sum(rt)) > max_element){
+        max_element = std::abs(j_sum(rt));
+      }
+    }
   
-    //float r_scale = max_element * 10;
+    float r_scale = max_element * 80;
 
-    //for (int rt = 3; rt < jacs.size(); ++rt){
-    //  jacs[rt] /= r_scale;
-    //}
-    //
+    for (int rt = 3; rt < 7; ++rt){
+      j_sum(rt) = 0;// /= r_scale;
+    }
     
-    std::vector<float> jacs(12, 0);
+
+    float max_articulated_rot = std::numeric_limits<float>::min();
+
+    for (int rt = 7; rt < PRECISION; ++rt){
+      if (std::abs(j_sum(rt)) > max_articulated_rot){
+        max_articulated_rot = std::abs(j_sum(rt));
+      }
+    }
+
+    float articulated_r_scale = max_articulated_rot * 80;
+
+    for (int rt = 7; rt < PRECISION; ++rt){
+      j_sum(rt) /= articulated_r_scale;
+    }
+
+    
+    std::vector<float> jacs(PRECISION, 0);
 
     for (size_t v = 0; v < jacs.size(); ++v){
-      jacs[v] = j_sum(v);
+      jacs[v] = -j_sum(v);
     }
 
 
@@ -172,7 +188,7 @@ float ArticulatedLevelSet::GetRegionAgreement(const int row_idx, const int col_i
 
 }
 
-void ArticulatedLevelSet::UpdateArticulatedJacobian(const float region_agreement, const int frame_idx, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_point, const boost::shared_ptr<const Model> model, cv::Matx<float, 1, 12> &jacobian){
+void ArticulatedLevelSet::UpdateArticulatedJacobian(const float region_agreement, const int frame_idx, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_point, const boost::shared_ptr<const Model> model, cv::Matx<float, 1, PRECISION> &jacobian){
 
   const float z_inv_sq_front = 1.0f / (front_intersection_point[2] * front_intersection_point[2]);
   const float z_inv_sq_back = 1.0f / (back_intersection_point[2] * back_intersection_point[2]);
@@ -184,10 +200,10 @@ void ArticulatedLevelSet::UpdateArticulatedJacobian(const float region_agreement
   std::vector<ci::Vec3f> front_jacs = model->ComputeJacobian(front_intersection_point, frame_idx);
   std::vector<ci::Vec3f> back_jacs = model->ComputeJacobian(back_intersection_point, frame_idx);
 
-  assert(front_jacs.size() == 12); //for now
+  //assert(front_jacs.size() == 12); //for now
 
   //for each degree of freedom, compute the jacobian update
-  for (size_t dof = 0; dof < front_jacs.size(); ++dof){
+  for (size_t dof = 0; dof < PRECISION/*front_jacs.size()*/; ++dof){
 
     const ci::Vec3f &dof_derivatives_front = front_jacs[dof];
     const ci::Vec3f &dof_derivatives_back = back_jacs[dof];

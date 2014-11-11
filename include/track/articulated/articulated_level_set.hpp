@@ -26,11 +26,12 @@ namespace ttrk {
     */
     float GetRegionAgreement(const int row_idx, const int col_idx, const float sdf_value, const int target_label) const;
 
+    float GetErrorValue(const int row_idx, const int col_idx, const float sdf_value, const int target_label) const;
+
     void ProcessArticulatedSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &sdf_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image, cv::Mat &frame_idx_image);
 
-    void UpdateArticulatedJacobian(const float region_agreement, const int frame_idx, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_image, const boost::shared_ptr<const Model> model, std::vector<float> &jacobian);
+    void UpdateArticulatedJacobian(const float region_agreement, const int frame_idx, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_image, const boost::shared_ptr<const Model> model, cv::Matx<float, 1, 12> &jacobian);
 
-    
     struct ComponentData {
 
       cv::Mat sdf_image_;
@@ -39,7 +40,7 @@ namespace ttrk {
       
       cv::Mat sdf_;
 
-      Node::Ptr model_;
+      Node *model_;
 
       //body (roll) -> head (w.p) -> no-geom (w.y) -> no-geom (clasper-base) -> 
 
@@ -54,8 +55,6 @@ namespace ttrk {
       //detection color/label mapping
 
     };
-
-    boost::shared_ptr<sv::Frame> frame_;
 
     boost::shared_ptr<StereoCamera> stereo_camera_;
 

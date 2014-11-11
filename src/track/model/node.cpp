@@ -66,29 +66,29 @@ void Node::Render(bool bind_texture){
 
 }
 
-Node::Ptr Node::GetChildByIdx(const std::size_t target_idx){
+Node *Node::GetChildByIdx(const std::size_t target_idx){
 
-  if (idx_ == target_idx) return boost::shared_ptr<Node>(this);
+  if (idx_ == target_idx) return this; //return shared from this
 
   for (size_t i = 0; i < children_.size(); ++i){
-    Node::Ptr c = children_[i]->GetChildByIdx(target_idx);
+    Node *c = children_[i]->GetChildByIdx(target_idx);
     if (c != nullptr) return c;
   }
 
-  return Node::Ptr(nullptr);
+  return nullptr;
 
 }
 
-Node::ConstPtr Node::GetChildByIdx(const std::size_t target_idx) const{
+const Node *Node::GetChildByIdx(const std::size_t target_idx) const{
 
-  if (idx_ == target_idx) return Node::ConstPtr(this);
+  if (idx_ == target_idx) return this;
 
   for (size_t i = 0; i < children_.size(); ++i){
-    Node::ConstPtr c = children_[i]->GetChildByIdx(target_idx);
+    const Node *c = children_[i]->GetChildByIdx(target_idx);
     if (c != nullptr) return c;
   }
 
-  return Node::ConstPtr(nullptr);
+  return nullptr;
 
 }
 
@@ -128,7 +128,7 @@ void DHNode::UpdatePose(std::vector<float>::iterator &updates){
  
   //the node with null parent is the root node so it's pose is basically just the base pose and therefore there is not an update
   if (parent_ != nullptr){
-    update_ = *updates;
+    update_ += *updates;
     ++updates;
   }
 
@@ -140,8 +140,8 @@ void DHNode::UpdatePose(std::vector<float>::iterator &updates){
 
 ci::Matrix44f DHNode::GetRelativeTransformToChild(const int child_idx) const{
 
-  Node::ConstPtr child = GetChildByIdx(child_idx);
-  return GetTransformBetweenNodes(child.get(), this);
+  const Node *child = GetChildByIdx(child_idx);
+  return GetTransformBetweenNodes(child, this);
 
 }
 

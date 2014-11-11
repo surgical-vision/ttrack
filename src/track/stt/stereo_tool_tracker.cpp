@@ -3,6 +3,7 @@
 #include <time.h> 
 #include <stdint.h>
 #include <boost/timer.hpp>
+#include <cinder/app/App.h>
 
 #include "../../../include/track/stt/stereo_tool_tracker.hpp"
 #include "../../../include/track/pwp3d/stereo_pwp3d.hpp"
@@ -31,10 +32,11 @@ bool StereoToolTracker::Init() {
 
   if (!FindConnectedRegions(stereo_frame_->GetClassificationMapROI(), connected_regions)) {
 
+    ci::app::console() << "Failing to find connected regions!" << std::endl;
     return false;
 
   }
-
+  
   //for each connected region find the corresponding connected region in the other frame
   for (auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
@@ -45,7 +47,7 @@ bool StereoToolTracker::Init() {
     tracked_models_.back().temporal_tracker.reset(new KalmanFilterTracker);
 
     Init3DPoseFromMOITensor(*connected_region, tracked_models_.back().model);//,corresponding_connected_region);
-
+  
   }
 
   return true;

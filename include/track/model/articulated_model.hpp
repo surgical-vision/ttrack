@@ -32,12 +32,6 @@ namespace ttrk {
     */
     virtual void ParseJson(ci::JsonTree &jt, const std::string &root_dir);
 
-    /**
-    * Calls a templated component function which generates a Model pointer pointing to this type.
-    * @param[in] component_idx
-    * @return The component
-    */
-    virtual boost::shared_ptr<Model> GetComponent(const std::size_t component_idx);
 
   protected:
 
@@ -45,7 +39,7 @@ namespace ttrk {
     * Default constructor.
     * @param[in] node The model node to build the component from.
     */
-    explicit DenavitHartenbergArticulatedModel(Node::Ptr node, const ci::Matrix44f &world_to_model_transform) : Model(node, world_to_model_transform) {}
+    //DenavitHartenbergArticulatedModel(Node::Ptr node, const ci::Matrix44f &world_to_model_transform) : Model(node, world_to_model_transform) {}
 
 
   };

@@ -22,7 +22,7 @@ PWP3D::PWP3D(const int width, const int height) {
   format.setColorInternalFormat(GL_RGBA32F);
   format.enableColorBuffer(true, 1);
   front_depth_framebuffer_ = ci::gl::Fbo(width, height, format);
-  
+ 
   //need 2 colour buffers for back contour
   format.enableColorBuffer(true, 2);
   back_depth_framebuffer_ = ci::gl::Fbo(width, height, format);
@@ -30,6 +30,24 @@ PWP3D::PWP3D(const int width, const int height) {
   LoadShaders();
 
   HEAVYSIDE_WIDTH = 3;
+
+  NUM_STEPS = 1;
+
+}
+
+PWP3D::~PWP3D(){
+
+  front_depth_framebuffer_.getDepthTexture().setDoNotDispose(false);
+  front_depth_framebuffer_.getTexture().setDoNotDispose(false);
+  front_depth_framebuffer_.reset();
+
+  back_depth_framebuffer_.getDepthTexture().setDoNotDispose(false);
+  back_depth_framebuffer_.getTexture(0).setDoNotDispose(false);
+  back_depth_framebuffer_.getTexture(1).setDoNotDispose(false);
+  back_depth_framebuffer_.reset();
+
+  //front_depth_.reset();
+  //back_depth_and_contour_.reset();
 
 }
 
@@ -259,7 +277,6 @@ void PWP3D::ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, 
   sdf_image = cv::Mat(frame_->GetImageROI().size(),CV_32FC1);
   front_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_32FC3);
   back_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(),CV_32FC3);
-
 
   cv::Mat front_depth, back_depth, contour;
   RenderModelForDepthAndContour(mesh, camera, front_depth, back_depth, contour );

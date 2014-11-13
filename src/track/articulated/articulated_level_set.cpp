@@ -1,5 +1,6 @@
 #include <cinder/app/App.h>
 #include <numeric>
+#include <ceres/ceres.h>
 
 #include "../../../include/track/articulated/articulated_level_set.hpp"
 #include "../../../include/constants.hpp"
@@ -7,9 +8,41 @@
 
 using namespace ttrk;
 
+struct PWP3DCostFunction : public ceres::CostFunction , public PWP3D {
 
+  virtual ~PWP3DCostFunction() {}
+
+  virtual bool evaluate( double const* const* parameters, double *residuals, double **jacobians) const {
+
+    int i = 0;
+    //for each pixel in region around model
+    residuals[i] = 
+
+    return true;
+  }
+  //bool operator()(const )
+
+  void Setup()
+
+  cv::Mat classification_image;
+  cv::Mat front_intersection_image;
+  cv::Mat back_intersection_image;
+  cv::Mat sdf_image;
+  cv::Mat dsdf_dx_image;
+  cv::Mat dsdf_dy_image;
+  cv::Mat index_image;
+
+};
 
 void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
+
+}
+
+void ArticulatedLevelSet::TrackTargetInFrame__old(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
+
+  if (curr_step == NUM_STEPS) curr_step = 0;
+
+  ++curr_step;
 
   frame_ = frame;
 
@@ -30,7 +63,7 @@ void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mo
 
 
   //iterate until steps or convergences
-  for (size_t step = 0; step < NUM_STEPS; ++step){
+  for (size_t step = 0; step < 1; ++step){
 
     //for prototyping the articulated jacs, we use a vector. this will be flattened for faster estimation later
     cv::Matx<float, PRECISION, 1> j_sum = cv::Matx<float, PRECISION, 1>::zeros();
@@ -38,7 +71,7 @@ void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mo
 
     ProcessArticulatedSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), left_sdf_image, left_front_intersection, left_back_intersection, left_index_image);
     //ProcessArticulatedSDFAndIntersectionImage(current_model, stereo_camera_->right_eye(), right_sdf_image, right_front_intersection, right_back_intersection, right_index_image);
-    
+
     cv::Mat dsdf_dx, dsdf_dy;
     cv::Scharr(left_sdf_image, dsdf_dx, CV_32FC1, 1, 0);
     cv::Scharr(left_sdf_image, dsdf_dy, CV_32FC1, 0, 1);
@@ -67,8 +100,8 @@ void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mo
 
           //-log(H * P_f + (1-H) * P_b)
           //error_value += GetErrorValue(r, c, sdf_im_data[i], index_image_data[i]);
-          float error_value = GetErrorValue(r, c, sdf_im_data[i], index_image_data[i]);
-          
+          //float error_value = GetErrorValue(r, c, sdf_im_data[i], index_image_data[i]);
+
           //P_f - P_b / (H * P_f + (1 - H) * P_b)
           const float region_agreement = GetRegionAgreement(r, c, sdf_im_data[i], index_image_data[i]);
 
@@ -84,71 +117,78 @@ void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mo
           for (int j = 0; j < PRECISION; ++j){
             jacs(j) = 0.0f;
           }
-          
+
           //update the jacobian
           UpdateArticulatedJacobian(region_agreement, index_image_data[i], sdf_im_data[i], dsdf_dx_data[i], dsdf_dy_data[i], stereo_camera_->left_eye()->Fx(), stereo_camera_->left_eye()->Fy(), front_intersection_image.at<cv::Vec3f>(i), back_intersection_image.at<cv::Vec3f>(i), current_model, jacs);
 
           j_sum += jacs.t();
-          //h_sum += jacs.t() * jacs;
+          h_sum += (jacs.t() * jacs);
 
         }
       }
     }
 
-    //j_sum = h_sum.inv() * j_sum * 100000;// *error_value;
+    //j_sum = h_sum.inv() * j_sum;// *error_value;
 
-    float t_norm = (j_sum(0) * j_sum(0)) + (j_sum(1) * j_sum(1)) + (j_sum(2) * j_sum(2));
-    t_norm = std::sqrt(t_norm) * 40;
-    for (int t = 0; t < 3; ++t){
-      j_sum(t) /= t_norm;
-    }
+    if (1){
 
-    float max_element = std::numeric_limits<float>::min();
-
-    for (int rt = 3; rt < 7; ++rt){
-      if (std::abs(j_sum(rt)) > max_element){
-        max_element = std::abs(j_sum(rt));
+      float t_norm = (j_sum(0) * j_sum(0)) + (j_sum(1) * j_sum(1)) + (j_sum(2) * j_sum(2));
+      t_norm = std::sqrt(t_norm) * 40;
+      for (int t = 0; t < 3; ++t){
+        j_sum(t) /= t_norm;
       }
-    }
-  
-    float r_scale = max_element * 80;
 
-    for (int rt = 3; rt < 7; ++rt){
-      j_sum(rt) = 0;// /= r_scale;
-    }
-    
+      float max_element = std::numeric_limits<float>::min();
 
-    float max_articulated_rot = std::numeric_limits<float>::min();
-
-    for (int rt = 7; rt < PRECISION; ++rt){
-      if (std::abs(j_sum(rt)) > max_articulated_rot){
-        max_articulated_rot = std::abs(j_sum(rt));
+      for (int rt = 3; rt < 7; ++rt){
+        if (std::abs(j_sum(rt)) > max_element){
+          max_element = std::abs(j_sum(rt));
+        }
       }
+
+      float r_scale = max_element * 80;
+
+      for (int rt = 3; rt < 7; ++rt){
+        j_sum(rt) = 0;// /= r_scale;
+      }
+
+
+      float max_articulated_rot = std::numeric_limits<float>::min();
+
+      for (int rt = 7; rt < PRECISION; ++rt){
+        if (std::abs(j_sum(rt)) > max_articulated_rot){
+          max_articulated_rot = std::abs(j_sum(rt));
+        }
+      }
+
+      float articulated_r_scale = max_articulated_rot * 80;
+
+      for (int rt = 7; rt < PRECISION; ++rt){
+        j_sum(rt) /= articulated_r_scale;
+      }
+
+
+      std::vector<float> jacs(PRECISION, 0);
+
+      for (size_t v = 0; v < jacs.size(); ++v){
+        jacs[v] = -j_sum(v);
+      }
+
+
+      ci::app::console() << "Jacobian = [";
+      for (size_t v = 0; v < jacs.size(); ++v){
+        ci::app::console() << jacs[v] << ",";
+      }
+
+      jacs[jacs.size() - 1] = -jacs[jacs.size() - 2];
+
+      ci::app::console() << "]" << std::endl;
+
+      current_model->UpdatePose(jacs);
+
     }
 
-    float articulated_r_scale = max_articulated_rot * 80;
-
-    for (int rt = 7; rt < PRECISION; ++rt){
-      j_sum(rt) /= articulated_r_scale;
-    }
-
-    
-    std::vector<float> jacs(PRECISION, 0);
-
-    for (size_t v = 0; v < jacs.size(); ++v){
-      jacs[v] = -j_sum(v);
-    }
-
-
-    ci::app::console() << "Jacobian = [";
-    for (size_t v = 0; v < jacs.size(); ++v){
-      ci::app::console() << jacs[v] << ",";
-    }
-    ci::app::console() << "]" << std::endl;
-
-    current_model->UpdatePose(jacs);
-
-  }
+  }//end for
 
   //for each pixel find the sdf that it corrsponds to 
 

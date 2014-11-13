@@ -116,6 +116,8 @@ namespace ttrk {
     */
     void SetFrame(boost::shared_ptr<sv::Frame> frame) { frame_ = frame; }
   
+    virtual bool NeedsNewFrame() const { return curr_step == 0 || curr_step == NUM_STEPS; }
+
   protected:
 
     boost::shared_ptr<sv::Frame> frame_; /**< Just a reference to the current frame, probably not really useful, may be removed. */
@@ -127,6 +129,7 @@ namespace ttrk {
     ci::gl::GlslProg back_depth_and_contour_;  /**< Shader to compute the back depth buffer and contour. */
 
     size_t NUM_STEPS;  /**< Number of step for the optimization. */
+    size_t curr_step;
     int HEAVYSIDE_WIDTH;  /**< Width of the heaviside blurring function. */
 
   };

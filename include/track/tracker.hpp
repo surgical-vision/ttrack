@@ -42,7 +42,10 @@ namespace ttrk{
     */
     void Run(boost::shared_ptr<sv::Frame> image, const bool found);
 
+    void RunStep();
   
+    bool NeedsNewFrame() const { return localizer_->NeedsNewFrame(); }
+
     /**
      * Get a ptr to the frame now that the detector has finished classifying it
      * @return The frame after use.
@@ -57,6 +60,9 @@ namespace ttrk{
 
     void GetTrackedModels(std::vector<boost::shared_ptr<Model> > &models);
 
+    void SetStartPose(const std::vector<float> &pose) { starting_pose_HACK = pose; }
+    std::vector<float> GetStartPose() { return starting_pose_HACK; }
+    
   protected:
 
     /**
@@ -81,6 +87,8 @@ namespace ttrk{
       boost::shared_ptr<Model> model;
       boost::shared_ptr<TemporalTracker> temporal_tracker;
     };
+
+    std::vector<float> starting_pose_HACK;
 
     std::vector<TemporalTrackedModel> tracked_models_; /**< a vector of tracked models. TODO: switch this out for point cloud mesh or some better data structure. */
     std::vector<TemporalTrackedModel>::iterator current_model_; /**< A reference to the currently tracked model. */

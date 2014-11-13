@@ -27,6 +27,8 @@ namespace ttrk {
     */
     virtual ~Localizer() {}
 
+    virtual bool NeedsNewFrame() const = 0;
+
   };
 
 

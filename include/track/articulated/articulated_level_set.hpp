@@ -4,18 +4,21 @@
 #include "../localizer.hpp"
 #include "../pwp3d/stereo_pwp3d.hpp"
 #include "../model/node.hpp"
+#include <ceres/ceres.h>
 
 namespace ttrk {
 
 #define PRECISION 12
 
-  class ArticulatedLevelSet : public PWP3D {
+  class ArticulatedLevelSet : public PWP3D , public ceres::CostFunction {
 
   public:
 
     ArticulatedLevelSet(boost::shared_ptr<StereoCamera> camera) : stereo_camera_(camera) , PWP3D(camera->left_eye()->Width(), camera->left_eye()->Height()) {}
 
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
+
+    void TrackTargetInFrame__old(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame);
 
   protected:
 

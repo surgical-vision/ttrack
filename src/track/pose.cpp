@@ -106,5 +106,5 @@ void Pose::UpdatePose(const std::vector<float> &updates) {
     translation_[i] += updates[i];
 
   rotation_ = rotation_ + sv::Quaternion(updates[3], updates[4], updates[5], updates[6]);
-
+  rotation_ = rotation_.Normalize();
 }

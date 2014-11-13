@@ -82,8 +82,9 @@ namespace ttrk{
      * @param[in] classifier_type Specify the type of classifier.
      * @param[in] left_media_file The left input video.
      * @param[in] right_media_file The right input video.
+     * @param[in] starting_pose Temporary, will be removed. Just a hack until the initializer is done.
      */
-    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const std::string &left_media_file, const std::string &right_media_file);
+    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const std::string &left_media_file, const std::string &right_media_file, const std::vector<float> &starting_pose);
     
     /**
     * Setup the tracking system with the files it needs to find, localize and track the objects for monocular inputs.
@@ -94,7 +95,7 @@ namespace ttrk{
     * @param[in] classifier_type Specify the type of classifier.
     * @param[in] media_file The input video.
     */
-    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const std::string &media_file);
+    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const std::string &media_file, const std::vector<float> &starting_pose);
 
     /**
     * Quick method to convert a string formulation of a classifier type (e.g. RF or SVM) to the ClassifierType.
@@ -102,6 +103,13 @@ namespace ttrk{
     * @return The classifier type.
     */
     static ClassifierType ClassifierFromString(const std::string &classifier_name);
+
+    /**
+    * Quick method to convert a pose in string format to a representation.
+    * @param[in] pose_as_string The pose in string form.
+    * @return The pose.
+    */
+    static std::vector<float> PoseFromString(const std::string &pose_as_string);
 
     /**
     * Get a pointer to the current frame we are processing.
@@ -120,7 +128,7 @@ namespace ttrk{
     * @param[in] classifier_type Specify the type of classifier.
     * @param[in] camera_type Whether we are doing monocular or stereo work.
     */
-    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type);
+    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type, const std::vector<float> &starting_pose);
 
     /**
      * Grab a ptr to a new frame. This is the interface to use if reading from images or reading from a videofile.

@@ -14,17 +14,39 @@
 
 using namespace ttrk;
 
-void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const std::string &left_media_file,const std::string &right_media_file){
+void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const std::string &left_media_file, const std::string &right_media_file, const std::vector<float> &starting_pose){
   
-  SetUp(model_parameter_file,camera_calibration_file,classifier_path,results_dir,classifier_type,CameraType::STEREO);
+  SetUp(model_parameter_file,camera_calibration_file,classifier_path,results_dir,classifier_type,CameraType::STEREO,starting_pose);
   tracker_->Tracking(false); 
   handler_.reset(new StereoVideoHandler(left_media_file,right_media_file, results_dir_ + "/tracked_video.avi"));
 
 }
 
-void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const std::string &media_file){
+std::vector<float> TTrack::PoseFromString(const std::string &pose_as_string){
 
-  SetUp(model_parameter_file, camera_calibration_file, classifier_path, results_dir, classifier_type, CameraType::MONOCULAR);
+  std::vector<float> string_as_floats;
+  std::stringstream ss(pose_as_string);
+  
+  float x;
+  while (ss >> x){
+    string_as_floats.push_back(x);  
+  }
+
+  if (string_as_floats.size() != 16) throw std::runtime_error("Error, size is bad!");
+
+  //cv::Mat rots = (cv::Mat_<double>(3, 3) <<
+  //  string_as_floats[0], string_as_floats[1], string_as_floats[2],
+  //  string_as_floats[4], string_as_floats[5], string_as_floats[6],
+  //  string_as_floats[8], string_as_floats[9], string_as_floats[10]);
+
+  //Pose ret(sv::Quaternion(rots), ci::Vec3f(string_as_floats[3], string_as_floats[7], string_as_floats[11]));
+  return string_as_floats;
+
+}
+
+void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const std::string &media_file, const std::vector<float> &starting_pose){
+
+  SetUp(model_parameter_file, camera_calibration_file, classifier_path, results_dir, classifier_type, CameraType::MONOCULAR, starting_pose);
   tracker_->Tracking(false); 
   if(IS_VIDEO(boost::filesystem::path(media_file).extension().string()))
     handler_.reset(new VideoHandler(media_file, results_dir_ + "/tracked_video.avi"));
@@ -36,7 +58,7 @@ void TTrack::SetUp(const std::string &model_parameter_file, const std::string &c
 }
 
 
-void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type){
+void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type, const std::vector<float> &starting_pose){
   
   camera_type_ = camera_type;
   results_dir_ = results_dir;
@@ -69,12 +91,19 @@ void TTrack::SetUp(const std::string &model_parameter_file, const std::string &c
     SAFE_EXIT();
   }
   
+  tracker_->SetStartPose(starting_pose);
+
 }
 
 void TTrack::GetUpdate(std::vector<boost::shared_ptr<Model> > &models){
 
-  detector_->Run(GetPtrToNewFrame());
-  tracker_->Run(GetPtrToClassifiedFrame(), detector_->Found());
+  if (tracker_->NeedsNewFrame()){
+    detector_->Run(GetPtrToNewFrame());
+    tracker_->Run(GetPtrToClassifiedFrame(), detector_->Found());
+  }
+  else{
+    tracker_->RunStep();
+  }
 
   tracker_->GetTrackedModels(models);
 
@@ -159,7 +188,7 @@ boost::shared_ptr<const sv::Frame> TTrack::GetPtrToCurrentFrame() const {
 boost::shared_ptr<sv::Frame> TTrack::GetPtrToNewFrame(){
   
   static cv::Mat stest = handler_->GetNewFrame();
-    
+
   cv::Mat test = stest.clone();
 
   //if the input data has run out test will be empty, if this is so

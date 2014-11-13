@@ -70,7 +70,6 @@ void Detect::ClassifyFrame(){
   const int rows = whole_frame.rows;
   const int cols = whole_frame.cols;
 
-
   static size_t frame_count = 0;
 
   size_t pixel_count = 0;
@@ -84,8 +83,13 @@ void Detect::ClassifyFrame(){
 
       cv::Mat pix = nd_image.GetPixelData(r,c);
 
+      float hue = pix.at<float>(0);
+      float sat = pix.at<float>(1);
+      float o1 = pix.at<float>(2);
+      float o2 = pix.at<float>(3);
+
       //const unsigned char prediction = (unsigned char)255*classifier_->PredictClass(pix);
-      const float prediction = 255 * (const float)classifier_->PredictProb(pix, 1); //need to be between 0 - 255 for later processing stage
+      const float prediction = (const float)classifier_->PredictProb(pix, 1); //need to be between 0 - 255 for later processing stage
 
       frame_data[index] = prediction;
 

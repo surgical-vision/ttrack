@@ -31,7 +31,9 @@ PWP3D::PWP3D(const int width, const int height) {
 
   HEAVYSIDE_WIDTH = 3;
 
-  NUM_STEPS = 1;
+  NUM_STEPS = 3;
+
+  curr_step = 0;
 
 }
 

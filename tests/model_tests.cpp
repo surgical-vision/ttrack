@@ -6,37 +6,34 @@
 
 namespace ttrk {
 
-  class TestArticulatedTool : public IntuitiveSurgicalLND {
+  class TestArticulatedTool : public DenavitHartenbergArticulatedModel {
 
   public:
-    TestArticulatedTool(const std::string &s) : IntuitiveSurgicalLND(s) {}
+    TestArticulatedTool(const std::string &s) : DenavitHartenbergArticulatedModel(s) {}
 
     ci::Matrix44f getTransformationToEndNode(int child) const { 
-      ArticulatedNode::Ptr root_node = articulated_model_->RootNode();
-      return root_node->children_[0]->children_[child]->GetTransform();
+      return ci::Matrix44f();
     }
 
-    int getNumberOfRootNodeChildren() {
-      ArticulatedNode::Ptr root_node = articulated_model_->RootNode();
-      return root_node->children_.size();
+    int getNumberOfChildren(size_t idx) const {
+      return model_->GetChildByIdx(idx)->GetChildren().size();
     }
 
-    int getNumberOfFirstChildChildren() {
-      ArticulatedNode::Ptr root_node = articulated_model_->RootNode();
-      return root_node->children_[0]->children_.size();
+    int getNumberOfNodes(){
+
+      int index = 0;
+      while (true){
+        const Node *idx = GetRootNode()->GetChildByIdx(index);
+        if (idx == nullptr) break;
+        index++;
+      }
+      return index;
+
     }
 
-    int getNumberOfSecondChildChildren() {
-      ArticulatedNode::Ptr root_node = articulated_model_->RootNode();
-      int n = 0;
-      for(auto child = root_node->children_[0]->children_.begin();
-        child != root_node->children_[0]->children_.end(); ++child)
-        n += (*child)->children_.size();
-      return n;
+    boost::shared_ptr<const Node> GetRootNode() const {
+      return model_;
     }
-
-
-      
 
 
   };
@@ -50,31 +47,19 @@ BOOST_AUTO_TEST_CASE( model_load_test ) {
 
   ttrk::TestArticulatedTool at("../../data/lnd/model/model.json"); //load the json file
 
-  BOOST_ASSERT( at.getNumberOfRootNodeChildren() == 1 );
+  BOOST_ASSERT(at.getNumberOfChildren(0) == 1);
 
-  BOOST_ASSERT( at.getNumberOfFirstChildChildren() == 2 );
+  BOOST_ASSERT(at.getNumberOfChildren(1) == 1);
 
-  BOOST_ASSERT( at.getNumberOfSecondChildChildren() == 0);
+  BOOST_ASSERT(at.getNumberOfChildren(2) == 1);
 
-  //at.RotateHead(0.01);
-  at.RotateClaspers(0.01,0.01);
+  BOOST_ASSERT(at.getNumberOfChildren(3) == 2);
 
-  ci::Matrix44d end_node_left = at.getTransformationToEndNode(0);
-  ci::Matrix44d end_node_right = at.getTransformationToEndNode(1);
-    
-  ci::Matrix44d test1;
-  test1.setToIdentity();
-  test1.at(0,3) = 0.0078226;
-  test1.at(1,1) = 0.99995;
-  test1.at(1,2) = -0.00999983;
-  test1.at(1,3) = 18.1565;
-  test1.at(2,1) = 0.00999983;
-  test1.at(2,2) = 0.99995;
-  test1.at(2,3) = -6.24917e-007;
+  BOOST_ASSERT(at.getNumberOfChildren(5) == 0);
 
-  //BOOST_ASSERT( test1 == end_node_left );
-  //BOOST_ASSERT( test1 == end_node_right );
+  BOOST_ASSERT(at.getNumberOfChildren(4) == 0);
 
+ 
 }
 
 BOOST_AUTO_TEST_SUITE_END()

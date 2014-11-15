@@ -66,6 +66,14 @@ void Node::Render(bool bind_texture){
 
 }
 
+std::vector<Node::ConstPtr> Node::GetChildren() const {
+
+  std::vector<Node::ConstPtr> ret;
+  std::copy(children_.cbegin(), children_.cend(), ret.begin());
+  return ret;
+
+}
+
 Node *Node::GetChildByIdx(const std::size_t target_idx){
 
   if (idx_ == target_idx) return this; //return shared from this
@@ -94,10 +102,6 @@ const Node *Node::GetChildByIdx(const std::size_t target_idx) const{
 
 void Node::ComputeJacobianForPoint(const ci::Matrix44f &world_transform, const ci::Vec3f &point, const int target_frame_index, std::vector<ci::Vec3f> &jacobian) const {
 
-
-
-  //point should be in the reference frame of the camera
-
   //the node with null parent is the root node so it's pose is basically just the base pose.
   if (parent_ != nullptr){
 
@@ -106,7 +110,7 @@ void Node::ComputeJacobianForPoint(const ci::Matrix44f &world_transform, const c
     //z = rotation axis of point
     //T_3 = transfrom from this frame to origin - with GetRelativeTransform
 
-    if (!NodeIsChild(target_frame_index)){
+    if (!NodeIsChild(target_frame_index)){// || !NodeIsTransformable() ){
 
       jacobian.push_back(ci::Vec3f(0.0f, 0.0f, 0.0f));
 
@@ -117,10 +121,13 @@ void Node::ComputeJacobianForPoint(const ci::Matrix44f &world_transform, const c
 
       //ci::Vec4f z(GetAxis(), 1);
 
-      ci::Vec4f z = GetTransformToParent() * ci::Vec4f(GetAxis(),1);
+      
+      //ci::Vec4f z = GetRelativeTransformToRoot() * ci::Vec4f(GetAxis(), 1);
 
       ci::Matrix44f T_3 = GetRelativeTransformToRoot() * world_transform;
 
+      ci::Vec4f z = GetTransformFromParent() * ci::Vec4f(GetAxis(), 1);
+      
       ci::Vec4f end = T_3 * ci::Vec4f(point, 1);
       
       ci::Vec4f jac = T_1 * (z.cross(end));
@@ -145,6 +152,38 @@ bool Node::NodeIsChild(const size_t child_idx) const {
 
 }
 
+bool DHNode::NodeIsTransformable() const {
+
+  return type_ == JointType::Rotation || type_ == JointType::Translation;
+
+}
+
+void DHNode::GetPose(std::vector<float> &pose) const {
+
+  if (parent_ != nullptr){
+    pose.push_back(update_);
+  }
+
+  for (size_t i = 0; i < children_.size(); ++i){
+    children_[i]->GetPose(pose);
+  }
+
+}
+
+void DHNode::SetPose(std::vector<float>::iterator &pose){
+
+  if (parent_ != nullptr){
+    update_ = *pose;
+    ++pose;
+  }
+
+  for (size_t i = 0; i < children_.size(); ++i){
+    children_[i]->SetPose(pose);
+  }
+
+
+}
+
 void DHNode::UpdatePose(std::vector<float>::iterator &updates){
  
   //the node with null parent is the root node so it's pose is basically just the base pose and therefore there is not an update
@@ -162,15 +201,16 @@ void DHNode::UpdatePose(std::vector<float>::iterator &updates){
 ci::Matrix44f DHNode::GetRelativeTransformToNodeByIdx(const int target_idx) const{
   
   if (target_idx < idx_){
-    return ci::Matrix44f(); //return identity
+    return ci::Matrix44f();
   }
   else{
     // transform up towards the root
-    return glhMultMatrixRight(GetTransformToParent(), GetRelativeTransformToNodeByIdx(target_idx - 1));
+    return glhMultMatrixRight(GetTransformFromParent(), GetRelativeTransformToNodeByIdx(target_idx - 1));
   }
   
 
 }
+
 ci::Matrix44f DHNode::GetRelativeTransformToChild(const int child_idx) const {
 
   return GetChildByIdx(child_idx)->GetRelativeTransformToNodeByIdx(idx_);
@@ -182,7 +222,7 @@ ci::Matrix44f DHNode::GetWorldTransform(const ci::Matrix44f &base_frame_transfor
   if (parent_ != 0x0){
     DHNode *p = dynamic_cast<DHNode *>(parent_);
     //return p->GetTransformToParent() * GetTransformToParent();
-    return glhMultMatrixRight(GetTransformToParent(), p->GetWorldTransform(base_frame_transform));
+    return glhMultMatrixRight(GetTransformFromParent(), p->GetWorldTransform(base_frame_transform));
   }
   else{ 
     return base_frame_transform;
@@ -195,7 +235,7 @@ ci::Matrix44f DHNode::GetRelativeTransformToRoot() const {
   if (parent_ != 0x0){
     DHNode *p = dynamic_cast<DHNode *>(parent_);
     //return p->GetTransformToParent() * GetTransformToParent();
-    return glhMultMatrixRight(GetTransformToParent(), p->GetRelativeTransformToRoot());
+    return glhMultMatrixRight(GetTransformFromParent(), p->GetRelativeTransformToRoot());
   }
   else{
     ci::Matrix44f m;
@@ -290,28 +330,7 @@ void DHNode::createFixedTransform(const ci::Vec3f &axis, const float rads, ci::M
 
 }
 
-//ci::Matrix44f DHNode::GetTransformBetweenNodes(const Node *from, const Node *to) const {
-//
-//  //reached the last coordinate system in the chain.
-//  if (from == this){
-//    return GetTransformToParent();
-//  }
-//  if (parent_ != 0x0){
-//    DHNode *p = dynamic_cast<DHNode *>(parent_);
-//
-//    return glhMultMatrixRight(GetTransformToParent(), p->GetTransformBetweenNodes());
-//  }
-//  else{
-//    ci::Matrix44f m;
-//    m.setToIdentity();
-//    return m;// GetTransformToParent();
-//  }
-//
-//
-//
-//}
-
-ci::Matrix44f DHNode::GetTransformToParent() const {
+ci::Matrix44f DHNode::GetTransformFromParent() const {
   
   ci::Matrix44f DH;
   DH.setToIdentity();

@@ -1,6 +1,6 @@
 #include <cinder/app/App.h>
 #include <numeric>
-#include <ceres/ceres.h>
+
 
 #include "../../../include/track/articulated/articulated_level_set.hpp"
 #include "../../../include/constants.hpp"
@@ -8,37 +8,397 @@
 
 using namespace ttrk;
 
-struct PWP3DCostFunction : public ceres::CostFunction , public PWP3D {
 
-  virtual ~PWP3DCostFunction() {}
 
-  virtual bool evaluate( double const* const* parameters, double *residuals, double **jacobians) const {
+ArticulatedLevelSet *GLOBAL_ALS = 0x0;
 
-    int i = 0;
-    //for each pixel in region around model
-    residuals[i] = 
+//
+//void ArticulatedLevelSetSolverSingleResidual::TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame){
+//
+//  frame_ = frame;
+//  current_model_ = model;
+//
+//  std::vector<float> pose_parameters;
+//  model->GetPose(pose_parameters);
+//
+//  //initalise
+//  double **parameters = new double*[3];
+//  parameters[0] = new double[3];
+//  parameters[1] = new double[4];
+//  parameters[2] = new double[5];
+//
+//  parameters[0][0] = pose_parameters[0];
+//  parameters[0][1] = pose_parameters[1];
+//  parameters[0][2] = pose_parameters[2];
+//
+//  parameters[1][0] = pose_parameters[3];
+//  parameters[1][1] = pose_parameters[4];
+//  parameters[1][2] = pose_parameters[5];
+//  parameters[1][3] = pose_parameters[6];
+//
+//  parameters[2][0] = pose_parameters[7];
+//  parameters[2][1] = pose_parameters[8];
+//  parameters[2][2] = pose_parameters[9];
+//  parameters[2][3] = pose_parameters[10];
+//  parameters[2][4] = pose_parameters[11];
+//
+//  GLOBAL_ALS = new ArticulatedLevelSet(stereo_camera_);
+//
+//  ceres::Problem problem;
+//
+//  //option 1 use this version with anyltic derivatives
+//  //supply initial problem guess - parameters
+//  //problem.AddResidualBlock(this, nullptr, parameters); 
+//
+//  //option 2 use automatic derivatives
+//  
+//  //option 3 add each residual as a separate cost function
+//  //to do this one need to iterate over sdf image and get indexes of all pixels we want to process
+//  //also need to figure out how we can 'refresh' the model at each loop
+//  ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<LevelSetResidual, 1, 3, 4, 1, 1, 1, 1, 1>(new LevelSetResidual();
+//  //  problem.AddResidualBlock(cost_function, nullptr, parameters);
+//  //}
+//
+//
+//  ceres::Solver::Options options;
+//  options.linear_solver_type = ceres::DENSE_QR;
+//  options.minimizer_progress_to_stdout = false;
+//  options.update_state_every_iteration = true;
+//  //options.check_gradients = true;
+//  //options.jacobi_scaling = true;
+//  //options.minimizer_type = ceres::TRUST_REGION;
+//  options.minimizer_type = ceres::LINE_SEARCH;
+//  options.line_search_direction_type = ceres::STEEPEST_DESCENT;
+//  ceres::Solver::Summary summary;
+//  ceres::Solve(options, &problem, &summary);
+//
+//  ci::app::console() << summary.FullReport() << std::endl;
+//
+//
+//  delete GLOBAL_ALS;
+//  delete[] parameters[0];
+//  delete[] parameters[1];
+//  delete[] parameters[2];
+//  delete[] parameters;
+//
+//
+//}
 
-    return true;
+//compute jacobians by self if using the anyltic derivative solver
+bool ArticulatedLevelSetSolver::Evaluate(double const* const* parameters, double *residuals, double **jacobians) const{
+
+  GLOBAL_ALS->SetFrame(frame_);
+  cv::Mat left_sdf_image, left_front_intersection, left_back_intersection, left_index_image, left_classification_image;
+  left_classification_image = frame_->GetClassificationMapROI();
+
+  ci::app::console() << "Updated parameters = [";
+  for (int i = 0; i < parameter_block_sizes().size(); ++i){
+
+    int num_params_in_block = parameter_block_sizes()[i];
+
+    for (int c = 0; c < num_params_in_block; ++c){
+
+      ci::app::console() << parameters[i][c] << ", ";
+
+    }
+
   }
-  //bool operator()(const )
 
-  void Setup()
+  ci::app::console() << "]" << std::endl;
+  
+  GLOBAL_ALS->SetParameters(current_model_,parameters);
 
-  cv::Mat classification_image;
-  cv::Mat front_intersection_image;
-  cv::Mat back_intersection_image;
-  cv::Mat sdf_image;
-  cv::Mat dsdf_dx_image;
-  cv::Mat dsdf_dy_image;
-  cv::Mat index_image;
+  GLOBAL_ALS->ProcessArticulatedSDFAndIntersectionImage(current_model_, stereo_camera_->left_eye(), left_sdf_image, left_front_intersection, left_back_intersection, left_index_image);
 
-};
+  float *sdf_im_data = (float *)left_sdf_image.data;
+  unsigned char *index_image_data = (unsigned char *)left_index_image.data;
 
-void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
+  int curr_residual = 0;
+
+  for (int r = 5; r < left_sdf_image.rows - 5; ++r){
+    for (int c = 5; c < left_sdf_image.cols - 5; ++c){
+      int i = r*left_classification_image.cols + c;
+
+      if (curr_residual >= NUM_RESIDUALS) break;
+
+      if (sdf_im_data[i] <= float(GLOBAL_ALS->GetHeavisideWidth()) - 1e-1 && sdf_im_data[i] >= -float(GLOBAL_ALS->GetHeavisideWidth()) + 1e-1){
+        residuals[curr_residual] = GLOBAL_ALS->GetErrorValue(r, c, sdf_im_data[i], index_image_data[i]);
+        double f = residuals[curr_residual];
+        curr_residual++;
+      }
+    }
+  }
+
+  for (; curr_residual < NUM_RESIDUALS; ++curr_residual){
+    residuals[curr_residual] = residuals[0];
+  }
+
+  if (jacobians != NULL) {
+
+    cv::Matx<float, NUM_RESIDUALS, PRECISION> jacs = GLOBAL_ALS->ComputeJacobians(current_model_, left_classification_image, left_front_intersection, left_back_intersection, left_sdf_image, left_index_image);
+
+    int current_parameter_idx = 0;
+    for (int i = 0; i < parameter_block_sizes().size(); ++i){
+
+      if (jacobians[i] == NULL) continue;
+
+      int num_params_in_block = parameter_block_sizes()[i];
+
+      //jacobians[i] = NUM_RESIDUALS * num_params_in_block      
+      for (int c = 0; c < num_params_in_block; ++c){
+
+        for (int r = 0; r < NUM_RESIDUALS; ++r){
+          jacobians[i][r * num_params_in_block + c] = jacs(r, current_parameter_idx);
+        }
+        current_parameter_idx++;
+      }
+
+
+    }
+
+  }
+
+  return true;
 
 }
 
-void ArticulatedLevelSet::TrackTargetInFrame__old(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
+void ArticulatedLevelSetSolver::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
+  
+
+  frame_ = frame;
+  current_model_ = current_model;
+
+  std::vector<float> pose_parameters;
+  current_model->GetPose(pose_parameters);
+
+  //initalise
+  double **parameters = new double*[3];
+  parameters[0] = new double[3];
+  parameters[1] = new double[4];
+  parameters[2] = new double[5];
+
+  parameters[0][0] = pose_parameters[0];
+  parameters[0][1] = pose_parameters[1];
+  parameters[0][2] = pose_parameters[2];
+
+  parameters[1][0] = pose_parameters[3];
+  parameters[1][1] = pose_parameters[4];
+  parameters[1][2] = pose_parameters[5];
+  parameters[1][3] = pose_parameters[6];
+
+  parameters[2][0] = pose_parameters[7];
+  parameters[2][1] = pose_parameters[8];
+  parameters[2][2] = pose_parameters[9];
+  parameters[2][3] = pose_parameters[10];
+  parameters[2][4] = pose_parameters[11];
+
+  ci::app::console() << "########### POSE PARAMETERS ################\n\n ";
+
+  for (int i = 0; i < pose_parameters.size(); ++i){
+
+    ci::app::console() << pose_parameters[i] << ", ";
+
+  }
+
+  ci::app::console() << "\n\======================================" << std::endl;;
+  
+  GLOBAL_ALS = new ArticulatedLevelSet(stereo_camera_);
+
+  ceres::Problem problem;
+
+  //option 1 use this version with anyltic derivatives
+  //supply initial problem guess - parameters
+  //problem.AddResidualBlock(this, nullptr, parameters); 
+
+  //option 2 use automatic derivatives
+  ceres::CostFunction* cost_function = new ArticulatedLevelSetSolver(stereo_camera_, current_model_, frame_);
+
+  problem.AddResidualBlock(cost_function, nullptr, parameters[0], parameters[1], parameters[2]);
+  
+  //option 3 add each residual as a separate cost function
+  //to do this one need to iterate over sdf image and get indexes of all pixels we want to process
+  //also need to figure out how we can 'refresh' the model at each loop
+  //for (size_t i = 0; i < row_col_residual_idx_.size(); ++i){
+  //  ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<ArticulatedLevelSetSolverSingleResidual, 1, 3, 4, 1, 1, 1, 1, 1>(new ArticulatedLevelSetSolverSingleResidual(row_col_residual_idx_[i].first, row_col_residual_idx_[i].second));
+  //  problem.AddResidualBlock(cost_function, nullptr, parameters);
+  //}
+
+ 
+  ceres::Solver::Options options;
+  options.linear_solver_type = ceres::DENSE_QR;
+  options.minimizer_progress_to_stdout = false;
+  options.update_state_every_iteration = true;
+  //options.check_gradients = true;
+  //options.jacobi_scaling = true;
+  //options.minimizer_type = ceres::TRUST_REGION;
+  options.minimizer_type = ceres::LINE_SEARCH;
+  options.line_search_direction_type = ceres::STEEPEST_DESCENT;
+  ceres::Solver::Summary summary;
+  ceres::Solve(options, &problem, &summary);
+
+  ci::app::console() << summary.FullReport() << std::endl;
+
+
+  delete GLOBAL_ALS;
+  delete[] parameters[0];
+  delete[] parameters[1];
+  delete[] parameters[2];
+  delete[] parameters;
+
+}
+
+void ArticulatedLevelSet::SetParameters(boost::shared_ptr<Model> current_model, double const* const*parameters){
+
+  std::vector<float> f_params;
+  //for (int i = 0; i < PRECISION; ++i){
+
+  //  f_params.push_back(parameters[i]);
+
+  //}
+  for (int i = 0; i < 3; ++i){
+    f_params.push_back(parameters[0][i]);
+  }
+
+  auto v = current_model->GetBasePose().GetPose();
+
+  for (int i = 0; i < 4; ++i){
+    f_params.push_back(v[3 + i]);
+  }
+  for (int i = 0; i < 5; ++i){
+    f_params.push_back(parameters[2][i]);
+  }
+
+  current_model->SetPose(f_params);
+
+}
+
+cv::Matx<float, NUM_RESIDUALS, PRECISION> ArticulatedLevelSet::ComputeJacobians(const boost::shared_ptr<Model> current_model, const cv::Mat &classification_image, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image, const cv::Mat &sdf_image, const cv::Mat &index_image){
+
+  cv::Matx<float, NUM_RESIDUALS, PRECISION > jacobians = cv::Matx<float, NUM_RESIDUALS, PRECISION>::zeros();
+
+  cv::Mat dsdf_dx, dsdf_dy;
+  cv::Scharr(sdf_image, dsdf_dx, CV_32FC1, 1, 0);
+  cv::Scharr(sdf_image, dsdf_dy, CV_32FC1, 0, 1);
+
+  float *sdf_im_data = (float *)sdf_image.data;
+  float *front_intersection_data = (float *)front_intersection_image.data;
+  float *back_intersection_data = (float *)back_intersection_image.data;
+  float *dsdf_dx_data = (float *)dsdf_dx.data;
+  float *dsdf_dy_data = (float *)dsdf_dy.data;
+  unsigned char *index_image_data = (unsigned char *)index_image.data;
+
+  //float error_value = 0.0f;
+
+  int current_row = 0;
+
+  for (int r = 5; r < classification_image.rows - 5; ++r){
+    for (int c = 5; c < classification_image.cols - 5; ++c){
+
+      int i = r*classification_image.cols + c;
+
+      if (sdf_im_data[i] <= float(HEAVYSIDE_WIDTH) - 1e-1 && sdf_im_data[i] >= -float(HEAVYSIDE_WIDTH) + 1e-1){
+
+        const float cost_value = GetErrorValue(r, c, sdf_im_data[i], index_image_data[i]);
+
+        //P_f - P_b / (H * P_f + (1 - H) * P_b)
+        const float region_agreement = GetRegionAgreement(r, c, sdf_im_data[i], index_image_data[i]);
+
+        //find the closest point on the contour if this point is outside the contour
+        if (sdf_im_data[i] < 0.0) {
+          int closest_r, closest_c;
+          bool found = FindClosestIntersection(sdf_im_data, r, c, sdf_image.rows, sdf_image.cols, closest_r, closest_c);
+          if (!found) continue; //should this be allowed to happen?
+          i = closest_r * sdf_image.cols + closest_c;
+        }
+
+        cv::Matx<float, 1, PRECISION> jacs;
+        for (int j = 0; j < PRECISION; ++j){
+          jacs(j) = 0.0f;
+        }
+
+        //update the jacobian
+        UpdateArticulatedJacobian(region_agreement, index_image_data[i], sdf_im_data[i], dsdf_dx_data[i], dsdf_dy_data[i], stereo_camera_->left_eye()->Fx(), stereo_camera_->left_eye()->Fy(), front_intersection_image.at<cv::Vec3f>(i), back_intersection_image.at<cv::Vec3f>(i), current_model, jacs);
+        
+        if (current_row >= NUM_RESIDUALS){
+          
+          current_row++;
+          continue;
+
+        }
+
+        for (int a = 0; a < PRECISION; ++a){
+          jacobians(current_row, a) = cost_value * jacs(a);
+        }
+
+        current_row++;
+
+      }
+    }
+  }
+
+  for (; current_row < NUM_RESIDUALS; ++current_row){
+    for (int a = 0; a < PRECISION; ++a){
+      jacobians(current_row, a) = jacobians(0,a);
+    }
+  }
+
+  return jacobians;
+
+}
+
+cv::Matx<float, PRECISION, 1> ArticulatedLevelSet::ComputeJacobiansSummed(const boost::shared_ptr<Model> current_model, const cv::Mat &classification_image, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image, const cv::Mat &sdf_image, const cv::Mat &index_image){
+
+  cv::Matx<float, PRECISION, 1> j_sum = cv::Matx<float, PRECISION, 1>::zeros();
+
+  cv::Mat dsdf_dx, dsdf_dy;
+  cv::Scharr(sdf_image, dsdf_dx, CV_32FC1, 1, 0);
+  cv::Scharr(sdf_image, dsdf_dy, CV_32FC1, 0, 1);
+
+  float *sdf_im_data = (float *)sdf_image.data;
+  float *front_intersection_data = (float *)front_intersection_image.data;
+  float *back_intersection_data = (float *)back_intersection_image.data;
+  float *dsdf_dx_data = (float *)dsdf_dx.data;
+  float *dsdf_dy_data = (float *)dsdf_dy.data;
+  unsigned char *index_image_data = (unsigned char *)index_image.data;
+  
+  //float error_value = 0.0f;
+
+  for (int r = 5; r < classification_image.rows - 5; ++r){
+    for (int c = 5; c < classification_image.cols - 5; ++c){
+
+      int i = r*classification_image.cols + c;
+
+      if (sdf_im_data[i] <= float(HEAVYSIDE_WIDTH) - 1e-1 && sdf_im_data[i] >= -float(HEAVYSIDE_WIDTH) + 1e-1){
+
+        //P_f - P_b / (H * P_f + (1 - H) * P_b)
+        const float region_agreement = GetRegionAgreement(r, c, sdf_im_data[i], index_image_data[i]);
+
+        //find the closest point on the contour if this point is outside the contour
+        if (sdf_im_data[i] < 0.0) {
+          int closest_r, closest_c;
+          bool found = FindClosestIntersection(sdf_im_data, r, c, sdf_image.rows, sdf_image.cols, closest_r, closest_c);
+          if (!found) continue; //should this be allowed to happen?
+          i = closest_r * sdf_image.cols + closest_c;
+        }
+
+        cv::Matx<float, 1, PRECISION> jacs;
+        for (int j = 0; j < PRECISION; ++j){
+          jacs(j) = 0.0f;
+        }
+
+        //update the jacobian
+        UpdateArticulatedJacobian(region_agreement, index_image_data[i], sdf_im_data[i], dsdf_dx_data[i], dsdf_dy_data[i], stereo_camera_->left_eye()->Fx(), stereo_camera_->left_eye()->Fy(), front_intersection_image.at<cv::Vec3f>(i), back_intersection_image.at<cv::Vec3f>(i), current_model, jacs);
+        j_sum += jacs.t();
+        
+      }
+    }
+  }
+
+  return j_sum;
+
+}
+
+void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
 
   if (curr_step == NUM_STEPS) curr_step = 0;
 
@@ -49,7 +409,6 @@ void ArticulatedLevelSet::TrackTargetInFrame__old(boost::shared_ptr<Model> curre
   //index images give the index from the 
   cv::Mat left_sdf_image, left_front_intersection, left_back_intersection, left_index_image;
   cv::Mat right_sdf_image, right_front_intersection, right_back_intersection, right_index_image;
-
  
   //load multiclass detection module where each pixels is labelled (0:background, 1: shaft, 2: head, 3: clasper)
 
@@ -72,10 +431,6 @@ void ArticulatedLevelSet::TrackTargetInFrame__old(boost::shared_ptr<Model> curre
     ProcessArticulatedSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), left_sdf_image, left_front_intersection, left_back_intersection, left_index_image);
     //ProcessArticulatedSDFAndIntersectionImage(current_model, stereo_camera_->right_eye(), right_sdf_image, right_front_intersection, right_back_intersection, right_index_image);
 
-    cv::Mat dsdf_dx, dsdf_dy;
-    cv::Scharr(left_sdf_image, dsdf_dx, CV_32FC1, 1, 0);
-    cv::Scharr(left_sdf_image, dsdf_dy, CV_32FC1, 0, 1);
-
     cv::Mat &classification_image = frame_->GetClassificationMapROI();
     cv::Mat &front_intersection_image = left_front_intersection;
     cv::Mat &back_intersection_image = left_back_intersection;
@@ -85,8 +440,6 @@ void ArticulatedLevelSet::TrackTargetInFrame__old(boost::shared_ptr<Model> curre
     float *sdf_im_data = (float *)sdf_image.data;
     float *front_intersection_data = (float *)front_intersection_image.data;
     float *back_intersection_data = (float *)back_intersection_image.data;
-    float *dsdf_dx_data = (float *)dsdf_dx.data;
-    float *dsdf_dy_data = (float *)dsdf_dy.data;
     unsigned char *index_image_data = (unsigned char *)index_image.data;
 
     //float error_value = 0.0f;
@@ -105,12 +458,14 @@ void ArticulatedLevelSet::TrackTargetInFrame__old(boost::shared_ptr<Model> curre
           //P_f - P_b / (H * P_f + (1 - H) * P_b)
           const float region_agreement = GetRegionAgreement(r, c, sdf_im_data[i], index_image_data[i]);
 
+          int shifted_i = i;
+
           //find the closest point on the contour if this point is outside the contour
           if (sdf_im_data[i] < 0.0) {
             int closest_r, closest_c;
             bool found = FindClosestIntersection(sdf_im_data, r, c, sdf_image.rows, sdf_image.cols, closest_r, closest_c);
             if (!found) continue; //should this be allowed to happen?
-            i = closest_r * sdf_image.cols + closest_c;
+            shifted_i = closest_r * sdf_image.cols + closest_c;
           }
 
           cv::Matx<float, 1, PRECISION> jacs;
@@ -118,8 +473,11 @@ void ArticulatedLevelSet::TrackTargetInFrame__old(boost::shared_ptr<Model> curre
             jacs(j) = 0.0f;
           }
 
+          const float dsdf_dx = 0.5*(sdf_im_data[r*classification_image.cols + (c + 1)] - sdf_im_data[r*classification_image.cols + (c - 1)]);
+          const float dsdf_dy = 0.5*(sdf_im_data[(r + 1)*classification_image.cols + c] - sdf_im_data[(r - 1)*classification_image.cols + c]);
+
           //update the jacobian
-          UpdateArticulatedJacobian(region_agreement, index_image_data[i], sdf_im_data[i], dsdf_dx_data[i], dsdf_dy_data[i], stereo_camera_->left_eye()->Fx(), stereo_camera_->left_eye()->Fy(), front_intersection_image.at<cv::Vec3f>(i), back_intersection_image.at<cv::Vec3f>(i), current_model, jacs);
+          UpdateArticulatedJacobian(region_agreement, index_image_data[shifted_i], sdf_im_data[i], dsdf_dx, dsdf_dy, stereo_camera_->left_eye()->Fx(), stereo_camera_->left_eye()->Fy(), front_intersection_image.at<cv::Vec3f>(shifted_i), back_intersection_image.at<cv::Vec3f>(shifted_i), current_model, jacs);
 
           j_sum += jacs.t();
           h_sum += (jacs.t() * jacs);
@@ -128,12 +486,14 @@ void ArticulatedLevelSet::TrackTargetInFrame__old(boost::shared_ptr<Model> curre
       }
     }
 
-    //j_sum = h_sum.inv() * j_sum;// *error_value;
+    //ci::app::console() << "J_sum = " << j_sum << std::endl;
 
-    if (1){
+    j_sum = h_sum.inv() * j_sum;// *error_value;
+
+    if (0){
 
       float t_norm = (j_sum(0) * j_sum(0)) + (j_sum(1) * j_sum(1)) + (j_sum(2) * j_sum(2));
-      t_norm = std::sqrt(t_norm) * 40;
+      t_norm = std::sqrt(t_norm);
       for (int t = 0; t < 3; ++t){
         j_sum(t) /= t_norm;
       }
@@ -149,7 +509,7 @@ void ArticulatedLevelSet::TrackTargetInFrame__old(boost::shared_ptr<Model> curre
       float r_scale = max_element * 80;
 
       for (int rt = 3; rt < 7; ++rt){
-        j_sum(rt) = 0;// /= r_scale;
+        j_sum(rt) /= r_scale;
       }
 
 
@@ -161,32 +521,33 @@ void ArticulatedLevelSet::TrackTargetInFrame__old(boost::shared_ptr<Model> curre
         }
       }
 
-      float articulated_r_scale = max_articulated_rot * 80;
+      float articulated_r_scale = max_articulated_rot * 20;
 
       for (int rt = 7; rt < PRECISION; ++rt){
         j_sum(rt) /= articulated_r_scale;
       }
-
-
-      std::vector<float> jacs(PRECISION, 0);
-
-      for (size_t v = 0; v < jacs.size(); ++v){
-        jacs[v] = -j_sum(v);
-      }
-
-
-      ci::app::console() << "Jacobian = [";
-      for (size_t v = 0; v < jacs.size(); ++v){
-        ci::app::console() << jacs[v] << ",";
-      }
-
-      jacs[jacs.size() - 1] = -jacs[jacs.size() - 2];
-
-      ci::app::console() << "]" << std::endl;
-
-      current_model->UpdatePose(jacs);
-
     }
+
+    std::vector<float> jacs(PRECISION, 0);
+
+    for (size_t v = 0; v < jacs.size(); ++v){
+      jacs[v] = -j_sum(v);
+    }
+
+    jacs[jacs.size() - 1] *= -1;
+    auto total = jacs[jacs.size() - 1] + jacs[jacs.size() - 2];
+    total /= 2;
+
+    ci::app::console() << "Jacobian = [";
+    for (size_t v = 0; v < jacs.size(); ++v){
+      ci::app::console() << jacs[v] << ",";
+    }
+
+    //jacs[jacs.size() - 1] = -jacs[jacs.size() - 2];
+
+    ci::app::console() << "]" << std::endl;
+
+    current_model->UpdatePose(jacs);
 
   }//end for
 
@@ -223,7 +584,12 @@ float ArticulatedLevelSet::GetRegionAgreement(const int row_idx, const int col_i
 
   const float pixel_probability = frame_->GetClassificationMapROI().at<float>(row_idx, col_idx);
   const float heaviside_value = HeavisideFunction(sdf_value);
+  const float heaviside_2 = 0.5*(1.0 + sdf_value / float(HEAVYSIDE_WIDTH) + (1.0 / M_PI)*sin((M_PI*sdf_value) / float(HEAVYSIDE_WIDTH)));
+  const float epsilon = 1e-10;
+  const float Pf = pixel_probability;
+  const float Pb = (1 - pixel_probability);
 
+  float val = (Pf - Pb) / (Pf * heaviside_value + Pb * (1 - heaviside_value) + epsilon);
   return (2.0f*pixel_probability - 1.0f) / (heaviside_value*pixel_probability + (1.0f - heaviside_value)*(1.0f - pixel_probability));
 
 }
@@ -307,6 +673,11 @@ void ArticulatedLevelSet::ProcessArticulatedSDFAndIntersectionImage(const boost:
 
   }
 
+  cv::Mat &shaft_image = model_parts[0].front_intersection_image_;
+  cv::Mat &head_image = model_parts[1].front_intersection_image_;
+  cv::Mat &clasper1_image = model_parts[4].front_intersection_image_;
+  cv::Mat &clasper2_image = model_parts[5].front_intersection_image_;
+
   
   for (auto nodeA : nodes){
     nodeA->SetDraw(true);
@@ -341,19 +712,21 @@ void ArticulatedLevelSet::ProcessArticulatedSDFAndIntersectionImage(const boost:
       }
       else{
 
-        float min_dist = std::numeric_limits<float>::max();
+        //float min_dist = std::numeric_limits<float>::max();
 
-        for (size_t t = 0; t < model_parts.size(); ++t){
-        
-          if (model_parts[t].model_->HasMesh() == 0) continue;
+        //for (size_t t = 0; t < model_parts.size(); ++t){
+        //
+        //  if (model_parts[t].model_->HasMesh() == 0) continue;
 
-          float dist = std::abs(model_parts[t].sdf_image_.at<float>(r, c));
-          if (dist < min_dist){
-            min_dist = dist;
-            frame_idx_image.at<unsigned char>(r, c) = model_parts[t].model_->GetIdx();
-          }
+        //  float dist = std::abs(model_parts[t].sdf_image_.at<float>(r, c));
+        //  if (dist < min_dist){
+        //    min_dist = dist;
+        //    frame_idx_image.at<unsigned char>(r, c) = model_parts[t].model_->GetIdx();
+        //  }
 
-        }
+        //}
+
+        frame_idx_image.at<unsigned char>(r, c) = 255;
 
      }
         

@@ -18,6 +18,7 @@ StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, co
 
   //localizer_.reset(new StereoPWP3D(camera_));
   localizer_.reset(new ArticulatedLevelSet(camera_));
+  //localizer_.reset(new ArticulatedLevelSetSolver(camera_));
 
 }
 
@@ -90,7 +91,7 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
     start_poses[4], start_poses[5], start_poses[6],
     start_poses[8], start_poses[9], start_poses[10]);
 
-  Pose ret(sv::Quaternion(rots), ci::Vec3f(start_poses[3], start_poses[7], start_poses[11]));
+  Pose ret(sv::Quaternion(rots), ci::Vec3f(start_poses[3] + 0.25f, start_poses[7] + 0.25f, start_poses[11] - 0.25f));
   tm->SetBasePose(ret);
   tm->UpdatePose(std::vector<float>({ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, start_poses[12], start_poses[13], start_poses[14], start_poses[15], -start_poses[15] }));
   

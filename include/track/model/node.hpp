@@ -22,7 +22,7 @@ namespace ttrk {
     * @typedef Get a pointer to this type.
     */
     typedef boost::shared_ptr<Node> Ptr;
-
+    
     /**
     * @typedef Get a const pointer to this type.
     */
@@ -53,7 +53,7 @@ namespace ttrk {
     * @return The world transform in a 4x4 float matrix.
     */
     virtual ci::Matrix44f GetWorldTransform(const ci::Matrix44f &base_frame_pose) const = 0;
-    
+
     /**
     * Get the transform between the this node and the root node.
     * @return The transform in a 4x4 float matrix.
@@ -73,7 +73,11 @@ namespace ttrk {
     */
     void AddChild(Node::Ptr child) { children_.push_back(child); }
 
-    virtual ci::Matrix44f GetTransformToParent() const = 0;
+    /**
+    * Get the transform from this node to its parent.
+    * @return The transform from parent 
+    */
+    virtual ci::Matrix44f GetTransformFromParent() const = 0;
 
     /**
     * Render a node element, will recursively call Render on all child nodes.
@@ -97,28 +101,102 @@ namespace ttrk {
     */
     virtual void UpdatePose(std::vector<float>::iterator &updates) = 0;
 
+    /**
+    * Get the pose of the articulated tree in a flat 'serialized' form. The order is by index.
+    * @param[out] The pose vector to contain the poses. Passed recursively to children.
+    */
+    virtual void GetPose(std::vector<float> &pose) const = 0;
+
+    /**
+    * Set the pose of the articulated tree in a flat 'serialized' form. The order is by index. Useful for initialization.
+    * @param[in] The pose vector that contains the poses. Passed recursively to children.
+    */
+    virtual void SetPose(std::vector<float>::iterator &pose) = 0;
+
+    /**
+    * Returns whether the calling node is a parent of the node specified in the argument.
+    * @param[in] child_idx The index of the potential child.
+    * @return Whether the calling node is a parent.
+    */
     bool NodeIsChild(const size_t child_idx) const;
 
+    /**
+    * Get the parent of the node.
+    * @return A pointer to the parent.
+    */
     Node *GetParent() { return parent_; }
     
+    /**
+    * Get the const parent of the node.
+    * @return A const pointer to the parent.
+    */
+    const Node *GetParent() const { return parent_; }
+
+    /**
+    * Get the children of the current node.
+    * @return The children.
+    */
     std::vector< Node::Ptr > GetChildren() { return children_; }
     
-    Node *GetChildByIdx(const std::size_t target_idx);
+    /**
+    * Get the children of the current node in const form.
+    * @return The const version of the children.
+    */
+    std::vector< Node::ConstPtr> GetChildren() const;
 
+    /**
+    * Get a child of the current node by its index in the tree.
+    * @param[in] target_idx The index of the child.
+    * @return The child or nullptr if the child doesn't exist.
+    */
+    Node *GetChildByIdx(const std::size_t target_idx);
+    
+    /**
+    * Get a const child of the current node by its index in the tree.
+    * @param[in] target_idx The index of the child.
+    * @return The const child or nullptr if the child doesn't exist.
+    */
     const Node *GetChildByIdx(const std::size_t target_idx) const;
 
+    /**
+    * Set whether to draw the node or not in the recursive render call. 
+    * @param[in] draw_on Flag to set whether to draw the node or not.
+    */
     void SetDraw(const bool draw_on) { drawing_flag_ = draw_on; }
 
+    /**
+    * Returns true if the node has a set of vertices attached to it.
+    * @return True if there are vertices and false if not.
+    */
     bool HasMesh() const { return model_.getNumVertices() > 0; }
 
+    /**
+    * Get the index of the node. The indexes are set in the order the nodes are added.
+    * @return The node's index.
+    */
     size_t GetIdx() const { return idx_; }
 
+    /**
+    * Does the node transform or is it a fixed joint.
+    * @return True if the node can transform (e.g. rotation or translation), false if not.
+    */
+    virtual bool NodeIsTransformable() const = 0;
+
+    /**
+    * Get the transform between the node and another node. 
+    * @param[in] target_idx The index of the target node.
+    * @return The relative transform from caller node to target node. Identity transform if not connected nodes. 
+    */
     virtual ci::Matrix44f GetRelativeTransformToNodeByIdx(const int target_idx) const = 0;
 
-  protected:
-
+    /**
+    * Get the axis around which or along which the node transforms
+    * @return The transformation axis.
+    */
     virtual ci::Vec3f GetAxis() const = 0;
 
+  protected:
+    
     /**
     * Load the mesh and texture from the JSON file.
     * @param[in] tree The JSON tree that we will parse to get the files and the children.
@@ -154,6 +232,11 @@ namespace ttrk {
     typedef boost::shared_ptr<DHNode> Ptr;
 
     /**
+    * @typedef Get a pointer to a const qualified instance.
+    */
+    typedef boost::shared_ptr<const DHNode> ConstPtr;
+
+    /**
     * Specialization of the load function to handle JSON files which specify DH parameters.
     * @param[in] tree The JSON tree that we will parse to get the files and the children.
     * @param[in] parent The parent of this node.
@@ -187,25 +270,57 @@ namespace ttrk {
     */
     virtual void UpdatePose(std::vector<float>::iterator &updates);
 
-    virtual ci::Matrix44f GetRelativeTransformToNodeByIdx(const int target_idx) const;
+    /**
+    * Get the pose of the articulated tree in a flat 'serialized' form. The order is by index.
+    * @param[out] The pose vector to contain the poses. Passed recursively to children.
+    */
+    virtual void GetPose(std::vector<float> &pose) const;
 
+    /**
+    * Set the pose of the articulated tree in a flat 'serialized' form. The order is by index. Useful for initialization.
+    * @param[in] The pose vector that contains the poses. Passed recursively to children.
+    */
+    virtual void SetPose(std::vector<float>::iterator &pose);
+    
     /**
     * Compute the rigid transform from from the parent of this coordinate system to this one using the DH parameters.
     * @return The 4x4 transform.
     */
+    virtual ci::Matrix44f GetTransformFromParent() const;
 
-    virtual ci::Matrix44f GetTransformToParent() const;
+    /**
+    * Does the node transform or is it a fixed joint.
+    * @return True if the node can transform (e.g. rotation or translation), false if not.
+    */
+    virtual bool NodeIsTransformable() const;
+
+    /**
+    * Get the transform between the node and another node.
+    * @param[in] target_idx The index of the target node.
+    * @return The relative transform from caller node to target node. Identity transform if not connected nodes.
+    */
+    virtual ci::Matrix44f GetRelativeTransformToNodeByIdx(const int target_idx) const;
+
+    /**
+    * Get the axis around which or along which the node transforms
+    * @return The transformation axis.
+    */
+    virtual ci::Vec3f GetAxis() const { return ci::Vec3f::zAxis(); }
 
   protected:
 
-    virtual ci::Vec3f GetAxis() const { return ci::Vec3f::zAxis(); }
-
-   
-
-    
-
+    /**
+    * Construct a rigid body transfrom from a rigid axis angle transform.
+    * @param[in] axis The axis around which to transform.
+    * @param[in] rads The angle to transfrom around in radians.
+    * @param[out] output The output transform.
+    */
     void createFixedTransform(const ci::Vec3f &axis, const float rads, ci::Matrix44f &output) const;
 
+    /**
+    * @enum JointType
+    * The joint types of DH joints. Alternative is a hack to allow da Vinci instrument claspers to work.
+    */
     enum JointType { Rotation, Translation, Fixed, Alternative };
 
     JointType type_; /**< The joint type of the DH element. Dictates whether the update is applied to d or @theta. */
@@ -215,7 +330,7 @@ namespace ttrk {
     float d_; /**< d in the DH parameter set. Offset along previous joint axis to the common normal. */
     float update_; /**< The update to the DH set to compute the transformation. */
 
-    ci::Vec3f alt_axis_;
+    ci::Vec3f alt_axis_; /**< Hack axis for daVinci instruments. */
 
   };
 

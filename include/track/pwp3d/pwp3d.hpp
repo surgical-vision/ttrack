@@ -118,6 +118,8 @@ namespace ttrk {
   
     virtual bool NeedsNewFrame() const { return curr_step == 0 || curr_step == NUM_STEPS; }
 
+    int GetHeavisideWidth() const { return HEAVYSIDE_WIDTH; }
+
   protected:
 
     boost::shared_ptr<sv::Frame> frame_; /**< Just a reference to the current frame, probably not really useful, may be removed. */

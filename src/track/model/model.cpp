@@ -82,6 +82,23 @@ void Model::UpdatePose(std::vector<float> &updates){
 
 }
 
+void Model::SetPose(std::vector<float> &pose){
+
+  world_to_model_coordinates_.SetPose(std::vector<float>(pose.begin(), pose.begin() + world_to_model_coordinates_.GetNumDofs()));
+  
+  std::vector<float> pose_to_end(pose.begin() + world_to_model_coordinates_.GetNumDofs(), pose.end());
+  model_->SetPose(pose_to_end.begin());
+
+
+}
+
+void Model::GetPose(std::vector<float> &pose){
+
+  pose = world_to_model_coordinates_.GetPose();
+  model_->GetPose(pose);
+
+}
+
 std::vector<ci::Vec3f> Model::ComputeJacobian(const ci::Vec3f &point, const int target_frame_idx) const {
 
   //compute the jacobian for the base pose

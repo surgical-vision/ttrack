@@ -187,9 +187,10 @@ boost::shared_ptr<const sv::Frame> TTrack::GetPtrToCurrentFrame() const {
 
 boost::shared_ptr<sv::Frame> TTrack::GetPtrToNewFrame(){
   
-  static cv::Mat stest = handler_->GetNewFrame();
+  cv::Mat test = handler_->GetNewFrame();
 
-  cv::Mat test = stest.clone();
+  //static cv::Mat stest = handler_->GetNewFrame();
+  //cv::Mat test = stest.clone();
 
   //if the input data has run out test will be empty, if this is so
   //reset the frame_ pointer to empty and return it. this will signal to 

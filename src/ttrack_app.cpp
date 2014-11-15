@@ -18,6 +18,8 @@
 #include "../include/resources.hpp"
 #include "../include/utils/config_reader.hpp"
 
+#include <ceres/ceres.h>
+
 using namespace ci;
 using namespace ci::app;
 
@@ -57,6 +59,9 @@ void TTrackApp::SetupFromConfig(const std::string &path){
 void TTrackApp::setup(){
 
   std::vector<std::string> cmd_line_args = getArgs();
+
+  google::InitGoogleLogging(cmd_line_args[0].c_str());
+  google::SetLogDestination(google::GLOG_INFO, "z:/file0.txt");
 
   if (cmd_line_args.size() == 2){
 

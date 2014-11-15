@@ -81,6 +81,10 @@ namespace ttrk{
     */
     virtual void UpdatePose(std::vector<float> &updates); 
 
+    virtual void SetPose(std::vector<float> &pose);
+
+    virtual void GetPose(std::vector<float> &pose);
+
     /**
     * Compute the Jacobian of the pose w.r.t some point.
     * @param[in] point The 3D point used to compute the jacobian.

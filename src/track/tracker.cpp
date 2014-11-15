@@ -10,7 +10,6 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
 } 
 
 void Tracker::RunStep(){
-  
   for (current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++){
 
     localizer_->TrackTargetInFrame(current_model_->model, frame_);

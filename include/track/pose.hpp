@@ -50,6 +50,10 @@ namespace ttrk {
     */
     void UpdatePose(const std::vector<float> &updates);
 
+    std::vector<float> GetPose() const;
+
+    void SetPose(std::vector<float> &pose);
+
     /**
     * Get the number of degrees of freedom associated with the pose.
     * @return The number of degrees of freedom.

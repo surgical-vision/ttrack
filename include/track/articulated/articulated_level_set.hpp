@@ -8,7 +8,7 @@
 
 namespace ttrk {
 
-#define PRECISION 12
+#define PRECISION 11 //7 + WP + WY + C1 + C2
 #define NUM_RESIDUALS 7000
 
 

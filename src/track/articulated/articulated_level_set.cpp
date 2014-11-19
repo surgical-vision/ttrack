@@ -137,23 +137,34 @@ bool ArticulatedLevelSetSolver::Evaluate(double const* const* parameters, double
 
     cv::Matx<float, NUM_RESIDUALS, PRECISION> jacs = GLOBAL_ALS->ComputeJacobians(current_model_, left_classification_image, left_front_intersection, left_back_intersection, left_sdf_image, left_index_image);
 
-    int current_parameter_idx = 0;
-    for (int i = 0; i < parameter_block_sizes().size(); ++i){
+    for (int res = 0; res < NUM_RESIDUALS; ++res){
 
-      if (jacobians[i] == NULL) continue;
+      size_t current_parameter_idx = 0;
 
-      int num_params_in_block = parameter_block_sizes()[i];
+      ci::app::console() << "For residual " << res << " jacobian = \n[";
 
-      //jacobians[i] = NUM_RESIDUALS * num_params_in_block      
-      for (int c = 0; c < num_params_in_block; ++c){
+      for (int i = 0; i < parameter_block_sizes().size(); ++i){
 
-        for (int r = 0; r < NUM_RESIDUALS; ++r){
-          jacobians[i][r * num_params_in_block + c] = jacs(r, current_parameter_idx);
+        const int num_params_in_block = parameter_block_sizes()[i];
+
+        if (jacobians[i] != NULL) {
+
+          for (int param = 0; param < num_params_in_block; ++param){
+
+            jacobians[i][res * num_params_in_block + param] = jacs(res, current_parameter_idx + param);
+            if (jacobians[i][res * num_params_in_block + param])
+              ci::app::console() << jacobians[i][res * num_params_in_block + param] << ", ";
+
+          }
+
+          current_parameter_idx += num_params_in_block;
+
         }
-        current_parameter_idx++;
       }
 
-
+      
+      ci::app::console() << "]\n\n\n" << std::endl;
+     
     }
 
   }
@@ -163,7 +174,7 @@ bool ArticulatedLevelSetSolver::Evaluate(double const* const* parameters, double
 }
 
 void ArticulatedLevelSetSolver::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
-  
+
 
   frame_ = frame;
   current_model_ = current_model;
@@ -201,7 +212,7 @@ void ArticulatedLevelSetSolver::TrackTargetInFrame(boost::shared_ptr<Model> curr
   }
 
   ci::app::console() << "\n\======================================" << std::endl;;
-  
+
   GLOBAL_ALS = new ArticulatedLevelSet(stereo_camera_);
 
   ceres::Problem problem;
@@ -211,9 +222,12 @@ void ArticulatedLevelSetSolver::TrackTargetInFrame(boost::shared_ptr<Model> curr
   //problem.AddResidualBlock(this, nullptr, parameters); 
 
   //option 2 use automatic derivatives
-  ceres::CostFunction* cost_function = new ArticulatedLevelSetSolver(stereo_camera_, current_model_, frame_);
+   ceres::CostFunction* cost_function = new ArticulatedLevelSetSolver(stereo_camera_, current_model_, frame_);
 
   problem.AddResidualBlock(cost_function, nullptr, parameters[0], parameters[1], parameters[2]);
+  problem.AddParameterBlock(parameters[0], 3);
+  problem.AddParameterBlock(parameters[1], 4, new ceres::QuaternionParameterization());
+  problem.AddParameterBlock(parameters[2], 5);
   
   //option 3 add each residual as a separate cost function
   //to do this one need to iterate over sdf image and get indexes of all pixels we want to process
@@ -231,15 +245,15 @@ void ArticulatedLevelSetSolver::TrackTargetInFrame(boost::shared_ptr<Model> curr
   //options.check_gradients = true;
   //options.jacobi_scaling = true;
   //options.minimizer_type = ceres::TRUST_REGION;
-  options.minimizer_type = ceres::LINE_SEARCH;
-  options.line_search_direction_type = ceres::STEEPEST_DESCENT;
+  //options.minimizer_type = ceres::LINE_SEARCH;
+  //options.line_search_direction_type = ceres::STEEPEST_DESCENT;
   ceres::Solver::Summary summary;
   ceres::Solve(options, &problem, &summary);
 
   ci::app::console() << summary.FullReport() << std::endl;
 
 
-  delete GLOBAL_ALS;
+  delete  GLOBAL_ALS;
   delete[] parameters[0];
   delete[] parameters[1];
   delete[] parameters[2];
@@ -276,15 +290,9 @@ cv::Matx<float, NUM_RESIDUALS, PRECISION> ArticulatedLevelSet::ComputeJacobians(
 
   cv::Matx<float, NUM_RESIDUALS, PRECISION > jacobians = cv::Matx<float, NUM_RESIDUALS, PRECISION>::zeros();
 
-  cv::Mat dsdf_dx, dsdf_dy;
-  cv::Scharr(sdf_image, dsdf_dx, CV_32FC1, 1, 0);
-  cv::Scharr(sdf_image, dsdf_dy, CV_32FC1, 0, 1);
-
   float *sdf_im_data = (float *)sdf_image.data;
   float *front_intersection_data = (float *)front_intersection_image.data;
   float *back_intersection_data = (float *)back_intersection_image.data;
-  float *dsdf_dx_data = (float *)dsdf_dx.data;
-  float *dsdf_dy_data = (float *)dsdf_dy.data;
   unsigned char *index_image_data = (unsigned char *)index_image.data;
 
   //float error_value = 0.0f;
@@ -316,8 +324,11 @@ cv::Matx<float, NUM_RESIDUALS, PRECISION> ArticulatedLevelSet::ComputeJacobians(
           jacs(j) = 0.0f;
         }
 
+        const float dsdf_dx = 0.5*(sdf_im_data[r*classification_image.cols + (c + 1)] - sdf_im_data[r*classification_image.cols + (c - 1)]);
+        const float dsdf_dy = 0.5*(sdf_im_data[(r + 1)*classification_image.cols + c] - sdf_im_data[(r - 1)*classification_image.cols + c]);
+
         //update the jacobian
-        UpdateArticulatedJacobian(region_agreement, index_image_data[i], sdf_im_data[i], dsdf_dx_data[i], dsdf_dy_data[i], stereo_camera_->left_eye()->Fx(), stereo_camera_->left_eye()->Fy(), front_intersection_image.at<cv::Vec3f>(i), back_intersection_image.at<cv::Vec3f>(i), current_model, jacs);
+        UpdateArticulatedJacobian(region_agreement, index_image_data[i], sdf_im_data[i], dsdf_dx, dsdf_dy, stereo_camera_->left_eye()->Fx(), stereo_camera_->left_eye()->Fy(), front_intersection_image.at<cv::Vec3f>(i), back_intersection_image.at<cv::Vec3f>(i), current_model, jacs);
         
         if (current_row >= NUM_RESIDUALS){
           
@@ -424,9 +435,11 @@ void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mo
   //iterate until steps or convergences
   for (size_t step = 0; step < 1; ++step){
 
+#define TEST_PRECISION PRECISION
+
     //for prototyping the articulated jacs, we use a vector. this will be flattened for faster estimation later
-    cv::Matx<float, PRECISION, 1> j_sum = cv::Matx<float, PRECISION, 1>::zeros();
-    cv::Matx<float, PRECISION, PRECISION> h_sum = cv::Matx<float, PRECISION, PRECISION>::zeros();
+    cv::Matx<float, TEST_PRECISION, 1> j_sum = cv::Matx<float, TEST_PRECISION, 1>::zeros();
+    cv::Matx<float, TEST_PRECISION, TEST_PRECISION> h_sum = cv::Matx<float, TEST_PRECISION, TEST_PRECISION>::zeros();
 
     ProcessArticulatedSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), left_sdf_image, left_front_intersection, left_back_intersection, left_index_image);
     //ProcessArticulatedSDFAndIntersectionImage(current_model, stereo_camera_->right_eye(), right_sdf_image, right_front_intersection, right_back_intersection, right_index_image);
@@ -479,73 +492,46 @@ void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mo
           //update the jacobian
           UpdateArticulatedJacobian(region_agreement, index_image_data[shifted_i], sdf_im_data[i], dsdf_dx, dsdf_dy, stereo_camera_->left_eye()->Fx(), stereo_camera_->left_eye()->Fy(), front_intersection_image.at<cv::Vec3f>(shifted_i), back_intersection_image.at<cv::Vec3f>(shifted_i), current_model, jacs);
 
-          j_sum += jacs.t();
-          h_sum += (jacs.t() * jacs);
+          jacs(TEST_PRECISION) *= -1;
 
+          cv::Matx<float, 1, TEST_PRECISION> short_jacs;
+          for (int j = 0; j < TEST_PRECISION; ++j){
+            short_jacs(j) = jacs(j);
+          }
+
+          j_sum += short_jacs.t();
+          h_sum += (short_jacs.t() * short_jacs);
         }
       }
     }
 
-    //ci::app::console() << "J_sum = " << j_sum << std::endl;
-
-    j_sum = h_sum.inv() * j_sum;// *error_value;
-
-    if (0){
-
-      float t_norm = (j_sum(0) * j_sum(0)) + (j_sum(1) * j_sum(1)) + (j_sum(2) * j_sum(2));
-      t_norm = std::sqrt(t_norm);
-      for (int t = 0; t < 3; ++t){
-        j_sum(t) /= t_norm;
-      }
-
-      float max_element = std::numeric_limits<float>::min();
-
-      for (int rt = 3; rt < 7; ++rt){
-        if (std::abs(j_sum(rt)) > max_element){
-          max_element = std::abs(j_sum(rt));
-        }
-      }
-
-      float r_scale = max_element * 80;
-
-      for (int rt = 3; rt < 7; ++rt){
-        j_sum(rt) /= r_scale;
-      }
 
 
-      float max_articulated_rot = std::numeric_limits<float>::min();
+    j_sum = h_sum.inv() * j_sum;
 
-      for (int rt = 7; rt < PRECISION; ++rt){
-        if (std::abs(j_sum(rt)) > max_articulated_rot){
-          max_articulated_rot = std::abs(j_sum(rt));
-        }
-      }
+    std::vector<float> jacs(TEST_PRECISION, 0);
 
-      float articulated_r_scale = max_articulated_rot * 20;
-
-      for (int rt = 7; rt < PRECISION; ++rt){
-        j_sum(rt) /= articulated_r_scale;
-      }
+    //static bool first = true;
+    //float scale = 10.0f;
+    
+    for (size_t v = 0; v < TEST_PRECISION; ++v){
+      //if (!first){
+        //jacs[v] = -scale * j_sum(v);
+      //}
+      //else{
+        jacs[v] = -j_sum(v);
+      //}
     }
-
-    std::vector<float> jacs(PRECISION, 0);
-
-    for (size_t v = 0; v < jacs.size(); ++v){
-      jacs[v] = -j_sum(v);
-    }
-
-    jacs[jacs.size() - 1] *= -1;
-    auto total = jacs[jacs.size() - 1] + jacs[jacs.size() - 2];
-    total /= 2;
-
+    
     ci::app::console() << "Jacobian = [";
     for (size_t v = 0; v < jacs.size(); ++v){
       ci::app::console() << jacs[v] << ",";
     }
-
-    //jacs[jacs.size() - 1] = -jacs[jacs.size() - 2];
-
     ci::app::console() << "]" << std::endl;
+
+    ////jacs[jacs.size() - 1] = -jacs[jacs.size() - 2];
+
+    
 
     current_model->UpdatePose(jacs);
 
@@ -599,6 +585,8 @@ void ArticulatedLevelSet::UpdateArticulatedJacobian(const float region_agreement
   const float z_inv_sq_front = 1.0f / (front_intersection_point[2] * front_intersection_point[2]);
   const float z_inv_sq_back = 1.0f / (back_intersection_point[2] * back_intersection_point[2]);
 
+  if (front_intersection_point[2] == GL_FAR || back_intersection_point[2] == GL_FAR) throw std::runtime_error("HERE");
+
   //get the frame index for the composite sdf map
 
   //model->GetModel()->ComputeJacobianForPoint(ci::Vec3f(front_intersection_point[0], front_intersection_point[1], front_intersection_point[2]), frame_idx, front_jacs);
@@ -614,13 +602,22 @@ void ArticulatedLevelSet::UpdateArticulatedJacobian(const float region_agreement
     const ci::Vec3f &dof_derivatives_front = front_jacs[dof];
     const ci::Vec3f &dof_derivatives_back = back_jacs[dof];
 
-    //actually compute the cost function equation for the degree of freedom in question
-    float pval = dsdf_dx * (fx * (z_inv_sq_front*((front_intersection_point[2] * dof_derivatives_front[0]) - (front_intersection_point[0] * dof_derivatives_front[2]))) + fx * (z_inv_sq_back*((back_intersection_point[2] * dof_derivatives_back[0]) - (back_intersection_point[0] * dof_derivatives_back[2]))));
-    pval += dsdf_dy * (fy * (z_inv_sq_front*((front_intersection_point[2] * dof_derivatives_front[1]) - (front_intersection_point[1] * dof_derivatives_front[2]))) + fy * (z_inv_sq_back*((back_intersection_point[2] * dof_derivatives_back[1]) - (back_intersection_point[1] * dof_derivatives_back[2]))));
-    pval *= DeltaFunction(sdf);
+    if (sdf == 0.0f){
+      float pval = dsdf_dx * (fx * (z_inv_sq_front*((front_intersection_point[2] * dof_derivatives_front[0]) - (front_intersection_point[0] * dof_derivatives_front[2]))));
+      pval += dsdf_dy * (fy * (z_inv_sq_front*((front_intersection_point[2] * dof_derivatives_front[1]) - (front_intersection_point[1] * dof_derivatives_front[2]))));
+      pval *= DeltaFunction(sdf);
 
-    jacobian(dof) = region_agreement * pval;
+      jacobian(dof) = region_agreement * pval;
 
+    }
+    else{
+      //actually compute the cost function equation for the degree of freedom in question
+      float pval = dsdf_dx * (fx * (z_inv_sq_front*((front_intersection_point[2] * dof_derivatives_front[0]) - (front_intersection_point[0] * dof_derivatives_front[2]))) + fx * (z_inv_sq_back*((back_intersection_point[2] * dof_derivatives_back[0]) - (back_intersection_point[0] * dof_derivatives_back[2]))));
+      pval += dsdf_dy * (fy * (z_inv_sq_front*((front_intersection_point[2] * dof_derivatives_front[1]) - (front_intersection_point[1] * dof_derivatives_front[2]))) + fy * (z_inv_sq_back*((back_intersection_point[2] * dof_derivatives_back[1]) - (back_intersection_point[1] * dof_derivatives_back[2]))));
+      pval *= DeltaFunction(sdf);
+
+      jacobian(dof) = region_agreement * pval;
+    }
   }
 
 }

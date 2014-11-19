@@ -154,13 +154,13 @@ bool Node::NodeIsChild(const size_t child_idx) const {
 
 bool DHNode::NodeIsTransformable() const {
 
-  return type_ == JointType::Rotation || type_ == JointType::Translation;
+  return type_ == JointType::Rotation || type_ == JointType::Translation || type_ == JointType::Alternative;
 
 }
 
 void DHNode::GetPose(std::vector<float> &pose) const {
 
-  if (parent_ != nullptr){
+  if (parent_ != nullptr && NodeIsTransformable()){
     pose.push_back(update_);
   }
 
@@ -170,9 +170,152 @@ void DHNode::GetPose(std::vector<float> &pose) const {
 
 }
 
+void DHNode::ComputeJacobianForPoint(const ci::Matrix44f &world_transform, const ci::Vec3f &point, const int target_frame_index, std::vector<ci::Vec3f> &jacobian) const {
+
+  if (target_frame_index == 0){
+
+    jacobian[7 + idx_] = ci::Vec3f(0.0f,0.0f,0.0f);
+
+  }
+
+  else if (target_frame_index == 1){
+
+    ComputeJacobianForHead(world_transform, point, jacobian);
+
+  }
+
+  else if (target_frame_index == 4 || target_frame_index == 5){
+
+    ComputeJacobianForClasperYaw(world_transform, point, jacobian);
+    ComputeJacobianForClasperRotate(world_transform, point, target_frame_index, jacobian);
+
+  }
+  
+  else{
+
+    jacobian[7 + idx_] = ci::Vec3f(0.0f, 0.0f, 0.0f);
+
+  }
+
+  for (size_t i = 0; i < children_.size(); ++i){
+    children_[i]->ComputeJacobianForPoint(world_transform, point, target_frame_index, jacobian);
+  }
+
+}
+
+void DHNode::ComputeJacobianForHead(const ci::Matrix44f &world_transform, const ci::Vec3f &point, std::vector<ci::Vec3f> &jacobian) const{
+
+  if (!NodeIsChild(2)){
+
+    assert(idx_ == 2 || idx_ == 3 || idx_ == 4 || idx_ == 5);
+    jacobian[7 + idx_] = ci::Vec3f(0.0f, 0.0f, 0.0f);
+
+  }
+  else{
+
+    if (idx_ == 1){
+
+      ci::Matrix44f transform_to_joint = world_transform;
+      glhMultMatrixRight(GetRelativeTransformToRoot(), transform_to_joint);
+      transform_to_joint.invert();
+      ci::Vec4f point_in_joint_coords = transform_to_joint * point;
+
+      /* T_k^star,parent(j) */
+      ci::Matrix44f T_1 = parent_->GetRelativeTransformToChild(1);
+      T_1.invert();
+
+      //ci::Matrix44f T_3 = GetRelativeTransformToRoot() * world_transform;
+
+
+      //ci::Vec4f z = ci::Vec4f(GetAxis(), 1);
+      ci::Vec4f z = GetTransformFromParent().inverted() * ci::Vec4f(GetAxis(), 1);
+
+      ci::Vec4f end = T_3 * ci::Vec4f(point, 1);
+
+      ci::Vec4f jac = T_1 * (z.cross(end));
+
+      jacobian[7 + idx_] = ci::Vec3f(jac[0], jac[1], jac[2]);
+    
+    }
+
+  }
+
+}
+
+void DHNode::ComputeJacobianForClasperYaw(const ci::Matrix44f &world_transform, const ci::Vec3f &point, std::vector<ci::Vec3f> &jacobian) const{
+
+  if (!NodeIsChild(3)){
+
+    assert(idx_ == 3 || idx_ == 4 || idx_ == 5);
+
+    jacobian[7 + idx_] = ci::Vec3f(0.0f, 0.0f, 0.0f);
+
+  }
+
+  if (idx_ == 1 || idx_ == 2){
+
+    ci::Matrix44f T_1 = parent_->GetRelativeTransformToChild(2);
+    T_1.invert();
+
+    //ci::Matrix44f T_3 = parent_->GetRelativeTransformToRoot() * world_transform;
+    ci::Matrix44f T_3 = world_transform;
+    glhMultMatrixRight(parent_->GetRelativeTransformToRoot(), T_3);
+    T_3.invert();
+
+    //ci::Vec4f z = ci::Vec4f(GetAxis(), 1);
+    ci::Vec4f z = GetTransformFromParent().inverted() * ci::Vec4f(GetAxis(), 1);
+
+    ci::Vec4f end = T_3 * ci::Vec4f(point, 1);
+
+    ci::Vec4f jac = T_1 * (z.cross(end));
+
+    jacobian[7 + idx_] = ci::Vec3f(jac[0], jac[1], jac[2]);
+  
+  }
+
+}
+
+void DHNode::ComputeJacobianForClasperRotate(const ci::Matrix44f &world_transform, const ci::Vec3f &point, const int target_frame_index, std::vector<ci::Vec3f> &jacobian) const {
+
+  if (target_frame_index == 5 && idx_ == 4){
+    jacobian[7 + idx_] = ci::Vec3f(0.0f, 0.0f, 0.0f);
+    return;
+  }
+
+  if (target_frame_index == 4 && idx_ == 5){
+    jacobian[7 + idx_] = ci::Vec3f(0.0f, 0.0f, 0.0f);
+    return;
+  }
+
+  if (idx_ == 4 || idx_ == 5){ //ignore 3
+
+    ci::Matrix44f T_1 = parent_->GetRelativeTransformToChild(target_frame_index);
+    T_1.invert();
+
+    //ci::Matrix44f T_3 = parent_->GetRelativeTransformToRoot() * world_transform;
+    ci::Matrix44f T_3 = world_transform;
+    glhMultMatrixRight(parent_->GetRelativeTransformToRoot(), T_3);
+    T_3.invert();
+
+    //ci::Vec4f z = ci::Vec4f(0, 1, 0, 1);
+
+    ci::Vec4f z = GetTransformFromParent().inverted() * ci::Vec4f(0, 1, 0, 1);
+    
+    ci::Vec4f end = T_3 * ci::Vec4f(point, 1);
+
+    ci::Vec4f cross = (z.cross(end));
+
+    ci::Vec4f jac = T_1 * cross;
+
+    jacobian[7 + idx_] = ci::Vec3f(jac[0], jac[1], jac[2]);
+
+  }
+  
+}
+
 void DHNode::SetPose(std::vector<float>::iterator &pose){
 
-  if (parent_ != nullptr){
+  if (parent_ != nullptr && NodeIsTransformable()){
     update_ = *pose;
     ++pose;
   }
@@ -187,9 +330,12 @@ void DHNode::SetPose(std::vector<float>::iterator &pose){
 void DHNode::UpdatePose(std::vector<float>::iterator &updates){
  
   //the node with null parent is the root node so it's pose is basically just the base pose and therefore there is not an update
-  if (parent_ != nullptr){
+  if (parent_ != nullptr && NodeIsTransformable()){
+
     update_ += *updates;
-    ++updates;
+    ci::app::console() << "Setting node with index " << idx_ << " from " << update_ - *updates << " to " << update_ << std::endl;
+    ++updates;  
+
   }
 
   for (size_t i = 0; i < children_.size(); ++i){
@@ -200,12 +346,21 @@ void DHNode::UpdatePose(std::vector<float>::iterator &updates){
 
 ci::Matrix44f DHNode::GetRelativeTransformToNodeByIdx(const int target_idx) const{
   
-  if (target_idx < idx_){
+  //for nodes that are parents of the target node just return identity
+  if (target_idx >= idx_){
     return ci::Matrix44f();
   }
+  //before we get to the target node, return the transform to the parent * recursive call up the chain to parent
   else{
-    // transform up towards the root
-    return glhMultMatrixRight(GetTransformFromParent(), GetRelativeTransformToNodeByIdx(target_idx - 1));
+    if (parent_ != 0x0){
+      DHNode *p = dynamic_cast<DHNode *>(parent_);
+      return glhMultMatrixRight(GetTransformFromParent(), p->GetRelativeTransformToNodeByIdx(target_idx));
+    }
+    else{
+      ci::Matrix44f m;
+      m.setToIdentity();
+      return m;
+    }
   }
   
 
@@ -213,7 +368,10 @@ ci::Matrix44f DHNode::GetRelativeTransformToNodeByIdx(const int target_idx) cons
 
 ci::Matrix44f DHNode::GetRelativeTransformToChild(const int child_idx) const {
 
-  return GetChildByIdx(child_idx)->GetRelativeTransformToNodeByIdx(idx_);
+  if (child_idx == idx_)
+    return ci::Matrix44f();
+  else
+    return GetChildByIdx(child_idx)->GetRelativeTransformToNodeByIdx(idx_);
 
 }
 
@@ -347,28 +505,3 @@ ci::Matrix44f DHNode::GetTransformFromParent() const {
   return DH;
 
 }
-
-/*
-
-extendChain(mDaVinciChain.mPSM2OriginPSM2Tip[4], A, psm.jnt_pos[4]);
-wrist_pitch = ci::Matrix44d(A);
-
-//don't actually care about wrist yaw as the clasper pose 'contains' this information
-extendChain(mDaVinciChain.mPSM2OriginPSM2Tip[5], A, psm.jnt_pos[5]);
-ci::Matrix44d wrist_yaw = ci::Matrix44d(A);
-
-//transform into the clasper reference frame
-extendChain(mDaVinciChain.mPSM2OriginPSM2Tip[6], A, 0);  //no dh param here as this just points in the direction of the instrument head
-
-//rotate the instrument claspers around the clasper axis
-grip1 = ci::Matrix44d(A);
-grip2 = ci::Matrix44d(A);
-
-//this is the angle between the claspers, so each clasper rotates 0.5*angle away from the center point
-double val = psm.jnt_pos[6];
-grip1.rotate(ci::Vec3d(0, 1, 0), 0.5*val);
-
-grip2.rotate(ci::Vec3d(0, 0, 1), M_PI);
-grip2.rotate(ci::Vec3d(0, 1, 0), 0.5*val);
-
-*/

@@ -91,9 +91,10 @@ void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region,
     start_poses[4], start_poses[5], start_poses[6],
     start_poses[8], start_poses[9], start_poses[10]);
 
-  Pose ret(sv::Quaternion(rots), ci::Vec3f(start_poses[3] + 0.25f, start_poses[7] + 0.25f, start_poses[11] - 0.25f));
+  //Pose ret(sv::Quaternion(rots), ci::Vec3f(start_poses[3] + 0.25f, start_poses[7] + 0.25f, start_poses[11] - 0.25f));
+  Pose ret(sv::Quaternion(rots), ci::Vec3f(start_poses[3], start_poses[7], start_poses[11]));
   tm->SetBasePose(ret);
-  tm->UpdatePose(std::vector<float>({ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, start_poses[12], start_poses[13], start_poses[14], start_poses[15], -start_poses[15] }));
+  tm->UpdatePose(std::vector<float>({ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, start_poses[12], start_poses[13], start_poses[15], -start_poses[15] }));
   
   /*cv::Vec2d center_of_mass = FindCenterOfMassIn2D(connected_region);
 

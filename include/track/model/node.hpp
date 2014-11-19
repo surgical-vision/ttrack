@@ -258,6 +258,12 @@ namespace ttrk {
     */
     virtual ci::Matrix44f GetRelativeTransformToRoot() const;
 
+    virtual void ComputeJacobianForPoint(const ci::Matrix44f &world_transform, const ci::Vec3f &point, const int target_frame_idx, std::vector<ci::Vec3f> &jacobian) const;
+
+    void ComputeJacobianForHead(const ci::Matrix44f &world_transform, const ci::Vec3f &point, std::vector<ci::Vec3f> &jacobian) const;
+    void ComputeJacobianForClasperYaw(const ci::Matrix44f &world_transform, const ci::Vec3f &point, std::vector<ci::Vec3f> &jacobian) const;
+    void ComputeJacobianForClasperRotate(const ci::Matrix44f &world_transform, const ci::Vec3f &point, const int target_frame_index, std::vector<ci::Vec3f> &jacobian) const;
+    
     /**
     * Get the transform between the this node and one of its child nodes using the DH transforms.
     * @return The transform in a 4x4 float matrix.

@@ -63,6 +63,7 @@ void TTrackApp::setup(){
   google::InitGoogleLogging(cmd_line_args[0].c_str());
   google::SetLogDestination(google::GLOG_INFO, "z:/file0.txt");
 
+
   if (cmd_line_args.size() == 2){
 
     try{

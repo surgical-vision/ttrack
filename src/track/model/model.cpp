@@ -105,7 +105,17 @@ std::vector<ci::Vec3f> Model::ComputeJacobian(const ci::Vec3f &point, const int 
   std::vector<ci::Vec3f> r = world_to_model_coordinates_.ComputeJacobian(point);
 
   //pass this vector into the articualted nodes and get their jacobians too
+  
+  for (int i = 0; i < 6; ++i){
+    r.push_back(ci::Vec3f(0.0f, 0.0f, 0.0f));
+  }
   model_->ComputeJacobianForPoint(world_to_model_coordinates_, point, target_frame_idx, r);
+
+  assert(r[7] == ci::Vec3f(0.0f, 0.0f, 0.0f));
+  assert(r[10] == ci::Vec3f(0.0f, 0.0f, 0.0f));
+
+  r.erase(r.begin() + 7);
+  r.erase(r.begin() + 9);   
 
   return r;
 

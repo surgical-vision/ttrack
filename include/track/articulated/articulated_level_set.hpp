@@ -4,6 +4,7 @@
 #include "../localizer.hpp"
 #include "../pwp3d/stereo_pwp3d.hpp"
 #include "../model/node.hpp"
+
 #include <ceres/ceres.h>
 
 namespace ttrk {
@@ -117,7 +118,7 @@ namespace ttrk {
 
   public:
 
-    ArticulatedLevelSet(boost::shared_ptr<StereoCamera> camera) : stereo_camera_(camera) , PWP3D(camera->left_eye()->Width(), camera->left_eye()->Height()) {}
+    ArticulatedLevelSet(boost::shared_ptr<StereoCamera> camera) : stereo_camera_(camera), PWP3D(camera->left_eye()->Width(), camera->left_eye()->Height()), current_pose_param_(0), num_rigid_steps_(5), current_rigid_step_(0), previous_error_value_(-1.0f){}
 
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);   
 
@@ -139,7 +140,7 @@ namespace ttrk {
     * Get the region agreement for the pixel in a multiclass labelling setup. The multiclass classification in binarized in a one-vs-all strategy.
     * @param[in] row_idx The row index for the classification image.
     * @param[in] col_idx The col index for the classification image.
-    * @param[in] sdf_value The signed distance function value for the current pixel.
+    * @param[in] sdf_value The signed distance function value for the current 
     * @param[in] target_label The target label for the pixel, needed to do one-vs-all classification.
     */
     float GetRegionAgreement(const int row_idx, const int col_idx, const float sdf_value, const int target_label) const;
@@ -174,6 +175,13 @@ namespace ttrk {
 
     boost::shared_ptr<StereoCamera> stereo_camera_;
 
+    int current_pose_param_;
+
+    int num_rigid_steps_;
+    
+    int current_rigid_step_; 
+
+    float previous_error_value_;
 
   };
 

@@ -11,6 +11,7 @@
 #include "../../utils/camera.hpp"
 #include "../../../deps/image/image/image.hpp"
 #include "../pose.hpp"
+#include "../../utils/plotter.hpp"
 
 namespace ttrk {
 
@@ -18,7 +19,7 @@ namespace ttrk {
   * @class PWP3D
   * @brief An abstract base class to do most of the PWP3D tracking functionality. Specialized by monocular and stereo versions for excact cost function update.
   */
-  class PWP3D : public Localizer {
+  class PWP3D : public Localizer, public ErrorMetricPlottable {
     
   public:
 

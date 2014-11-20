@@ -121,6 +121,18 @@ void MonocularCamera::ShutDownCameraAfterDrawing() const {
 
 }
 
+void MonocularCamera::SetupLight() {
+
+  glEnable(GL_LIGHTING);
+
+  light_->setPosition(camera_center_);
+  light_->lookAt(camera_center_, look_at_);
+  light_->enable();
+  
+}
+
+
+
 void MonocularCamera::SetupCameraForDrawing() const {
 
   //glViewport(0, 0, image_width_, image_height_);

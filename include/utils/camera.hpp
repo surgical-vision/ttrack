@@ -71,6 +71,8 @@ namespace ttrk{
     */
     cv::Point3d UnProjectPoint(const cv::Point2i &point) const;
 
+    void SetupLight();
+    
     float Fx() const { return fx_; }
     float Fy() const { return fy_; }
     float Px() const { return px_; }

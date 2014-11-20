@@ -142,6 +142,7 @@
     <ClCompile Include="..\src\utils\handler.cpp" />
     <ClCompile Include="..\src\utils\helpers.cpp" />
     <ClCompile Include="..\src\utils\nd_image.cpp" />
+    <ClCompile Include="..\src\utils\plotter.cpp" />
     <ClCompile Include="..\src\utils\quaternion.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -187,6 +188,7 @@
     <ClInclude Include="..\include\utils\handler.hpp" />
     <ClInclude Include="..\include\utils\helpers.hpp" />
     <ClInclude Include="..\include\utils\nd_image.hpp" />
+    <ClInclude Include="..\include\utils\plotter.hpp" />
     <ClInclude Include="..\include\utils\quaternion.hpp" />
     <ClInclude Include="..\resources\resource.h" />
     <ClInclude Include="resource.h" />

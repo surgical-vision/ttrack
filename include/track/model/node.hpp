@@ -195,6 +195,8 @@ namespace ttrk {
     */
     virtual ci::Vec3f GetAxis() const = 0;
 
+    virtual ci::Matrix44f GetDerivativeTransfromFromParent() const = 0;
+
   protected:
     
     /**
@@ -312,6 +314,9 @@ namespace ttrk {
     * @return The transformation axis.
     */
     virtual ci::Vec3f GetAxis() const { return ci::Vec3f::zAxis(); }
+
+    virtual ci::Matrix44f GetDerivativeTransfromFromParent() const;
+
 
   protected:
 

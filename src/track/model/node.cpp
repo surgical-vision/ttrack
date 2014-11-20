@@ -215,27 +215,22 @@ void DHNode::ComputeJacobianForHead(const ci::Matrix44f &world_transform, const 
 
     if (idx_ == 1){
 
+      //get point in the head's coordiante system
       ci::Matrix44f transform_to_joint = world_transform;
       glhMultMatrixRight(GetRelativeTransformToRoot(), transform_to_joint);
-      transform_to_joint.invert();
-      ci::Vec4f point_in_joint_coords = transform_to_joint * point;
 
-      /* T_k^star,parent(j) */
-      ci::Matrix44f T_1 = parent_->GetRelativeTransformToChild(1);
-      T_1.invert();
+      //get transform to the parent
+      ci::Matrix44f transform_to_joint_parent = world_transform;
+      glhMultMatrixRight(parent_->GetRelativeTransformToRoot(), transform_to_joint_parent);
 
-      //ci::Matrix44f T_3 = GetRelativeTransformToRoot() * world_transform;
+      const ci::Matrix44f derivative_transform = GetDerivativeTransfromFromParent();
 
+      const ci::Vec4f point_in_joint_coords = transform_to_joint.inverted() * point;
 
-      //ci::Vec4f z = ci::Vec4f(GetAxis(), 1);
-      ci::Vec4f z = GetTransformFromParent().inverted() * ci::Vec4f(GetAxis(), 1);
+      const ci::Vec4f jac = transform_to_joint_parent * derivative_transform * point_in_joint_coords;
 
-      ci::Vec4f end = T_3 * ci::Vec4f(point, 1);
+      jacobian[7 + idx_] = jac.xyz();
 
-      ci::Vec4f jac = T_1 * (z.cross(end));
-
-      jacobian[7 + idx_] = ci::Vec3f(jac[0], jac[1], jac[2]);
-    
     }
 
   }
@@ -254,23 +249,25 @@ void DHNode::ComputeJacobianForClasperYaw(const ci::Matrix44f &world_transform, 
 
   if (idx_ == 1 || idx_ == 2){
 
-    ci::Matrix44f T_1 = parent_->GetRelativeTransformToChild(2);
-    T_1.invert();
 
-    //ci::Matrix44f T_3 = parent_->GetRelativeTransformToRoot() * world_transform;
-    ci::Matrix44f T_3 = world_transform;
-    glhMultMatrixRight(parent_->GetRelativeTransformToRoot(), T_3);
-    T_3.invert();
+    ci::Matrix44f transform_to_joint = world_transform;
+    glhMultMatrixRight(GetRelativeTransformToRoot(), transform_to_joint);
 
-    //ci::Vec4f z = ci::Vec4f(GetAxis(), 1);
-    ci::Vec4f z = GetTransformFromParent().inverted() * ci::Vec4f(GetAxis(), 1);
+    //get transform to the parent
+    ci::Matrix44f transform_to_joint_parent = world_transform;
+    glhMultMatrixRight(parent_->GetRelativeTransformToRoot(), transform_to_joint_parent);
 
-    ci::Vec4f end = T_3 * ci::Vec4f(point, 1);
+    const ci::Matrix44f derivative_transform = GetDerivativeTransfromFromParent();
 
-    ci::Vec4f jac = T_1 * (z.cross(end));
+    const ci::Vec4f point_in_joint_coords = transform_to_joint.inverted() * point;
 
-    jacobian[7 + idx_] = ci::Vec3f(jac[0], jac[1], jac[2]);
-  
+    const ci::Vec4f jac = transform_to_joint_parent * derivative_transform * point_in_joint_coords;
+
+    jacobian[7 + idx_] = jac.xyz();
+
+    //ci::Vec4f jac = world_transform * parent_->GetRelativeTransformToRoot() * ci::Vec4f(dz.xyz(), 0.0f);
+    //jacobian[7 + idx_] = ci::Vec3f(jac[0], jac[1], jac[2]);
+      
   }
 
 }
@@ -289,25 +286,23 @@ void DHNode::ComputeJacobianForClasperRotate(const ci::Matrix44f &world_transfor
 
   if (idx_ == 4 || idx_ == 5){ //ignore 3
 
-    ci::Matrix44f T_1 = parent_->GetRelativeTransformToChild(target_frame_index);
-    T_1.invert();
+    ci::Matrix44f transform_to_joint = world_transform;
+    glhMultMatrixRight(GetRelativeTransformToRoot(), transform_to_joint);
 
-    //ci::Matrix44f T_3 = parent_->GetRelativeTransformToRoot() * world_transform;
-    ci::Matrix44f T_3 = world_transform;
-    glhMultMatrixRight(parent_->GetRelativeTransformToRoot(), T_3);
-    T_3.invert();
+    //get transform to the parent
+    ci::Matrix44f transform_to_joint_parent = world_transform;
+    glhMultMatrixRight(parent_->GetRelativeTransformToRoot(), transform_to_joint_parent);
 
-    //ci::Vec4f z = ci::Vec4f(0, 1, 0, 1);
+    const ci::Matrix44f derivative_transform = GetDerivativeTransfromFromParent();
 
-    ci::Vec4f z = GetTransformFromParent().inverted() * ci::Vec4f(0, 1, 0, 1);
-    
-    ci::Vec4f end = T_3 * ci::Vec4f(point, 1);
+    const ci::Vec4f point_in_joint_coords = transform_to_joint.inverted() * point;
 
-    ci::Vec4f cross = (z.cross(end));
+    const ci::Vec4f jac = transform_to_joint_parent * derivative_transform * point_in_joint_coords;
 
-    ci::Vec4f jac = T_1 * cross;
+    jacobian[7 + idx_] = jac.xyz();
 
-    jacobian[7 + idx_] = ci::Vec3f(jac[0], jac[1], jac[2]);
+    //ci::Vec4f jac = world_transform * parent_->GetRelativeTransformToRoot() * ci::Vec4f(dz.xyz(), 0.0f);
+    //jacobian[7 + idx_] = ci::Vec3f(jac[0], jac[1], jac[2]);
 
   }
   
@@ -485,6 +480,37 @@ void DHNode::LoadData(ci::JsonTree &tree, Node *parent, const std::string &root_
 void DHNode::createFixedTransform(const ci::Vec3f &axis, const float rads, ci::Matrix44f &output) const {
 
   output = ci::Matrix44f::createRotation(axis, rads);
+
+}
+
+void alternativeDerivativeTransform(const ci::Vec3f &axis, const float theta, ci::Matrix44f &deriv){
+
+  if (axis != ci::Vec3f(0, 1, 0)) throw std::runtime_error(""); //fix later
+
+  deriv.setToIdentity();
+
+  deriv.at(0, 0) = -sin(theta);
+  deriv.at(0, 2) = cos(theta);
+  deriv.at(2, 0) = -cos(theta);
+  deriv.at(2, 2) = -sin(theta);
+
+}
+
+ci::Matrix44f DHNode::GetDerivativeTransfromFromParent() const {
+
+  ci::Matrix44f DH;
+  DH.setToIdentity();
+
+  if (type_ == Translation)
+    glhDenavitHartenbergDerivative(a_, alpha_, d_ + update_, theta_, DH.m);
+  else if (type_ == Rotation)
+    glhDenavitHartenbergDerivative(a_, alpha_, d_, theta_ + update_, DH.m);
+  else if (type_ == Fixed)
+    glhDenavitHartenbergDerivative(a_, alpha_, d_, theta_, DH.m);
+  else if (type_ == Alternative)
+    alternativeDerivativeTransform(alt_axis_, theta_, DH);
+
+  return DH;
 
 }
 

@@ -47,6 +47,14 @@ public:
 
 protected:
 
+  void drawToolbar();
+
+  void drawGrid(float size = 100.0f, float step = 1.0f, float plane_position = 0.0f);
+
+  void drawPlotter(boost::shared_ptr<gl::Fbo> framebuffer);
+
+  void draw3D(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture &camera_view, const boost::shared_ptr<ttrk::MonocularCamera> cam);
+
   void drawEye(boost::shared_ptr<gl::Fbo> framebuffer, gl::Texture &background, const boost::shared_ptr<ttrk::MonocularCamera> cam);
 
   void SetupFromConfig(const std::string &path);
@@ -56,19 +64,36 @@ protected:
   void drawBackground(gl::Texture &background);
   
   gl::GlslProg shader_;
- 
-  gl::Texture	left_frame_texture_;
-  gl::Texture right_frame_texture_;
-
-  boost::shared_ptr<gl::Fbo> left_external_framebuffer_;
-  boost::shared_ptr<gl::Fbo> right_external_framebuffer_;
-  
+   
   boost::shared_ptr<ttrk::StereoCamera> camera_;
   std::vector<boost::shared_ptr<ttrk::Model> > models_to_draw_; 
 
   MayaCamUI	maya_cam_;
 
   Vec2i	mouse_pos_;
+
+  struct SubWindow {
+    
+    SubWindow() { }
+
+    SubWindow(int start_x, int start_y, int width, int height) : window_coords_(start_x, start_y, start_x + width, start_y + height) {
+      
+      framebuffer_.reset(new gl::Fbo(width, height));
+      texture_ = gl::Texture(width, height);
+
+    }
+
+    ci::Rectf window_coords_;
+    boost::shared_ptr<gl::Fbo> framebuffer_;
+    gl::Texture texture_;
+
+  };
+
+  size_t width_;
+  size_t height_;
+
+  SubWindow toolbar_;
+  std::vector<SubWindow> windows_;
 
 };
 

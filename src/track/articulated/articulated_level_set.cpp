@@ -421,25 +421,27 @@ void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mo
   cv::Mat left_sdf_image, left_front_intersection, left_back_intersection, left_index_image;
   cv::Mat right_sdf_image, right_front_intersection, right_back_intersection, right_index_image;
  
-  //load multiclass detection module where each pixels is labelled (0:background, 1: shaft, 2: head, 3: clasper)
-
-  //models is currently a tree of components
-
-  //create a SDF and intersection for each component
-
-  //possible to include some interior surface information by including the signed distnace function around the edge between the instrument shaft and instrument head
-
-  //do normal pwp3d cost function iterating over the pixels
-
+  const bool wp = true;
+  const bool wy = true;
+  const bool cp = true;
 
   //iterate until steps or convergences
   for (size_t step = 0; step < 1; ++step){
-
-#define TEST_PRECISION PRECISION
-
+   
     //for prototyping the articulated jacs, we use a vector. this will be flattened for faster estimation later
-    cv::Matx<float, TEST_PRECISION, 1> j_sum = cv::Matx<float, TEST_PRECISION, 1>::zeros();
-    cv::Matx<float, TEST_PRECISION, TEST_PRECISION> h_sum = cv::Matx<float, TEST_PRECISION, TEST_PRECISION>::zeros();
+    cv::Matx<float, 7, 1> j_sum_rigid = cv::Matx<float, 7, 1>::zeros();
+    cv::Matx<float, 7, 7> h_sum_rigid = cv::Matx<float, 7, 7>::zeros();
+
+    cv::Matx<float, 3, 1> j_sum_arti = cv::Matx<float, 3, 1>::zeros();
+
+    const int max_pose_param = 4; // 0 = do rigid, 1 = wp, 2 = wy, 3 = cr
+
+    if (current_pose_param_ >= max_pose_param) current_pose_param_ = 0;
+
+    if (current_rigid_step_ >= num_rigid_steps_) {
+      current_rigid_step_ = 0;
+      current_pose_param_++;
+    }
 
     ProcessArticulatedSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), left_sdf_image, left_front_intersection, left_back_intersection, left_index_image);
     //ProcessArticulatedSDFAndIntersectionImage(current_model, stereo_camera_->right_eye(), right_sdf_image, right_front_intersection, right_back_intersection, right_index_image);
@@ -449,13 +451,15 @@ void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mo
     cv::Mat &back_intersection_image = left_back_intersection;
     cv::Mat &sdf_image = left_sdf_image;
     cv::Mat &index_image = left_index_image;
+    cv::Mat error_image = cv::Mat::zeros(sdf_image.size(), CV_32FC1);
 
     float *sdf_im_data = (float *)sdf_image.data;
     float *front_intersection_data = (float *)front_intersection_image.data;
     float *back_intersection_data = (float *)back_intersection_image.data;
     unsigned char *index_image_data = (unsigned char *)index_image.data;
 
-    //float error_value = 0.0f;
+    static std::vector<float> error_values;
+    float error_value = 0.0f;
 
     for (int r = 5; r < classification_image.rows - 5; ++r){
       for (int c = 5; c < classification_image.cols - 5; ++c){
@@ -465,8 +469,9 @@ void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mo
         if (sdf_im_data[i] <= float(HEAVYSIDE_WIDTH) - 1e-1 && sdf_im_data[i] >= -float(HEAVYSIDE_WIDTH) + 1e-1){
 
           //-log(H * P_f + (1-H) * P_b)
-          //error_value += GetErrorValue(r, c, sdf_im_data[i], index_image_data[i]);
-          //float error_value = GetErrorValue(r, c, sdf_im_data[i], index_image_data[i]);
+          error_value += GetErrorValue(r, c, sdf_im_data[i], index_image_data[i]);
+          error_image.at<float>(r, c) = error_value;
+          
 
           //P_f - P_b / (H * P_f + (1 - H) * P_b)
           const float region_agreement = GetRegionAgreement(r, c, sdf_im_data[i], index_image_data[i]);
@@ -492,36 +497,62 @@ void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mo
           //update the jacobian
           UpdateArticulatedJacobian(region_agreement, index_image_data[shifted_i], sdf_im_data[i], dsdf_dx, dsdf_dy, stereo_camera_->left_eye()->Fx(), stereo_camera_->left_eye()->Fy(), front_intersection_image.at<cv::Vec3f>(shifted_i), back_intersection_image.at<cv::Vec3f>(shifted_i), current_model, jacs);
 
-          jacs(TEST_PRECISION) *= -1;
-
-          cv::Matx<float, 1, TEST_PRECISION> short_jacs;
-          for (int j = 0; j < TEST_PRECISION; ++j){
-            short_jacs(j) = jacs(j);
+          cv::Matx<float, 1, 7> rigid_jacs;
+          
+          //copy the rigid
+          for (int j = 0; j < 7; ++j){
+            rigid_jacs(j) = jacs(j);
           }
+         
+          j_sum_arti(0) += jacs(7);
+          j_sum_arti(1) += jacs(8);
+          j_sum_arti(2) += jacs(9) + jacs(10); //jacs(10) is the 'wrong' way so it's value must be negative
 
-          j_sum += short_jacs.t();
-          h_sum += (short_jacs.t() * short_jacs);
+
+          j_sum_rigid += rigid_jacs.t();
+          h_sum_rigid += (rigid_jacs.t() * rigid_jacs);
         }
       }
     }
 
+    UpdateWithErrorValue(error_value);
 
-
-    j_sum = h_sum.inv() * j_sum;
-
-    std::vector<float> jacs(TEST_PRECISION, 0);
-
-    //static bool first = true;
-    //float scale = 10.0f;
-    
-    for (size_t v = 0; v < TEST_PRECISION; ++v){
-      //if (!first){
-        //jacs[v] = -scale * j_sum(v);
-      //}
-      //else{
-        jacs[v] = -j_sum(v);
-      //}
+    if (previous_error_value_ < 0) {
+      previous_error_value_ = error_value;
     }
+    else{
+      if (error_value > previous_error_value_ && current_pose_param_ == 0){
+        current_pose_param_++;
+      }
+    }
+
+    j_sum_rigid = h_sum_rigid.inv() * j_sum_rigid;
+
+    std::vector<float> jacs(PRECISION, 0);
+    
+    if (current_pose_param_ == 0){
+      for (size_t v = 0; v < 7; ++v){
+        jacs[v] = -j_sum_rigid(v);
+      }
+    }
+
+    
+    if (current_pose_param_ == 1 && wp){
+      jacs[7] = -(j_sum_arti(0) / (100 * std::abs(j_sum_arti(0))));
+    }
+
+    if (current_pose_param_ == 2 && wy){
+      jacs[8] = -(j_sum_arti(1) / (100 * std::abs(j_sum_arti(1))));
+
+    }
+
+    if (current_pose_param_ == 3 && cp){
+
+      jacs[9] = -(j_sum_arti(2) / (100 * std::abs(j_sum_arti(2))));
+
+      jacs[10] = (j_sum_arti(2) / (100 * std::abs(j_sum_arti(2)))); //should be 'negative'
+    }
+
     
     ci::app::console() << "Jacobian = [";
     for (size_t v = 0; v < jacs.size(); ++v){
@@ -531,7 +562,12 @@ void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mo
 
     ////jacs[jacs.size() - 1] = -jacs[jacs.size() - 2];
 
-    
+    if (current_pose_param_ == 0){
+      current_rigid_step_++;
+    }
+    else{
+      current_pose_param_++;
+    }
 
     current_model->UpdatePose(jacs);
 

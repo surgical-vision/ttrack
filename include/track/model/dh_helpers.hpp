@@ -75,4 +75,30 @@ inline void glhDenavitHartenberg(GLfloat a, GLfloat alpha, GLfloat d, GLfloat th
 }
 
 
+inline void glhDenavitHartenbergDerivative(GLfloat a, GLfloat alpha, GLfloat d, GLfloat theta, GLfloat* A) {
+
+  GLfloat sa = sin(alpha);
+  GLfloat ca = cos(alpha);
+  GLfloat st = sin(theta);
+  GLfloat ct = cos(theta);
+
+  A[_00] = -st;
+  A[_10] = ca * ct;
+  A[_20] = sa * ct;
+  A[_30] = 0.0;
+  A[_01] = -ct;
+  A[_11] = -ca * st;
+  A[_21] = -sa * st;
+  A[_31] = 0.0;
+  A[_02] = 0.0;
+  A[_12] = -sa;
+  A[_22] = ca;
+  A[_32] = 0.0;
+  A[_03] = 0;
+  A[_13] = 0;
+  A[_23] = 0;
+  A[_33] = 1.0;
+
+}
+
 #endif

@@ -29,6 +29,9 @@ namespace ttrk {
 
     virtual bool NeedsNewFrame() const = 0;
 
+    virtual void UpdateErrorAccumulator() = 0;
+
+
   };
 
 

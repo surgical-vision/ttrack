@@ -103,6 +103,8 @@ namespace ttrk {
 
     virtual bool NeedsNewFrame() const { return true; }
 
+    virtual void UpdateErrorAccumulator() {  }
+
   protected:
     
     std::vector< std::pair<int, int> > row_col_residual_idx_;
@@ -118,7 +120,7 @@ namespace ttrk {
 
   public:
 
-    ArticulatedLevelSet(boost::shared_ptr<StereoCamera> camera) : stereo_camera_(camera), PWP3D(camera->left_eye()->Width(), camera->left_eye()->Height()), current_pose_param_(0), num_rigid_steps_(5), current_rigid_step_(0), previous_error_value_(-1.0f){}
+    ArticulatedLevelSet(boost::shared_ptr<StereoCamera> camera) : stereo_camera_(camera), PWP3D(camera->left_eye()->Width(), camera->left_eye()->Height()), current_pose_param_(0), num_rigid_steps_(40), current_rigid_step_(0), previous_error_value_(-1.0f){}
 
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);   
 
@@ -131,6 +133,8 @@ namespace ttrk {
     cv::Matx<float, PRECISION, 1> ComputeJacobiansSummed(const boost::shared_ptr<Model> current_model, const cv::Mat &classification_image, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image, const cv::Mat &sdf_image, const cv::Mat &index_image);
 
     cv::Matx<float, NUM_RESIDUALS, PRECISION> ComputeJacobians(const boost::shared_ptr<Model> current_model, const cv::Mat &classification_image, const cv::Mat &front_intersection_image, const cv::Mat &back_intersection_image, const cv::Mat &sdf_image, const cv::Mat &index_image);
+
+    virtual void UpdateErrorAccumulator() { previous_error_value_ = -1; }
 
 
   protected:

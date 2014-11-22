@@ -328,7 +328,6 @@ void DHNode::UpdatePose(std::vector<float>::iterator &updates){
   if (parent_ != nullptr && NodeIsTransformable()){
 
     update_ += *updates;
-    ci::app::console() << "Setting node with index " << idx_ << " from " << update_ - *updates << " to " << update_ << std::endl;
     ++updates;  
 
   }

@@ -68,6 +68,11 @@ protected:
   boost::shared_ptr<ttrk::StereoCamera> camera_;
   std::vector<boost::shared_ptr<ttrk::Model> > models_to_draw_; 
 
+  cv::VideoWriter writer_;
+  std::ofstream tracked_file_;
+
+  bool force_new_frame_;
+
   MayaCamUI	maya_cam_;
 
   Vec2i	mouse_pos_;
@@ -78,7 +83,8 @@ protected:
 
     SubWindow(int start_x, int start_y, int width, int height) : window_coords_(start_x, start_y, start_x + width, start_y + height) {
       
-      framebuffer_.reset(new gl::Fbo(width, height));
+      gl::Fbo::Format f;
+      framebuffer_.reset(new gl::Fbo(width, height, f));
       texture_ = gl::Texture(width, height);
 
     }

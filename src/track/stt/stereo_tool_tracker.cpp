@@ -48,7 +48,9 @@ bool StereoToolTracker::Init() {
     tracked_models_.back().temporal_tracker.reset(new KalmanFilterTracker);
 
     Init3DPoseFromMOITensor(*connected_region, tracked_models_.back().model);//,corresponding_connected_region);
-  
+    
+    break;
+
   }
 
   return true;

@@ -453,6 +453,11 @@ void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mo
     cv::Mat &index_image = left_index_image;
     cv::Mat error_image = cv::Mat::zeros(sdf_image.size(), CV_32FC1);
 
+    //cv::Mat sdf_save_im;
+    //cv::normalize(sdf_image, sdf_save_im, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+
+    //cv::imwrite("z:/sdf_image.png", sdf_save_im);
+
     float *sdf_im_data = (float *)sdf_image.data;
     float *front_intersection_data = (float *)front_intersection_image.data;
     float *back_intersection_data = (float *)back_intersection_image.data;
@@ -538,19 +543,23 @@ void ArticulatedLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mo
 
     
     if (current_pose_param_ == 1 && wp){
+      //jacs[7] = -20*(j_sum_arti(0) / (j_sum_arti(0)*j_sum_arti(0)));
       jacs[7] = -(j_sum_arti(0) / (100 * std::abs(j_sum_arti(0))));
     }
 
     if (current_pose_param_ == 2 && wy){
+      //jacs[8] = -20*(j_sum_arti(1) / (j_sum_arti(1)*j_sum_arti(1)));
       jacs[8] = -(j_sum_arti(1) / (100 * std::abs(j_sum_arti(1))));
 
     }
 
     if (current_pose_param_ == 3 && cp){
 
+      //jacs[9] = -20 * (j_sum_arti(2) / (j_sum_arti(2)*j_sum_arti(2)));
       jacs[9] = -(j_sum_arti(2) / (100 * std::abs(j_sum_arti(2))));
 
-      jacs[10] = (j_sum_arti(2) / (100 * std::abs(j_sum_arti(2)))); //should be 'negative'
+      jacs[10] = (j_sum_arti(2) / (100 * std::abs(j_sum_arti(2))));
+     // jacs[10] = 20 * (j_sum_arti(2) / (j_sum_arti(2)*j_sum_arti(2)));//should be 'negative'
     }
 
     

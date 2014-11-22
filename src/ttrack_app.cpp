@@ -46,17 +46,46 @@ void TTrackApp::SetupFromConfig(const std::string &path){
   }
 
   auto &ttrack = ttrk::TTrack::Instance();
+  //throwing errors here? did you remember the zero at element 15 of start pose?
   ttrack.SetUp(root_dir + "/" + reader.get_element("trackable"), root_dir + "/" + reader.get_element("camera-config"), root_dir + "/" + reader.get_element("classifier-config"), reader.get_element("output-dir"), ttrk::TTrack::ClassifierFromString(reader.get_element("classifier-type")), root_dir + "/" + reader.get_element("left-input-video"), root_dir + "/" + reader.get_element("right-input-video"), ttrk::TTrack::PoseFromString(reader.get_element("starting-pose")));
 
   camera_.reset(new ttrk::StereoCamera(root_dir + "/" + reader.get_element("camera-config")));
 
+
+  ////////// to remove after ipcai
+  std::string vf = reader.get_element("output-dir") + "/" + reader.get_element("left-output-video");
+  int up = 0;
+  while (boost::filesystem::exists(vf)){
+    std::stringstream ss;
+    ss << reader.get_element("output-dir") + "/" << "new_ " << up << reader.get_element("left-output-video");
+    vf = ss.str();
+    up++;
+  }
+  writer_.open(vf, CV_FOURCC('D', 'I', 'B', ' '), 25, cv::Size(camera_->left_eye()->Width(), camera_->left_eye()->Height()));
+
+  if (writer_.isOpened() == false) throw std::runtime_error("err");
+
+  vf = reader.get_element("output-dir") + "/" + reader.get_element("tracked-file.txt");
+  int up = 0;
+  while (boost::filesystem::exists(vf)){
+    std::stringstream ss;
+    ss << reader.get_element("output-dir") + "/" << "new_ " << up << reader.get_element("tracked-file.txt");
+    vf = ss.str();
+    up++;
+  }
+  tracked_file_.open(vf);
+
+  //////////////
+  
   windows_[0] = SubWindow(toolbar_.window_coords_.getWidth(), 0, camera_->left_eye()->Width(), camera_->left_eye()->Height());
   windows_[1] = SubWindow(toolbar_.window_coords_.getWidth() + camera_->left_eye()->Width(), 0, camera_->left_eye()->Width(), camera_->left_eye()->Height());
+
 
   windows_[2] = SubWindow(toolbar_.window_coords_.getWidth(), 
                           camera_->left_eye()->Height(), 
                           windows_[2].window_coords_.getWidth(),
                           windows_[2].window_coords_.getHeight());
+  
 
   windows_[3] = SubWindow(toolbar_.window_coords_.getWidth() + windows_[2].window_coords_.getWidth(),
                           camera_->left_eye()->Height(), 
@@ -79,6 +108,8 @@ void TTrackApp::setup(){
   google::SetLogDestination(google::GLOG_INFO, "z:/file0.txt");
 
   toolbar_ = SubWindow(0, 0, 300, 700);
+
+  force_new_frame_ = false;
 
   //create left eye window
   windows_.push_back(SubWindow(100, 0, 600, 500));
@@ -126,11 +157,13 @@ void TTrackApp::update(){
   if (!ttrack.IsRunning()) return;
 
   models_to_draw_.clear();
-  ttrack.GetUpdate(models_to_draw_);
+  ttrack.GetUpdate(models_to_draw_, force_new_frame_);
+
+  force_new_frame_ = false;
 
   boost::shared_ptr<const sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<const sv::StereoFrame>(ttrack.GetPtrToCurrentFrame());
 
-  windows_[0].texture_ = ci::fromOcv(stereo_frame->GetLeftImage());
+  windows_[0].texture_ = ci::fromOcv(stereo_frame->GetLeftClassificationMap());
   windows_[1].texture_ = ci::fromOcv(stereo_frame->GetRightImage());
 
 }
@@ -202,7 +235,12 @@ void TTrackApp::drawEye(boost::shared_ptr<ci::gl::Fbo> framebuffer, ci::gl::Text
   //shader_.uniform("tex0", 0);
 
   for (size_t i = 0; i < models_to_draw_.size(); ++i){
+    glEnable(GL_BLEND);
+    gl::color(1.0f, 1.0f, 1.0f, 0.2f); // Full Brightness, 50% Alpha ( NEW )
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
     models_to_draw_[i]->Render(false);
+    glDisable(GL_BLEND);
+    gl::color(1.0f, 1.0f, 1.0f, 1.0f);
   }
 
   //shader_.unbind();
@@ -229,6 +267,23 @@ void TTrackApp::draw(){
     drawPlotter(windows_[2].framebuffer_);
     draw3D(windows_[3].framebuffer_, windows_[0].framebuffer_->getTexture(), camera_->left_eye());
 
+  }
+
+  cv::Mat v = toOcv(windows_[0].framebuffer_->getTexture());
+  writer_ << v;
+
+  if (ttrack.IsRunning()){
+    if (models_to_draw_.size() != 1 || models_to_draw_.size() != 0){
+      throw std::runtime_error("");
+    }
+  }
+  if (models_to_draw_.size() == 1){
+    std::vector<float> pose;
+    models_to_draw_[0]->GetPose(pose);
+    for (auto &f : pose){
+      tracked_file_ << f << ", ";
+    }
+    tracked_file_ << std::endl;
   }
 
   glViewport(0, 0, width_, height_);
@@ -433,6 +488,12 @@ void TTrackApp::keyDown(KeyEvent k_event){
     quit();
 
   } 
+
+  if (k_event.getChar() == 'n'){
+
+    force_new_frame_ = true;
+
+  }
   
 }
 

@@ -66,7 +66,7 @@ namespace ttrk{
     * Get the currently tracked models for drawing on a GUI for instance.
     * @param[out] models The models to access
     */
-    void TTrack::GetUpdate(std::vector<boost::shared_ptr<Model> > &models);
+    void TTrack::GetUpdate(std::vector<boost::shared_ptr<Model> > &models, const bool force_new_frame);
 
     /**
      * A method for saving the current frame in output directory. 

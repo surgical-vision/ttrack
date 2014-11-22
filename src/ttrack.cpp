@@ -95,9 +95,9 @@ void TTrack::SetUp(const std::string &model_parameter_file, const std::string &c
 
 }
 
-void TTrack::GetUpdate(std::vector<boost::shared_ptr<Model> > &models){
+void TTrack::GetUpdate(std::vector<boost::shared_ptr<Model> > &models, const bool force_new_frame){
 
-  if (tracker_->NeedsNewFrame()){
+  if (tracker_->NeedsNewFrame() || force_new_frame){
     detector_->Run(GetPtrToNewFrame());
     tracker_->Run(GetPtrToClassifiedFrame(), detector_->Found());
   }

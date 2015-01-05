@@ -10,9 +10,15 @@
 
 using namespace ttrk;
 
-Model::Model(const std::string &model_parameter_file){
+size_t Model::total_model_count_ = 0;
+
+Model::Model(const std::string &model_parameter_file, const std::string &save_file){
+  
+  total_model_count_++;
 
   LoadFromFile(model_parameter_file);
+  ofs_.open(save_file);
+  if (!ofs_.is_open()) throw std::runtime_error("");
 
 }
 
@@ -22,6 +28,21 @@ Model::Model(Node::Ptr component, const ci::Matrix44f &world_to_model_transform)
   world_to_model_coordinates_ = Pose(component->GetWorldTransform(world_to_model_transform)); //need to write the get world transform bit
 
 }
+
+void Model::WritePoseToFile() {
+
+  if (!ofs_.is_open()) throw std::runtime_error("");
+
+  std::vector<float> current_pose;
+  GetPose(current_pose);
+
+  for (auto &c : current_pose)
+    ofs_ << c << " ";
+
+  ofs_ << std::endl;
+
+}
+
 
 void Model::LoadFromFile(const std::string &filename){
 
@@ -105,7 +126,7 @@ std::vector<ci::Vec3f> Model::ComputeJacobian(const ci::Vec3f &point, const int 
   std::vector<ci::Vec3f> r = world_to_model_coordinates_.ComputeJacobian(point);
 
   //pass this vector into the articualted nodes and get their jacobians too
-  
+  //preset the jacobian values for the articulated joints so that they can be accessed by index
   for (int i = 0; i < 6; ++i){
     r.push_back(ci::Vec3f(0.0f, 0.0f, 0.0f));
   }

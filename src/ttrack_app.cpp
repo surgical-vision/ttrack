@@ -18,19 +18,12 @@
 #include "../include/resources.hpp"
 #include "../include/utils/config_reader.hpp"
 #include "../include/utils/plotter.hpp"
+#include "../include/utils/UI.hpp"
 
 #include <ceres/ceres.h>
 
 using namespace ci;
 using namespace ci::app;
-
-namespace {
-
-  const ci::Vec3f L2R_TRANS(-6.1282f, -1.0395f, -0.5295f); //for T = [ 6.1282 ;-1.0395 ; - 0.5295 ] transformation is inversed but y,z need to be flipped as usual
-  const ci::Vec4f L2R_ROT(0.3408f, -0.9392f, 0.0411f, 0.1324f); //[axis, angle] from get_angle_axis(rodrigues(inv(R)) where get_angle_axis has n_mat = flip * r_mat * flip; 
-
-}
-
 
 void TTrackApp::SetupFromConfig(const std::string &path){
 
@@ -46,51 +39,47 @@ void TTrackApp::SetupFromConfig(const std::string &path){
   }
 
   auto &ttrack = ttrk::TTrack::Instance();
+  std::vector< std::vector <float> > starting_poses;
+  for (int i = 0;; ++i){
+
+    std::stringstream ss;
+    ss << "starting-pose-" << i;
+    try{
+      starting_poses.push_back(ttrk::TTrack::PoseFromString(reader.get_element(ss.str()))); 
+    }
+    catch (std::runtime_error &){
+      break;
+    }
+
+  }
+
   //throwing errors here? did you remember the zero at element 15 of start pose?
-  ttrack.SetUp(root_dir + "/" + reader.get_element("trackable"), root_dir + "/" + reader.get_element("camera-config"), root_dir + "/" + reader.get_element("classifier-config"), reader.get_element("output-dir"), ttrk::TTrack::ClassifierFromString(reader.get_element("classifier-type")), root_dir + "/" + reader.get_element("left-input-video"), root_dir + "/" + reader.get_element("right-input-video"), ttrk::TTrack::PoseFromString(reader.get_element("starting-pose")));
+  ttrack.SetUp(root_dir + "/" + reader.get_element("trackable"), 
+               root_dir + "/" + reader.get_element("camera-config"), 
+               root_dir + "/" + reader.get_element("classifier-config"), 
+               reader.get_element("output-dir"), 
+               ttrk::TTrack::LocalizerTypeFromString(reader.get_element("localizer-type")),
+               ttrk::TTrack::ClassifierFromString(reader.get_element("classifier-type")), 
+               root_dir + "/" + reader.get_element("left-input-video"), 
+               root_dir + "/" + reader.get_element("right-input-video"), 
+               starting_poses);
 
   camera_.reset(new ttrk::StereoCamera(root_dir + "/" + reader.get_element("camera-config")));
-
-
-  ////////// to remove after ipcai
-  std::string vf = reader.get_element("output-dir") + "/" + reader.get_element("left-output-video");
-  int up = 0;
-  while (boost::filesystem::exists(vf)){
-    std::stringstream ss;
-    ss << reader.get_element("output-dir") + "/" << "new_ " << up << reader.get_element("left-output-video");
-    vf = ss.str();
-    up++;
-  }
-  writer_.open(vf, CV_FOURCC('D', 'I', 'B', ' '), 25, cv::Size(camera_->left_eye()->Width(), camera_->left_eye()->Height()));
-
-  if (writer_.isOpened() == false) throw std::runtime_error("err");
-
-  vf = reader.get_element("output-dir") + "/" + reader.get_element("tracked-file.txt");
-  int up = 0;
-  while (boost::filesystem::exists(vf)){
-    std::stringstream ss;
-    ss << reader.get_element("output-dir") + "/" << "new_ " << up << reader.get_element("tracked-file.txt");
-    vf = ss.str();
-    up++;
-  }
-  tracked_file_.open(vf);
-
-  //////////////
   
-  windows_[0] = SubWindow(toolbar_.window_coords_.getWidth(), 0, camera_->left_eye()->Width(), camera_->left_eye()->Height());
-  windows_[1] = SubWindow(toolbar_.window_coords_.getWidth() + camera_->left_eye()->Width(), 0, camera_->left_eye()->Width(), camera_->left_eye()->Height());
+  windows_[0] = SubWindow((int)toolbar_.window_coords_.getWidth(), 0, camera_->left_eye()->Width(), camera_->left_eye()->Height());
+  windows_[1] = SubWindow((int)toolbar_.window_coords_.getWidth() + camera_->left_eye()->Width(), 0, camera_->left_eye()->Width(), camera_->left_eye()->Height());
 
 
-  windows_[2] = SubWindow(toolbar_.window_coords_.getWidth(), 
+  windows_[2] = SubWindow((int)toolbar_.window_coords_.getWidth(),
                           camera_->left_eye()->Height(), 
-                          windows_[2].window_coords_.getWidth(),
-                          windows_[2].window_coords_.getHeight());
+                          (int)windows_[2].window_coords_.getWidth(),
+                          (int)windows_[2].window_coords_.getHeight());
   
 
-  windows_[3] = SubWindow(toolbar_.window_coords_.getWidth() + windows_[2].window_coords_.getWidth(),
+  windows_[3] = SubWindow((int)toolbar_.window_coords_.getWidth() + (int)windows_[2].window_coords_.getWidth(),
                           camera_->left_eye()->Height(), 
-                          windows_[3].window_coords_.getWidth(), 
-                          windows_[3].window_coords_.getHeight());
+                          (int)windows_[3].window_coords_.getWidth(),
+                          (int)windows_[3].window_coords_.getHeight());
 
 
   //left_external_framebuffer_.reset(new gl::Fbo(camera_->left_eye()->Width(), camera_->left_eye()->Height()));
@@ -104,10 +93,10 @@ void TTrackApp::setup(){
 
   std::vector<std::string> cmd_line_args = getArgs();
 
-  google::InitGoogleLogging(cmd_line_args[0].c_str());
-  google::SetLogDestination(google::GLOG_INFO, "z:/file0.txt");
-
   toolbar_ = SubWindow(0, 0, 300, 700);
+  
+  auto ui = ttrk::UIController::Instance();
+  if (!ui.IsInitialized()) ui.Initialize("title", toolbar_.framebuffer_->getWidth() - (2 * 20), toolbar_.framebuffer_->getHeight() - 20);
 
   force_new_frame_ = false;
 
@@ -121,6 +110,7 @@ void TTrackApp::setup(){
   //create 3D viewer
   windows_.push_back(SubWindow(700, 500, 600, 300));
 
+  
   if (cmd_line_args.size() == 2){
 
     try{
@@ -139,12 +129,6 @@ void TTrackApp::setup(){
 
     resize();
 
-    //const int default_width = 600, default_height = 500;
-    //setWindowSize(2*default_width, default_height);
-    
-    //left_external_framebuffer_.reset(new gl::Fbo(default_width, default_height));
-    //right_external_framebuffer_.reset(new gl::Fbo(default_width, default_height));
-
   }
   
   shader_ = gl::GlslProg(loadResource(RES_SHADER_VERT), loadResource(RES_SHADER_FRAG));
@@ -159,21 +143,23 @@ void TTrackApp::update(){
   models_to_draw_.clear();
   ttrack.GetUpdate(models_to_draw_, force_new_frame_);
 
+  if (ttrack.IsDone()) {
+    shutdown();
+    quit();
+    return;
+  }  
+  
   force_new_frame_ = false;
 
   boost::shared_ptr<const sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<const sv::StereoFrame>(ttrack.GetPtrToCurrentFrame());
-
-  windows_[0].texture_ = ci::fromOcv(stereo_frame->GetLeftClassificationMap());
+  
+  windows_[0].texture_ = ci::fromOcv(stereo_frame->GetLeftImage());
   windows_[1].texture_ = ci::fromOcv(stereo_frame->GetRightImage());
 
 }
 
 void TTrackApp::shutdown(){
 
-  //_CrtMemDumpAllObjectsSince(0x0);
-  //_CrtDumpMemoryLeaks();
-  //system("pause");
-  
   ttrk::TTrack::Destroy();
 
   cinder::app::AppNative::shutdown();
@@ -236,7 +222,7 @@ void TTrackApp::drawEye(boost::shared_ptr<ci::gl::Fbo> framebuffer, ci::gl::Text
 
   for (size_t i = 0; i < models_to_draw_.size(); ++i){
     glEnable(GL_BLEND);
-    gl::color(1.0f, 1.0f, 1.0f, 0.2f); // Full Brightness, 50% Alpha ( NEW )
+    gl::color(1.0f, 1.0f, 1.0f, 0.8f); // Full Brightness, 50% Alpha ( NEW )
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
     models_to_draw_[i]->Render(false);
     glDisable(GL_BLEND);
@@ -250,6 +236,14 @@ void TTrackApp::drawEye(boost::shared_ptr<ci::gl::Fbo> framebuffer, ci::gl::Text
   ci::gl::popMatrices();
 
   framebuffer->unbindFramebuffer();
+}
+
+void TTrackApp::saveResults(){
+  
+  auto &ttrack = ttrk::TTrack::Instance(); 
+  ttrack.SaveFrame(toOcv(windows_[0].framebuffer_->getTexture()), true);
+  ttrack.SaveResults();
+ 
 }
 
 void TTrackApp::draw(){
@@ -269,21 +263,8 @@ void TTrackApp::draw(){
 
   }
 
-  cv::Mat v = toOcv(windows_[0].framebuffer_->getTexture());
-  writer_ << v;
-
-  if (ttrack.IsRunning()){
-    if (models_to_draw_.size() != 1 || models_to_draw_.size() != 0){
-      throw std::runtime_error("");
-    }
-  }
-  if (models_to_draw_.size() == 1){
-    std::vector<float> pose;
-    models_to_draw_[0]->GetPose(pose);
-    for (auto &f : pose){
-      tracked_file_ << f << ", ";
-    }
-    tracked_file_ << std::endl;
+  if (ttrack.HasConverged()){
+    saveResults();
   }
 
   glViewport(0, 0, width_, height_);
@@ -302,17 +283,9 @@ void TTrackApp::drawToolbar() {
 
   toolbar_.framebuffer_->bindFramebuffer();
 
-  //glViewport(0, 0, toolbar_.framebuffer_->getWidth(), toolbar_.framebuffer_->getHeight());
-  //glScissor(0, 0, toolbar_.framebuffer_->getWidth(), toolbar_.framebuffer_->getHeight());
   glViewport(0, 0, width_, height_);
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  //glMatrixMode(GL_PROJECTION);
-  //glPushMatrix();
-  //glLoadIdentity();
-  //glOrtho(0, toolbar_.framebuffer_->getWidth(), 0, toolbar_.framebuffer_->getHeight(), -1, 1);
-
 
   gl::color(1, 1, 1);
 
@@ -322,13 +295,24 @@ void TTrackApp::drawToolbar() {
 
   //draw line from 20 - 20 to
   
-  gl::drawLine(ci::Vec2f(buffer, buffer), ci::Vec2f(width - 2*buffer, buffer));
-  gl::drawLine(ci::Vec2f(width - 2*buffer, buffer), ci::Vec2f(width - 2*buffer, height - buffer));
-  gl::drawLine(ci::Vec2f(width - 2*buffer, height - buffer), ci::Vec2f(buffer, height - buffer));
-  gl::drawLine(ci::Vec2f(buffer, height - buffer), ci::Vec2f(buffer, buffer));
+  gl::drawLine(ci::Vec2f((float)buffer, (float)buffer), ci::Vec2f((float)(width - 2 * buffer), (float)buffer));
+  gl::drawLine(ci::Vec2f((float)(width - 2 * buffer), (float)buffer), ci::Vec2f((float)(width - 2 * buffer), (float)(height - buffer)));
+  gl::drawLine(ci::Vec2f((float)(width - 2 * buffer), (float)(height - buffer)), ci::Vec2f((float)buffer, (float)(height - buffer)));
+  gl::drawLine(ci::Vec2f((float)buffer, (float)(height - buffer)), ci::Vec2f((float)buffer, (float)buffer));
+  
+
+  auto ui = ttrk::UIController::Instance();
+  auto menubar = ui.Menubar();
+  menubar.draw();
+  
+  //menubar_ = ci::params::InterfaceGl::create(ci::app::getWindow(), "Menubar", toPixels(ci::Vec2i(width - 2 * buffer, height - buffer)));
 
   toolbar_.framebuffer_->unbindFramebuffer();
 
+  
+  //for (auto v : i.GetVars())
+  //  menubar_->implAddParam(v->GetName(), v->GetValPtr(), v->GetValType(), "min = " + v->GetMin() + " max = " + v->GetMax() + " step = " + v->GetIncrement(), false);
+  
 }
 
 void TTrackApp::drawPlotter(boost::shared_ptr<gl::Fbo> framebuffer) {
@@ -364,8 +348,10 @@ void TTrackApp::drawPlotter(boost::shared_ptr<gl::Fbo> framebuffer) {
   auto &plots = plotter.GetPlottables();
   for (auto &plot : plots){
     auto vals = plot->GetErrorValues();
-    if (vals.size() && vals.back() > largest_error){
-      largest_error = vals.back();
+    for (auto &val : vals){
+      if (val > largest_error){
+        largest_error = val;
+      }
     }
     if (vals.size() > num_steps)
       num_steps = vals.size();
@@ -467,7 +453,6 @@ void TTrackApp::drawGrid(float size, float step, float plane_position){
   gl::color(1.0, 1.0, 1.0);
 
 }
-
 
 void TTrackApp::fileDrop(FileDropEvent f_event){
 

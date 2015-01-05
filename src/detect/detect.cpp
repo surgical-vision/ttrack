@@ -42,25 +42,7 @@ void Detect::Run(boost::shared_ptr<sv::Frame> image){
 
 void Detect::ClassifyFrame(){
 
-  //cv::Mat target = frame_->GetClassificationMap();
-  //cv::Mat left = target(cv::Rect(0, 0, target.cols / 2, target.rows));
-  //cv::Mat right = target(cv::Rect(target.cols / 2, 0, target.cols / 2, target.rows));
-
-  //cv::Mat tmp = cv::imread("../data/lnd2/left.png", 0);
-  //tmp.convertTo(tmp, CV_32FC1);
-  //tmp = tmp * (1.0f / 255);
-  ////cv::flip(tmp, left, 0);
-  //tmp.copyTo(left);
-
-  //tmp = cv::imread("../data/lnd2/right.png", 0);
-  //tmp.convertTo(tmp,CV_32FC1);
-  //tmp = tmp * (1.0f / 255);
-  ////cv::flip(tmp, right, 0);
-  //tmp.copyTo(right);
-
-  //found_ = true;
-
-  //return;
+  if (frame_ == nullptr) return;
 
   assert(Loaded());
   assert(frame_->GetImageROI().type() == CV_8UC3);

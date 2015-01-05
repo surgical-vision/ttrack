@@ -22,7 +22,7 @@ namespace ttrk{
   /**
   * @class Model
   * @brief An abstract class to represent an interface to trackable objects.
-  * Specifies a collection of points, a pose and intersection methods needed by the tracker.
+  * Specifies a collection of vertices/mesh, a pose and intersection methods needed by the tracker.
   */
   class Model {
 
@@ -30,8 +30,10 @@ namespace ttrk{
 
     /**
     * Construct the model from a configuration file.
+    * @param[in] model_parameter_file The configuration file for the model.
+    * @param[in] save_file A file to save the model pose when requested.
     */
-    explicit Model(const std::string &model_parameter_file);
+    explicit Model(const std::string &model_parameter_file, const std::string &save_file);
     
     /**
     * Delete the model.
@@ -103,6 +105,10 @@ namespace ttrk{
 
     const Node::Ptr GetModel() const { return model_; }
 
+    void WritePoseToFile();
+
+    static std::string GetCurrentModelCount() { std::stringstream ss; ss << total_model_count_; return ss.str(); }
+
   protected:
 
     /**
@@ -135,13 +141,17 @@ namespace ttrk{
     /**
     * Load nothing - only useful for the derived classes which need to delay loading
     */
-    Model() {} 
+    Model() { total_model_count_++; }
 
     Node::Ptr model_; /**< A tree representation of the model as a sequence of coordinate systems with some attached geometry. */
     
     Pose world_to_model_coordinates_; /**< The transform from world coordinates (or camera) to the 'base' coordinates of the model. */
     
     cv::Vec3f principal_axis_; /**< The principal axis of the shape, this is not entirely meaningful for all shapes but can be useful for things shaped like cylinders. */
+
+    std::ofstream ofs_; /**< A file to save the pose of the model at each frame. */
+
+    static size_t total_model_count_; /** Count of all created models so when we create a new one it gets it's own file. */
 
   };
 

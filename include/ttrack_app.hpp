@@ -7,6 +7,7 @@
 #include <cinder/MayaCamUI.h>
 #include <cinder/Rand.h>
 #include <cinder/gl/Fbo.h>
+#include <cinder/params/Params.h>
 
 #include "ttrack.hpp"
 #include "utils/camera.hpp"
@@ -46,6 +47,8 @@ public:
   virtual void resize();
 
 protected:
+
+  void saveResults();
 
   void drawToolbar();
 
@@ -100,6 +103,8 @@ protected:
 
   SubWindow toolbar_;
   std::vector<SubWindow> windows_;
+
+  ci::params::InterfaceGlRef	menubar_;
 
 };
 

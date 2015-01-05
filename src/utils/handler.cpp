@@ -1,5 +1,6 @@
 #include "../../include/utils/handler.hpp"
 #include <boost/filesystem.hpp>
+#include <cinder/app/App.h>
 
 using namespace ttrk;
 
@@ -20,6 +21,21 @@ VideoHandler::VideoHandler(const std::string &input_url, const std::string &outp
   }
 
   
+}
+
+VideoHandler::~VideoHandler(){
+
+  if (cap_.isOpened())
+   cap_.release();
+
+}
+
+StereoVideoHandler::~StereoVideoHandler(){
+
+  if (!right_cap_.isOpened()){
+    right_cap_.release();
+  }
+
 }
 
 StereoVideoHandler::StereoVideoHandler(const std::string &left_input_url,const std::string &right_input_url,const std::string &output_url):
@@ -134,14 +150,10 @@ void ImageHandler::SaveFrame(const cv::Mat image){
 }
 
 void VideoHandler::SaveFrame(const cv::Mat image){
-  
-  /******* DEBUG CODE - SAVE TO IMAGE FILE AS WELL */
-  static int frame_num = 0;
-  /*******/
 
   if(!writer_.isOpened()){  
   // open the writer to create the processed video
-    writer_.open(output_url_,CV_FOURCC('D','I','B',' '), 25, 
+    writer_.open(output_url_,CV_FOURCC('M','J','P','G'), 25, 
                  cv::Size(image.cols,image.rows));
     if(!writer_.isOpened()){
       throw std::runtime_error("Unable to open videofile: " + output_url_ + " for saving.\nPlease enter a new filename.\n");
@@ -150,13 +162,16 @@ void VideoHandler::SaveFrame(const cv::Mat image){
   
   
   if(!writer_.isOpened()) throw std::runtime_error("Error, attempt to save frame without available video writer.\n");
-  writer_ << image;
+  
+  cv::Mat rgb(image.size(), CV_8UC3);
+  for (int r = 0; r < rgb.rows; ++r){
+    for (int c = 0; c < rgb.cols; ++c){
+      const auto &t = image.at<cv::Vec4b>(r, c);
+      rgb.at<cv::Vec3b>(r, c) = cv::Vec3b(t[0], t[1], t[2]);
+    }
+  }
 
-  /*******/
-  std::stringstream ss; ss << "debug/frame_" << frame_num << ".png";
-  cv::imwrite(ss.str(),image);
-  frame_num++;
-  /*******/
+  writer_ << rgb;
 
 }
 

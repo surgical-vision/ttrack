@@ -484,15 +484,23 @@ void DHNode::createFixedTransform(const ci::Vec3f &axis, const float rads, ci::M
 
 void alternativeDerivativeTransform(const ci::Vec3f &axis, const float theta, ci::Matrix44f &deriv){
 
-  if (axis != ci::Vec3f(0, 1, 0)) throw std::runtime_error(""); //fix later
-
   deriv.setToIdentity();
 
-  deriv.at(0, 0) = -sin(theta);
-  deriv.at(0, 2) = cos(theta);
-  deriv.at(2, 0) = -cos(theta);
-  deriv.at(2, 2) = -sin(theta);
-
+  if (axis == ci::Vec3f(0, 1, 0)) {
+    deriv.at(0, 0) = -sin(theta);
+    deriv.at(0, 2) = cos(theta);
+    deriv.at(2, 0) = -cos(theta);
+    deriv.at(2, 2) = -sin(theta);
+  }
+  else if (axis == ci::Vec3f(0, -1, 0)){
+    deriv.at(0, 0) = -sin(theta);
+    deriv.at(0, 2) = -cos(theta);
+    deriv.at(2, 0) = cos(theta);
+    deriv.at(2, 2) = -sin(theta);
+  }
+  else{
+    throw std::runtime_error("");
+  }
 }
 
 ci::Matrix44f DHNode::GetDerivativeTransfromFromParent() const {

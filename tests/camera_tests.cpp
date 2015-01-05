@@ -20,9 +20,18 @@ namespace ttrk {
 
 BOOST_AUTO_TEST_SUITE(camera_test_suite)
 
+BOOST_AUTO_TEST_CASE(test_stereo_transforms) {
+
+  ttrk::test::TestStereoCamera camera("../../data/synthetic/camera/config.xml");
+
+
+
+}
+
+
 BOOST_AUTO_TEST_CASE(camera_load_test) {
 
-  ttrk::test::TestStereoCamera camera("../../data/lnd2/camera/config.xml");
+  ttrk::test::TestStereoCamera camera("../../data/synthetic/camera/config.xml");
   const cv::Mat unprojected_points = camera.left_eye()->GetUnprojectedImagePlane(640,480);
 
   for (int r = 1; r < unprojected_points.rows-1; ++r){

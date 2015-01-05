@@ -14,8 +14,6 @@ namespace ttrk {
 
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
 
-    virtual void UpdateErrorAccumulator() {  }
-
   protected:
 
     //void GetRenderedModelAtPose(const boost::shared_ptr<Model> model, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image) const;

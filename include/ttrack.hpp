@@ -41,8 +41,14 @@ namespace ttrk{
     
   public:
    
+    /**
+    * Reset the ttrack system.
+    */
     static void Destroy();
   
+    /**
+    * Destructor.
+    */
     ~TTrack();
     
     /**
@@ -55,7 +61,19 @@ namespace ttrk{
     * Just check if the ttrack class has been setup fully.
     * @return Whether the instance is running.
     */
-    bool IsRunning() { if (handler_ != nullptr) return true; else return false; }
+    bool IsRunning() const { if (handler_ != nullptr) return true; else return false; }
+
+    /**
+    * Check if there are still frames to read and process.
+    * True if there are no frames left or if there is no video file loaded, false if there are still frames left.
+    */
+    bool IsDone() const { if (handler_ != nullptr) return handler_->Done(); else return true; }
+
+    /**
+    * Check if the localizer has converged to a solution (i.e. the results need to be save and a new frame should be started).
+    * @return True if the frame has converged, false if the tracker is not initialized or if it is still converging.
+    */
+    bool HasConverged() const { if (tracker_ != nullptr) return tracker_->HasConverged(); else return false; }
 
     /**
     * An operator overload to run the tooltracker in a boost thread.
@@ -70,8 +88,10 @@ namespace ttrk{
 
     /**
      * A method for saving the current frame in output directory. 
+     * @param[in] frame The frame to save.
+     * @param[in] flip Optional argument to flip the frame vertically before saving.
      */
-    void SaveFrame();
+    void SaveFrame(const cv::Mat &frame, bool flip = false);
     
     /**
      * Setup the tracking system with the files it needs to find, localize and track the objects for stereo inputs.
@@ -79,12 +99,14 @@ namespace ttrk{
      * @param[in] camera_calibration_file A path to a file containing the camera calibration parameters in OpenCV XML format.
      * @param[in] classifier_path A path to a file containing the classifier to be loaded.
      * @param[in] results_dir A directory in which results can be saved.
+     * @param[in] localizer_type The type of frame-by-frame localizer to use.
      * @param[in] classifier_type Specify the type of classifier.
      * @param[in] left_media_file The left input video.
      * @param[in] right_media_file The right input video.
      * @param[in] starting_pose Temporary, will be removed. Just a hack until the initializer is done.
+     * @param[in] starting_poses Hack in the starting poses for cases where we don't have strong auto initialization.
      */
-    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const std::string &left_media_file, const std::string &right_media_file, const std::vector<float> &starting_pose);
+    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const std::string &left_media_file, const std::string &right_media_file, const std::vector< std::vector<float> > &starting_pose);
     
     /**
     * Setup the tracking system with the files it needs to find, localize and track the objects for monocular inputs.
@@ -92,10 +114,12 @@ namespace ttrk{
     * @param[in] camera_calibration_file A path to a file containing the camera calibration parameters in OpenCV XML format.
     * @param[in] classifier_path A path to a file containing the classifier to be loaded.
     * @param[in] results_dir A directory in which results can be saved.
+    * @param[in] localizer_type The type of frame-by-frame localizer to use.
     * @param[in] classifier_type Specify the type of classifier.
     * @param[in] media_file The input video.
+    * @param[in] starting_poses Hack in the starting poses for cases where we don't have strong auto initialization.
     */
-    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const std::string &media_file, const std::vector<float> &starting_pose);
+    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const std::string &media_file, const  std::vector< std::vector<float> > &starting_pose);
 
     /**
     * Quick method to convert a string formulation of a classifier type (e.g. RF or SVM) to the ClassifierType.
@@ -103,6 +127,13 @@ namespace ttrk{
     * @return The classifier type.
     */
     static ClassifierType ClassifierFromString(const std::string &classifier_name);
+
+    /**
+    * Quick method to convert a string formulation of a localizer type to the LocalizerType.
+    * @param[in] localizer_name The name of the localizer. 
+    * @return The localizer type.
+    */
+    static LocalizerType LocalizerTypeFromString(const std::string &localizer_name);
 
     /**
     * Quick method to convert a pose in string format to a representation.
@@ -117,6 +148,11 @@ namespace ttrk{
     */
     boost::shared_ptr<const sv::Frame> GetPtrToCurrentFrame() const;
 
+    /**
+    * Save the results, if required
+    */
+    void SaveResults();
+
   protected:
    
     /**
@@ -125,10 +161,12 @@ namespace ttrk{
     * @param[in] camera_calibration_file A path to a file containing the camera calibration parameters in OpenCV XML format.
     * @param[in] classifier_path A path to a file containing the classifier to be loaded.
     * @param[in] results_dir A directory in which results can be saved.
+    * @param[in] localizer_type The type of frame-by-frame localizer to use.
     * @param[in] classifier_type Specify the type of classifier.
     * @param[in] camera_type Whether we are doing monocular or stereo work.
+    * @param[in] starting_poses Hack in the starting poses for cases where we don't have strong auto initialization.
     */
-    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const ClassifierType classifier_type, const CameraType camera_type, const std::vector<float> &starting_pose);
+    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const CameraType camera_type, const  std::vector< std::vector<float> > &starting_poses);
 
     /**
      * Grab a ptr to a new frame. This is the interface to use if reading from images or reading from a videofile.
@@ -148,11 +186,7 @@ namespace ttrk{
      */
     void RunThreaded();
     
-    /**
-     * Save the results, if required
-     */
-    void SaveResults() const;
-
+    
     boost::scoped_ptr<Tracker> tracker_; /**< The class responsible for finding the instrument in the image. */
     boost::scoped_ptr<Detect> detector_; /**< The class responsible for classifying the pixels in the image. */
     boost::scoped_ptr<Handler> handler_; /**< Pointer to either an ImageHandler or a VideoHandler which handles getting and saving frames with a simple interface */

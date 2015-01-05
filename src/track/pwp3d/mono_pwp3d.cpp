@@ -68,6 +68,8 @@ void MonoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost
   //return current_model.CurrentPose();
 }
 
+
+
 //void MonoPWP3D::GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection) {
 //  pose.GetFastDOFDerivs(pose_derivs,intersection);
 //}

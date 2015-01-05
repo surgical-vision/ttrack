@@ -15,17 +15,31 @@
 
 namespace ttrk{
 
+  /**
+  * @enum LocalizerType
+  * The type of frame-by-frame pose localizer to use in tracking.
+  */
+  enum LocalizerType { PWP3DLocalizer, ArticulatedLevelSetLocalizer };
+
  /**
  * @class Tracker
  * @brief The tracking system.
  * An abstract class for tracking objects in video files using a level set based framework. Expects to be given classified images indictating pixel class membership probabilities for the target class.
  */
-
+  
   class Tracker{
 
   public:
 
-    Tracker();
+    /**
+    * Constructor for trackers.
+    * @param[in] 
+    */
+    Tracker(const std::string &model_parameter_file, const std::string &results_dir);
+
+    /**
+    * Destructor
+    */
     virtual ~Tracker();
 
     /**
@@ -44,7 +58,7 @@ namespace ttrk{
 
     void RunStep();
   
-    bool NeedsNewFrame() const { return localizer_->NeedsNewFrame(); }
+    bool HasConverged() const { return localizer_->HasConverged(); }
 
     /**
      * Get a ptr to the frame now that the detector has finished classifying it
@@ -60,9 +74,12 @@ namespace ttrk{
 
     void GetTrackedModels(std::vector<boost::shared_ptr<Model> > &models);
 
-    void SetStartPose(const std::vector<float> &pose) { starting_pose_HACK = pose; }
-    std::vector<float> GetStartPose() { return starting_pose_HACK; }
+    void AddStartPose(const std::vector<float> &pose) { starting_pose_HACK.push_back(pose); }
+
+    std::vector<float> GetStartPose(const size_t idx) { return starting_pose_HACK[idx]; }
     
+    static LocalizerType LocalizerTypeFromString(const std::string &str);
+
   protected:
 
     /**
@@ -84,31 +101,27 @@ namespace ttrk{
     virtual bool Init() = 0;
 
     struct TemporalTrackedModel {
-      boost::shared_ptr<Model> model;
-      boost::shared_ptr<TemporalTracker> temporal_tracker;
+      boost::shared_ptr<Model> model; /**< Model to track. */
+      boost::shared_ptr<TemporalTracker> temporal_tracker; /**< Kalman filter etc for temporal tracking. */
     };
 
-    std::vector<float> starting_pose_HACK;
+    std::vector< std::vector<float> > starting_pose_HACK; /**< WILL BE REMOVED ONCE INITIALIZERS ARE SORTED. */
 
     std::vector<TemporalTrackedModel> tracked_models_; /**< a vector of tracked models. TODO: switch this out for point cloud mesh or some better data structure. */
+    
     std::vector<TemporalTrackedModel>::iterator current_model_; /**< A reference to the currently tracked model. */
     
-    boost::shared_ptr<Localizer> localizer_;
-
-    
+    boost::shared_ptr<Localizer> localizer_; /**< The localizer to use for frame-to-frame tracking. */
+       
     bool tracking_; /**< The variable for toggling tracking on or off.  */
+
     boost::shared_ptr<sv::Frame> frame_; /**< The frame that the tracker is currently working on. */
-    std::string model_parameter_file_;
-
-  private:
-
     
+    std::string model_parameter_file_; /**< The parameter file for the model type this tracker will track. */
+
+    std::string results_dir_; /**< A directory to save the model results. */   
 
   };
-
-  
-  
-
 
 }
 

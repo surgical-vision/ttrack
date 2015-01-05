@@ -10,9 +10,14 @@
 
 using namespace ttrk;
 
-DenavitHartenbergArticulatedModel::DenavitHartenbergArticulatedModel(const std::string &model_parameter_file) { 
-  
+DenavitHartenbergArticulatedModel::DenavitHartenbergArticulatedModel(const std::string &model_parameter_file){
   LoadFromFile(model_parameter_file);
+}
+
+DenavitHartenbergArticulatedModel::DenavitHartenbergArticulatedModel(const std::string &model_parameter_file, const std::string &save_file) : DenavitHartenbergArticulatedModel(model_parameter_file) {
+  
+  ofs_.open(save_file);
+  if (!ofs_.is_open()) throw std::runtime_error("");
 
 }
 

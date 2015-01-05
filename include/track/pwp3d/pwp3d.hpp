@@ -12,6 +12,7 @@
 #include "../../../deps/image/image/image.hpp"
 #include "../pose.hpp"
 #include "../../utils/plotter.hpp"
+#include "../../utils/UI.hpp"
 
 namespace ttrk {
 
@@ -30,6 +31,9 @@ namespace ttrk {
     */
     PWP3D(const int width, const int height);
 
+    /**
+    * Destructor.
+    */
     ~PWP3D();
 
     /**
@@ -64,7 +68,8 @@ namespace ttrk {
     * @param[in] sdf The signed distance function image.
     */
     float GetRegionAgreement(const int r, const int c, const float sdf);
-
+    float GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf);
+    
     /** 
     * Update the jacobian by computing the second part of the derivative and multiplying by the region agreement.
     * @param[in] region_agreement Whether the pixel in question agrees with the foreground probability model.
@@ -78,7 +83,7 @@ namespace ttrk {
     * @param[in] model The currently tracked model. This is used to compute the jacobian.
     * @param[out] jacobian The current jacobian values, these are updated.
     */
-    void UpdateJacobian(const float region_agreement, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_image, const boost::shared_ptr<const Model> model, float *jacobian);
+    void UpdateJacobian(const float region_agreement, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_image, const boost::shared_ptr<const Model> model, cv::Matx<float, 1, 7> &jacobian);
 
     /**
     * Find the closest intersection point for pixels which project 'very close' to the target mesh. This is done by searching the sdf_im for the closest zero value to (r,c).
@@ -108,18 +113,23 @@ namespace ttrk {
     * @return The output value.
     */
     float DeltaFunction(const float x) const {
-      return (1.0f / 2.0f / HEAVYSIDE_WIDTH)*(1.0f + cos(float(M_PI)*x / HEAVYSIDE_WIDTH));
+      return (1.0f / 2.0f / HEAVYSIDE_WIDTH*(1.0f + cos(float(M_PI)*x / heaviside_width_)));
     }
-
+    
     /**
     * Set the reference to the current image. 
     * @param[in] frame The new frame to process.
     */
     void SetFrame(boost::shared_ptr<sv::Frame> frame) { frame_ = frame; }
   
-    virtual bool NeedsNewFrame() const { return curr_step == 0 || curr_step == NUM_STEPS; }
+    /**
+    * 
+    */
+    virtual bool HasConverged() const { return curr_step == NUM_STEPS; }
 
     int GetHeavisideWidth() const { return HEAVYSIDE_WIDTH; }
+
+    float GetErrorValue(const int row_idx, const int col_idx, const float sdf_value, const int target_label) const;
 
   protected:
 
@@ -133,7 +143,12 @@ namespace ttrk {
 
     size_t NUM_STEPS;  /**< Number of step for the optimization. */
     size_t curr_step;
+    
     int HEAVYSIDE_WIDTH;  /**< Width of the heaviside blurring function. */
+
+    UIControllableVariable<int> heaviside_width_;
+
+
 
   };
 

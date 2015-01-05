@@ -27,10 +27,7 @@ namespace ttrk {
     */
     virtual ~Localizer() {}
 
-    virtual bool NeedsNewFrame() const = 0;
-
-    virtual void UpdateErrorAccumulator() = 0;
-
+    virtual bool HasConverged() const = 0;
 
   };
 

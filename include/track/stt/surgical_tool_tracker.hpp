@@ -18,8 +18,9 @@ namespace ttrk{
     /**
     * Construct a trackable tool specifying the width and height of the tool in metric units and a calibration filename for the cameras.
     * @param[in] model_parameter_file The url of the file containing the model to be tracked.
+    * @param[in] results_dir The directory where to save the results from tracked models.
     */
-    SurgicalToolTracker(const std::string &model_parameter_file);
+    SurgicalToolTracker(const std::string &model_parameter_file, const std::string &results_dir);
 
     /**
     * The destructor.
@@ -34,9 +35,6 @@ namespace ttrk{
     virtual bool Init() = 0;
     
   protected:   
-
-    //const float radius_; /**< The tool radius in metric units. Used for constructing new tool models. */
-    //const float height_; /**< The tool tool length in metric units. Used for constructing new tool models. */
 
     void ShiftCenter(cv::Vec2d &center_of_mass,const cv::Vec2d &central_axis, double length) const;
 

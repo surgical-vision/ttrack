@@ -22,9 +22,16 @@ namespace ttrk {
     /**
     * Default constructor.
     * @param[in] model_parameter_file The file containing the locations of meshes and DH parameters for this model.
+    * @param[in] save_file A file to save the model pose when requested.
     */
-    explicit DenavitHartenbergArticulatedModel(const std::string &model_parameter_file);       
+    DenavitHartenbergArticulatedModel(const std::string &model_parameter_file, const std::string &save_file);       
     
+    /**
+    * Constructor for testing etc when there is no save file.
+    * @param[in] model_parameter_file The file containing the locations of meshes and DH parameters for this model.
+    */
+    explicit DenavitHartenbergArticulatedModel(const std::string &model_parameter_file);
+
     /**
     * Specialization of the JSON parsing function to enable the DH parameters to be loaded.
     * @param[in] jt The JSON tree containing the data.

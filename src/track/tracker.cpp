@@ -5,6 +5,10 @@
 
 using namespace ttrk;
 
+Tracker::Tracker(const std::string &model_parameter_file, const std::string &results_dir) : model_parameter_file_(model_parameter_file), results_dir_(results_dir), tracking_(false) {}
+
+Tracker::~Tracker(){}
+
 void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
   
   Run(image, found);
@@ -16,17 +20,17 @@ void Tracker::RunStep(){
   for (current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++){
 
     localizer_->TrackTargetInFrame(current_model_->model, frame_);
-    current_model_->temporal_tracker->UpdatePoseWithMotionModel(current_model_->model);
-
+    
   }
 
 }
+
 
 void Tracker::Run(boost::shared_ptr<sv::Frame> image, const bool found){
 
   SetHandleToFrame(image);
 
-  if (!found){
+  if (!found || image == nullptr){
     //tracking_ = false;
     return;
   }
@@ -49,22 +53,18 @@ void Tracker::Run(boost::shared_ptr<sv::Frame> image, const bool found){
 
   }
 
-  //track each model that we know about
-  for (current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++){
-
-    localizer_->UpdateErrorAccumulator();
-    localizer_->TrackTargetInFrame(current_model_->model, frame_);
-
-  }
+  RunStep();
 
 }
 
 
 bool Tracker::InitTemporalModels(){
 
-  for (auto i = tracked_models_.begin(); i != tracked_models_.end(); i++)
-    i->temporal_tracker->Init();
-
+  for (auto i = tracked_models_.begin(); i != tracked_models_.end(); i++){
+    std::vector<float> pose;
+    i->model->GetPose(pose);
+    i->temporal_tracker->Init(pose);
+  }
   return true;
 
 }
@@ -86,8 +86,3 @@ boost::shared_ptr<sv::Frame> Tracker::GetPtrToFinishedFrame(){
 void Tracker::Tracking(const bool toggle){
   tracking_ = toggle;
 }
-
-Tracker::Tracker(){}
-
-Tracker::~Tracker(){}
-

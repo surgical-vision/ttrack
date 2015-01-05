@@ -14,11 +14,14 @@
 
 using namespace ttrk;
 
-StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, const std::string &calibration_file) :SurgicalToolTracker(model_parameter_file), camera_(new StereoCamera(calibration_file)){
+StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, const std::string &calibration_file, const std::string &results_dir, const LocalizerType &localizer_type) : SurgicalToolTracker(model_parameter_file, results_dir), camera_(new StereoCamera(calibration_file)){
 
-  //localizer_.reset(new StereoPWP3D(camera_));
-  localizer_.reset(new ArticulatedLevelSet(camera_));
-  //localizer_.reset(new ArticulatedLevelSetSolver(camera_));
+  if (localizer_type == LocalizerType::PWP3DLocalizer)
+    localizer_.reset(new StereoPWP3D(camera_));
+  else if (localizer_type == LocalizerType::ArticulatedLevelSetLocalizer)
+   localizer_.reset(new ArticulatedLevelSet(camera_));
+  else
+    throw std::runtime_error("");
 
 }
 
@@ -44,18 +47,15 @@ bool StereoToolTracker::Init() {
     TemporalTrackedModel new_tracker;
     tracked_models_.push_back(new_tracker);
 
-    tracked_models_.back().model.reset(new DenavitHartenbergArticulatedModel(model_parameter_file_));
+    tracked_models_.back().model.reset(new DenavitHartenbergArticulatedModel(model_parameter_file_, results_dir_ + "/tracked_model" + Model::GetCurrentModelCount() + ".txt"));
     tracked_models_.back().temporal_tracker.reset(new KalmanFilterTracker);
 
     Init3DPoseFromMOITensor(*connected_region, tracked_models_.back().model);//,corresponding_connected_region);
-    
-    break;
 
   }
 
   return true;
 }
-
 
 cv::Vec2d StereoToolTracker::FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &connected_region) const {
 
@@ -76,27 +76,19 @@ cv::Vec2d StereoToolTracker::FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &
 
 void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3d &center_of_mass_3d, cv::Vec3d &central_axis_3d, boost::shared_ptr<MonocularCamera> camera, boost::shared_ptr<Model> tm) {
 
-  //cv::Mat rot = (cv::Mat_<double>(3, 3) << -0.629972, -0.211834, -0.747169, -0.49922, 0.847433, 0.180655, -0.594908, 0.486809, -0.639611);
-  //Pose p(sv::Quaternion(rot), ci::Vec3f(-16.3274f, 8.70154f, 85.1892f));
-
-  //cv::Mat rot = (cv::Mat_<double>(3, 3) << -0.713394, 0.534849, -0.452776, 
-  //                                         -0.659542, -0.730794, 0.175912,
-  //                                         -0.2368, 0.424119, 0.874099);
-  //Pose p(sv::Quaternion(rot), ci::Vec3f(6.83781f, -5.04529, 58.9899));// +ci::Vec3f(0.25, 0.57, 1.42));
-  //tm->SetBasePose(p);
-  //tm->UpdatePose(std::vector<float>({ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.754216f + 0.25f, 0.548696f + 0.15f, 0.0f, 0.523177f/2 - 0.225f, -0.523177f/2 + 0.225f}));
-
-  std::vector<float> start_poses = GetStartPose();
+  std::stringstream s(Model::GetCurrentModelCount());
+  int i; s >> i;
+  std::vector<float> start_poses = GetStartPose(i-1);
 
   cv::Mat rots = (cv::Mat_<double>(3, 3) <<
     start_poses[0], start_poses[1], start_poses[2],
     start_poses[4], start_poses[5], start_poses[6],
     start_poses[8], start_poses[9], start_poses[10]);
 
-  //Pose ret(sv::Quaternion(rots), ci::Vec3f(start_poses[3] + 0.25f, start_poses[7] + 0.25f, start_poses[11] - 0.25f));
   Pose ret(sv::Quaternion(rots), ci::Vec3f(start_poses[3], start_poses[7], start_poses[11]));
   tm->SetBasePose(ret);
-  tm->UpdatePose(std::vector<float>({ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, start_poses[12], start_poses[13], start_poses[15], -start_poses[15] }));
+
+  tm->UpdatePose(std::vector<float>({ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, start_poses[12], start_poses[13], start_poses[14]/2, start_poses[14]/2 }));
   
   /*cv::Vec2d center_of_mass = FindCenterOfMassIn2D(connected_region);
 

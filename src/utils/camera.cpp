@@ -64,6 +64,14 @@ cv::Mat MonocularCamera::CameraMatrix() const {
 
 }
 
+ci::Vec2i MonocularCamera::ProjectPointToPixel(const ci::Vec3f &point) const{
+
+  cv::Point3f cv_point(point[0], point[1], point[2]);
+  cv::Vec2i p = ProjectPointToPixel(cv_point);
+  return ci::Vec2i(p[0], p[1]);
+
+}
+
 cv::Point2i MonocularCamera::ProjectPointToPixel(const cv::Point3d &point) const {
   cv::Point2d pt = ProjectPoint(point);
   return cv::Point2i(ttrk::round(pt.x),ttrk::round(pt.y));
@@ -131,8 +139,6 @@ void MonocularCamera::SetupLight() {
   
 }
 
-
-
 void MonocularCamera::SetupCameraForDrawing() const {
 
   //glViewport(0, 0, image_width_, image_height_);
@@ -195,7 +201,6 @@ cv::Point2d MonocularCamera::ProjectPoint(const cv::Point3d &point) const {
   return projected_point.front();
 
 }
-
 
 StereoCamera::StereoCamera(const std::string &calibration_filename) {
 
@@ -276,5 +281,21 @@ cv::Vec3d StereoCamera::cvExtrinsicTranslation() const{
 
   cv::Vec3d v(right_eye_->camera_center_[0], right_eye_->camera_center_[1], right_eye_->camera_center_[2]);
   return v;
+
+}
+
+ci::Vec3f StereoCamera::TransformPointFromRightToLeft(const ci::Vec3f &point_in_right_eye_coords) const {
+
+  ci::Matrix44f tr = right_eye_->rotation_.inverted();
+  tr.setTranslate(-right_eye_->camera_center_);
+  return tr.inverted() * point_in_right_eye_coords;
+
+}
+
+ci::Vec3f StereoCamera::TransformPointFromLeftToRight(const ci::Vec3f &point_in_left_eye_coords) const {
+
+  ci::Matrix44f tr = right_eye_->rotation_;
+  tr.setTranslate(right_eye_->camera_center_);
+  return tr.inverted() * point_in_left_eye_coords;
 
 }

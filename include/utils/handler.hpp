@@ -43,6 +43,7 @@ namespace ttrk{
   public:
 
     VideoHandler(const std::string &input_url, const std::string &output_url);
+    ~VideoHandler();
     virtual cv::Mat GetNewFrame();
     virtual void SaveFrame(const cv::Mat image);
     virtual void SetInputFileName(const std::string &url);
@@ -63,6 +64,7 @@ namespace ttrk{
 
     StereoVideoHandler(const std::string &left_input_url,const std::string &right_input_url,const std::string &output_url);
     virtual cv::Mat GetNewFrame();
+    ~StereoVideoHandler();
 
   private:
 

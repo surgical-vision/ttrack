@@ -64,6 +64,8 @@ namespace ttrk{
     */
     cv::Point2i ProjectPointToPixel(const cv::Point3d &point) const;
 
+    ci::Vec2i ProjectPointToPixel(const ci::Vec3f &point) const;
+
     /**
     * Unproject a pixel to a ray into space.
     * @param[in] point The pixel coordinates.
@@ -120,7 +122,7 @@ namespace ttrk{
   public:
 
     /**
-    * Construct a stereo camera with a calibration filename. This file should be in opencv xml format specifying the internal and external camera parameters. 
+    * Construct a stereo camera with a calibration filename. This file should be in opencv xml format specifying the internal and external camera parameters.
     * @param[in] calibration_filename The url of the calibration file.
     */
     explicit StereoCamera(const std::string &calibration_filename);
@@ -130,13 +132,18 @@ namespace ttrk{
     * @return The left eye of the camera.
     */
     boost::shared_ptr<MonocularCamera> left_eye() const { return left_eye_; }
-    
+
     /**
     * Get a reference to the right eye of the camera.
     * @return The right eye of the camera.
     */
     boost::shared_ptr<MonocularCamera> right_eye() const { return right_eye_; }
 
+    ci::Vec3f  TransformPointFromRightToLeft(const cv::Vec3f &point_in_right_eye_coords) const { return TransformPointFromRightToLeft(ci::Vec3f(point_in_right_eye_coords[0], point_in_right_eye_coords[1], point_in_right_eye_coords[2])); }
+    ci::Vec3f TransformPointFromRightToLeft(const ci::Vec3f &point_in_right_eye_coords) const;
+
+    ci::Vec3f  TransformPointFromLeftToRight(const cv::Vec3f &point_in_left_eye_coords) const { return TransformPointFromLeftToRight(ci::Vec3f(point_in_left_eye_coords[0], point_in_left_eye_coords[1], point_in_left_eye_coords[2])); }
+    ci::Vec3f TransformPointFromLeftToRight(const ci::Vec3f &point_in_left_eye_coords) const;
 
     inline ci::Matrix33f ciExtrinsicRotation() const { return right_eye_->rotation_; }
     inline ci::Vec3f ciExtrinsicTranslation() const { return right_eye_->camera_center_; }

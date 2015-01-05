@@ -7,12 +7,10 @@
 
 using namespace ttrk;
 
-SurgicalToolTracker::SurgicalToolTracker(const std::string &model_parameter_file){
+SurgicalToolTracker::SurgicalToolTracker(const std::string &model_parameter_file, const std::string &results_dir) : Tracker(model_parameter_file, results_dir) {
 
   if(!boost::filesystem::exists(boost::filesystem::path(model_parameter_file)))
     throw(std::runtime_error("Error, unable to read model file: " + model_parameter_file + "\n"));
-
-  model_parameter_file_ = model_parameter_file;
 
 }
 

@@ -31,7 +31,7 @@ PWP3D::PWP3D(const int width, const int height) : heaviside_width_(3,1,3,40,"Hea
 
   HEAVYSIDE_WIDTH = 3;
 
-  NUM_STEPS = 125;
+  NUM_STEPS = 75;// 125;
 
   curr_step = NUM_STEPS; //so we report converged and ask for a new frame at the start
 

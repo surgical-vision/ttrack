@@ -21,6 +21,18 @@ namespace ttrk {
 
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
     
+    virtual float GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf, size_t fg_size, size_t bg_size){
+
+      const float pixel_probability = classification_image.at<float>(r, c);
+      const float heaviside_value = HeavisideFunction(sdf);
+
+      const float Pf = pixel_probability / (fg_size * pixel_probability + bg_size * (1 - pixel_probability));
+      const float Pb = (1 - pixel_probability) / (fg_size * pixel_probability + bg_size * (1 - pixel_probability));
+
+      return (Pf - Pb) / ((heaviside_value*Pf) + ((1 - heaviside_value)*Pb));
+
+    }
+
     virtual bool HasConverged() const { 
       if (PWP3D::HasConverged()) {
         auto *th = const_cast<StereoPWP3D *>(this);

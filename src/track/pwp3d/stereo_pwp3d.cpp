@@ -23,11 +23,18 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
   auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
 
   float left_error = 0.0f, right_error = 0.0f;
-  ComputeJacobiansForEye(stereo_frame->GetLeftClassificationMap(), current_model, stereo_camera_->left_eye(), jacobian, hessian_approx, left_error);
-  //ComputeJacobiansForEye(stereo_frame->GetRightClassificationMap(), current_model, stereo_camera_->right_eye(), jacobian, hessian_approx, right_error);
+  //ComputeJacobiansForEye(stereo_frame->GetLeftClassificationMap(), current_model, stereo_camera_->left_eye(), jacobian, hessian_approx, left_error);
+  ComputeJacobiansForEye(stereo_frame->GetRightClassificationMap(), current_model, stereo_camera_->right_eye(), jacobian, hessian_approx, right_error);
 
   UpdateWithErrorValue(left_error + right_error);
   errors_.push_back(left_error + right_error);
+
+  ci::app::console() << "Jacobian before  = [";
+  for (size_t v = 0; v < 7; ++v){
+    ci::app::console() << jacobian(v) << ",";
+  }
+  ci::app::console() << "]" << std::endl;
+
 
   jacobian = hessian_approx.inv() * jacobian;
   
@@ -44,13 +51,13 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
   //jacobian(5) *= (0.0013 / r_scale);
   //jacobian(6) *= (0.0013 / r_scale);
   
-  //jacobian(0) *= (0.0015f * 0.002);
-  //jacobian(1) *= (0.0015f * 0.002);
-  //jacobian(2) *= (0.0015f * 0.005);
-  //jacobian(3) *= (0.003f * 0.000001);
-  //jacobian(4) *= (0.003f * 0.000001);
-  //jacobian(5) *= (0.003f * 0.000001);
-  //jacobian(6) *= (0.003f * 0.000001);
+  //jacobian(0) *= 0;// (0.0025f);
+  //jacobian(1) = -0;//(0.0025f);
+  //jacobian(2) *= 0;//(0.0025f);
+  //jacobian(3) *= 0;//(0.000006f);
+  //jacobian(4) *= 0;//(0.000006f);
+  //jacobian(5) *= 0;//(0.000006f);
+  //jacobian(6) *= 0;//(0.000006f);
 
 
   std::vector<float> jacs(7, 0);
@@ -120,11 +127,34 @@ void StereoPWP3D::UpdateJacobianRightEye(const float region_agreement, const flo
 
 }
 
+void ComputeAreas(cv::Mat &sdf, size_t &fg_area, size_t &bg_area, size_t &contour_area){
+
+  fg_area = bg_area = 0;
+
+  for (auto r = 0; r < sdf.rows; ++r){
+    for (auto c = 0; c < sdf.rows; ++c){
+
+      if (sdf.at<float>(r, c) <= float(3) - 1e-1 && sdf.at<float>(r, c) >= -float(3) + 1e-1)
+        contour_area++;
+
+      fg_area += sdf.at<float>(r, c);
+      bg_area += (1.0f - sdf.at<float>(r, c));
+    }
+  }
+
+}
+
 void StereoPWP3D::ComputeJacobiansForEye(const cv::Mat &classification_image, boost::shared_ptr<Model> current_model, boost::shared_ptr<MonocularCamera> camera, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx, float &error){
 
   cv::Mat sdf_image, front_intersection_image, back_intersection_image;
 
   ProcessSDFAndIntersectionImage(current_model, camera, sdf_image, front_intersection_image, back_intersection_image);
+
+  size_t fg_area, bg_area = 0;
+  size_t contour_area = 0;
+  ComputeAreas(sdf_image, fg_area, bg_area, contour_area);
+
+  ci::app::console() << "Contour area = " << contour_area << std::endl;
 
   float *sdf_im_data = (float *)sdf_image.data;
   float *front_intersection_data = (float *)front_intersection_image.data;
@@ -141,7 +171,7 @@ void StereoPWP3D::ComputeJacobiansForEye(const cv::Mat &classification_image, bo
         error += GetErrorValue(r, c, sdf_im_data[i], 1.0f);
 
         //P_f - P_b / (H * P_f + (1 - H) * P_b)
-        const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i]);
+        const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i], fg_area, bg_area);
 
         int shifted_i = i;
 
@@ -171,8 +201,7 @@ void StereoPWP3D::ComputeJacobiansForEye(const cv::Mat &classification_image, bo
 
         jacobian += jacs.t();
         hessian_approx += (jacs.t() * jacs);
-
-
+        
       }
     }
   }

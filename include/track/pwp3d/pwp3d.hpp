@@ -67,7 +67,7 @@ namespace ttrk {
     * @param[in] c The column index of the current pixel.
     * @param[in] sdf The signed distance function image.
     */
-    float GetRegionAgreement(const int r, const int c, const float sdf);
+    virtual float GetRegionAgreement(const int r, const int c, const float sdf);
     float GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf);
     
     /** 

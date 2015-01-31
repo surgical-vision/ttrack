@@ -1,4 +1,4 @@
-#include "../../headers/detect/supportvectormachine.hpp"
+#include "../../include/ttrack/detect/supportvectormachine.hpp"
 
 using namespace ttrk;
 

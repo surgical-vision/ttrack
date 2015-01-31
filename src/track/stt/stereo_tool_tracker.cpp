@@ -1,19 +1,31 @@
-#include "../../../headers/track/stt/stereo_tool_tracker.hpp"
-#include "../../../headers/track/pwp3d/stereo_pwp3d.hpp"
 #include <fstream>
 #include <stdlib.h>
 #include <time.h> 
-#include "../../../headers/utils/quasi_dense_stereo.hpp"
-#include "../../../headers/utils/helpers.hpp"
 #include <stdint.h>
+#include <boost/timer.hpp>
+#include <cinder/app/App.h>
+#include <CinderOpenCV.h>
+
+#include "../../../include/ttrack/track/stt/stereo_tool_tracker.hpp"
+#include "../../../include/ttrack/track/pwp3d/stereo_pwp3d.hpp"
+#include "../../../include/ttrack/track/pwp3d/comp_ls.hpp"
+#include "../../../include/ttrack/track/articulated/articulated_level_set.hpp"
+
+#include "../../../include/ttrack/track/model/articulated_model.hpp"
+#include "../../../include/ttrack/utils/helpers.hpp"
+
 using namespace ttrk;
 
-#define STEREO_SGBM
-#undef QUASI
+StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, const std::string &calibration_file, const std::string &results_dir, const LocalizerType &localizer_type) : SurgicalToolTracker(model_parameter_file, results_dir), camera_(new StereoCamera(calibration_file)){
 
-StereoToolTracker::StereoToolTracker(const float radius, const float height, const std::string &config_dir, const std::string &calibration_file):SurgicalToolTracker(radius,height),camera_( new StereoCamera(config_dir + "/" + calibration_file)){
-
-  localizer_.reset(new StereoPWP3D(config_dir,camera_));
+  if (localizer_type == LocalizerType::PWP3DLocalizer)
+    localizer_.reset(new StereoPWP3D(camera_));
+  else if (localizer_type == LocalizerType::ArticulatedLevelSetLocalizer)
+   localizer_.reset(new ArticulatedLevelSet(camera_));
+  else if (localizer_type == LocalizerType::ComponentLS)
+    localizer_.reset(new ComponentLevelSet(camera_));
+  else
+    throw std::runtime_error("");	
 
 }
 
@@ -25,309 +37,291 @@ bool StereoToolTracker::Init() {
 
   //find the connected regions in the image
   std::vector<std::vector<cv::Vec2i> >connected_regions;
-  if(!FindConnectedRegions(stereo_frame_->GetClassificationMapROI(),connected_regions)) {
-#ifdef SAVEDEBUG_1
-    std::cerr << "NO connected regions in the classification image found!\n";
-    cv::imwrite("./debug/bad_classification.png",frame_->GetImageROI());
-    cv::imwrite("./debug/bad_image.png",frame_->GetClassificationMapROI());
-#endif
-    return false;
+
+  cv::Mat classification_image_multiclass = stereo_frame_->GetClassificationMapROI();
+  cv::Mat classification_image(classification_image_multiclass.size(), CV_32FC1);
+
+  float *data = (float *)classification_image_multiclass.data;
+
+  for (int r = 0; r < classification_image_multiclass.rows; ++r){
+    for (int c = 0; c < classification_image_multiclass.cols; ++c){
+      
+      float max_prob = std::numeric_limits<float>::min();
+      const int idx = r * classification_image_multiclass.cols + c;
+      
+      for (int i = 1; i < stereo_frame_->NumClassificationChannels(); ++i){
+        
+        float pval = data[idx * stereo_frame_->NumClassificationChannels() + i];
+        
+        if (pval > max_prob){
+
+          classification_image.at<float>(r, c) = pval;
+
+        }
+      
+      }
+    }
   }
 
-  //for each connected region find the corresponding connected region in the other frame
-  for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
-
-    KalmanTracker new_tracker(boost::shared_ptr<Model> (new MISTool(radius_,height_) ));
-    tracked_models_.push_back( new_tracker ); 
-
-    Init3DPoseFromMOITensor(*connected_region, tracked_models_.back());//,corresponding_connected_region);
   
+
+  if (!FindConnectedRegions(stereo_frame_->GetClassificationMapROI(), connected_regions)) {
+
+    ci::app::console() << "Failing to find connected regions!" << std::endl;
+    return false;
+
+  }
+  
+  //for each connected region find the corresponding connected region in the other frame
+  for (auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
+
+    TemporalTrackedModel new_tracker;
+    tracked_models_.push_back(new_tracker);
+
+    tracked_models_.back().model.reset(new DenavitHartenbergArticulatedModel(model_parameter_file_, results_dir_ + "/tracked_model" + Model::GetCurrentModelCount() + ".txt"));
+    tracked_models_.back().temporal_tracker.reset(new KalmanFilterTracker);
+
+    Init3DPoseFromMOITensor(*connected_region, tracked_models_.back().model);//,corresponding_connected_region);
+
   }
 
   return true;
 }
 
+cv::Vec2d StereoToolTracker::FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &connected_region) const {
 
-void StereoToolTracker::ProcessFrame(){
+  cv::Vec2d com(0, 0);
 
-  //CreateDisparityImage();
-  //camera_->ReprojectTo3D(StereoFrame()->GetDisparityMap(),StereoFrame()->GetPointCloud(),std::vector<cv::Vec2i>());
-
-}
-
-cv::Vec2f StereoToolTracker::FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &connected_region) const {
-
-  cv::Vec2f com(0,0);
-
-  for(auto pt = connected_region.begin() ; pt != connected_region.end() ; pt++ ){
+  for (auto pt = connected_region.begin(); pt != connected_region.end(); pt++){
 
     com += *pt;
 
   }
-  
-  com[0] = com[0]/connected_region.size();
-  com[1] = com[1]/connected_region.size();
+
+  com[0] = com[0] / connected_region.size();
+  com[1] = com[1] / connected_region.size();
 
   return com;
 
 }
 
-void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3f &center_of_mass_3d, cv::Vec3f &central_axis_3d, boost::shared_ptr<MonocularCamera> camera, KalmanTracker &tm) {
+void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3d &center_of_mass_3d, cv::Vec3d &central_axis_3d, boost::shared_ptr<MonocularCamera> camera, boost::shared_ptr<Model> tm) {
 
-  cv::Vec2f center_of_mass = FindCenterOfMassIn2D(connected_region);
+  std::stringstream s(Model::GetCurrentModelCount());
+  int i; s >> i;
+  std::vector<float> start_poses = GetStartPose(i-1);
+
+  //cv::Mat rots = (cv::Mat_<float>(3, 3) <<
+  //  start_poses[0], start_poses[1], start_poses[2],
+  // start_poses[4], start_poses[5], start_poses[6],
+  //  start_poses[8], start_poses[9], start_poses[10]);
+
+  ci::Matrix33f r(start_poses[0], start_poses[4], start_poses[8], start_poses[1], start_poses[5], start_poses[9], start_poses[2], start_poses[6], start_poses[10]);
+    
+  Pose ret(ci::Quatf(r), ci::Vec3f(start_poses[3], start_poses[7], start_poses[11]));
+  tm->SetBasePose(ret);
+  tm->UpdatePose(std::vector<float>({ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, start_poses[12], start_poses[13], start_poses[14]/2, start_poses[14]/2 }));
   
-  cv::Mat moi_tensor = cv::Mat::zeros(2,2,CV_32FC1);
-  float *data = (float *)moi_tensor.data;
-  
-  /* moi [ xx , xy ; yx , yy ] */
-  for(int r=0;r<2;r++){
-    for(int c=0;c<2;c++){
-      if(r==1 && c== 0) {
-	      //symmetric...
-	      data[r*2 + c] = data[c*2 + r];
-	      continue;
-      }
-      
-      for(size_t i=0;i<connected_region.size();i++){
+  /*
+	cv::Vec2d center_of_mass = FindCenterOfMassIn2D(connected_region);
 
-        cv::Vec2f p = cv::Vec2f(connected_region[i]) - center_of_mass;
-        int p_i = p[0]*(1-r) + p[1]*r;
-        int p_j = p[0]*(1-c) + p[1]*c;
+	cv::Mat moi_tensor = cv::Mat::zeros(2, 2, CV_32FC1);
+	float *data = (float *)moi_tensor.data;
 
-        data[r*2 + c] +=  (( (p[0]*p[0]+p[1]*p[1])*(r==c)) 
-          - (p_i*p_j) );
-      }
-    }
-  }
+	// moi [ xx , xy ; yx , yy ]
+	for (int r = 0; r < 2; r++){
+		for (int c = 0; c < 2; c++){
+			if (r == 1 && c == 0) {
+				//symmetric...
+				data[r * 2 + c] = data[c * 2 + r];
+				continue;
+			}
 
-  cv::Mat eigenvals = cv::Mat::zeros(2,1,CV_32FC1);
-  cv::Mat eigenvecs = cv::Mat::zeros(2,2,CV_32FC1);
-  cv::eigen(moi_tensor,eigenvals,eigenvecs);
+			for (size_t i = 0; i < connected_region.size(); i++){
 
-  float *e = (float *)eigenvecs.data;
-  float *v = (float *)eigenvals.data;
-  
-  cv::Vec2f central_axis(e[2],e[3]);
-  cv::Vec2f horizontal_axis(e[0],e[1]);
+				cv::Vec2d p = cv::Vec2d(connected_region[i]) - center_of_mass;
+				int p_i = p[0] * (1 - r) + p[1] * r;
+				int p_j = p[0] * (1 - c) + p[1] * c;
 
-  CheckCentralAxisDirection(center_of_mass,central_axis);
-  
-  cv::Vec2f normed_central_axis,normed_horizontal_axis;
-  cv::normalize(central_axis,normed_central_axis);
-  cv::normalize(horizontal_axis,normed_horizontal_axis);
-  central_axis = normed_central_axis;
-  horizontal_axis = normed_horizontal_axis; 
+				data[r * 2 + c] += (((p[0] * p[0] + p[1] * p[1])*(r == c))
+					- (p_i*p_j));
+			}
+		}
+	}
 
-  if(v[1] < v[0]){
-    float tmp = v[1];
-    v[1] = v[0];
-    v[0] = tmp;
-  }
+	cv::Mat eigenvals = cv::Mat::zeros(2, 1, CV_32FC1);
+	cv::Mat eigenvecs = cv::Mat::zeros(2, 2, CV_32FC1);
+	cv::eigen(moi_tensor, eigenvals, eigenvecs);
 
-  const float radius = sqrt( (2.0*std::abs(v[0]))/connected_region.size() ); 
-  const float length = sqrt( ((12.0*std::abs(v[1])) / connected_region.size())  - 3*radius*radius);
-  
-  cv::Vec2f point = cv::Vec2f(center_of_mass) + 0.5*length*central_axis;
-  cv::Vec2f top = cv::Vec2f(center_of_mass) + (radius)*horizontal_axis;
-  cv::Vec2f bottom = cv::Vec2f(center_of_mass) - (radius)*horizontal_axis;
+	float *e = (float *)eigenvecs.data;
+	float *v = (float *)eigenvals.data;
+
+	cv::Vec2d central_axis(e[2], e[3]);
+	cv::Vec2d horizontal_axis(e[0], e[1]);
+
+	CheckCentralAxisDirection(center_of_mass, central_axis);
+
+	cv::Vec2d normed_central_axis, normed_horizontal_axis;
+	cv::normalize(central_axis, normed_central_axis);
+	cv::normalize(horizontal_axis, normed_horizontal_axis);
+	central_axis = normed_central_axis;
+	horizontal_axis = normed_horizontal_axis;
+
+	if (v[1] < v[0]){
+		float tmp = v[1];
+		v[1] = v[0];
+		v[0] = tmp;
+	}
+
+	const float radius = sqrt((2.0*std::abs(v[0])) / connected_region.size());
+	const float length = sqrt(((12.0*std::abs(v[1])) / connected_region.size()) - 3 * radius*radius);
+
+	cv::Vec2d point = cv::Vec2d(center_of_mass) + 0.5*length*central_axis;
+	cv::Vec2d top = cv::Vec2d(center_of_mass) + (radius)*horizontal_axis;
+	cv::Vec2d bottom = cv::Vec2d(center_of_mass) - (radius)*horizontal_axis;
 
 
-#ifdef CHECK_INIT
-  cv::Mat debug_frame = frame_->GetImageROI().clone();
-  cv::circle(debug_frame,cv::Point(point),4,cv::Scalar(255,0,0),2);
-  cv::circle(debug_frame,cv::Point(center_of_mass),4,cv::Scalar(0,0,255),2);
-  cv::line(debug_frame,cv::Point(point),cv::Point(center_of_mass),cv::Scalar(255,255,0),2);
-  cv::imwrite("debug/init_axis.png",debug_frame);
-#endif
+	cv::Point3d top_unp = camera->UnProjectPoint(cv::Point2i(top));
+	cv::Point3d bottom_unp = camera->UnProjectPoint(cv::Point2i(bottom));
+	cv::Point3d center_unp = camera->UnProjectPoint(cv::Point2i(center_of_mass));
+	cv::Vec3d diff = cv::Vec3d(top_unp) - cv::Vec3d(bottom_unp);
+	float abs_diff = sqrt(static_cast<double>(diff[0] * diff[0] + diff[1] * diff[1] + diff[2] * diff[2]));
 
-  cv::Point3f top_unp = camera->UnProjectPoint(cv::Point2i(top));
-  cv::Point3f bottom_unp = camera->UnProjectPoint(cv::Point2i(bottom));
-  cv::Point3f center_unp = camera->UnProjectPoint(cv::Point2i(center_of_mass));
-  cv::Vec3f diff = cv::Vec3f(top_unp) - cv::Vec3f(bottom_unp);
-  float abs_diff = sqrt( static_cast<double>( diff[0]*diff[0] + diff[1]*diff[1] + diff[2]*diff[2] ) );
 
-  
-  float z = (2*tracked_models_.back().PtrToModel()->Radius())/abs_diff;
-  
-  cv::Vec3f unp_point = cv::Vec3f(camera->UnProjectPoint(cv::Point2f(point)));
-  center_of_mass_3d = cv::Vec3f(camera->UnProjectPoint(cv::Point2f(center_of_mass)));
-  
-  central_axis_3d = (z*unp_point) - (z*center_of_mass_3d);
-  cv::Vec3f ca3d_norm; cv::normalize(central_axis_3d,ca3d_norm);
-  central_axis_3d = ca3d_norm;
-  central_axis_3d[2] = 0.45;
-  center_of_mass_3d = center_of_mass_3d * z;
+	float z = 80;// (2*tracked_models_.back().PtrToModel()->Radius())/abs_diff;
+	//throw(std::runtime_error("Error, do this!\n"));
 
-  tm.SetPose(center_of_mass_3d,central_axis_3d);
+	cv::Vec3d unp_point = cv::Vec3d(camera->UnProjectPoint(cv::Point2d(point)));
+	center_of_mass_3d = cv::Vec3d(camera->UnProjectPoint(cv::Point2d(center_of_mass)));
 
-  boost::shared_ptr<MISTool> tool = boost::dynamic_pointer_cast<MISTool>(tm.PtrToModel());
+	central_axis_3d = (z*unp_point) - (z*center_of_mass_3d);
+	cv::Vec3d ca3d_norm; cv::normalize(central_axis_3d, ca3d_norm);
+	central_axis_3d = ca3d_norm;
+	central_axis_3d[2] = 0.45;
+	center_of_mass_3d = t * z;
 
-  cv::Point2i tip = camera->ProjectPointToPixel( tm.CurrentPose().Transform(tool->GetTrackedPoint()));
+	tm.SetPose(center_of_mass_3d,central_axis_3d);
 
-  while( !cv::Rect(0,0,frame_->GetImageROI().cols,frame_->GetImageROI().rows).contains(tip) ){
-    z *= 1.1;
-    center_of_mass_3d = cv::Vec3f(camera->UnProjectPoint(cv::Point2f(center_of_mass))) * z;
-    tm.SetPose(center_of_mass_3d,central_axis_3d);
-    tip = camera->ProjectPointToPixel( tm.CurrentPose().Transform(tool->GetTrackedPoint()));
-  }
+	boost::shared_ptr<MISTool> tool = boost::dynamic_pointer_cast<MISTool>(tm.PtrToModel());
 
-  ShiftCenter(center_of_mass,central_axis, 2 * l2_distance(cv::Vec2d(tip.x,tip.y),cv::Vec2d(center_of_mass))); // 2 * to turn center to tip distnace to whole distance
-  center_of_mass_3d = cv::Vec3f(camera->UnProjectPoint(cv::Point2f(center_of_mass)));
-  center_of_mass_3d = center_of_mass_3d * z;
-  tm.SetPose(center_of_mass_3d,central_axis_3d);
- 
-  tm.SetPose(Pose(cv::Vec3f(-10,0,75),sv::Quaternion(boost::math::quaternion<double>(0.4,1,0,0))));
+	cv::Point2i tip = camera->ProjectPointToPixel(tm.CurrentPose().Transform(tool->GetTrackedPoint()));
+
+	while (!cv::Rect(0, 0, frame_->GetImageROI().cols, frame_->GetImageROI().rows).contains(tip)){
+		z *= 1.1;
+		center_of_mass_3d = cv::Vec3d(camera->UnProjectPoint(cv::Point2d(center_of_mass))) * z;
+		tm.SetPose(center_of_mass_3d, central_axis_3d);
+		tip = camera->ProjectPointToPixel(tm.CurrentPose().Transform(tool->GetTrackedPoint()));
+	}
+
+	ShiftCenter(center_of_mass, central_axis, 2 * l2_distance(cv::Vec2d(tip.x, tip.y), cv::Vec2d(center_of_mass))); // 2 * to turn center to tip distnace to whole distance
+	center_of_mass_3d = cv::Vec3d(camera->UnProjectPoint(cv::Point2d(center_of_mass)));
+	center_of_mass_3d = center_of_mass_3d * z;
+  */
 
 }
 
-void StereoToolTracker::ShiftToTip(const cv::Vec3f &central_axis, cv::Vec3f &center_of_mass) {//, KalmanTracker &tracked_model){
+void StereoToolTracker::ShiftToTip(const cv::Vec3d &central_axis, cv::Vec3d &center_of_mass) {//, KalmanTracker &tracked_model){
 
-  KalmanTracker t(boost::shared_ptr<Model>(new MISTool(radius_,height_) ));
-  const float length_of_central_axis = sqrt( central_axis[0]*central_axis[0] + central_axis[1]*central_axis[1] + central_axis[2]*central_axis[2] );
-  boost::shared_ptr<MISTool> mis_tool = boost::static_pointer_cast<MISTool>(t.PtrToModel());
+	//throw(std::runtime_error("Error, not implemented!\n"));
+	/*
+	KalmanTracker t(boost::shared_ptr<Model>(new MISTool(radius_,height_) ));
+	const float length_of_central_axis = sqrt( central_axis[0]*central_axis[0] + central_axis[1]*central_axis[1] + central_axis[2]*central_axis[2] );
+	boost::shared_ptr<MISTool> mis_tool = boost::static_pointer_cast<MISTool>(t.PtrToModel());
 
-  const cv::Vec3f original_center_of_mass = center_of_mass;
+	const cv::Vec3d original_center_of_mass = center_of_mass;
 
-  float length;
-  do{
-    
-    t.SetPose(center_of_mass,central_axis);
-    cv::Vec3f tip_of_instrument = t.CurrentPose().Transform( cv::Vec3f(-this->height_/2 + this->height_*mis_tool->HeightFraction(),0,0) );
+	float length;
+	do{
 
-    cv::Vec3f com_to_tip = tip_of_instrument - original_center_of_mass;
-    length = sqrt( com_to_tip[0]*com_to_tip[0] + com_to_tip[1]*com_to_tip[1] + com_to_tip[2]*com_to_tip[2] );
+	t.SetPose(center_of_mass,central_axis);
+  cv::Vec3d tip_of_instrument = t.CurrentPose().Transform( cv::Vec3d(-this->height_/2 + this->height_*mis_tool->HeightFraction(),0,0) );
 
-    center_of_mass = center_of_mass - 0.05*central_axis;
+  cv::Vec3d com_to_tip = tip_of_instrument - original_center_of_mass;
+  length = sqrt( com_to_tip[0]*com_to_tip[0] + com_to_tip[1]*com_to_tip[1] + com_to_tip[2]*com_to_tip[2] );
+
+  center_of_mass = center_of_mass - 0.05*central_axis;
 
   }while (length > length_of_central_axis);
-
+  */
 }
 
 
-void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, KalmanTracker &tracked_model) {
+void StereoToolTracker::Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, boost::shared_ptr<Model> tracked_model) {
 
-  cv::Vec3f left_center_of_mass,left_central_axis,right_center_of_mass,right_central_axis;
-  InitIn2D(region,left_center_of_mass,left_central_axis,camera_->rectified_left_eye(),tracked_model);
-  
+  cv::Vec3d left_center_of_mass, left_central_axis, right_center_of_mass, right_central_axis;
+  InitIn2D(region, left_center_of_mass, left_central_axis, camera_->left_eye(), tracked_model);
+
 }
 
-cv::Vec3f StereoToolTracker::FindPrincipalAxisFromMOITensor(const cv::Vec3f center_of_mass_, const cv::Mat &point_cloud) const {
+cv::Vec3d StereoToolTracker::FindPrincipalAxisFromMOITensor(const cv::Vec3d center_of_mass_, const cv::Mat &point_cloud) const {
 
-  cv::Matx<float,1,3> principal_axis(0,0,0);
-  cv::Matx<float,1,3> center_of_mass(center_of_mass_[0],center_of_mass_[1],center_of_mass_[2]);
-  cv::Matx<float,3,3> moi(3,3,CV_32FC1);
-  cv::Matx<float,3,3> E = cv::Matx<float,3,3>::eye();
-  
+  cv::Matx<float, 1, 3> principal_axis(0, 0, 0);
+  cv::Matx<float, 1, 3> center_of_mass((float)center_of_mass_[0], (float)center_of_mass_[1], (float)center_of_mass_[2]);
+  cv::Matx<float, 3, 3> moi(3, 3, CV_32FC1);
+  cv::Matx<float, 3, 3> E = cv::Matx<float, 3, 3>::eye();
+
   const int rows = point_cloud.rows;
   const int cols = point_cloud.cols;
   const int chans = point_cloud.channels();
   assert(point_cloud.type() == CV_32FC3);
 
-  for(int r=0;r<rows;r++){
-    for(int c=0;c<cols;c++){
-      
-      if( point_cloud.at<cv::Vec3f>(r,c) == cv::Vec3f(0,0,0) || point_cloud.at<cv::Vec3f>(r,c)[2] < 0 ) continue;
-      const cv::Matx<float,1,3> point = point_cloud.at<cv::Matx<float,1,3> >(r,c) - center_of_mass;
-      moi = moi + ((point*point.t())(0,0)*E) - (point.t()*point);
-      
+  for (int r = 0; r < rows; r++){
+    for (int c = 0; c < cols; c++){
+
+      if (point_cloud.at<cv::Vec3d>(r, c) == cv::Vec3d(0, 0, 0) || point_cloud.at<cv::Vec3d>(r, c)[2] < 0) continue;
+      const cv::Matx<float, 1, 3> point = point_cloud.at<cv::Matx<float, 1, 3> >(r, c) - center_of_mass;
+      moi = moi + ((point*point.t())(0, 0)*E) - (point.t()*point);
+
     }
   }
 
-  cv::Mat eigenvectors,eigenvalues;
-  cv::eigen(moi,true,eigenvalues,eigenvectors);
-  
+  cv::Mat eigenvectors, eigenvalues;
+  cv::eigen(moi, eigenvalues, eigenvectors);
+
   int row = 1;
-  return cv::Vec3f(eigenvectors.at<float>(row,0),eigenvectors.at<float>(row,1),eigenvectors.at<float>(row,2));
+  return cv::Vec3d(eigenvectors.at<float>(row, 0), eigenvectors.at<float>(row, 1), eigenvectors.at<float>(row, 2));
 
 }
 
-cv::Vec3f StereoToolTracker::FindCenterOfMass(const cv::Mat &point_cloud) const {
+cv::Vec3d StereoToolTracker::FindCenterOfMass(const cv::Mat &point_cloud) const {
 
   const int rows = point_cloud.rows;
   const int cols = point_cloud.cols;
   const int chans = point_cloud.channels();
   assert(point_cloud.type() == CV_32FC3);
-  
-  cv::Vec3f com(0,0,0);
+
+  cv::Vec3d com(0, 0, 0);
   size_t num_pts = 0;
 
-  std::vector<cv::Vec3f> pts;
+  std::vector<cv::Vec3d> pts;
 
-  for(int r=0;r<rows;r++){
-    for(int c=0;c<cols;c++){
+  for (int r = 0; r < rows; r++){
+    for (int c = 0; c < cols; c++){
 
-      const cv::Vec3f &pt = point_cloud.at<cv::Vec3f>(r,c);
-      
-      if( pt != cv::Vec3f(0,0,0) ){
+      const cv::Vec3d &pt = point_cloud.at<cv::Vec3d>(r, c);
+
+      if (pt != cv::Vec3d(0, 0, 0)){
         com += pt;
         num_pts++;
       }
-      
+
 
     }
   }
-  
-  com[0] = com[0]/num_pts;
-  com[1] = com[1]/num_pts;
-  com[2] = com[2]/num_pts;
+
+  com[0] = com[0] / num_pts;
+  com[1] = com[1] / num_pts;
+  com[2] = com[2] / num_pts;
 
   return com;
 
 }
 
-void StereoToolTracker::DrawModelOnFrame(const KalmanTracker &tracked_model, cv::Mat canvas) const {
+void StereoToolTracker::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){
 
-  std::vector<SimplePoint<> > transformed_points = tracked_model.ModelPointsAtCurrentPose();
-  for(auto point = transformed_points.begin(); point != transformed_points.end(); point++ ){
-
-    cv::Vec2f projected = camera_->rectified_left_eye()->ProjectPoint(point->vertex_);
-
-    for(auto neighbour_index = point->neighbours_.begin(); neighbour_index != point->neighbours_.end(); neighbour_index++){
-      
-      const SimplePoint<> &neighbour = transformed_points[*neighbour_index];
-      cv::Vec2f projected_neighbour = camera_->rectified_left_eye()->ProjectPoint( neighbour.vertex_ );
-
-      if(canvas.channels() == 3)
-        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),cv::Scalar(255,123,25),1,CV_AA);
-      if(canvas.channels() == 1)
-        line(canvas,cv::Point2f(projected),cv::Point2f(projected_neighbour),(unsigned char)255,1,CV_AA);
-    }
-  }
+  //first set the handle using the superclass method
+  Tracker::SetHandleToFrame(image);
+  boost::shared_ptr<sv::StereoFrame> stereo_image = boost::dynamic_pointer_cast<sv::StereoFrame>(image);
 
 }
 
-
- void StereoToolTracker::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){
-
-   //first set the handle using the superclass method
-   Tracker::SetHandleToFrame(image);
-   boost::shared_ptr<sv::StereoFrame> stereo_image = boost::dynamic_pointer_cast<sv::StereoFrame>(image);
-   
-#if defined(SAVEDEBUG_2) 
-  cv::imwrite("debug/distorted_left.png",stereo_image->GetLeftImage());
-  cv::imwrite("debug/distorted_right.png",stereo_image->GetRightImage());
-#endif
-
-  
-
-   //then rectify the camera and remap the images
-   /*
-   if( !camera_->IsRectified() ) camera_->Rectify(stereo_image->GetLeftImage().size());
-
-   camera_->RemapLeftFrame(stereo_image->GetLeftImage());
-   camera_->RemapRightFrame(stereo_image->GetRightImage());
-   camera_->RemapLeftFrame(stereo_image->GetLeftClassificationMap());
-   camera_->RemapRightFrame(stereo_image->GetRightClassificationMap());
-   */
-   
-
-   
-#if defined(SAVEDEBUG_2) 
-   //check this modifies correctly
-   cv::imwrite("debug/left.png",stereo_image->GetLeftImage());
-   cv::imwrite("debug/right.png",stereo_image->GetRightImage());
-   cv::imwrite("debug/classified.png",stereo_image->GetLeftClassificationMap());
-#endif
-   
- }
- 

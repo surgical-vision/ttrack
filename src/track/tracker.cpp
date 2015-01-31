@@ -1,66 +1,90 @@
-#include "../../headers/track/tracker.hpp"
-#include "../../headers/utils/helpers.hpp"
-#include "../../headers/utils/camera.hpp"
+#include <cinder/app/App.h>
+
+#include "../include/ttrack/headers.hpp"
+#include "../../include/ttrack/track/tracker.hpp"
+#include "../../include/ttrack/utils/helpers.hpp"
+#include "../../include/ttrack/utils/camera.hpp"
 
 using namespace ttrk;
 
+Tracker::Tracker(const std::string &model_parameter_file, const std::string &results_dir) : model_parameter_file_(model_parameter_file), results_dir_(results_dir), tracking_(false) {}
+
+Tracker::~Tracker(){}
+
 void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
   
+  Run(image, found);
+
+}
+
+void Tracker::RunStep(){
+
+  for (current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++){
+
+    localizer_->TrackTargetInFrame(current_model_->model, frame_);
+    ci::app::console() << "Pose after GD step = " << current_model_->model->GetBasePose() << std::endl;
+    
+  }
+
+}
+
+
+void Tracker::Run(boost::shared_ptr<sv::Frame> image, const bool found){
 
   SetHandleToFrame(image);
 
-  if(!found){
+  if (!found || image == nullptr){
     //tracking_ = false;
     return;
   }
 
-  if(!tracking_){
+  if (!tracking_){
 
     //need this as init constructs new tracking models
     tracked_models_.clear(); //get rid of anything we were tracking before
 
-    if(!Init() || !InitKalmanFilter()) //do any custom initalisation in the virtual Init function
+    if (!Init() || !InitTemporalModels()) //do any custom initalisation in the virtual Init function
       return;
     tracking_ = true;
 
-  }
-  
-  //track each model that we know about
-  for(current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++ ){
-    
-    try{
-      Pose pose_measurement = localizer_->TrackTargetInFrame(*current_model_,frame_);
-      current_model_->UpdatePose(pose_measurement);
-    }catch(std::exception &e){
-      std::cerr << "ERROR IN THIS UPDATE!\n";
-      std::cerr << e.what() << "\n";
-      continue;
+    for (current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++){
+      ci::app::console() << "Pose after init = " << current_model_->model->GetBasePose() << std::endl;
     }
 
-    
+  }
+  else{
 
-    //if( localizer_->ModelInFrame( *current_model_, frame_->GetClassificationMapROI() ))
-    DrawModelOnFrame(*current_model_,frame_->GetImage());
-    //else
-      //tracking_ = false;
-  
+    for (current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++){
+      //current_model_->temporal_tracker->UpdatePoseWithMotionModel(current_model_->model);
+      ci::app::console() << "Pose after temporal update = " << current_model_->model->GetBasePose() << std::endl;
+    }
+
   }
 
+  RunStep();
 
-}  
+}
 
 
-bool Tracker::InitKalmanFilter(){
+bool Tracker::InitTemporalModels(){
 
-  for(auto i = tracked_models_.begin(); i!=tracked_models_.end();i++)
-    i->Init();
-      
+  for (auto i = tracked_models_.begin(); i != tracked_models_.end(); i++){
+    std::vector<float> pose;
+    i->model->GetPose(pose);
+    i->temporal_tracker->Init(pose);
+  }
   return true;
 
 }
 
+void Tracker::GetTrackedModels(std::vector <boost::shared_ptr<Model> > &models){
+
+  std::transform(tracked_models_.begin(), tracked_models_.end(), std::back_inserter(models), [](TemporalTrackedModel &m) { return m.model; });
+
+}
+
 void Tracker::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){
-   frame_ = image;
+  frame_ = image;
 }
 
 boost::shared_ptr<sv::Frame> Tracker::GetPtrToFinishedFrame(){
@@ -70,8 +94,3 @@ boost::shared_ptr<sv::Frame> Tracker::GetPtrToFinishedFrame(){
 void Tracker::Tracking(const bool toggle){
   tracking_ = toggle;
 }
-
-Tracker::Tracker(){}
-
-Tracker::~Tracker(){}
-  

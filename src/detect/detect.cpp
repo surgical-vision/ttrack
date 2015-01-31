@@ -1,84 +1,98 @@
-#include "../../headers/detect/detect.hpp"
-#include "../../headers/utils/helpers.hpp"
-#include "../../headers/detect/randomforest.hpp"
-#include "../../headers/detect/supportvectormachine.hpp"
 #include <boost/filesystem.hpp>
 #include <iostream>
 #include <stdlib.h>
 #include <time.h>
 
+#include "../../include/ttrack/detect/detect.hpp"
+#include "../../include/ttrack/utils/helpers.hpp"
+#include "../../include/ttrack/detect/randomforest.hpp"
+#include "../../include/ttrack/detect/supportvectormachine.hpp"
+#include "../../include/ttrack/detect/histogram.hpp"
+#include "../../include/ttrack/detect/multiclass_randomforest.hpp"
+
 using namespace ttrk;
 
-Detect::Detect(boost::shared_ptr<std::string> root_dir, ClassifierType classifier_type):root_dir_(root_dir){
+Detect::Detect(const std::string &classifier_path, ClassifierType classifier_type){
 
   //create a new classifier
   SetupClassifier(classifier_type);
 
-  LoadClassifier();
+  LoadClassifier(classifier_path);
 
   //currently i don't know a good way of checking if the opencv ML classifier has loaded
-  if(!Loaded()) throw(std::runtime_error("Error, could not construct classifier.\n"));
+  //if(!Loaded()) throw(std::runtime_error("Error, could not construct classifier.\n"));
 
 }
 
 Detect::~Detect(){}
 
 void Detect::operator()(boost::shared_ptr<sv::Frame> image){
-  
+
   SetHandleToFrame(image);
   ClassifyFrame();
-  
+
 }
 
+void Detect::Run(boost::shared_ptr<sv::Frame> image){
+
+    SetHandleToFrame(image);
+    ClassifyFrame();
+
+}
+
+
 void Detect::ClassifyFrame(){
-  
-  assert(Loaded());
-  assert(frame_->GetImageROI().type() == CV_8UC3);
-  
-  /*** DEBUG SAVE ****/
 
-  //boost::filesystem::
+  found_ = classifier_->ClassifyFrame(frame_);
 
-  /*******************/
+  //if (frame_ == nullptr) return;
 
-  cv::Mat whole_frame = frame_->GetImage();
-  NDImage nd_image(whole_frame);
-  const int rows = whole_frame.rows;
-  const int cols = whole_frame.cols;
+  //assert(Loaded());
+  //assert(frame_->GetImageROI().type() == CV_8UC3);
 
-  static size_t frame_count = 0;
+  //cv::Mat whole_frame = frame_->GetImage();
+  //NDImage nd_image(whole_frame);
+  //const int rows = whole_frame.rows;
+  //const int cols = whole_frame.cols;
 
-  size_t pixel_count = 0;
+  //static size_t frame_count = 0;
+
+  //size_t pixel_count = 0;
 
   //unsigned char *frame_data = (unsigned char *)frame_->PtrToClassificationMap()->data;
-  unsigned char *frame_data = (unsigned char *)frame_->GetClassificationMap().data;
-  for(int r=0;r<rows;r++){
-    for(int c=0;c<cols;c++){
+  //float *frame_data = (float *)frame_->GetClassificationMap().data;
+  //for(int r=0;r<rows;r++){
+  //  for(int c=0;c<cols;c++){
 
-      const int index = r*cols + c;
-      
-      cv::Mat pix = nd_image.GetPixelData(r,c);
-      
-      //const unsigned char prediction = (unsigned char)255*classifier_->PredictClass(pix);
-      const unsigned char prediction = (unsigned char)255.0*classifier_->PredictProb(pix,1);
-      
-      frame_data[index] = prediction;
+  //    const int index = r*cols + c;
 
-      pixel_count += prediction > 0;
+  //    cv::Mat pix = nd_image.GetPixelData(r,c);
 
-    }
-  }
+  //    float hue = pix.at<float>(0);
+  //    float sat = pix.at<float>(1);
+  //    float o1 = pix.at<float>(2);
+  //    float o2 = pix.at<float>(3);
 
-  if(pixel_count > (0.02*rows*cols)) found_ = true;
-  else found_ = false;
+  //    const unsigned char prediction = (unsigned char)255*classifier_->PredictClass(pix);
+  //    const float prediction = (const float)classifier_->PredictProb(pix, 1); //need to be between 0 - 255 for later processing stage
+
+  //    frame_data[index] = prediction;
+
+  //    pixel_count += prediction > 0;
+
+  //  }
+  //}
+
+  //if(pixel_count > (0.02*rows*cols)) found_ = true;
+  //else found_ = false;
 
 }
 
 void Detect::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){
 
   //if the image is null then we must be at the last frame
-  if(image == 0x0) { 
-    found_ = false; 
+  if(image == 0x0) {
+    found_ = false;
     return;
   }
 
@@ -88,14 +102,14 @@ void Detect::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){
 
 }
 
-void Detect::ResetHandleToFrame(){  
+void Detect::ResetHandleToFrame(){
 
   frame_.reset();
 
 }
 
 void Detect::SetupClassifier(const ClassifierType type){
- 
+
   classifier_.reset();
 
   //construct the classifier from scratch
@@ -103,11 +117,13 @@ void Detect::SetupClassifier(const ClassifierType type){
 
     switch(type){
 
+      case MCRF: classifier_ = boost::static_pointer_cast<BaseClassifier, MultiClassRandomForest>(boost::shared_ptr<MultiClassRandomForest>(new MultiClassRandomForest(3))); break;
       case RF: classifier_ = boost::static_pointer_cast<BaseClassifier, RandomForest>(boost::shared_ptr<RandomForest>(new RandomForest)); break;
-      case SVM: classifier_ = boost::static_pointer_cast<BaseClassifier, SupportVectorMachine>(boost::shared_ptr<SupportVectorMachine>(new SupportVectorMachine )); break;    
+      case SVM: classifier_ = boost::static_pointer_cast<BaseClassifier, SupportVectorMachine>(boost::shared_ptr<SupportVectorMachine>(new SupportVectorMachine )); break;
       case NBAYES: throw("NBAYES not supported"); //NOT YET IMPLEMENTED!
+      case HISTOGRAM: classifier_ = boost::static_pointer_cast<BaseClassifier, Histogram>(boost::shared_ptr<Histogram>(new Histogram)); break;
       default: classifier_ = boost::static_pointer_cast<BaseClassifier, RandomForest>(boost::shared_ptr<RandomForest>(new RandomForest)); break;
-      
+
     }
 
   }catch(std::bad_alloc &e){
@@ -118,10 +134,9 @@ void Detect::SetupClassifier(const ClassifierType type){
 #if defined (DEBUG) || defined(_DEBUG_)
   assert(classifier_.get()); //check it actually points to something now
 #endif
-} 
+}
 
-void Detect::LoadClassifier(){
-  const std::string filepath = classifier_dir() + "/" + classifier_->NameAsString() + ".xml";
-  if(!boost::filesystem::exists(filepath)) throw(std::runtime_error("Error, the classifier at: " + filepath + " does not exist. Exiting...\n"));
-  classifier_->Load(filepath);
+void Detect::LoadClassifier(const std::string &classifier_path){
+  if(!boost::filesystem::exists(classifier_path)) throw(std::runtime_error("Error, the classifier at: " + classifier_path + " does not exist. Exiting...\n"));
+  classifier_->Load(classifier_path);
 }

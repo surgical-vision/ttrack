@@ -1,27 +1,37 @@
-#include "../../../headers/track/pwp3d/register_points.hpp"
+
 #include <opencv2/contrib/contrib.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/ml/ml.hpp>
 #include <opencv2/nonfree/features2d.hpp>
 #include <opencv2/legacy/legacy.hpp>
 #include <numeric>
-#include "../../../headers/utils/helpers.hpp"
-#include "../../../headers/track/pwp3d/pwp3d.hpp"
+
+#include "../../../include/ttrack/track/pwp3d/register_points.hpp"
+#include "../../../include/ttrack/utils/helpers.hpp"
+#include "../../../include/ttrack/track/pwp3d/pwp3d.hpp"
+#include "../../../include/ttrack/constants.hpp"
 
 using namespace ttrk;
 
-void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &pnp, const Pose &pose, cv::Mat &save_image){
+PointRegistration::PointRegistration(boost::shared_ptr<MonocularCamera> camera)  : camera_(camera) {
 
+  
+
+}
+
+
+void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, boost::shared_ptr<Model> model, const Pose &pose, std::vector<MatchedPair> &pnp){
+
+  cv::Mat save_image(cv::Size(frame->cols(), frame->rows()), CV_8UC3);
   pnp.clear();
-
-  //load the ground truth points from the file
-  std::vector<Descriptor> ground_truth_descriptors;
-  ReadKeypoints(config_dir_ + "/Keypoints.xml",ground_truth_descriptors,NUM_DESCRIPTOR); 
-  //transform them to the current coordinate system
-  for(auto kp = ground_truth_descriptors.begin(); kp != ground_truth_descriptors.end(); kp++){
-
-    kp->coordinate = pose.Transform(kp->coordinate);
-
+  
+  //transform the points from the base reference frame into the reference frame of the current camera
+  std::vector<Descriptor> current_frame;
+  for (auto i = 0; i < model_points.size(); ++i){
+    current_frame.push_back(Descriptor());
+    current_frame[i].coordinate = pose.TransformPoint(model_points[i].coordinate);
+    current_frame[i].descriptor = model_points[i].descriptor;
+    current_frame[i].TEST_DISTANCE = model_points[i].TEST_DISTANCE;
   }
 
   double average_distance = 0.0;
@@ -31,18 +41,17 @@ void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::F
   GetDescriptors(frame->GetImageROI(),frame_descriptors);
 
   //for each keypoint
-  for(auto kp=ground_truth_descriptors.begin(); kp != ground_truth_descriptors.end(); kp++){
+  for (auto kp = current_frame.begin(); kp != current_frame.end(); kp++){
 
     std::vector<std::pair<Descriptor, double> > matching_queue;
     //project them to the image plane
-    cv::Point2f projected_pt = camera_->ProjectPointToPixel(cv::Point3f(kp->coordinate));
+    cv::Point2d projected_pt = camera_->ProjectPointToPixel(cv::Point3d(kp->coordinate));
     cv::circle(save_image,projected_pt,2,cv::Scalar(255,0,0),1); //point on object
-    //cv::circle(frame->GetImageROI(),cv::Point(projected_pt),3,cv::Scalar(255,12,52),2);
 
     //iterate over the found features
     for(auto frame_descriptor = frame_descriptors.begin(); frame_descriptor != frame_descriptors.end(); frame_descriptor++){
 
-      cv::Point2f pt_to_match(frame_descriptor->coordinate[0],frame_descriptor->coordinate[1]);
+      cv::Point2d pt_to_match(frame_descriptor->coordinate[0],frame_descriptor->coordinate[1]);
       cv::circle(save_image,pt_to_match,2,cv::Scalar(0,0,255),1); //point on object
 
       //if the euclidean distance is < threshold then add this point to matching vector
@@ -66,6 +75,7 @@ void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::F
     {
       return before.second < after.second;
     });
+    
     //run l2 norm based matching between learned point and points in this vector. is the matching score is good enough, add to the matches
 
     double size_of_best = matching_queue.front().second;//l2_norm( matching_queue.front().first.descriptor, cv::Mat::zeros(matching_queue.front().first.descriptor.size(),matching_queue.front().first.descriptor.type()));  
@@ -74,13 +84,9 @@ void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::F
       
       average_distance += matching_queue.front().first.TEST_DISTANCE;
 
-      cv::Point2f pt_to_match(matching_queue.front().first.coordinate[0],matching_queue.front().first.coordinate[1]);
-
-#ifdef SAVEDEBUG_2
-      cv::circle(save_image,projected_pt,2,cv::Scalar(255,0,0),1); //point on object
-      cv::circle(save_image,pt_to_match,2,cv::Scalar(0,0,255),1); //target in image
-      cv::line(save_image,pt_to_match,projected_pt,cv::Scalar(244,0,10),1);
-#endif
+      cv::Point2d pt_to_match(matching_queue.front().first.coordinate[0],matching_queue.front().first.coordinate[1]);
+      //cv::circle(frame->GetImageROI(), cv::Point2i(pt_to_match.x,pt_to_match.y), 3, cv::Scalar(1, 255, 2), 2);
+      //cv::circle(frame->GetImageROI(), cv::Point(projected_pt), 3, cv::Scalar(255, 12, 52), 2);
 
       MatchedPair mp;
       mp.learned_point = kp->coordinate;
@@ -90,71 +96,78 @@ void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::F
     }
 
   }
-
-#ifdef SAVEDEBUG_2
-  if(pnp.size())
-    std::cout << "The average distance is " << average_distance/pnp.size() << "\n";
-#endif
-
+    
 }
 
-cv::Mat PointRegistration::GetPointDerivative(const cv::Point3f &world, cv::Point2f &image, const Pose &pose) const{
 
-  const int NUM_DERIVS = 7;
-  cv::Mat ret(NUM_DERIVS,1,CV_64FC1);
-  cv::Vec3f front_intersection(world);
+std::vector<float> PointRegistration::GetPointDerivative(const cv::Point3d &world, cv::Point2f &image, const Pose &pose) const{
+    
+  cv::Vec3d front_intersection(world);
 
   if(front_intersection[2] == 0.0) front_intersection[2] = 0.001;
   double z_inv_sq = 1.0/front_intersection[2];
 
-  cv::Point2f projected_world = camera_->ProjectPointToPixel(world);
+  cv::Point2d projected_world = camera_->ProjectPointToPixel(world);
 
-  for(int dof=0;dof<NUM_DERIVS;dof++){
+  ci::Vec3f world_n(world.x, world.y, world.z);
+  std::vector<ci::Vec3f> jacs = pose.ComputeJacobian(world_n);
 
-    const cv::Vec3f dof_derivatives = pose.GetDOFDerivatives(dof,cv::Vec3f(world));
+  std::vector<float> jacobians;
+
+  const double x_error = image.x - projected_world.x;
+  const double y_error = image.y - projected_world.y;
+
+  for(int dof=0;dof<pose.GetNumDofs();dof++){
+
+    const ci::Vec3f ddi = jacs[dof];
+    const cv::Vec3f dof_derivatives(ddi[0], ddi[1], ddi[2]);
 
     const double dXdL = camera_->Fx() * (z_inv_sq*((front_intersection[2]*dof_derivatives[0]) - (front_intersection[0]*dof_derivatives[2])));
     const double dYdL = camera_->Fy() * (z_inv_sq*((front_intersection[2]*dof_derivatives[1]) - (front_intersection[1]*dof_derivatives[2])));
-    ret.at<double>(dof,0) = -2*((image.x - projected_world.x)*dXdL + (image.y - projected_world.y)*dYdL);
+    //jacobians.push_back(2*((image.x - projected_world.x)*dXdL + (image.y - projected_world.y)*dYdL)); 
+    const double inv_sqrt = 1.0 / (2.0 * std::sqrt(x_error * x_error + y_error * y_error));
+    const double dPxdL = -2 * x_error * dXdL;
+    const double dPydL = -2 * y_error * dYdL;
+    jacobians.push_back(inv_sqrt * (dPxdL + dPydL));
 
   }
 
-  return ret;
-
-
+  return jacobians;
 
 }
 
 
 void PointRegistration::ReadKeypoints(const std::string filename, std::vector<Descriptor> &descriptors, int count){
 
-  cv::FileStorage ifs(filename, cv::FileStorage::READ);
-  if(!ifs.isOpened()) {
-    throw(std::runtime_error("ERror could not open file!\n"));
-  }
+  //cv::FileStorage ifs(filename, cv::FileStorage::READ);
+  //if(!ifs.isOpened()) {
+  //  throw(std::runtime_error("ERror could not open file!\n"));
+  //}
 
-  for(int n=0; n<count;n++){
+  //for(int n=0; n<count;n++){
 
-    try{
-      Descriptor ds;
-      ds.read(ifs,n);
-      descriptors.push_back(ds);
-    }catch(...){
-      std::cerr << "Error, not enough KeyPoints\n";
-      break;
-    }
+  //  try{
+  //    Descriptor ds;
+  //    ds.read(ifs,n);
+  //    descriptors.push_back(ds);
+  //  }catch(...){
+  //    std::cerr << "Error, not enough KeyPoints\n";
+  //    break;
+  //  }
 
-  }
+  //}
 
-  if (descriptors.size() < 4) {
-    throw(std::runtime_error("Error, could not find more than 3 good descriptors in file!\n"));
-  }
+  //if (descriptors.size() < 4) {
+  //  throw(std::runtime_error("Error, could not find more than 3 good descriptors in file!\n"));
+  //}
 }
 
 
 
 void PointRegistration::FindPointCorrespondences(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &matched_pair){
-
+  
+  throw(std::runtime_error("Error, not implemented!\n"));
+  /*
   std::vector<Descriptor> ds;
   ReadKeypoints(config_dir_ + "/Keypoints.xml",ds,NUM_DESCRIPTOR); 
   cv::Mat descriptors;
@@ -175,89 +188,12 @@ void PointRegistration::FindPointCorrespondences(boost::shared_ptr<sv::Frame> fr
     matched_pair.push_back( mp );
 
   }
-
-
-}
-
-
-
-Pose PointRegistration::ApplyPointBasedRegistration(boost::shared_ptr<sv::Frame> frame, KalmanTracker &current_model ){
-
-
-  std::vector<Descriptor> ds;
-  ReadKeypoints(config_dir_ + "/Keypoints.xml",ds,NUM_DESCRIPTOR); 
-  cv::Mat descriptors;
-  for(auto d = ds.begin(); d != ds.end() ; d++){
-    descriptors.push_back(d->descriptor);
-  }
-
-  std::vector<Descriptor> left_ds;
-  boost::shared_ptr<sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
-  GetDescriptors( stereo_frame->GetLeftImage() , left_ds);
-  std::vector<DescriptorMatches> matches;
-  MatchDescriptorsToModel(ds,left_ds,matches);
-
-  //std::vector<Descriptor> right_ds;
-  //GetDescriptors(stereo_frame->RightMat(), right_ds);
-
-  //FindCorrespondingMatches(right_ds,matches);
-
-  //std::vector<MatchedPair> matched_pair;
-  //TriangulateMatches(matches,matched_pair,stereo_camera_,stereo_frame->LeftMat(),stereo_frame->RightMat());
-
-  cv::Mat rotation,translation;
-  //FindTransformation(matched_pair,rotation,translation);
-  FindTransformationToImagePlane(matches,rotation,translation,camera_,current_model.CurrentPose());
-  cv::Mat rotation_matrix;
-  cv::Rodrigues(rotation,rotation_matrix);
-  Pose pose(translation,sv::Quaternion(rotation_matrix));
-  //current_model.CurrentPose() = pose;
-  return pose;
-}
-
-void PointRegistration::FindTransformationToImagePlane(std::vector<DescriptorMatches> matches,cv::Mat &rotation, cv::Mat &translation,  boost::shared_ptr<MonocularCamera> cam, Pose current_pose){
-
-  std::vector<cv::Point3f> world_points;
-  std::vector<cv::Point2f> image_points;
-
-  for(auto pair = matches.begin();pair!=matches.end();pair++){
-
-    world_points.push_back(cv::Point3f(pair->gt.coordinate));
-    image_points.push_back(cv::Point2f(pair->left_image.coordinate[0],pair->left_image.coordinate[1]));
-
-  }
-  cv::Rodrigues(current_pose.rotation_.AngleAxis(),rotation);
-  translation = cv::Mat(1,3,CV_64FC1);
-  for(int i=0;i<3;i++) translation.at<double>(i) = current_pose.translation_[i];
-  cv::solvePnPRansac(world_points,image_points,cam->intrinsic_params(),cam->distortion_params(),rotation,translation,true);
-}
-
-void PointRegistration::FindTransformation(std::vector<MatchedPair> &matched_pair, cv::Mat &rotation, cv::Mat &translation){
-
-  //cv::Mat src_points,dst_points;
-  std::vector<cv::Point3f> src_points,dst_points;
-  for (auto pair = matched_pair.begin(); pair != matched_pair.end(); pair++ ){
-
-    //cv::Mat pt1(1,3,CV_32FC1),pt2(1,3,CV_32FC1);
-    cv::Point3f pt1(pair->learned_point),pt2(pair->image_point);
-    //for(int i=0;i<3;i++){
-    //  pt1.at<float>(i) = pair->learned_point[i];
-    //  pt2.at<float>(i) = pair->image_point[i];
-    //}
-
-    src_points.push_back(pt1);
-    dst_points.push_back(pt2);
-
-  }
-
-  std::vector<unsigned char> inliers;
-  cv::Mat affine(3,4,CV_32FC1);//,inl iers(src_points.size(),src_points.type());
-  cv::estimateAffine3D(src_points,dst_points,affine,inliers);
-  std::cerr << affine << "\n";
-
-  //}
+  */
 
 }
+
+
+
 
 void PointRegistration::GetDescriptors(const cv::Mat &frame, std::vector<Descriptor> &ds){
   cv::Mat image_gray;
@@ -271,7 +207,7 @@ void PointRegistration::GetDescriptors(const cv::Mat &frame, std::vector<Descrip
   int i = 0;
   for (auto kp = keypoints.begin(); kp != keypoints.end() ; kp++){
     Descriptor d;
-    d.coordinate = cv::Vec3f(kp->pt.x,kp->pt.y,0);
+    d.coordinate = cv::Vec3d(kp->pt.x,kp->pt.y,0);
     d.descriptor = descriptors_image.row(i);
     i++;
     ds.push_back(d);
@@ -299,7 +235,7 @@ void PointRegistration::MatchDescriptorsToModel(std::vector<Descriptor> &model_d
 
     d.gt = model_descriptors[match->queryIdx];
     d.left_image = image_descriptors[match->trainIdx];
-    d.right_image.coordinate = cv::Vec3f(0,0,0);
+    d.right_image.coordinate = cv::Vec3d(0,0,0);
     found_matches.push_back(d);
 
     //cv::Point2i original(cam->rectified_left_eye()->ProjectPointToPixel(pose.Transform(d.gt.coordinate)));
@@ -342,52 +278,8 @@ void PointRegistration::FindCorrespondingMatches(std::vector<Descriptor> &right_
 
 }
 
-void PointRegistration::TriangulateMatches(std::vector<DescriptorMatches> &matches, std::vector<MatchedPair> &matched_pair, boost::shared_ptr<StereoCamera> cam, cv::Mat &left, cv::Mat &right){
 
-  cv::Mat both(left.rows+right.rows,left.cols,CV_8UC3);
-  cv::Mat lsec = both.colRange(0,left.cols).rowRange(0,left.rows);
-  left.copyTo(lsec);
-  //cv::Mat rsec = both.colRange(left.cols,left.cols*2).rowRange(0,left.rows);//(cv::Rect(left.cols,0,left.cols,left.rows));
-  cv::Mat rsec = both.colRange(0,left.cols).rowRange(left.rows,2*left.rows);//(cv::Rect(left.cols,0,left.cols,left.rows));
-  right.copyTo(rsec);
-
-  for(auto match = matches.begin(); match != matches.end() ; match++ ){
-
-    if(match->right_image.coordinate == cv::Vec3f(0,0,0)) 
-      continue;
-
-    cv::Vec3f &l = match->left_image.coordinate;
-    cv::Vec3f &r = match->right_image.coordinate;
-
-    cv::Point2i l_pt(l[0],l[1]);
-    cv::Point2i r_pt(r[0],r[1]);
-    cv::Point2i stereo(r_pt.x,r_pt.y+left.rows);
-
-
-    cv::Vec3f triangulated_point = cam->ReprojectPointTo3D(l_pt,r_pt);  
-    //std::cerr << cv::Point3f(triangulated_point) << "\n";// << " -- > " << cv::Point3f(match->gt.coordinate) << "\n";
-    if(triangulated_point == cv::Vec3f(0,0,0)) continue;
-    //if(triangulated_point == cv::Vec3f(0,0,0) ) continue;
-    //cv::circle(left, l_pt, 5, cv::Scalar(0,20,245));
-    //cv::circle(right, r_pt, 5, cv::Scalar(2,20,245));
-    cv::line(both,l_pt,stereo,cv::Scalar(24,245,24),5);
-
-
-    MatchedPair mp;
-    mp.image_point = triangulated_point;
-    mp.learned_point = match->gt.coordinate;
-    matched_pair.push_back(mp);
-
-  }
-
-
-  //cv::imwrite("LeftMatch.png",left);
-  //cv::imwrite("RIghtMatch.png",right);
-  //cv::imwrite("BOTH.png",both);
-
-}
-
-void PointRegistration::ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame> frame, KalmanTracker current_model , const cv::Mat &shape_image ){
+void PointRegistration::ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame> frame, cv::Mat point_map, const Pose &pose ){
 
   //make a descriptor finder
   cv::Mat image_gray;
@@ -404,7 +296,7 @@ void PointRegistration::ComputeDescriptorsForPointTracking(boost::shared_ptr<sv:
   for( auto kp = keypoints.begin(); kp != keypoints.end(); kp++ ){
 
     cv::Point2f &pt = kp->pt;
-    if(shape_image.at<float>(pt.y,pt.x) > 0){
+    if(point_map.at<cv::Vec3f>(pt.y,pt.x) != cv::Vec3f((float)GL_FAR, (float)GL_FAR, (float)GL_FAR)){
       tool_keypoints.push_back(*kp);
     }
 
@@ -415,7 +307,6 @@ void PointRegistration::ComputeDescriptorsForPointTracking(boost::shared_ptr<sv:
       return a.response > b.response;
   });
 
-  cv::FileStorage fs(config_dir_ + "/KeyPointsNEW.xml",cv::FileStorage::WRITE);
   //collect descriptors in the image plane
   //cv::SurfDescriptorExtractor extractor;
   cv::SiftDescriptorExtractor extractor;
@@ -423,22 +314,25 @@ void PointRegistration::ComputeDescriptorsForPointTracking(boost::shared_ptr<sv:
   extractor.compute(image_gray,tool_keypoints,descriptors);
   int i=0;
 
-  for( auto kp = tool_keypoints.begin(); kp != tool_keypoints.end() && kp != tool_keypoints.begin()+NUM_DESCRIPTOR; kp++ ){
+  if (tool_keypoints.size() > NUM_DESCRIPTOR){
+    tool_keypoints = std::vector<cv::KeyPoint>(tool_keypoints.begin(), tool_keypoints.begin() + NUM_DESCRIPTOR);
+  }
+
+  for( auto kp = tool_keypoints.begin(); kp != tool_keypoints.end(); kp++ ){
 
     cv::Point2f &pt = kp->pt;
-    cv::Vec3f ray = camera_->UnProjectPoint( cv::Point2i(int(pt.x),int(pt.y)) );
-    cv::Vec3f front;
-    current_model.PtrToModel()->GetIntersection(ray, front, cv::Vec3f() ,current_model.CurrentPose());
+    cv::Vec3f front = point_map.at<cv::Vec3f>(cv::Point2i(int(pt.x), int(pt.y)));
 
-    cv::Vec3f front_on_model = current_model.CurrentPose().InverseTransform(front);
+    cv::Vec3f front_on_model = pose.InverseTransformPoint(front);
 
-    Descriptor ds;
-    ds.coordinate = front_on_model;
-    ds.descriptor = descriptors.row(i);
-    ds.write(fs,i);     
+    Descriptor d;
+    d.coordinate = front_on_model;
+    d.descriptor = descriptors.row(i);
     i++;
+    model_points.push_back(d);
 
   }
+  
 
 }
 

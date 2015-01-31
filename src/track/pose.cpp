@@ -4,8 +4,9 @@ using namespace ttrk;
 
 Pose::operator ci::Matrix44f() const {
 
-  cv::Vec3f euler = rotation_.EulerAngles();
-  ci::Matrix44f ret = ci::Matrix44f::createRotation(ci::Vec3d(euler[0],euler[1],euler[2]));
+  //cv::Vec3f euler = rotation_.EulerAngles();
+  //ci::Matrix44f ret = ci::Matrix44f::createRotation(ci::Vec3d(euler[0],euler[1],euler[2]));
+  ci::Matrix44f ret = rotation_;
     
   ////using http://answers.unity3d.com/storage/temp/12048-lefthandedtorighthanded.pdf
   //  
@@ -18,9 +19,40 @@ Pose::operator ci::Matrix44f() const {
   ////transform translation
   //const ci::Vec3f translation_transformed = S_z.subMatrix33(0,0) * ci::Vec3f(translation_[0], translation_[1], translation_[2]);
   
-  for (int i = 0; i<3; i++) ret.at(i, 3) = translation_[i];
+  for (int i = 0; i < 3; i++){
+    ret.at(i, 3) = translation_[i];
+  }
     
   return ret;
+
+}
+
+cv::Vec3f Pose::TransformPoint(const cv::Vec3f &point_in_world_coordinates) const{
+
+  const ci::Vec3f vec(point_in_world_coordinates[0], point_in_world_coordinates[1], point_in_world_coordinates[2]);
+  const ci::Vec3f ret = TransformPoint(vec);
+
+  return cv::Vec3f(ret[0], ret[1], ret[2]);
+
+}
+
+cv::Vec3f Pose::InverseTransformPoint(const cv::Vec3f &point_in_model_coordinates) const {
+
+  ci::Matrix44f pose_inv = *this;
+  pose_inv.invert();
+
+  const ci::Vec3f vec(point_in_model_coordinates[0], point_in_model_coordinates[1], point_in_model_coordinates[2]);
+  const ci::Vec3f ret = pose_inv * vec;
+
+  return cv::Vec3f(ret[0], ret[1], ret[2]);
+
+}
+
+ci::Vec3f Pose::TransformPoint(const ci::Vec3f &point_in_world_coordinates) const{
+
+  ci::Matrix44f pose = *this;
+
+  return pose * point_in_world_coordinates;
 
 }
 
@@ -32,8 +64,10 @@ void Pose::SetPose(std::vector<float> &pose) {
   translation_[1] = pose[1];
   translation_[2] = pose[2];
 
-  rotation_ = sv::Quaternion(pose[3], pose[4], pose[5], pose[6]);
-  rotation_ = rotation_.Normalize();
+  //rotation_ = sv::Quaternion(pose[3], pose[4], pose[5], pose[6]);
+  //rotation_ = rotation_.Normalize();
+  rotation_ = ci::Quatf(pose[3], pose[4], pose[5], pose[6]);
+  rotation_.normalize();
 
 }
 
@@ -45,20 +79,21 @@ std::vector<float> Pose::GetPose() const{
   ret.push_back(translation_[0]);
   ret.push_back(translation_[1]);
   ret.push_back(translation_[2]);
-  ret.push_back(rotation_.W());
-  ret.push_back(rotation_.X());
-  ret.push_back(rotation_.Y());
-  ret.push_back(rotation_.Z());
+  ret.push_back(rotation_.w);
+  ret.push_back(rotation_.v[0]);
+  ret.push_back(rotation_.v[1]);
+  ret.push_back(rotation_.v[2]);
   return ret;
 
 }
 
 Pose::Pose(const ci::Matrix44f &t) : translation_(t.getTranslate().xyz()) {
 
-  ci::Matrix33f r = t.subMatrix33(0, 0).transposed(); //cinder is column major and ocv is row
-  cv::Mat rotation(3, 3, CV_32FC1, &r.m );
+  ci::Matrix33f r = t.subMatrix33(0, 0);// .transposed(); //cinder is column major and ocv is row
+  //cv::Mat rotation(3, 3, CV_32FC1, &r.m );
   
-  rotation_ = sv::Quaternion(rotation);
+  //rotation_ = sv::Quaternion(rotation);
+  rotation_ = ci::Quatf(r);
 
 }
 
@@ -77,30 +112,30 @@ std::vector<ci::Vec3f> Pose::ComputeJacobian(const ci::Vec3f &point_) const {
 
   //rotation dofs - Qw
   data[3] = ci::Vec3f(
-    (2.0f * (float)rotation_.Y()*point[2]) - (2.0f * (float)rotation_.Z()*point[1]),
-    (2.0f * (float)rotation_.Z()*point[0]) - (2.0f * (float)rotation_.X()*point[2]),
-    (2.0f * (float)rotation_.X()*point[1]) - (2.0f * (float)rotation_.Y()*point[0])
-    );
-
-  // Qx
-  data[4] = ci::Vec3f(
-    (2.0f * (float)rotation_.Y()*point[1]) + (2.0f * (float)rotation_.Z()*point[2]),
-    (2.0f * (float)rotation_.Y()*point[0]) - (4.0f * (float)rotation_.X()*point[1]) - (2.0f * (float)rotation_.W()*point[2]),
-    (2.0f * (float)rotation_.Z()*point[0]) + (2.0f * (float)rotation_.W()*point[1]) - (4.0f * (float)rotation_.X()*point[2])
-    );
-
-  // Qy
-  data[5] = ci::Vec3f(
-    (2.0f * (float)rotation_.X()*point[1]) - (4.0f * (float)rotation_.Y()*point[0]) + (2.0f * (float)rotation_.W()*point[2]),
-    (2.0f * (float)rotation_.X()*point[0]) + (2.0f * (float)rotation_.Z()*point[2]),
-    (2.0f * (float)rotation_.Z()*point[1]) - (2.0f * (float)rotation_.W()*point[0]) - (4.0f * (float)rotation_.Y()*point[2])
-    );
-
-  // Qz
-  data[6] = ci::Vec3f(
-    (2.0f * (float)rotation_.X()*point[2]) - (2.0f * (float)rotation_.W()*point[1]) - (4.0f * (float)rotation_.Z()*point[0]),
-    (2.0f * (float)rotation_.W()*point[0]) - (4.0f * (float)rotation_.X()*point[1]) + (2.0f * (float)rotation_.Y()*point[2]),
-    (2.0f * (float)rotation_.X()*point[0]) + (2.0f * (float)rotation_.Y()*point[1])
+    (2.0f * (float)rotation_.v[1] * point[2]) - (2.0f * (float)rotation_.v[2] * point[1]),
+    (2.0f * (float)rotation_.v[2] * point[0]) - (2.0f * (float)rotation_.v[0] * point[2]),
+    (2.0f * (float)rotation_.v[0] * point[1]) - (2.0f * (float)rotation_.v[1] * point[0])
+    );                                                                        
+                                                                              
+  // Qx                                                                       
+  data[4] = ci::Vec3f(                                                        
+    (2.0f * (float)rotation_.v[1] * point[1]) + (2.0f * (float)rotation_.v[2] * point[2]),
+    (2.0f * (float)rotation_.v[1] * point[0]) - (4.0f * (float)rotation_.v[0] * point[1]) - (2.0f * (float)rotation_.w * point[2]),
+    (2.0f * (float)rotation_.v[2] * point[0]) + (2.0f * (float)rotation_.w * point[1]) - (4.0f * (float)rotation_.v[0] * point[2])
+    );                                                                                                                   
+                                                                                                                         
+  // Qy                                                                                                                  
+  data[5] = ci::Vec3f(                                                                                                   
+    (2.0f * (float)rotation_.v[0] * point[1]) - (4.0f * (float)rotation_.v[1] * point[0]) + (2.0f * (float)rotation_.w * point[2]),
+    (2.0f * (float)rotation_.v[0] * point[0]) + (2.0f * (float)rotation_.v[2] * point[2]),                                 
+    (2.0f * (float)rotation_.v[2] * point[1]) - (2.0f * (float)rotation_.w * point[0]) - (4.0f * (float)rotation_.v[1] * point[2])
+    );                                                                                                                   
+                                                                                                                         
+  // Qz                                                                                                                  
+  data[6] = ci::Vec3f(                                                                                                   
+    (2.0f * (float)rotation_.v[0] * point[2]) - (2.0f * (float)rotation_.w * point[1]) - (4.0f * (float)rotation_.v[2] * point[0]),
+    (2.0f * (float)rotation_.w * point[0]) - (4.0f * (float)rotation_.v[0] * point[1]) + (2.0f * (float)rotation_.v[1] * point[2]),
+    (2.0f * (float)rotation_.v[0] * point[0]) + (2.0f * (float)rotation_.v[1] * point[1])
     );
   //translation dofs
   //data[0] = 1.0;
@@ -114,17 +149,17 @@ std::vector<ci::Vec3f> Pose::ComputeJacobian(const ci::Vec3f &point_) const {
   //data[8] = 1.0;
 
   ////rotation dofs
-  //data[9] = (2 * rotation_.Y()*point[2]) - (2 * rotation_.Z()*point[1]);
-  //data[10] = (2 * rotation_.Z()*point[0]) - (2 * rotation_.X()*point[2]);
+  //data[9] = (2 * rotation_.Y()*point[2]) - (2 * rotation_.v[2]*point[1]);
+  //data[10] = (2 * rotation_.v[2]*point[0]) - (2 * rotation_.X()*point[2]);
   //data[11] = (2 * rotation_.X()*point[1]) - (2 * rotation_.Y()*point[0]);
-  //data[12] = (2 * rotation_.Y()*point[1]) + (2 * rotation_.Z()*point[2]);
-  //data[13] = (2 * rotation_.Y()*point[0]) - (4 * rotation_.X()*point[1]) - (2 * rotation_.W()*point[2]);
-  //data[14] = (2 * rotation_.Z()*point[0]) + (2 * rotation_.W()*point[1]) - (4 * rotation_.X()*point[2]);
-  //data[15] = (2 * rotation_.X()*point[1]) - (4 * rotation_.Y()*point[0]) + (2 * rotation_.W()*point[2]);
-  //data[16] = (2 * rotation_.X()*point[0]) + (2 * rotation_.Z()*point[2]);
-  //data[17] = (2 * rotation_.Z()*point[1]) - (2 * rotation_.W()*point[0]) - (4 * rotation_.Y()*point[2]);
-  //data[18] = (2 * rotation_.X()*point[2]) - (2 * rotation_.W()*point[1]) - (4 * rotation_.Z()*point[0]);
-  //data[19] = (2 * rotation_.W()*point[0]) - (4 * rotation_.X()*point[1]) + (2 * rotation_.Y()*point[2]);
+  //data[12] = (2 * rotation_.Y()*point[1]) + (2 * rotation_.v[2]*point[2]);
+  //data[13] = (2 * rotation_.Y()*point[0]) - (4 * rotation_.X()*point[1]) - (2 * rotation_.w*point[2]);
+  //data[14] = (2 * rotation_.v[2]*point[0]) + (2 * rotation_.w*point[1]) - (4 * rotation_.X()*point[2]);
+  //data[15] = (2 * rotation_.X()*point[1]) - (4 * rotation_.Y()*point[0]) + (2 * rotation_.w*point[2]);
+  //data[16] = (2 * rotation_.X()*point[0]) + (2 * rotation_.v[2]*point[2]);
+  //data[17] = (2 * rotation_.v[2]*point[1]) - (2 * rotation_.w*point[0]) - (4 * rotation_.Y()*point[2]);
+  //data[18] = (2 * rotation_.X()*point[2]) - (2 * rotation_.w*point[1]) - (4 * rotation_.v[2]*point[0]);
+  //data[19] = (2 * rotation_.w*point[0]) - (4 * rotation_.X()*point[1]) + (2 * rotation_.Y()*point[2]);
   //data[20] = (2 * rotation_.X()*point[0]) + (2 * rotation_.Y()*point[1]);
 
   return data;
@@ -137,6 +172,8 @@ void Pose::UpdatePose(const std::vector<float> &updates) {
   for (int i = 0; i < 3; ++i)
     translation_[i] += updates[i];
 
-  rotation_ = rotation_ + sv::Quaternion(updates[3], updates[4], updates[5], updates[6]);
-  rotation_ = rotation_.Normalize();
+  ci::Quatf rotation_update(updates[3], updates[4], updates[5], updates[6]);
+  
+  rotation_ = rotation_ + rotation_update;
+  rotation_.normalize();
 }

@@ -5,6 +5,8 @@
 #include <boost/filesystem.hpp>
 
 #include "../headers.hpp"
+#include "../utils/nd_image.hpp"
+#include "../../deps/image/image/image.hpp"
 
 namespace ttrk{
   
@@ -38,6 +40,8 @@ namespace ttrk{
   class BaseClassifier {
 
   public:
+
+    virtual bool ClassifyFrame(boost::shared_ptr<sv::Frame> frame);
 
     /**
      * A function for training the classifier of choice. Will accept data in the form returned by the TrainData class.

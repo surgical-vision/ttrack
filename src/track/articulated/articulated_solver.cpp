@@ -116,7 +116,7 @@ bool ArticulatedLevelSetSolver::Evaluate(double const* const* parameters, double
       if (curr_residual >= NUM_RESIDUALS) break;
 
       if (sdf_im_data[i] <= float(GLOBAL_ALS->GetHeavisideWidth()) - 1e-1 && sdf_im_data[i] >= -float(GLOBAL_ALS->GetHeavisideWidth()) + 1e-1){
-        residuals[curr_residual] = GLOBAL_ALS->GetErrorValue(r, c, sdf_im_data[i], index_image_data[i]);
+        residuals[curr_residual] = GLOBAL_ALS->GetErrorValue(left_classification_image, r, c, sdf_im_data[i], index_image_data[i]);
         double f = residuals[curr_residual];
         curr_residual++;
       }

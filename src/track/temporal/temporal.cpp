@@ -1,4 +1,5 @@
 #include "../../../include/track/temporal/temporal.hpp"
+#include "../../../include/utils/helpers.hpp"
 
 using namespace ttrk;
 
@@ -21,7 +22,7 @@ void KalmanFilterTracker::Init(std::vector<float> &start_pose) {
   //for (int i = 7; i<10; i++)
     //filter_.measurementMatrix.at<float>(i, i) = 1;
 
-  cv::Vec3f eulers = sv::Quaternion(start_pose[3], start_pose[4], start_pose[5], start_pose[6]).EulerAngles();
+  cv::Vec3f eulers = CiToCv<float>(ConvertQuatToEulers(ci::Quatf(start_pose[3], start_pose[4], start_pose[5], start_pose[6])));
 
   filter_.statePost.at<float>(0) = start_pose[0];
   filter_.statePost.at<float>(1) = start_pose[1];
@@ -36,7 +37,7 @@ void KalmanFilterTracker::Init(std::vector<float> &start_pose) {
   filter_.statePost.at<float>(10) = 0;
   filter_.statePost.at<float>(11) = 0;
     
-  cv::setIdentity(filter_.processNoiseCov, cv::Scalar::all(2e-3)); //uncertainty in the model
+  cv::setIdentity(filter_.processNoiseCov, cv::Scalar::all(1e-2)); //uncertainty in the model
   cv::setIdentity(filter_.measurementNoiseCov, cv::Scalar::all(1e-3)); //uncertainty in the measurement
   cv::setIdentity(filter_.errorCovPost, cv::Scalar::all(1));
 
@@ -48,8 +49,10 @@ void KalmanFilterTracker::UpdatePoseWithMotionModel(boost::shared_ptr<Model> mod
   ci::Matrix44f pose = model->GetBasePose();
   ci::Matrix33f rotation = pose.subMatrix33(0, 0);
   
-  sv::Quaternion rq(rotation);
-  cv::Vec3f eulers = rq.EulerAngles();
+  ci::Quatf rq(rotation);
+  
+  ci::Vec3f eulers = ConvertQuatToEulers(rq);
+
   ci::Vec3f translation = pose.getTranslate().xyz();
 
   std::vector<float> measurement_vector = { translation[0], translation[1], translation[2], eulers[0], eulers[1], eulers[2]};
@@ -66,7 +69,7 @@ void KalmanFilterTracker::UpdatePoseWithMotionModel(boost::shared_ptr<Model> mod
   ci::Vec3f updated_translation(estimation.at<float>(0), estimation.at<float>(1), estimation.at<float>(2));
   cv::Vec3f updated_rotation_as_euler(estimation.at<float>(6), estimation.at<float>(7), estimation.at<float>(8));
 
-  //model->SetBasePose(Pose(sv::Quaternion(updated_rotation_as_euler), updated_translation));
+  model->SetBasePose(Pose(ci::Quatf(ttrk::ConvertEulersToQuat(CvToCi<float>(updated_rotation_as_euler))), updated_translation));
   
 }
 

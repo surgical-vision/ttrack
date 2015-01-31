@@ -7,7 +7,7 @@ namespace ttrk{
 
   /**
    * @class RandomForest
-   * @brief The random forest classification.
+   * @brief The random forest classifier.
    *
    * The class for handling classification with a random forest classifier. Can handle large numbers of classes.
    */

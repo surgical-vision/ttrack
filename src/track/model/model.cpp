@@ -77,13 +77,25 @@ void Model::LoadJson(const std::string &filename){
 
 }
 
-void Model::Render(bool bind_texture){
+void Model::RenderMaterial(){
+
+  ci::gl::pushModelView();
+
+  ci::gl::multModelView(world_to_model_coordinates_);
+
+  model_->RenderMaterial();
+
+  ci::gl::popModelView();
+
+}
+
+void Model::RenderTexture(int id){
 
   ci::gl::pushModelView();
 
   ci::gl::multModelView(world_to_model_coordinates_);
   
-  model_->Render(bind_texture);
+  model_->RenderTexture(id);
 
   ci::gl::popModelView();
 

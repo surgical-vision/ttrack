@@ -124,10 +124,10 @@ void ArticulatedLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_i
       if (sdf_im_data[i] <= float(HEAVYSIDE_WIDTH) - 1e-1 && sdf_im_data[i] >= -float(HEAVYSIDE_WIDTH) + 1e-1){
 
         //-log(H * P_f + (1-H) * P_b)
-        error += GetErrorValue(r, c, sdf_im_data[i], index_image_data[i]);
+        error += GetErrorValue(classification_image, r, c, sdf_im_data[i], index_image_data[i]);
 
         //P_f - P_b / (H * P_f + (1 - H) * P_b)
-        const float region_agreement = GetRegionAgreement(r, c, sdf_im_data[i], index_image_data[i]);
+        const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i], index_image_data[i]);
 
         int shifted_i = i;
 
@@ -174,14 +174,17 @@ void ArticulatedLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_i
 
 }
 
-float ArticulatedLevelSet::GetRegionAgreement(const int row_idx, const int col_idx, const float sdf_value, const int target_label) const{
+float ArticulatedLevelSet::GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf, const int target_label) const {
 
-  const float pixel_probability = frame_->GetClassificationMapROI().at<float>(row_idx, col_idx);
-  const float heaviside_value = HeavisideFunction(sdf_value);
+  const float heaviside_value = HeavisideFunction(sdf);
 
-  return (2.0f*pixel_probability - 1.0f) / (heaviside_value*pixel_probability + (1.0f - heaviside_value)*(1.0f - pixel_probability));
+  const float Pf = classification_image.at<cv::Vec4f>(r, c)[1]; //returns foreground pixel likelihood -foreground class
+  const float Pb = classification_image.at<cv::Vec4f>(r, c)[0]; //returns background pixel likelihood
+
+  return (Pf - Pb) / ((heaviside_value*Pf) + ((1 - heaviside_value)*Pb));
 
 }
+
 
 void ArticulatedLevelSet::UpdateArticulatedJacobian(const float region_agreement, const int frame_idx, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_point, const boost::shared_ptr<const Model> model, cv::Matx<float, 1, PRECISION> &jacobian){
 
@@ -381,10 +384,10 @@ cv::Matx<float, NUM_RESIDUALS, PRECISION> ArticulatedLevelSet::ComputeJacobians(
 
       if (sdf_im_data[i] <= float(HEAVYSIDE_WIDTH) - 1e-1 && sdf_im_data[i] >= -float(HEAVYSIDE_WIDTH) + 1e-1){
 
-        const float cost_value = GetErrorValue(r, c, sdf_im_data[i], index_image_data[i]);
+        const float cost_value = GetErrorValue(classification_image, r, c, sdf_im_data[i], index_image_data[i]);
 
         //P_f - P_b / (H * P_f + (1 - H) * P_b)
-        const float region_agreement = GetRegionAgreement(r, c, sdf_im_data[i], index_image_data[i]);
+        const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i], index_image_data[i]);
 
         //find the closest point on the contour if this point is outside the contour
         if (sdf_im_data[i] < 0.0) {
@@ -457,7 +460,7 @@ cv::Matx<float, PRECISION, 1> ArticulatedLevelSet::ComputeJacobiansSummed(const 
       if (sdf_im_data[i] <= float(HEAVYSIDE_WIDTH) - 1e-1 && sdf_im_data[i] >= -float(HEAVYSIDE_WIDTH) + 1e-1){
 
         //P_f - P_b / (H * P_f + (1 - H) * P_b)
-        const float region_agreement = GetRegionAgreement(r, c, sdf_im_data[i], index_image_data[i]);
+        const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i], index_image_data[i]);
 
         //find the closest point on the contour if this point is outside the contour
         if (sdf_im_data[i] < 0.0) {

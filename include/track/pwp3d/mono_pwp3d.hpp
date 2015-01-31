@@ -10,7 +10,7 @@ namespace ttrk {
 
   public: 
 
-    MonoPWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera), PWP3D(camera->Width(), camera->Height()) {}
+    MonoPWP3D(boost::shared_ptr<MonocularCamera> camera);
 
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
 

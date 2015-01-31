@@ -26,13 +26,38 @@ void Node::LoadMeshAndTexture(ci::JsonTree &tree, const std::string &root_dir){
   ci::ObjLoader loader(ci::loadFile(obj_file.string()), ci::loadFile(mat_file.string()), true);
   loader.load(&model_, true, true, false);
 
-  texture_ = ci::gl::Texture( ci::loadImage( texture_file.string() ));
+  texture_ = ci::gl::Texture( ci::loadImage( texture_file.string()));
 
   vbo_ = ci::gl::VboMesh(model_);
 
 }
 
-void Node::Render(bool bind_texture){
+
+void Node::RenderMaterial(){
+
+  if (drawing_flag_){
+
+    ci::gl::pushModelView();
+
+    ci::gl::multModelView(GetRelativeTransformToRoot());
+
+    glEnable(GL_COLOR_MATERIAL);
+
+    if (model_.getNumVertices() != 0)
+      ci::gl::draw(vbo_);
+    
+    glDisable(GL_COLOR_MATERIAL);
+    
+    ci::gl::popModelView();
+  }
+
+  for (size_t i = 0; i < children_.size(); ++i){
+    children_[i]->RenderMaterial();
+  }
+
+}
+
+void Node::RenderTexture(int id){
   
   if (drawing_flag_){
 
@@ -40,17 +65,20 @@ void Node::Render(bool bind_texture){
 
     ci::gl::multModelView(GetRelativeTransformToRoot()); 
 
-    if (bind_texture && texture_)
-      texture_.enableAndBind();
-    else
-      glEnable(GL_COLOR_MATERIAL);
+    if (texture_){
+      if (id == 0)
+        texture_.enableAndBind();
+      else
+        texture_.bind(id);
+
+    }
 
     if (model_.getNumVertices() != 0)
       ci::gl::draw(vbo_);
 
-    if (bind_texture && texture_){
+    if (texture_){
       texture_.disable();
-      texture_.unbind();
+      texture_.unbind(id);
     }
     else{
       glDisable(GL_COLOR_MATERIAL);
@@ -61,7 +89,7 @@ void Node::Render(bool bind_texture){
   }
 
   for (size_t i = 0; i < children_.size(); ++i){
-    children_[i]->Render(bind_texture);
+    children_[i]->RenderTexture(id);
   }
 
 }

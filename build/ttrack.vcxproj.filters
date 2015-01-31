@@ -102,9 +102,6 @@
     <ClCompile Include="..\src\utils\nd_image.cpp">
       <Filter>Source Files\utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\utils\quaternion.cpp">
-      <Filter>Source Files\utils</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\detect\baseclassifier.cpp">
       <Filter>Source Files\detect</Filter>
     </ClCompile>
@@ -147,6 +144,15 @@
     <ClCompile Include="..\src\track\articulated\articulated_solver.cpp">
       <Filter>Source Files\track\articulated</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\track\pwp3d\comp_ls.cpp">
+      <Filter>Source Files\track\pwp3d</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\detect\histogram.cpp">
+      <Filter>Source Files\detect</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\detect\multiclass_randomforest.cpp">
+      <Filter>Source Files\detect</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\resources\cinder_app_icon.ico">
@@ -171,6 +177,12 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="..\resources\glsl3.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\resources\comp_ls_back_depth_contour_frag.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\resources\comp_ls_back_depth_contour_vert.glsl">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
@@ -232,9 +244,6 @@
     <ClInclude Include="..\include\utils\nd_image.hpp">
       <Filter>Header Files\utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\utils\quaternion.hpp">
-      <Filter>Header Files\utils</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\constants.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -288,6 +297,15 @@
     </ClInclude>
     <ClInclude Include="..\include\utils\UI.hpp">
       <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\track\pwp3d\comp_ls.hpp">
+      <Filter>Header Files\track\pwp3d</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\detect\histogram.hpp">
+      <Filter>Header Files\detect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\detect\multiclass_randomforest.hpp">
+      <Filter>Header Files\detect</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

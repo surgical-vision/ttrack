@@ -27,11 +27,9 @@ PWP3D::PWP3D(const int width, const int height) : heaviside_width_(3,1,3,40,"Hea
   format.enableColorBuffer(true, 2);
   back_depth_framebuffer_ = ci::gl::Fbo(width, height, format);
 
-  LoadShaders();
+  HEAVYSIDE_WIDTH = 6;
 
-  HEAVYSIDE_WIDTH = 3;
-
-  NUM_STEPS = 75;// 125;
+  NUM_STEPS = 45;// 125;
 
   curr_step = NUM_STEPS; //so we report converged and ask for a new frame at the start
 
@@ -60,6 +58,23 @@ void PWP3D::LoadShaders(){
 
 }
 
+void PWP3D::ComputeAreas(cv::Mat &sdf, size_t &fg_area, size_t &bg_area, size_t &contour_area){
+
+  fg_area = bg_area = 0;
+
+  for (auto r = 0; r < sdf.rows; ++r){
+    for (auto c = 0; c < sdf.rows; ++c){
+
+      if (sdf.at<float>(r, c) <= float(3) - 1e-1 && sdf.at<float>(r, c) >= -float(3) + 1e-1)
+        contour_area++;
+
+      fg_area += sdf.at<float>(r, c);
+      bg_area += (1.0f - sdf.at<float>(r, c));
+    }
+  }
+
+}
+
 void PWP3D::UpdateJacobian(const float region_agreement, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_point, const boost::shared_ptr<const Model> model, cv::Matx<float, 1, 7> &jacobian){
 
   const float z_inv_sq_front = 1.0f / (front_intersection_point[2] * front_intersection_point[2]);
@@ -79,18 +94,30 @@ void PWP3D::UpdateJacobian(const float region_agreement, const float sdf, const 
     const ci::Vec3f &dof_derivatives_back = back_jacs[dof];
 
     if (sdf == 0.0f){
-      float pval = dsdf_dx * (fx * (z_inv_sq_front*((front_intersection_point[2] * dof_derivatives_front[0]) - (front_intersection_point[0] * dof_derivatives_front[2]))));
-      pval += dsdf_dy * (fy * (z_inv_sq_front*((front_intersection_point[2] * dof_derivatives_front[1]) - (front_intersection_point[1] * dof_derivatives_front[2]))));
-      pval *= DeltaFunction(sdf);
+      const float deriv_x_front = (front_intersection_point[2] * dof_derivatives_front[0]) - (front_intersection_point[0] * dof_derivatives_front[2]);
+      const float deriv_x = dsdf_dx * (fx * z_inv_sq_front * deriv_x_front);
+
+      const float deriv_y_front = (front_intersection_point[2] * dof_derivatives_front[1]) - (front_intersection_point[1] * dof_derivatives_front[2]);
+      const float deriv_y = dsdf_dy * (fy * z_inv_sq_front * deriv_y_front);
+
+      const float pval = DeltaFunction(sdf) * (deriv_x + deriv_y);
 
       jacobian(dof) = region_agreement * pval;
 
     }
     else{
       //actually compute the cost function equation for the degree of freedom in question
-      float pval = dsdf_dx * (fx * (z_inv_sq_front*((front_intersection_point[2] * dof_derivatives_front[0]) - (front_intersection_point[0] * dof_derivatives_front[2]))) + fx * (z_inv_sq_back*((back_intersection_point[2] * dof_derivatives_back[0]) - (back_intersection_point[0] * dof_derivatives_back[2]))));
-      pval += dsdf_dy * (fy * (z_inv_sq_front*((front_intersection_point[2] * dof_derivatives_front[1]) - (front_intersection_point[1] * dof_derivatives_front[2]))) + fy * (z_inv_sq_back*((back_intersection_point[2] * dof_derivatives_back[1]) - (back_intersection_point[1] * dof_derivatives_back[2]))));
-      pval *= DeltaFunction(sdf);
+
+      const float deriv_x_front = (front_intersection_point[2] * dof_derivatives_front[0]) - (front_intersection_point[0] * dof_derivatives_front[2]);
+      const float deriv_x_back = (back_intersection_point[2] * dof_derivatives_back[0]) - (back_intersection_point[0] * dof_derivatives_back[2]);
+      const float deriv_x = dsdf_dx * ((fx * z_inv_sq_front * deriv_x_front) + (fx * z_inv_sq_back * deriv_x_back));
+
+      const float deriv_y_front = (front_intersection_point[2] * dof_derivatives_front[1]) - (front_intersection_point[1] * dof_derivatives_front[2]);
+      const float deriv_y_back = (back_intersection_point[2] * dof_derivatives_back[1]) - (back_intersection_point[1] * dof_derivatives_back[2]);
+      const float deriv_y = dsdf_dy * ((fy * z_inv_sq_front * deriv_y_front) + (fy * z_inv_sq_back * deriv_y_back));
+
+      //pval += dsdf_dy * (fy * (z_inv_sq_front*((front_intersection_point[2] * dof_derivatives_front[1]) - (front_intersection_point[1] * dof_derivatives_front[2]))) + fy * (z_inv_sq_back*((back_intersection_point[2] * dof_derivatives_back[1]) - (back_intersection_point[1] * dof_derivatives_back[2]))));
+      const float pval = DeltaFunction(sdf) * (deriv_x + deriv_y);
 
       jacobian(dof) = region_agreement * pval;
     }
@@ -139,86 +166,31 @@ bool PWP3D::FindClosestIntersection(const float *sdf_im, const int r, const int 
 
 }
 
-float PWP3D::GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf) {
-
-  const float pixel_probability = classification_image.at<float>(r, c);
-  const float heaviside_value = HeavisideFunction(sdf);
-
-  return (2.0f*pixel_probability - 1.0f) / (heaviside_value*pixel_probability + (1.0f - heaviside_value)*(1.0f - pixel_probability));
-
-}
-
-float PWP3D::GetRegionAgreement(const int r, const int c, const float sdf) {
+float PWP3D::GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf) const {
   
-  const float pixel_probability = frame_->GetClassificationMapROI().at<float>(r,c);
   const float heaviside_value = HeavisideFunction(sdf);
-    
-  return (2.0f*pixel_probability - 1.0f)/(heaviside_value*pixel_probability + (1.0f-heaviside_value)*(1.0f-pixel_probability));
+
+  const float Pf = classification_image.at<cv::Vec4f>(r, c)[1]; //returns foreground pixel likelihood
+  const float Pb = classification_image.at<cv::Vec4f>(r, c)[0]; //returns background pixel likelihood
+
+  return (Pf - Pb) / ((heaviside_value*Pf) + ((1 - heaviside_value)*Pb));
 
 }
 
-float PWP3D::GetErrorValue(const int row_idx, const int col_idx, const float sdf_value, const int target_label) const{
 
-  const float pixel_probability = frame_->GetClassificationMapROI().at<float>(row_idx, col_idx);
-  assert(pixel_probability >= 0.0f && pixel_probability <= 1.0f);
+float PWP3D::GetErrorValue(const cv::Mat &classification_image, const int row_idx, const int col_idx, const float sdf_value, const int target_label) const{
+
+  const float Pf = classification_image.at<cv::Vec4f>(row_idx, col_idx)[1];
+  const float Pb = classification_image.at<cv::Vec4f>(row_idx, col_idx)[0];
+  //assert(pixel_probability >= 0.0f && pixel_probability <= 1.0f);
 
   const float heaviside_value = HeavisideFunction(sdf_value);
 
-  float v = (heaviside_value * pixel_probability) + ((1 - heaviside_value)*(1 - pixel_probability));
+  float v = (heaviside_value * Pf) + ((1 - heaviside_value)*(Pb));
   v += 0.0000001f;
   return -log(v);
 
 }
-
-
-//void PWP3D::ApplyGradientDescentStep(PoseDerivs &jacobian, Pose &pose, const size_t step, const size_t pixel_count){
-//
-//  ScaleJacobian(jacobian,step,pixel_count);
-//
-//  //update the translation
-//  cv::Vec3d translation(jacobian[0],jacobian[1],jacobian[2]);
-//  pose.translation_ = pose.translation_ + translation;
-//
-//  //update the rotation
-//  sv::Quaternion rotation(boost::math::quaternion<double>(jacobian[3],jacobian[4],jacobian[5],jacobian[6]));
-//
-//  pose.rotation_ = pose.rotation_ + rotation;
-//  pose.rotation_ = pose.rotation_.Normalize();
-//
-//}
-
-//void PWP3D::ScaleJacobian(PoseDerivs &jacobian, const size_t step_number, const size_t pixel_count) const {
-//
-//  const double SCALE_FACTOR =  (1.0/(pixel_count)) * 3;
-//    
-//  const double XY_scale = 0.2 * 0.005 * SCALE_FACTOR;
-//  const double Z_scale = 0.5 * 0.005 * SCALE_FACTOR;
-//  double R_SCALE = 10 * 0.00008 * SCALE_FACTOR;
-//  
-//  jacobian[0] *= XY_scale;//* 25;
-//  jacobian[1] *= XY_scale ;
-//  jacobian[2] *= Z_scale; //* camera_->Fx()/4;
-//  
-//  double largest = std::abs(jacobian[0]);
-//  if( largest < std::abs(jacobian[1]) ) largest = std::abs(jacobian[1]);
-//  if( largest < std::abs(jacobian[2]) ) largest = std::abs(jacobian[2]);
-//
-//  jacobian[0] = 0.5 * (jacobian[0]*0.2)/largest;
-//  jacobian[1] = 0.5 * (jacobian[1]*0.2)/largest;
-//  jacobian[2] = 0.5 * (jacobian[2]*0.4)/largest;
-//
-//  //jacobian.at<double>(5,0) *= 3;
-//
-//  largest = std::abs(jacobian[3]);
-//  if( largest < std::abs(jacobian[4]) ) largest = std::abs(jacobian[4]);
-//  if( largest < std::abs(jacobian[5]) ) largest = std::abs(jacobian[5]);
-//  if( largest < std::abs(jacobian[6]) ) largest = std::abs(jacobian[6]);
-//
-//  for(int i=3;i<7;i++){
-//    jacobian[i] *= 0.5 * (0.007 / largest);
-//  }
-//  
-//}
 
 void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_depth, cv::Mat &back_depth, cv::Mat &contour){
 
@@ -243,7 +215,7 @@ void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, c
 
   ////bind the front depth shader and render
   front_depth_.bind();
-  mesh->Render();
+  mesh->RenderMaterial();
   front_depth_.unbind();
  
   front_depth_framebuffer_.unbindFramebuffer();
@@ -266,7 +238,7 @@ void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, c
   tex_fd.enableAndBind();
   back_depth_and_contour_.uniform("tex_fd", 0); //bind it to the current texture
   //back_depth_and_contour_.uniform("tex_cols", 1);
-  mesh->Render();
+  mesh->RenderMaterial();
   tex_fd.disable();
   tex_fd.unbind();
   back_depth_and_contour_.unbind();

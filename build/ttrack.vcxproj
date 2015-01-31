@@ -119,7 +119,9 @@
   <ItemGroup>
     <ClCompile Include="..\src\detect\baseclassifier.cpp" />
     <ClCompile Include="..\src\detect\detect.cpp" />
+    <ClCompile Include="..\src\detect\histogram.cpp" />
     <ClCompile Include="..\src\detect\im_mask_set.cpp" />
+    <ClCompile Include="..\src\detect\multiclass_randomforest.cpp" />
     <ClCompile Include="..\src\detect\randomforest.cpp" />
     <ClCompile Include="..\src\detect\supportvectormachine.cpp" />
     <ClCompile Include="..\src\track\articulated\articulated_level_set.cpp" />
@@ -128,6 +130,7 @@
     <ClCompile Include="..\src\track\model\model.cpp" />
     <ClCompile Include="..\src\track\model\node.cpp" />
     <ClCompile Include="..\src\track\pose.cpp" />
+    <ClCompile Include="..\src\track\pwp3d\comp_ls.cpp" />
     <ClCompile Include="..\src\track\pwp3d\mono_pwp3d.cpp" />
     <ClCompile Include="..\src\track\pwp3d\pwp3d.cpp" />
     <ClCompile Include="..\src\track\pwp3d\register_points.cpp" />
@@ -144,10 +147,11 @@
     <ClCompile Include="..\src\utils\helpers.cpp" />
     <ClCompile Include="..\src\utils\nd_image.cpp" />
     <ClCompile Include="..\src\utils\plotter.cpp" />
-    <ClCompile Include="..\src\utils\quaternion.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\resources\cinder_app_icon.ico" />
+    <None Include="..\resources\comp_ls_back_depth_contour_frag.glsl" />
+    <None Include="..\resources\comp_ls_back_depth_contour_vert.glsl" />
     <None Include="..\resources\glsl3.bin" />
     <None Include="..\resources\phong_frag.glsl" />
     <None Include="..\resources\phong_vert.glsl" />
@@ -160,7 +164,9 @@
     <ClInclude Include="..\include\constants.hpp" />
     <ClInclude Include="..\include\detect\baseclassifier.hpp" />
     <ClInclude Include="..\include\detect\detect.hpp" />
+    <ClInclude Include="..\include\detect\histogram.hpp" />
     <ClInclude Include="..\include\detect\im_mask_set.hpp" />
+    <ClInclude Include="..\include\detect\multiclass_randomforest.hpp" />
     <ClInclude Include="..\include\detect\randomforest.hpp" />
     <ClInclude Include="..\include\detect\supportvectormachine.hpp" />
     <ClInclude Include="..\include\headers.hpp" />
@@ -173,6 +179,7 @@
     <ClInclude Include="..\include\track\model\model.hpp" />
     <ClInclude Include="..\include\track\model\node.hpp" />
     <ClInclude Include="..\include\track\pose.hpp" />
+    <ClInclude Include="..\include\track\pwp3d\comp_ls.hpp" />
     <ClInclude Include="..\include\track\pwp3d\mono_pwp3d.hpp" />
     <ClInclude Include="..\include\track\pwp3d\pwp3d.hpp" />
     <ClInclude Include="..\include\track\pwp3d\register_points.hpp" />
@@ -191,7 +198,6 @@
     <ClInclude Include="..\include\utils\helpers.hpp" />
     <ClInclude Include="..\include\utils\nd_image.hpp" />
     <ClInclude Include="..\include\utils\plotter.hpp" />
-    <ClInclude Include="..\include\utils\quaternion.hpp" />
     <ClInclude Include="..\include\utils\UI.hpp" />
     <ClInclude Include="..\resources\resource.h" />
     <ClInclude Include="resource.h" />

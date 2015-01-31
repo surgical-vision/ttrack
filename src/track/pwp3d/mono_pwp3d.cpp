@@ -5,6 +5,13 @@
 
 using namespace ttrk;
 
+MonoPWP3D::MonoPWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera), PWP3D(camera->Width(), camera->Height()) {
+
+  LoadShaders();
+
+}
+
+
 void MonoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
 
   //frame_ = frame;

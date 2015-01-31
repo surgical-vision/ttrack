@@ -1,3 +1,5 @@
+#include <cinder/app/App.h>
+
 #include "../include/headers.hpp"
 #include "../../include/track/tracker.hpp"
 #include "../../include/utils/helpers.hpp"
@@ -20,6 +22,7 @@ void Tracker::RunStep(){
   for (current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++){
 
     localizer_->TrackTargetInFrame(current_model_->model, frame_);
+    ci::app::console() << "Pose after GD step = " << current_model_->model->GetBasePose() << std::endl;
     
   }
 
@@ -44,11 +47,16 @@ void Tracker::Run(boost::shared_ptr<sv::Frame> image, const bool found){
       return;
     tracking_ = true;
 
+    for (current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++){
+      ci::app::console() << "Pose after init = " << current_model_->model->GetBasePose() << std::endl;
+    }
+
   }
   else{
 
     for (current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++){
-      current_model_->temporal_tracker->UpdatePoseWithMotionModel(current_model_->model);
+      //current_model_->temporal_tracker->UpdatePoseWithMotionModel(current_model_->model);
+      ci::app::console() << "Pose after temporal update = " << current_model_->model->GetBasePose() << std::endl;
     }
 
   }

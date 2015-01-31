@@ -80,10 +80,16 @@ namespace ttrk {
     virtual ci::Matrix44f GetTransformFromParent() const = 0;
 
     /**
-    * Render a node element, will recursively call Render on all child nodes.
-    * @param[in] bind_texture This flag instructs the node to bind its texture (if it has one) to the default texture target before drawing.
+    * Render a node element using the node's texture to color, will recursively call RenderTexture on all child nodes.
+    * @param[in] The id of the texture.
     */
-    void Render(bool bind_texture = false);
+    void RenderTexture(int id);
+
+    /**
+    * Render a node element using the node's texture to color, will recursively call RenderTexture on all child nodes.
+    * @param[in] The id of the texture.
+    */
+    void RenderMaterial();
 
     /**
     * Compute the jacobian for a 3D point (passed in world coordinates) with respect to this coordinate frame.
@@ -196,6 +202,8 @@ namespace ttrk {
     virtual ci::Vec3f GetAxis() const = 0;
 
     virtual ci::Matrix44f GetDerivativeTransfromFromParent() const = 0;
+
+    ci::gl::Texture &GetTexture() { return texture_; }
 
   protected:
     

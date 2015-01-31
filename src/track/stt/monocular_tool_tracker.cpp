@@ -1,7 +1,7 @@
-#include "../../../include/track/stt/monocular_tool_tracker.hpp"
-#include "../../../include/track/pwp3d/mono_pwp3d.hpp"
-#include "../../../include/utils/helpers.hpp"
-#include "../../../include/track/model/articulated_model.hpp"
+#include "../../../include/ttrack/track/stt/monocular_tool_tracker.hpp"
+#include "../../../include/ttrack/track/pwp3d/mono_pwp3d.hpp"
+#include "../../../include/ttrack/utils/helpers.hpp"
+#include "../../../include/ttrack/track/model/articulated_model.hpp"
 
 using namespace ttrk;
 

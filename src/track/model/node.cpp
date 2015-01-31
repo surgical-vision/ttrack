@@ -4,8 +4,8 @@
 #include <cinder/gl/Light.h>
 #include <cinder/ImageIo.h>
 
-#include "../../../include/track/model/node.hpp"
-#include "../../../include/track/model/dh_helpers.hpp"
+#include "../../../include/ttrack/track/model/node.hpp"
+#include "../../../include/ttrack/track/model/dh_helpers.hpp"
 
 
 using namespace ttrk;

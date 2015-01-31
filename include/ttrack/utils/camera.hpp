@@ -4,7 +4,7 @@
 #include <cinder/gl/Light.h>
 
 #include "../headers.hpp"
-#include "../../deps/image/image/image.hpp"
+#include "../../../deps/image/image/image.hpp"
 
 namespace ttrk{
 

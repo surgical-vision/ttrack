@@ -1,4 +1,4 @@
-#include "../../include/track/pose.hpp"
+#include "../../include/ttrack/track/pose.hpp"
 
 using namespace ttrk;
 

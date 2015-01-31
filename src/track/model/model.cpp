@@ -5,8 +5,8 @@
 
 #include <cinder/app/App.h>
 
-#include "../../../include/track/model/model.hpp"
-#include "../../../include/utils/helpers.hpp"
+#include "../../../include/ttrack/track/model/model.hpp"
+#include "../../../include/ttrack/utils/helpers.hpp"
 
 using namespace ttrk;
 

@@ -3,12 +3,12 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "../../include/detect/detect.hpp"
-#include "../../include/utils/helpers.hpp"
-#include "../../include/detect/randomforest.hpp"
-#include "../../include/detect/supportvectormachine.hpp"
-#include "../../include/detect/histogram.hpp"
-#include "../../include/detect/multiclass_randomforest.hpp"
+#include "../../include/ttrack/detect/detect.hpp"
+#include "../../include/ttrack/utils/helpers.hpp"
+#include "../../include/ttrack/detect/randomforest.hpp"
+#include "../../include/ttrack/detect/supportvectormachine.hpp"
+#include "../../include/ttrack/detect/histogram.hpp"
+#include "../../include/ttrack/detect/multiclass_randomforest.hpp"
 
 using namespace ttrk;
 

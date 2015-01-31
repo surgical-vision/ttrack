@@ -7,9 +7,9 @@
 #include <cinder/app/AppBasic.h>
 #include <cinder/gl/Light.h>
 
-#include "../../include/utils/camera.hpp"
-#include "../../include/constants.hpp"
-#include "../../include/utils/helpers.hpp"
+#include "../../include/ttrack/utils/camera.hpp"
+#include "../../include/ttrack/constants.hpp"
+#include "../../include/ttrack/utils/helpers.hpp"
 
 using namespace ttrk;
 

@@ -1,7 +1,7 @@
 //#define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "../include/track/pose.hpp"
+#include "../include/ttrack/track/pose.hpp"
 #include <opencv2/opencv.hpp>
 
 template<typename T>

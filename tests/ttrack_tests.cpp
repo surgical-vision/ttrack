@@ -2,7 +2,7 @@
 #define BOOST_TEST_MODULE ttrack_test
 
 #include <boost/test/unit_test.hpp>
-#include "../include/ttrack.hpp"
+#include "../include/ttrack/ttrack.hpp"
 
 namespace ttrk {
 

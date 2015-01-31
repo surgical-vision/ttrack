@@ -1,4 +1,4 @@
-#include "../../include/detect/multiclass_randomforest.hpp"
+#include "../../include/ttrack/detect/multiclass_randomforest.hpp"
 
 using namespace ttrk;
 

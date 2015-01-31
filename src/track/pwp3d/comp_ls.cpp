@@ -3,9 +3,9 @@
 #include <CinderOpenCV.h>
 #include <cinder/CinderMath.h>
 
-#include "../../../include/track/pwp3d/comp_ls.hpp"
-#include "../../../include/resources.hpp"
-#include "../../../include/constants.hpp"
+#include "../../../include/ttrack/track/pwp3d/comp_ls.hpp"
+#include "../../../include/ttrack/resources.hpp"
+#include "../../../include/ttrack/constants.hpp"
 
 using namespace ttrk;
 

@@ -1,4 +1,4 @@
-#include "../../include/detect/histogram.hpp"
+#include "../../include/ttrack/detect/histogram.hpp"
 
 using namespace ttrk;
 

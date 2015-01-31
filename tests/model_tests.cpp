@@ -1,6 +1,6 @@
 //#define BOOST_TEST_MAIN
 
-#include "../include/track/model/articulated_model.hpp"
+#include "../include/ttrack/track/model/articulated_model.hpp"
 #include <boost/test/unit_test.hpp>
 
 

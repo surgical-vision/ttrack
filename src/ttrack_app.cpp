@@ -13,12 +13,12 @@
 #include <cinder/Rand.h>
 #include <cinder/TriMesh.h>
 
-#include "../include/headers.hpp"
-#include "../include/ttrack_app.hpp"
-#include "../include/resources.hpp"
-#include "../include/utils/config_reader.hpp"
-#include "../include/utils/plotter.hpp"
-#include "../include/utils/UI.hpp"
+#include "../include/ttrack/headers.hpp"
+#include "../include/ttrack/ttrack_app.hpp"
+#include "../include/ttrack/resources.hpp"
+#include "../include/ttrack/utils/config_reader.hpp"
+#include "../include/ttrack/utils/plotter.hpp"
+#include "../include/ttrack/utils/UI.hpp"
 
 #include <ceres/ceres.h>
 

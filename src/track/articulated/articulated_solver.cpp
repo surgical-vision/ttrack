@@ -1,6 +1,6 @@
 #include <cinder/app/App.h>
 
-#include "../../../include/track/articulated/articulated_solver.hpp"
+#include "../../../include/ttrack/track/articulated/articulated_solver.hpp"
 
 using namespace ttrk;
 

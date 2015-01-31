@@ -6,13 +6,13 @@
 #include <cinder/app/App.h>
 #include <CinderOpenCV.h>
 
-#include "../../../include/track/stt/stereo_tool_tracker.hpp"
-#include "../../../include/track/pwp3d/stereo_pwp3d.hpp"
-#include "../../../include/track/pwp3d/comp_ls.hpp"
-#include "../../../include/track/articulated/articulated_level_set.hpp"
+#include "../../../include/ttrack/track/stt/stereo_tool_tracker.hpp"
+#include "../../../include/ttrack/track/pwp3d/stereo_pwp3d.hpp"
+#include "../../../include/ttrack/track/pwp3d/comp_ls.hpp"
+#include "../../../include/ttrack/track/articulated/articulated_level_set.hpp"
 
-#include "../../../include/track/model/articulated_model.hpp"
-#include "../../../include/utils/helpers.hpp"
+#include "../../../include/ttrack/track/model/articulated_model.hpp"
+#include "../../../include/ttrack/utils/helpers.hpp"
 
 using namespace ttrk;
 

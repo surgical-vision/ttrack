@@ -3,8 +3,8 @@
 
 #include <cinder/app/Renderer.h>
 
-#include "track/model/model.hpp"
-#include "../../deps/image/image/image.hpp"
+#include "model/model.hpp"
+#include "../../../deps/image/image/image.hpp"
 
 
 

@@ -5,12 +5,12 @@
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/system/error_code.hpp>
 
-#include "../include/headers.hpp"
-#include "../include/ttrack_app.hpp"
-#include "../include/ttrack.hpp"
-#include "../include/utils/helpers.hpp"
-#include "../include/track/stt/stereo_tool_tracker.hpp"
-#include "../include/track/stt/monocular_tool_tracker.hpp"
+#include "../include/ttrack/headers.hpp"
+#include "../include/ttrack/ttrack_app.hpp"
+#include "../include/ttrack/ttrack.hpp"
+#include "../include/ttrack/utils/helpers.hpp"
+#include "../include/ttrack/track/stt/stereo_tool_tracker.hpp"
+#include "../include/ttrack/track/stt/monocular_tool_tracker.hpp"
 
 using namespace ttrk;
 

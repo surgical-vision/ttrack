@@ -5,7 +5,7 @@
 #include <cinder/app/App.h>
 #include <cinder/gl/Texture.h>
 
-#include "../../../include/track/model/articulated_model.hpp"
+#include "../../../include/ttrack/track/model/articulated_model.hpp"
 
 
 using namespace ttrk;

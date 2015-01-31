@@ -1,4 +1,4 @@
-#include "../include/utils/camera.hpp"
+#include "../include/ttrack/utils/camera.hpp"
 #include <boost/test/unit_test.hpp>
 
 namespace ttrk {

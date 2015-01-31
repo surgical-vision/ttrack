@@ -1,5 +1,5 @@
-#include "../../include/headers.hpp"
-#include "../../include/utils/helpers.hpp"
+#include "../../include/ttrack/headers.hpp"
+#include "../../include/ttrack/utils/helpers.hpp"
 #include <boost/filesystem.hpp>
 
 cv::Mat &ttrk::ConvertMatSingleToTriple(cv::Mat &im){

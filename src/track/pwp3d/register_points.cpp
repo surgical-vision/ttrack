@@ -6,10 +6,10 @@
 #include <opencv2/legacy/legacy.hpp>
 #include <numeric>
 
-#include "../../../include/track/pwp3d/register_points.hpp"
-#include "../../../include/utils/helpers.hpp"
-#include "../../../include/track/pwp3d/pwp3d.hpp"
-#include "../../../include/constants.hpp"
+#include "../../../include/ttrack/track/pwp3d/register_points.hpp"
+#include "../../../include/ttrack/utils/helpers.hpp"
+#include "../../../include/ttrack/track/pwp3d/pwp3d.hpp"
+#include "../../../include/ttrack/constants.hpp"
 
 using namespace ttrk;
 

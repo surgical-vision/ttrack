@@ -1,8 +1,8 @@
 #include <boost/filesystem.hpp>
 #include <cinder/app/App.h>
 
-#include "../../../include/track/pwp3d/stereo_pwp3d.hpp"
-#include "../../../include/utils/helpers.hpp"
+#include "../../../include/ttrack/track/pwp3d/stereo_pwp3d.hpp"
+#include "../../../include/ttrack/utils/helpers.hpp"
 
 using namespace ttrk;
 

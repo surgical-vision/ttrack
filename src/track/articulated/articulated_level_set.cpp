@@ -1,8 +1,8 @@
 #include <cinder/app/App.h>
 #include <numeric>
 
-#include "../../../include/track/articulated/articulated_level_set.hpp"
-#include "../../../include/constants.hpp"
+#include "../../../include/ttrack/track/articulated/articulated_level_set.hpp"
+#include "../../../include/ttrack/constants.hpp"
 
 using namespace ttrk;
 

@@ -1,7 +1,7 @@
 #include<boost/filesystem.hpp>
 
-#include "../../../include/track/pwp3d/mono_pwp3d.hpp"
-#include "../../../include/utils/helpers.hpp"
+#include "../../../include/ttrack/track/pwp3d/mono_pwp3d.hpp"
+#include "../../../include/ttrack/utils/helpers.hpp"
 
 using namespace ttrk;
 

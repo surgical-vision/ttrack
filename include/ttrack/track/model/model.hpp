@@ -41,9 +41,14 @@ namespace ttrk{
     virtual ~Model(){}
 
     /**
-    * Render the nodes that make up this model.
+    * Render the nodes that make up this model with a bound texture.
+    * @id The id of the texture. Use zero for the default target.
     */
     virtual void RenderTexture(int id);
+
+    /**
+    * Render the nodes that make up this model with a material rather than a texture.
+    */
     virtual void RenderMaterial();
     
     /**
@@ -84,8 +89,16 @@ namespace ttrk{
     */
     virtual void UpdatePose(std::vector<float> &updates); 
 
+    /**
+    * Set the pose parameters of the model.
+    * @param[in] pose The value of each degree of freedom.
+    */
     virtual void SetPose(std::vector<float> &pose);
 
+    /**
+    * Get the pose parameters of the model.
+    * @param[out] pose The value of each degree of freedom.
+    */
     virtual void GetPose(std::vector<float> &pose);
 
     /**
@@ -106,10 +119,21 @@ namespace ttrk{
 
     const Node::Ptr GetModel() const { return model_; }
 
+    /**
+    * Serialize the pose and write it to the file (see constructor).
+    */
     void WritePoseToFile();
 
+    /**
+    * Get the total number of models as a string, useful for saving etc.
+    * @return The total number of models as a string.
+    */
     static std::string GetCurrentModelCount() { std::stringstream ss; ss << total_model_count_; return ss.str(); }
 
+    /**
+    * Get a reference to the model's texture (for binding etc).
+    * @return The texture.
+    */
     ci::gl::Texture &GetTexture() { return model_->GetTexture(); }
 
   protected:

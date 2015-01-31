@@ -10,6 +10,10 @@
 
 namespace ttrk{
 
+  /**
+  * @enum ClassifierType
+  * The type of classifier we can create.
+  */
   enum ClassifierType {RF,SVM,NBAYES,HISTOGRAM, MCRF};
   
 /**
@@ -18,8 +22,7 @@ namespace ttrk{
  * class.
  *
  */
-
-  
+    
   class Detect{
     
   public:
@@ -31,7 +34,9 @@ namespace ttrk{
      */
     Detect(const std::string &classifier_path, ClassifierType classifier_type);
 
-       
+    /**
+    * Default destructor.
+    */
     ~Detect();
 
     /**
@@ -63,13 +68,24 @@ namespace ttrk{
      * @return a unique pointer to the classified frame.
      */
     boost::shared_ptr<sv::Frame> GetPtrToClassifiedFrame() const;
+    
+    /**
+    * Reset the frame, dropping any reference to it.
+    */
     void ResetHandleToFrame();
 
 
   protected:
 
+    /**
+    * Run classfication on a frame.
+    */
     void ClassifyFrame();
 
+    /**
+    * Update the detector with a new frame.
+    * @param[in] image The new frame to work with.
+    */
     void SetHandleToFrame(boost::shared_ptr<sv::Image<unsigned char,3> > image);
 
     /**

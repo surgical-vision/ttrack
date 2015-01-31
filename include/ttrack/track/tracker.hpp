@@ -56,8 +56,15 @@ namespace ttrk{
     */
     void Run(boost::shared_ptr<sv::Frame> image, const bool found);
 
+    /**
+    * Run a single localizer step.
+    */
     void RunStep();
   
+    /**
+    * Has the localizer converged.
+    * @return Localization status.
+    */
     bool HasConverged() const { return localizer_->HasConverged(); }
 
     /**
@@ -72,12 +79,30 @@ namespace ttrk{
      */
     void Tracking(const bool toggle);
 
+    /**
+    * Get the current set of tracked models.
+    * @param[out] models The models we have currently.
+    */
     void GetTrackedModels(std::vector<boost::shared_ptr<Model> > &models);
 
+    /**
+    * Add start pose from the config file.
+    * @param[in] pose The new pose to add.
+    */
     void AddStartPose(const std::vector<float> &pose) { starting_pose_HACK.push_back(pose); }
 
+    /**
+    * Get the start pose for one of the models.
+    * @param[in] idx The model index.
+    * @return The pose.
+    */
     std::vector<float> GetStartPose(const size_t idx) { return starting_pose_HACK[idx]; }
-    
+
+    /**
+    * Convert a string representation of the localizer type to the LocalizerType type.
+    * @param[in] str The string representation of the localizer type.
+    * @return The returned LocalizerType represetation.
+    */
     static LocalizerType LocalizerTypeFromString(const std::string &str);
 
   protected:

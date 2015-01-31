@@ -7,7 +7,6 @@
 #include "../../../include/ttrack/track/model/node.hpp"
 #include "../../../include/ttrack/track/model/dh_helpers.hpp"
 
-
 using namespace ttrk;
 
 Node::~Node(){ }

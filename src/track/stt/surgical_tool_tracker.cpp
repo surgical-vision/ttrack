@@ -14,6 +14,25 @@ SurgicalToolTracker::SurgicalToolTracker(const std::string &model_parameter_file
 
 }
 
+
+void SurgicalToolTracker::InitFromFile(){
+
+  std::stringstream s(Model::GetCurrentModelCount());
+  int i; s >> i;
+  std::vector<float> start_poses = GetStartPose(i - 1);
+
+  //cv::Mat rots = (cv::Mat_<float>(3, 3) <<
+  //  start_poses[0], start_poses[1], start_poses[2],
+  // start_poses[4], start_poses[5], start_poses[6],
+  //  start_poses[8], start_poses[9], start_poses[10]);
+
+  ci::Matrix33f r(start_poses[0], start_poses[4], start_poses[8], start_poses[1], start_poses[5], start_poses[9], start_poses[2], start_poses[6], start_poses[10]);
+
+  Pose ret(ci::Quatf(r), ci::Vec3f(start_poses[3], start_poses[7], start_poses[11]));
+  tm->SetBasePose(ret);
+  tm->UpdatePose(std::vector<float>({ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, start_poses[12], start_poses[13], start_poses[14] / 2, start_poses[14] / 2 }));
+}
+
 void SurgicalToolTracker::GetContours(const cv::Mat &image, std::vector<std::vector<cv::Point> > &contours) const {
 
   //threshold the image to 0 & 255 values

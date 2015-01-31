@@ -24,8 +24,6 @@ namespace ttrk {
 
   protected:
 
-    
-
   };
 
   class KalmanFilterTracker : public TemporalTracker {
@@ -39,8 +37,6 @@ namespace ttrk {
   protected:
 
     cv::KalmanFilter filter_; /**< The Kalman Filter used to track the class. */
-
-    //std::vector<float> state_vector;
 
   };
 

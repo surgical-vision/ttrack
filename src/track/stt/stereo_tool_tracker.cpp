@@ -81,7 +81,7 @@ bool StereoToolTracker::Init() {
     tracked_models_.back().model.reset(new DenavitHartenbergArticulatedModel(model_parameter_file_, results_dir_ + "/tracked_model" + Model::GetCurrentModelCount() + ".txt"));
     tracked_models_.back().temporal_tracker.reset(new KalmanFilterTracker);
 
-    Init3DPoseFromMOITensor(*connected_region, tracked_models_.back().model);//,corresponding_connected_region);
+    InitFromFile();
 
   }
 
@@ -105,22 +105,8 @@ cv::Vec2d StereoToolTracker::FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &
 
 }
 
+
 void StereoToolTracker::InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3d &center_of_mass_3d, cv::Vec3d &central_axis_3d, boost::shared_ptr<MonocularCamera> camera, boost::shared_ptr<Model> tm) {
-
-  std::stringstream s(Model::GetCurrentModelCount());
-  int i; s >> i;
-  std::vector<float> start_poses = GetStartPose(i-1);
-
-  //cv::Mat rots = (cv::Mat_<float>(3, 3) <<
-  //  start_poses[0], start_poses[1], start_poses[2],
-  // start_poses[4], start_poses[5], start_poses[6],
-  //  start_poses[8], start_poses[9], start_poses[10]);
-
-  ci::Matrix33f r(start_poses[0], start_poses[4], start_poses[8], start_poses[1], start_poses[5], start_poses[9], start_poses[2], start_poses[6], start_poses[10]);
-    
-  Pose ret(ci::Quatf(r), ci::Vec3f(start_poses[3], start_poses[7], start_poses[11]));
-  tm->SetBasePose(ret);
-  tm->UpdatePose(std::vector<float>({ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, start_poses[12], start_poses[13], start_poses[14]/2, start_poses[14]/2 }));
   
   /*
 	cv::Vec2d center_of_mass = FindCenterOfMassIn2D(connected_region);

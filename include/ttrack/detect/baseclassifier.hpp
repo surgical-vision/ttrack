@@ -41,6 +41,16 @@ namespace ttrk{
 
   public:
 
+    /**
+    * Default constructor.
+    */
+    BaseClassifier();
+
+    /**
+    * Default destructor.
+    */
+    virtual ~BaseClassifier();
+
     virtual bool ClassifyFrame(boost::shared_ptr<sv::Frame> frame);
 
     /**
@@ -72,8 +82,8 @@ namespace ttrk{
     virtual void Load(const std::string &url) = 0;
 
     /**
-     *
-     *
+     * Save the classifier.
+     * @param[in] url The url to save the file at.
      */
      virtual void Save(const std::string &url) const = 0;
 
@@ -83,17 +93,6 @@ namespace ttrk{
      * @return The classifier name as a string.
      */
     virtual std::string NameAsString() const = 0;
-
-
-    /**
-     * Convenience function for classifying a whole image at once.
-     * @param im The image to classify. This image is modified to 
-     */
-    //void PredictClass(cv::Mat &im) const;
-    //void PredictProb(cv::Mat &im, const size_t class_index) const;
-    
-    BaseClassifier();
-    virtual ~BaseClassifier();
 
   protected:
 

@@ -4,8 +4,6 @@
 
 using namespace ttrk;
 
-int NDImage::channels_ = _BGR_ + _HS_ + _O2_ + _O3_ + _XYZ_;
-
 NDImage::NDImage(const cv::Mat &image){
 
    SetUpImages(image);
@@ -23,18 +21,18 @@ void NDImage::SetUpImages(const cv::Mat &image){
   ConvertBGR2HS(image,hue,sat);
   images_.insert(NamedImage("hue", hue));
   images_.insert(NamedImage("sat", sat));
+  cv::Mat o1;
+  ConvertBGR2O1(image,o1);
+  images_.insert( NamedImage("o1",o1) );
   cv::Mat o2;
   ConvertBGR2O2(image,o2);
   images_.insert( NamedImage("o2",o2) );
-  cv::Mat o3;
-  ConvertBGR2O3(image,o3);
-  images_.insert( NamedImage("o3",o3) );
 
   float *image_data = (float *)images_new_.data;
   float *hue_data = (float *)hue.data;
   float *sat_data = (float *)sat.data;
+  float *o1_data = (float *)o1.data;
   float *o2_data = (float *)o2.data;
-  float *o3_data = (float *)o3.data;
 
   const int rows = image.rows;
   const int cols = image.cols;
@@ -45,8 +43,8 @@ void NDImage::SetUpImages(const cv::Mat &image){
       const int index2 = index*4;
       image_data[index2] = hue_data[index];
       image_data[index2+1] = sat_data[index];
-      image_data[index2+2] = o2_data[index];
-      image_data[index2+3] = o3_data[index];
+      image_data[index2+2] = o1_data[index];
+      image_data[index2+3] = o2_data[index];
     }
   }
 }
@@ -68,7 +66,7 @@ void NDImage::ConvertBGR2HS(const cv::Mat &in,cv::Mat &hue, cv::Mat &sat){
   }
 }
 
-void NDImage::ConvertBGR2O2(const cv::Mat &in,cv::Mat &out){
+void NDImage::ConvertBGR2O1(const cv::Mat &in,cv::Mat &out){
 
   const int rows = in.rows;
   const int cols = in.cols;
@@ -83,7 +81,7 @@ void NDImage::ConvertBGR2O2(const cv::Mat &in,cv::Mat &out){
 
 }
 
-void NDImage::ConvertBGR2O3(const cv::Mat &in,cv::Mat &out){
+void NDImage::ConvertBGR2O2(const cv::Mat &in,cv::Mat &out){
 
   const int rows = in.rows;
   const int cols = in.cols;

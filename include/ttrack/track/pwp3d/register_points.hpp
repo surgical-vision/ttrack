@@ -11,32 +11,8 @@ namespace ttrk {
     cv::Vec3d image_point;
     cv::Vec3d learned_point;
   };
-
-
+  
   struct Descriptor {
-    //void write(cv::FileStorage &ofs, int count) const{
-    //  cv::Mat t(3,1,CV_64FC1);
-    //  for(int i=0;i<3;i++)
-    //    t.at<double>(i) = coordinate[i];
-    //  std::stringstream ss1,ss2;
-    //  ss1 << "Coordinate" << count;
-    //  ss2 << "Descriptor" << count;
-    //  ofs << ss1.str() << t << ss2.str() << descriptor;
-    //}
-    //void read(cv::FileStorage &ifs, int count) {
-    //  std::stringstream ss1,ss2;
-    //  ss1 << "Coordinate" << count;
-    //  cv::Mat mcoord;
-    //  ifs[ss1.str()] >> mcoord;
-    //  for(int i=0;i<3;i++){
-    //    if(mcoord.type() != CV_64FC1)
-    //      coordinate[i] = mcoord.at<double>(i);
-    //    else if(mcoord.type() != CV_32FC1)
-    //      coordinate[i] = mcoord.at<float>(i);
-    //  }
-    //  ss2 << "Descriptor" << count;
-    //  ifs[ss2.str()] >> descriptor;
-    //}
     cv::Vec3f coordinate;
     cv::Mat descriptor;
     double TEST_DISTANCE;

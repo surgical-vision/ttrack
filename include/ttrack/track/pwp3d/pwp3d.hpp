@@ -1,7 +1,6 @@
 #ifndef __PWP3D_HPP__
 #define __PWD3D_HPP__
 
-//#include <ceres/ceres.h>
 #include <cinder/gl/gl.h>
 #include <cinder/gl/Fbo.h>
 #include <cinder/gl/GlslProg.h>
@@ -12,7 +11,6 @@
 #include "../../../deps/image/image/image.hpp"
 #include "../pose.hpp"
 #include "../../utils/plotter.hpp"
-#include "../../utils/UI.hpp"
 
 namespace ttrk {
 
@@ -113,7 +111,7 @@ namespace ttrk {
     * @return The output value.
     */
     float DeltaFunction(const float x) const {
-      return (1.0f / 2.0f / HEAVYSIDE_WIDTH*(1.0f + cos(float(M_PI)*x / heaviside_width_)));
+      return (1.0f / 2.0f / HEAVYSIDE_WIDTH*(1.0f + cos(float(M_PI)*x / HEAVYSIDE_WIDTH)));
     }
     
     /**
@@ -123,16 +121,37 @@ namespace ttrk {
     void SetFrame(boost::shared_ptr<sv::Frame> frame) { frame_ = frame; }
   
     /**
-    * 
+    * Test for convergence (currently just uses number of steps).
+    * @return Whether convergence has been reached.
     */
     virtual bool HasConverged() const { return curr_step == NUM_STEPS; }
 
+    /**
+    * Accessor for the heaviside function.
+    * @return The heaviside width.
+    */
     int GetHeavisideWidth() const { return HEAVYSIDE_WIDTH; }
 
+    /**
+    * Get the error value for the current image.
+    * @param[in] classification_image The classification image for this frame.
+    * @param[in] row_idx The x-pixel coordinate for this image.
+    * @param[in] col_idx The y-pixel coordinate for this image.
+    * @param[in] sdf_value The signed distance function value for this pixel.
+    * @param[in] target_label The target label for multiclass classification.
+    * @return The error value.
+    */
     float GetErrorValue(const cv::Mat &classification_image, const int row_idx, const int col_idx, const float sdf_value, const int target_label) const;
 
   protected:
 
+    /**
+    * Compute the areas of the foreground and background regions.
+    * @param[in] sdf The signed distance function image.
+    * @param[out] fg_area The foreground area.
+    * @param[out] bg_area The background area.
+    * @param[out] contour_area The area of non-zero (or non-ludicrously-small) values from the signed distance function.
+    */
     void ComputeAreas(cv::Mat &sdf, size_t &fg_area, size_t &bg_area, size_t &contour_area);
 
     boost::shared_ptr<sv::Frame> frame_; /**< Just a reference to the current frame, probably not really useful, may be removed. */
@@ -144,13 +163,9 @@ namespace ttrk {
     ci::gl::GlslProg back_depth_and_contour_;  /**< Shader to compute the back depth buffer and contour. */
 
     size_t NUM_STEPS;  /**< Number of step for the optimization. */
-    size_t curr_step;
+    size_t curr_step; /**< Current step in the optimization. */
     
     int HEAVYSIDE_WIDTH;  /**< Width of the heaviside blurring function. */
-
-    UIControllableVariable<int> heaviside_width_;
-
-
 
   };
 

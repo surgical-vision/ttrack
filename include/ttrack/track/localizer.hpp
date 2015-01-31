@@ -6,10 +6,12 @@
 #include "model/model.hpp"
 #include "../../../deps/image/image/image.hpp"
 
-
-
 namespace ttrk {
 
+  /**
+  * @class Localizer
+  * @brief An abstract class to represent pose localization algorithms.
+  */
   class Localizer {
 
   public:
@@ -27,6 +29,10 @@ namespace ttrk {
     */
     virtual ~Localizer() {}
 
+    /**
+    * Test for convergence.
+    * @return True for converged, false otherwise.
+    */
     virtual bool HasConverged() const = 0;
 
   };

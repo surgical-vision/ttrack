@@ -40,13 +40,15 @@ namespace ttrk {
     
   protected:
 
+    virtual void SetHandleToFrame(boost::shared_ptr<sv::Frame> image);
+
     void ShiftToTip(const cv::Vec3d &central_axis, cv::Vec3d &center_of_mass); 
 
     void InitIn2D(const std::vector<cv::Vec2i> &connected_region, cv::Vec3d &center_of_mass_3d, cv::Vec3d &central_axis_3d, boost::shared_ptr<MonocularCamera> cam, boost::shared_ptr<Model> tm);
 
     cv::Vec2d FindCenterOfMassIn2D(const std::vector<cv::Vec2i> &connected_region) const;
 
-    virtual void SetHandleToFrame(boost::shared_ptr<sv::Frame> image);
+
 
     void Init3DPoseFromMOITensor(const std::vector<cv::Vec2i> &region, boost::shared_ptr<Model> tracked_model);
 

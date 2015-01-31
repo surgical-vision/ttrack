@@ -9,7 +9,7 @@ namespace ttrk{
 
 
   //struct LevelSetResidual {
-
+  //test
   //  LevelSetResidual(int r_idx, int c_idx) : r_(r_idx), c_(c_idx) { }
 
   //  template <typename T>

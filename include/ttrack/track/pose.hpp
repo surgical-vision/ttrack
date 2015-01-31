@@ -63,10 +63,33 @@ namespace ttrk {
     */
     operator ci::Matrix44f() const;
 
+    /**
+    * Transform a point into the pose coordinates.
+    * @param[in] point_in_world_coordinates The point it the world coordinates.
+    * @return The point the pose coordinates.
+    */
     ci::Vec3f TransformPoint(const ci::Vec3f &point_in_world_coordinates) const;
+
+    /**
+    * Transform a point into the pose coordinates.
+    * @param[in] point_in_world_coordinates The point it the world coordinates.
+    * @return The point the pose coordinates.
+    */
     cv::Vec3f TransformPoint(const cv::Vec3f &point_in_world_coordinates) const;
+
+    /**
+    * Transform a point into the world coordinates from pose coordinates.
+    * @param[in] point_in_model_coordinates The point it the pose/model coordinates.
+    * @return The point the world coordinates.
+    */
     cv::Vec3f InverseTransformPoint(const cv::Vec3f &point_in_model_coordinates) const;
 
+    /**
+    * Write pose to stream. Useful for debugging etc.
+    * @param[in] os The stream to write to.
+    * @param[in] pose The pose to write to the stream.
+    * @return The stream reference for operator concatenation.
+    */
     friend std::ostream &operator<<(std::ostream &os, const Pose &pose);
 
   protected:

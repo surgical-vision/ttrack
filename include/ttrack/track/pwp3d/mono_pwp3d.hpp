@@ -6,21 +6,31 @@
 
 namespace ttrk {
 
+  // WARNING - THIS CLASS HAS NOT BEEN TESTED VERY WELL AS I DON'T REALLY WORK WITH MONO CAMERAS. sorry :(
+
+  /**
+  * @class MonoPWP3D
+  * @brief A class to do PWP3D type tracking with monocular cameras.
+  */
   class MonoPWP3D : public PWP3D {
 
   public: 
 
+    /**
+    * Default constructor.
+    * @param[in] camera The camera we are using for projection etc.
+    */
     MonoPWP3D(boost::shared_ptr<MonocularCamera> camera);
 
+    /**
+    * Specialization of actual frame pose locationization for monocular.
+    * @param[in] model The model we are tracking. Pose is updated inside this loop.
+    */
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
 
   protected:
 
-    //void GetRenderedModelAtPose(const boost::shared_ptr<Model> model, cv::Mat &canvas, cv::Mat &z_buffer, cv::Mat &binary_image) const;
-
-    //virtual void GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection);
-
-    boost::shared_ptr<MonocularCamera> camera_;
+    boost::shared_ptr<MonocularCamera> camera_; /**< Representation of the camera. */
 
   };
 

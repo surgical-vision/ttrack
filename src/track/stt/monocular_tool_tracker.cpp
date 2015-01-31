@@ -24,9 +24,12 @@ bool MonocularToolTracker::Init(){
   for(auto connected_region = connected_regions.cbegin(); connected_region != connected_regions.end(); connected_region++){
 
     TemporalTrackedModel new_tracker;
-    tracked_models_.push_back( new_tracker ); 
+    tracked_models_.push_back(new_tracker);
+
     tracked_models_.back().model.reset(new DenavitHartenbergArticulatedModel(model_parameter_file_, results_dir_ + "/tracked_model" + Model::GetCurrentModelCount() + ".txt"));
-    Init2DPoseFromMOITensor(*connected_region,tracked_models_.back().model);
+    tracked_models_.back().temporal_tracker.reset(new KalmanFilterTracker);
+
+    InitFromFile();
 
   }
 
@@ -93,14 +96,6 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
   cv::Vec2d top = cv::Vec2d(center_of_mass) + (radius)*horizontal_axis;
   cv::Vec2d bottom = cv::Vec2d(center_of_mass) - (radius)*horizontal_axis;
 
-#ifdef CHECK_INIT
-  cv::Mat debug_frame = frame_->GetImageROI().clone();
-  cv::circle(debug_frame,cv::Point(point),4,cv::Scalar(255,0,0),2);
-  cv::circle(debug_frame,cv::Point(center_of_mass),4,cv::Scalar(0,0,255),2);
-  cv::line(debug_frame,cv::Point(point),cv::Point(center_of_mass),cv::Scalar(255,255,0),2);
-  cv::imwrite("debug/init_axis.png",debug_frame);
-#endif
-
   cv::Point3d top_unp = camera_->UnProjectPoint(cv::Point2i(top));
   cv::Point3d bottom_unp = camera_->UnProjectPoint(cv::Point2i(bottom));
   cv::Point3d center_unp = camera_->UnProjectPoint(cv::Point2i(center_of_mass));
@@ -108,35 +103,8 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
   double abs_diff = sqrt( static_cast<double>( diff[0]*diff[0] + diff[1]*diff[1] + diff[2]*diff[2] ) );
 
   
-  double z = 80;// = (2*tracked_models_.back().PtrToModel()->Radius())/abs_diff;
+  double z = (2*tracked_models_.back().PtrToModel()->Radius())/abs_diff;
   
-  throw(std::runtime_error("whatever\n"));
-
-  //cv::Vec3d unp_point = cv::Vec3d(camera_->UnProjectPoint(cv::Point2d(point)));
-  //cv::Vec3d center_of_mass_3d = cv::Vec3d(camera_->UnProjectPoint(cv::Point2d(center_of_mass)));
-
-
-  //cv::Vec3d central_axis_3d = (z*unp_point) - (z*center_of_mass_3d);
-  //cv::Vec3d ca3d_norm; cv::normalize(central_axis_3d,ca3d_norm);
-  //central_axis_3d = ca3d_norm;
-  //central_axis_3d[2] = 0.45;
-  //center_of_mass_3d = center_of_mass_3d * z;
-
-  //tracked_model.SetPose(center_of_mass_3d,central_axis_3d);
-
-  //cv::Point2i tip = camera_->ProjectPointToPixel(tracked_model.CurrentPose().Transform(tracked_model.PtrToModel()->GetTrackedPoint()));
-
-  //while( !cv::Rect(0,0,frame_->GetImageROI().cols,frame_->GetImageROI().rows).contains(tip) ){
-  //  z *= 1.1;
-  //  center_of_mass_3d = cv::Vec3d(camera_->UnProjectPoint(cv::Point2d(center_of_mass))) * z;
-  //  tracked_model.SetPose(center_of_mass_3d,central_axis_3d);
-  //  tip = camera_->ProjectPointToPixel(tracked_model.CurrentPose().Transform(tracked_model.PtrToModel()->GetTrackedPoint()));
-  //}
-
-  //ShiftCenter(center_of_mass,central_axis, 2 * l2_distance(cv::Vec2d(tip.x,tip.y),cv::Vec2d(center_of_mass))); // 2 * to turn center to tip distnace to whole distance
-  //center_of_mass_3d = cv::Vec3d(camera_->UnProjectPoint(cv::Point2d(center_of_mass)));
-  //center_of_mass_3d = center_of_mass_3d * z;
-  //tracked_model.SetPose(center_of_mass_3d,central_axis_3d);
 
 } 
 

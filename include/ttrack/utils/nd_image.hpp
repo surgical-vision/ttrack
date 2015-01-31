@@ -6,6 +6,8 @@
 #include "../headers.hpp"
 #include "../constants.hpp"
 
+const int channels = 4; /**< Number of channels we are using. */
+
 namespace ttrk{
 
   class NDImage{
@@ -59,28 +61,47 @@ namespace ttrk{
      * @return The 1 x N matrix.
      */
     cv::Mat GetPixelData(const int r, const int c) const;
-    cv::Mat GetPixelData__old(const int r, const int c) const;
      
-    static int channels_;
-
+    /**
+    * Get the colorspace image from the set.
+    * @param[in] The name of the image.
+    * @return The colorspace image.
+    */
     cv::Mat GetImage(const std::string &name) { return images_[name]; }
 
   protected:
 
+    /**
+    * Convert the BGR image to Hue and Saturation.
+    * @param[in] in The input image.
+    * @param[out] hue The hue image.
+    * @param[out] sat The saturation image.
+    */
     void ConvertBGR2HS(const cv::Mat &in,cv::Mat &hue,cv::Mat &sat);
+    
+    /**
+    * Convert the BGR image to Opponent 1 color space.
+    * @param[in] in The input image.
+    * @param[out] out The opponent 1 image.
+    */
+    void ConvertBGR2O1(const cv::Mat &in,cv::Mat &out);
+
+    /**
+    * Convert the BGR image to Opponent 2 color space.
+    * @param[in] in The input image.
+    * @param[out] out The opponent 2 image.
+    */
     void ConvertBGR2O2(const cv::Mat &in,cv::Mat &out);
-    void ConvertBGR2O3(const cv::Mat &in,cv::Mat &out);
 
     /**
      * Parse the current rgb image and generate the rich feature space from this.
      * @param image A BGR image.
      */
-    void SetUpImages__old(const cv::Mat &image);
     void SetUpImages(const cv::Mat &image);
   
-    int rows_;
-    int cols_;
-    bool bad_;
+    int rows_; /**< The number of rows in the image. */
+    int cols_; /**< The number of cols in the image. */
+    bool bad_; /**< Sanity test for the image. */
  
     std::map<std::string,cv::Mat> images_;
     cv::Mat images_new_;
@@ -100,7 +121,7 @@ namespace ttrk{
 
   inline cv::Mat NDImage::GetPixelData(const int r, const int c) const {
 
-    float *data = (float *)images_new_.data + (r*cols_+c)*channels_;
+    float *data = (float *)images_new_.data + (r*cols_ + c)*channels;
     cv::Mat return_pix(1,4,CV_32FC1,data);
 
     return return_pix;

@@ -7,21 +7,25 @@
 #include "register_points.hpp"
 
 namespace ttrk {
-
-  enum CameraEye { LEFT = 0, RIGHT = 1 , INV = 2};
-  inline CameraEye operator++(CameraEye &e, int){
-    const CameraEye eye = e;
-    const int i = static_cast<int>(e);
-    e = static_cast<CameraEye>(i+1);
-    return eye;
-  }
-  
+ 
+  /**
+  * @class StereoPWP3D
+  * @brief A class to do PWP3D type tracking with stereo cameras and point registration. 
+  */
   class StereoPWP3D : public PWP3D {
 
   public: 
 
+    /**
+    * Default constructor.
+    * @param[in] camera The camera we are using for projection etc.
+    */
     StereoPWP3D(boost::shared_ptr<StereoCamera> camera);
 
+    /**
+    * Specialization of actual frame pose locationization for stereo.
+    * @param[in] model The model we are tracking. Pose is updated inside this loop.
+    */
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
     
     virtual bool HasConverged() const { 
@@ -43,33 +47,40 @@ namespace ttrk {
   protected:   
     
     void clearup(){
-      ci::app::console() << "errors = [";
-      for (auto i = 0; i < errors_.size(); ++i){
-        ci::app::console() << errors_[i] << ", ";
-      }
-      ci::app::console() << "]\n" << std::endl;
       errors_.clear();
     }
 
+    /**
+    * Specialization of the jacobian computation each eye.
+    * @param[in] classification_image The classification image to use.
+    * @param[in] current_model The current model to use.
+    * @param[in] camera The camera model for this eye.
+    * @param[out] jacobian The jacobian for this eye.
+    * @param[out] hessian_approximation The hessian approximation (if using approximate Newton (~Gauss Newton) optimization).
+    * @param[out] error The error for this frame.
+    */
     virtual void ComputeJacobiansForEye(const cv::Mat &classification_image, boost::shared_ptr<Model> current_model, boost::shared_ptr<MonocularCamera> camera, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx, float &error);
 
+    /**
+    * Specialization of the jacobian computation for the right eye (the pose parameters we target are w.r.t. the left eye).
+    * @param[in] region_agreement The region agreement for this pixel.
+    * @param[in] sdf The sdf value.
+    * @param[in] dsdf_dx The sdf value.
+    * @param[in] dsdf_dy The sdf value.
+    * @param[in] fx The x focal length of the camera.
+    * @param[in] fy The y focal length of the camera.
+    * @param[in] front_intersection_point The front model intersection point (i.e. intersection closest to the camera).
+    * @param[in] back_intersection_point The back model intersection point (i.e. intersection furthest from the camera).
+    * @param[in] model The model we are tracking.
+    * @param[out] jacobian The jacobian we are updating.
+    */
     void UpdateJacobianRightEye(const float region_agreement, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_point, const boost::shared_ptr<const Model> model, cv::Matx<float, 1, 7> &jacobian);
 
-    //void GetRenderedModelAtPose(const boost::shared_ptr<Model> current_model, cv::Mat &left_canvas, cv::Mat &left_z_buffer, cv::Mat &left_binary_image, cv::Mat &right_canvas, cv::Mat &right_z_buffer, cv::Mat &right_binary_image) const;
-    //virtual void GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection);
-    //void GetFastDOFDerivsLeft(const Pose &pose, double *pose_derivs, double *intersection);
-    //void GetFastDOFDerivsRight(const Pose &pose, double *pose_derivs, double *intersection);
-    
-    //bool SwapEye(Pose &pose);
-    //void SwapToRight(Pose &pose);
-    //void SwapToLeft(Pose &pose);
+    boost::shared_ptr<StereoCamera> stereo_camera_; /**< Representation of the camera. */
 
-    CameraEye current_eye_;
-    boost::shared_ptr<StereoCamera> stereo_camera_;
+    std::vector<float> errors_; /**< The current set of errors. */
 
-    std::vector<float> errors_;
-
-    boost::shared_ptr<PointRegistration> point_registration_;
+    boost::shared_ptr<PointRegistration> point_registration_; /**< Computes the point registration error. */
 
   };
 

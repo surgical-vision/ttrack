@@ -36,20 +36,36 @@ namespace ttrk{
     
   protected:   
 
-    void ShiftCenter(cv::Vec2d &center_of_mass,const cv::Vec2d &central_axis, double length) const;
-
     /**
     * Find connected regions in the classified image. Each blob is a candidate for a surgical instrument. 
+    * @param[in] frame The connected pixel blob in the image.
     * @param[out] connected_regions All of the connected regions found in the image, sorted in descenting order by the number of pixels that make up the region.
     * @return The success of finding the blobs. 
     */
     bool FindConnectedRegions(const cv::Mat &frame, std::vector<std::vector<cv::Vec2i> >&connected_regions);
-    bool ThresholdImage(const cv::Mat &image, std::vector<std::vector<cv::Point> > &contours) const;
-    void FindSingleRegionFromContour(const std::vector<cv::Point> &contour,std::vector<cv::Vec2i> &connected_region) const;
+    
+    /**
+    * Get a single connected region from a contour.
+    * @param[in] contour The contour in the image.
+    * @param[out] connected_region The blob in the iamge it surrounds.
+    */
+    void FindSingleRegionFromContour(const std::vector<cv::Point> &contour, std::vector<cv::Vec2i> &connected_region) const;
+
+    /**
+    * Get the contours (connected blobs) in the image for initialization.
+    * @param[in] image The image we are searching for contours.
+    * @param[out] contours The contours we found in the image.
+    */
     void GetContours(const cv::Mat &image, std::vector<std::vector<cv::Point> > &contours) const;
+
+    /**
+    * Initialize the pose of the tool from a configuation file.
+    */
+    void InitFromFile();
+
+    void ShiftCenter(cv::Vec2d &center_of_mass, const cv::Vec2d &central_axis, double length) const;
+    bool ThresholdImage(const cv::Mat &image, std::vector<std::vector<cv::Point> > &contours) const;
     void CheckCentralAxisDirection(const cv::Vec2d &center_of_mass, cv::Vec2d &horizontal_axis) const;
-
-
     template<typename T>
     T GetCenter(const std::vector<T> &contour) const ;
 

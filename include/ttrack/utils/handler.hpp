@@ -6,11 +6,17 @@
 #include <string>
 
 #include "../headers.hpp"
-#include "../../deps/image/image/image.hpp"
+#include "../../../deps/image/image/image.hpp"
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/highgui/highgui_c.h>
 
 namespace ttrk{
+
+  /**
+  * @class Handler
+  * @brief An abstract interface to video and image loaders.
+  * Allows stereo video, monocular video or sequences of images to be used as the input.
+  */
 
   class Handler{
 

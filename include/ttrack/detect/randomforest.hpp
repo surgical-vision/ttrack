@@ -57,7 +57,7 @@ namespace ttrk{
 
   protected:
 
-    CvRTrees forest_;
+    CvRTrees forest_; /**< The internal representation of a random forest. */
 
   };
    

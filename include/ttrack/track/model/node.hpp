@@ -201,8 +201,16 @@ namespace ttrk {
     */
     virtual ci::Vec3f GetAxis() const = 0;
 
+    /**
+    * Get the derivative of the transform from parent to child w.r.t the transform parameter.
+    * @return The jacobian matrix.
+    */
     virtual ci::Matrix44f GetDerivativeTransfromFromParent() const = 0;
 
+    /**
+    * Accessor for the node's texture.
+    * @return The texture.
+    */
     ci::gl::Texture &GetTexture() { return texture_; }
 
   protected:
@@ -268,6 +276,13 @@ namespace ttrk {
     */
     virtual ci::Matrix44f GetRelativeTransformToRoot() const;
 
+    /**
+    * Get the jacobian for a point w.r.t a parameter of the arm in the world coordinates.
+    * @param[in] world_transform The transform from world to chosen joint coordinates.
+    * @param[in] point The point in joint coordinates.
+    * @param[in] target_frame_idx The index of the joint we want to use.
+    * @param[out] jacobian The jacobian we want to use.
+    */
     virtual void ComputeJacobianForPoint(const ci::Matrix44f &world_transform, const ci::Vec3f &point, const int target_frame_idx, std::vector<ci::Vec3f> &jacobian) const;
 
     void ComputeJacobianForHead(const ci::Matrix44f &world_transform, const ci::Vec3f &point, std::vector<ci::Vec3f> &jacobian) const;
@@ -323,6 +338,10 @@ namespace ttrk {
     */
     virtual ci::Vec3f GetAxis() const { return ci::Vec3f::zAxis(); }
 
+    /**
+    * Get the derivative of the transform from parent to child w.r.t the transform parameter.
+    * @return The jacobian matrix.
+    */
     virtual ci::Matrix44f GetDerivativeTransfromFromParent() const;
 
 

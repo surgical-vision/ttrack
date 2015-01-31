@@ -10,7 +10,7 @@
 
 namespace ttrk{
 
-  enum ClassifierType {RF,SVM,NBAYES};
+  enum ClassifierType {RF,SVM,NBAYES,HISTOGRAM, MCRF};
   
 /**
  * @class Detect

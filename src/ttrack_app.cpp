@@ -53,8 +53,8 @@ void TTrackApp::SetupFromConfig(const std::string &path){
 
   }
 
-  //throwing errors here? did you remember the zero at element 15 of start pose?
-  ttrack.SetUp(root_dir + "/" + reader.get_element("trackable"), 
+  //throwing errors here? did you remember the zero at element 15 of start pose or alteranatively set the trackable dir to absolute in the cfg file
+  ttrack.SetUp(reader.get_element("trackable"), 
                root_dir + "/" + reader.get_element("camera-config"), 
                root_dir + "/" + reader.get_element("classifier-config"), 
                reader.get_element("output-dir"), 
@@ -217,19 +217,19 @@ void TTrackApp::drawEye(boost::shared_ptr<ci::gl::Fbo> framebuffer, ci::gl::Text
     
   cam->SetupCameraForDrawing();
 
-  //shader_.bind();
-  //shader_.uniform("tex0", 0);
+  shader_.bind();
+  shader_.uniform("tex0", 0);
 
   for (size_t i = 0; i < models_to_draw_.size(); ++i){
-    glEnable(GL_BLEND);
-    gl::color(1.0f, 1.0f, 1.0f, 0.8f); // Full Brightness, 50% Alpha ( NEW )
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-    models_to_draw_[i]->Render(false);
-    glDisable(GL_BLEND);
-    gl::color(1.0f, 1.0f, 1.0f, 1.0f);
+    //glEnable(GL_BLEND);
+    //gl::color(1.0f, 1.0f, 1.0f, 0.8f); // Full Brightness, 50% Alpha ( NEW )
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    models_to_draw_[i]->RenderTexture(0);
+    //glDisable(GL_BLEND);
+    //gl::color(1.0f, 1.0f, 1.0f, 1.0f);
   }
 
-  //shader_.unbind();
+  shader_.unbind();
 
   cam->ShutDownCameraAfterDrawing();
 
@@ -421,9 +421,14 @@ void TTrackApp::draw3D(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture
   
   cam->SetupLight();
 
+  shader_.bind();
+  shader_.uniform("tex0", 0);   
+
   for (size_t i = 0; i < models_to_draw_.size(); ++i){
-    models_to_draw_[i]->Render(false);
+    models_to_draw_[i]->RenderTexture(0);
   }
+
+  shader_.unbind();
 
   cam->ShutDownCameraAfterDrawing();
 

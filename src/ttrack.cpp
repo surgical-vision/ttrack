@@ -119,7 +119,6 @@ void TTrack::GetUpdate(std::vector<boost::shared_ptr<Model> > &models, const boo
 
 }
 
-
 void TTrack::RunThreaded(){
 
   detector_->Run( GetPtrToNewFrame() ); 
@@ -140,20 +139,30 @@ LocalizerType TTrack::LocalizerTypeFromString(const std::string &str){
 
   if (str == "PWP3D" || str == "pwp3d") return LocalizerType::PWP3DLocalizer;
   else if (str == "Articulated" || str == "articulated") return LocalizerType::ArticulatedLevelSetLocalizer;
+  else if (str == "CompLS") return LocalizerType::ComponentLS;
   else throw std::runtime_error("");
 
 }
 
 ClassifierType TTrack::ClassifierFromString(const std::string &classifier_name){
 
-  if (classifier_name == "RF" || classifier_name == "rf"){
+  std::string classifier_name_lower = classifier_name;
+  std::transform(classifier_name.begin(), classifier_name.end(), classifier_name_lower.begin(), ::tolower);
+
+  if (classifier_name_lower == "rf"){
     return ClassifierType::RF;
   }
-  else if (classifier_name == "SVM" || classifier_name == "svm"){
+  else if (classifier_name_lower == "mcrf"){
+    return ClassifierType::MCRF;
+  }
+  else if (classifier_name_lower == "svm"){
     return ClassifierType::SVM;
   }
-  else if (classifier_name == "NB" || classifier_name == "nb"){
+  else if (classifier_name_lower == "nb"){
     return ClassifierType::NBAYES;
+  }
+  else if (classifier_name_lower == "histogram"){
+    return ClassifierType::HISTOGRAM;
   }
   else{
     throw std::runtime_error("Error, bad classifier type");

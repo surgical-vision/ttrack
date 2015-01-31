@@ -8,11 +8,32 @@
 
 #include "../headers.hpp"
 
-//#include <math.h>
+#include <cinder/Quaternion.h>
 
 namespace ttrk{
 
+  template<typename Type> 
+  inline cv::Vec<Type,3> CiToCv(const ci::Vec3<Type> &v){ 
+    cv::Vec<Type, 3> r;
+    for (int i = 0; i < 3; i++){
+      r[i] = v[i];
+    }
+    return r; 
+  }
+
+  template<typename Type>
+  inline ci::Vec3<Type> CvToCi(const cv::Vec<Type, 3> &v){
+    ci::Vec3<Type> r;
+    for (int i = 0; i < 3; i++){
+      r[i] = v[i];
+    }
+    return r;
+  }
+
+  ci::Vec3f ConvertQuatToEulers(const ci::Quatf &quat);
   
+  ci::Quatf ConvertEulersToQuat(const ci::Vec3f &euler_angles);
+
   inline double l2_norm(const cv::Mat &a, const cv::Mat &b) {
 
     double ret = 0.0;

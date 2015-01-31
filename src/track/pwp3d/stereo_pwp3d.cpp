@@ -6,8 +6,16 @@
 
 using namespace ttrk;
 
+#define GRAD_DESCENT
+
+StereoPWP3D::StereoPWP3D(boost::shared_ptr<StereoCamera> camera) : PWP3D(camera->left_eye()->Width(), camera->left_eye()->Height()), stereo_camera_(camera) {
+
+  LoadShaders();
+
+}
+
 void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
-   
+
   if (curr_step == NUM_STEPS) {
     curr_step = 0;
   }
@@ -16,6 +24,8 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
 
   frame_ = frame;
 
+  std::vector<float> jacs(7, 0);
+
   //for prototyping the articulated jacs, we use a cv::Matx. this will be flattened for faster estimation later
   cv::Matx<float, 7, 1> jacobian = cv::Matx<float, 7, 1>::zeros();
   cv::Matx<float, 7, 7> hessian_approx = cv::Matx<float, 7, 7>::zeros();
@@ -23,124 +33,68 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
   auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
 
   float left_error = 0.0f, right_error = 0.0f;
-  //ComputeJacobiansForEye(stereo_frame->GetLeftClassificationMap(), current_model, stereo_camera_->left_eye(), jacobian, hessian_approx, left_error);
+
+  ComputeJacobiansForEye(stereo_frame->GetLeftClassificationMap(), current_model, stereo_camera_->left_eye(), jacobian, hessian_approx, left_error);
+
+#ifdef GRAD_DESCENT
+  cv::Vec3f translation(jacobian(0), jacobian(1), jacobian(2));
+  const float max_translation = 0.04; //mm
+  const float translation_mag = std::sqrt(translation.dot(translation));
+  translation = (max_translation / translation_mag) * translation;
+
+  cv::Vec4f rotation(jacobian(3), jacobian(4), jacobian(5), jacobian(6));
+  const float max_rotation = 0.002;
+  const float rotation_mag = std::sqrt(rotation.dot(rotation));
+  rotation = (max_rotation / rotation_mag) * rotation;
+
+  for (int i = 0; i < 3; ++i)
+    jacs[i] = -translation[i];
+  for (int j = 0; j < 4; ++j){
+    jacs[3 + j] = -rotation[j];
+  }
+  current_model->UpdatePose(jacs);
+#else
+
+  jacobian = hessian_approx.inv() * jacobian;
+  for (size_t v = 0; v < 7; ++v){
+    jacs[v] = -jacobian(v);
+  }
+  current_model->UpdatePose(jacs);
+
+#endif
+
+  jacobian = cv::Matx<float, 7, 1>::zeros();
+  hessian_approx = cv::Matx<float, 7, 7>::zeros();
   ComputeJacobiansForEye(stereo_frame->GetRightClassificationMap(), current_model, stereo_camera_->right_eye(), jacobian, hessian_approx, right_error);
+  
+#ifdef GRAD_DESCENT
+  translation = cv::Vec3f(jacobian(0), jacobian(1), jacobian(2));
+  translation = (max_translation / translation_mag) * translation;
+
+  rotation = cv::Vec4f(jacobian(3), jacobian(4), jacobian(5), jacobian(6));
+  rotation = (max_rotation / rotation_mag) * rotation;
+
+  for (int i = 0; i < 3; ++i)
+    jacs[i] = -translation[i];
+  for (int j = 0; j < 4; ++j){
+    jacs[3 + j] = -rotation[j];
+  }
+  current_model->UpdatePose(jacs);
+
+#else
+  
+  jacobian = hessian_approx.inv() * jacobian;
+  for (size_t v = 0; v < 7; ++v){
+    jacs[v] = -jacobian(v);
+  }
+  current_model->UpdatePose(jacs);
+
+#endif
 
   UpdateWithErrorValue(left_error + right_error);
   errors_.push_back(left_error + right_error);
 
-  ci::app::console() << "Jacobian before  = [";
-  for (size_t v = 0; v < 7; ++v){
-    ci::app::console() << jacobian(v) << ",";
-  }
-  ci::app::console() << "]" << std::endl;
 
-
-  jacobian = hessian_approx.inv() * jacobian;
-  
-  //float t_scale = std::max(std::abs(jacobian(0)), std::abs(jacobian(1)));
-  //t_scale = std::max(t_scale, std::abs(jacobian(2)));
-  //float r_scale = std::max(std::abs(jacobian(3)), std::abs(jacobian(4)));
-  //r_scale = std::max(r_scale, std::abs(jacobian(5)));
-  //r_scale = std::max(r_scale, std::abs(jacobian(6)));
-  //jacobian(0) *= (0.03 / t_scale);
-  //jacobian(1) *= (0.03 / t_scale);
-  //jacobian(2) *= (0.05 / t_scale);
-  //jacobian(3) *= (0.0013 / r_scale);
-  //jacobian(4) *= (0.0013 / r_scale);
-  //jacobian(5) *= (0.0013 / r_scale);
-  //jacobian(6) *= (0.0013 / r_scale);
-  
-  //jacobian(0) *= 0;// (0.0025f);
-  //jacobian(1) = -0;//(0.0025f);
-  //jacobian(2) *= 0;//(0.0025f);
-  //jacobian(3) *= 0;//(0.000006f);
-  //jacobian(4) *= 0;//(0.000006f);
-  //jacobian(5) *= 0;//(0.000006f);
-  //jacobian(6) *= 0;//(0.000006f);
-
-
-  std::vector<float> jacs(7, 0);
-
-  for (size_t v = 0; v < 7; ++v){
-    jacs[v] = -jacobian(v);
-  }
-
-  ci::app::console() << "Jacobian = [";
-  for (size_t v = 0; v < jacs.size(); ++v){
-    ci::app::console() << jacs[v] << ",";
-  }
-  ci::app::console() << "]" << std::endl;
-
-  current_model->UpdatePose(jacs);
-
-}
-
-void StereoPWP3D::UpdateJacobianRightEye(const float region_agreement, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_point, const boost::shared_ptr<const Model> model, cv::Matx<float, 1, 7> &jacobian){
-
-  //
-  const float z_inv_sq_front = 1.0f / (front_intersection_point[2] * front_intersection_point[2]);
-  const float z_inv_sq_back = 1.0f / (back_intersection_point[2] * back_intersection_point[2]);
-
-  ////compute the derivatives w.r.t. left camera pose (this is because we move model w.r.t. left eye)
-  ci::Vec3f front_intersection_left_eye = stereo_camera_->TransformPointFromRightToLeft(front_intersection_point);
-  ci::Vec3f back_intersection_left_eye = stereo_camera_->TransformPointFromRightToLeft(front_intersection_point);
-  std::vector<ci::Vec3f> front_jacs = model->ComputeJacobian(front_intersection_left_eye, 0);
-  std::vector<ci::Vec3f> back_jacs = model->ComputeJacobian(back_intersection_left_eye, 0);
-
-  //for each degree of freedom, compute the jacobian update
-  for (size_t dof = 0; dof < model->GetBasePose().GetNumDofs(); ++dof){
-
-    const ci::Vec3f &dof_derivatives_front = front_jacs[dof];
-    const ci::Vec3f &dof_derivatives_back = back_jacs[dof];
-
-    //actually compute the cost function equation for the degree of freedom in question
-      
-    float deriv_x =
-      ((stereo_camera_->ciExtrinsicRotation().at(0, 0)*(front_intersection_point[2] * dof_derivatives_front[0])) +
-      (stereo_camera_->ciExtrinsicRotation().at(0, 1)*(front_intersection_point[2] * dof_derivatives_front[1])) +
-      (stereo_camera_->ciExtrinsicRotation().at(0, 2)*(front_intersection_point[2] * dof_derivatives_front[2])))
-      -
-      ((stereo_camera_->ciExtrinsicRotation().at(2, 0)*(front_intersection_point[0] * dof_derivatives_front[0])) +
-      (stereo_camera_->ciExtrinsicRotation().at(2, 1)*(front_intersection_point[0] * dof_derivatives_front[1])) +
-      (stereo_camera_->ciExtrinsicRotation().at(2, 2)*(front_intersection_point[0] * dof_derivatives_front[2])));
-
-    deriv_x = (dsdf_dx * fx * z_inv_sq_front) * deriv_x;
-
-
-    float deriv_y =
-      ((stereo_camera_->ciExtrinsicRotation().at(1, 0)*(front_intersection_point[2] * dof_derivatives_front[0])) +
-      (stereo_camera_->ciExtrinsicRotation().at(1, 1)*(front_intersection_point[2] * dof_derivatives_front[1])) +
-      (stereo_camera_->ciExtrinsicRotation().at(1, 2)*(front_intersection_point[2] * dof_derivatives_front[2])))
-      -
-      ((stereo_camera_->ciExtrinsicRotation().at(2, 0)*(front_intersection_point[1] * dof_derivatives_front[0])) +
-      (stereo_camera_->ciExtrinsicRotation().at(2, 1)*(front_intersection_point[1] * dof_derivatives_front[1])) +
-      (stereo_camera_->ciExtrinsicRotation().at(2, 2)*(front_intersection_point[1] * dof_derivatives_front[2])));
-
-    deriv_y = (dsdf_dy * fy * z_inv_sq_front) * deriv_y;
-
-    float pval = DeltaFunction(sdf) * (deriv_x + deriv_y);
-
-    jacobian(dof) += region_agreement * pval;
-
-  }
-
-}
-
-void ComputeAreas(cv::Mat &sdf, size_t &fg_area, size_t &bg_area, size_t &contour_area){
-
-  fg_area = bg_area = 0;
-
-  for (auto r = 0; r < sdf.rows; ++r){
-    for (auto c = 0; c < sdf.rows; ++c){
-
-      if (sdf.at<float>(r, c) <= float(3) - 1e-1 && sdf.at<float>(r, c) >= -float(3) + 1e-1)
-        contour_area++;
-
-      fg_area += sdf.at<float>(r, c);
-      bg_area += (1.0f - sdf.at<float>(r, c));
-    }
-  }
 
 }
 
@@ -150,15 +104,19 @@ void StereoPWP3D::ComputeJacobiansForEye(const cv::Mat &classification_image, bo
 
   ProcessSDFAndIntersectionImage(current_model, camera, sdf_image, front_intersection_image, back_intersection_image);
 
+  if (!point_registration_){
+    point_registration_.reset(new PointRegistration(stereo_camera_->left_eye()));
+    point_registration_->ComputeDescriptorsForPointTracking(frame_, front_intersection_image, current_model->GetBasePose());
+  }
+
   size_t fg_area, bg_area = 0;
   size_t contour_area = 0;
   ComputeAreas(sdf_image, fg_area, bg_area, contour_area);
 
-  ci::app::console() << "Contour area = " << contour_area << std::endl;
-
   float *sdf_im_data = (float *)sdf_image.data;
   float *front_intersection_data = (float *)front_intersection_image.data;
   float *back_intersection_data = (float *)back_intersection_image.data;
+
 
   for (int r = 5; r < classification_image.rows - 5; ++r){
     for (int c = 5; c < classification_image.cols - 5; ++c){
@@ -168,10 +126,10 @@ void StereoPWP3D::ComputeJacobiansForEye(const cv::Mat &classification_image, bo
       if (sdf_im_data[i] <= float(HEAVYSIDE_WIDTH) - 1e-1 && sdf_im_data[i] >= -float(HEAVYSIDE_WIDTH) + 1e-1){
 
         //-log(H * P_f + (1-H) * P_b)
-        error += GetErrorValue(r, c, sdf_im_data[i], 1.0f);
+        error += GetErrorValue(classification_image, r, c, sdf_im_data[i], 1.0f);
 
         //P_f - P_b / (H * P_f + (1 - H) * P_b)
-        const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i], fg_area, bg_area);
+        const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i]);
 
         int shifted_i = i;
 
@@ -201,50 +159,112 @@ void StereoPWP3D::ComputeJacobiansForEye(const cv::Mat &classification_image, bo
 
         jacobian += jacs.t();
         hessian_approx += (jacs.t() * jacs);
-        
+
       }
     }
   }
 
+  //ci::app::console() << "Before Jacobian = [";
+  //for (int i = 0; i < 7; ++i)
+  //  ci::app::console() << jacobian(i) << ", ";
+  //ci::app::console() << "]" << std::endl;
+
+  std::vector<MatchedPair> pnp_pairs;
+  point_registration_->FindPointCorrespondencesWithPose(frame_, current_model, current_model->GetBasePose(), pnp_pairs);
+
+  cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
+
+  for (auto pnp = pnp_pairs.begin(); pnp != pnp_pairs.end(); pnp++){
+    std::vector<float> point_jacobian = point_registration_->GetPointDerivative(pnp->learned_point, cv::Point2f(pnp->image_point[0], pnp->image_point[1]), current_model->GetBasePose());
+      
+    for (int i = 0; i < jacobian.rows; ++i){
+      points_jacobian(i) += 0.0005 * point_jacobian[i];
+    }
+
+    jacobian += points_jacobian.t();
+    hessian_approx += (points_jacobian.t() * points_jacobian);
+  }
+
+  //ci::app::console() << "After Jacobian = [";
+  //for (int i = 0; i < 7; ++i)
+  //  ci::app::console() << jacobian(i) << ", ";
+  //ci::app::console() << "]" << std::endl;
+
 }
 
-//
-//
-//cv::Mat left_to_right_projection(left_front_intersection_image.size(), CV_32FC3), right_to_left_projection(left_front_intersection_image.size(), CV_32FC3);
-//cv::Mat left_to_right_projected(left_front_intersection_image.size(), CV_32FC1), right_to_left_projected(left_front_intersection_image.size(), CV_32FC1);
-//
-//for (int r = 0; r < left_front_intersection_image.rows; ++r){
-//  for (int c = 0; c < left_back_intersection_image.cols; ++c){
-//
-//    const cv::Vec3f &left_point = left_front_intersection_image.at<cv::Vec3f>(r, c);
-//    const cv::Vec3f &right_point = right_front_intersection_image.at<cv::Vec3f>(r, c);
-//
-//    const ci::Vec3f right_point_in_left = stereo_camera_->TransformPointFromRightToLeft(ci::Vec3f(right_point[0], right_point[1], right_point[2]));
-//    const ci::Vec3f right_back_again = stereo_camera_->TransformPointFromLeftToRight(right_point_in_left);
-//    const ci::Vec3f right_point2(right_point[0], right_point[1], right_point[2]);
-//    const float right_dist = (right_point2 - right_back_again).dot((right_point2 - right_back_again));
-//
-//    const ci::Vec3f left_point_in_right = stereo_camera_->TransformPointFromLeftToRight(ci::Vec3f(left_point[0], left_point[1], left_point[2]));
-//    const ci::Vec3f left_back_again = stereo_camera_->TransformPointFromRightToLeft(left_point_in_right);
-//    const ci::Vec3f left_point2(left_point[0], left_point[1], left_point[2]);
-//    const float left_dist = (left_point2 - left_back_again).dot((left_point2 - left_back_again));
-//
-//    ci::app::console() << "Left dist = " << left_dist << " and Right dist = " << right_dist << std::endl;
-//
-//    left_to_right_projection.at<cv::Vec3f>(r, c) = cv::Vec3f(left_point_in_right[0], left_point_in_right[1], left_point_in_right[2]);
-//    right_to_left_projection.at<cv::Vec3f>(r, c) = cv::Vec3f(right_point_in_left[0], right_point_in_left[1], right_point_in_left[2]);
-//
-//    auto projected_from_right = stereo_camera_->right_eye()->ProjectPointToPixel(left_point_in_right);
-//    bool x_good = projected_from_right.x >= 0 && projected_from_right.x < left_to_right_projected.cols;
-//    bool y_good = projected_from_right.y >= 0 && projected_from_right.y < left_to_right_projected.rows;
-//    if (x_good && y_good)
-//      left_to_right_projected.at<float>(projected_from_right.y, projected_from_right.x) = left_point_in_right[2];
-//
-//    auto projected_from_left = stereo_camera_->left_eye()->ProjectPointToPixel(right_point_in_left);
-//    x_good = projected_from_left.x >= 0 && projected_from_left.x < left_to_right_projected.cols;
-//    y_good = projected_from_left.y >= 0 && projected_from_left.y < left_to_right_projected.rows;
-//    if (x_good && y_good)
-//      right_to_left_projected.at<float>(projected_from_left.y, projected_from_left.x) = right_point_in_left[2];
-//
-//  }
-//}
+void StereoPWP3D::UpdateJacobianRightEye(const float region_agreement, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_point, const boost::shared_ptr<const Model> model, cv::Matx<float, 1, 7> &jacobian){
+
+  //
+  const float z_inv_sq_front = 1.0f / (front_intersection_point[2] * front_intersection_point[2]);
+  const float z_inv_sq_back = 1.0f / (back_intersection_point[2] * back_intersection_point[2]);
+
+  ////compute the derivatives w.r.t. left camera pose (this is because we move model w.r.t. left eye)
+  ci::Vec3f front_intersection_left_eye = stereo_camera_->TransformPointFromRightToLeft(front_intersection_point);
+  ci::Vec3f back_intersection_left_eye = stereo_camera_->TransformPointFromRightToLeft(front_intersection_point);
+  std::vector<ci::Vec3f> front_jacs = model->ComputeJacobian(front_intersection_left_eye, 0);
+  std::vector<ci::Vec3f> back_jacs = model->ComputeJacobian(back_intersection_left_eye, 0);
+
+  const ci::Matrix33f inverse_rotation = stereo_camera_->ciExtrinsicRotation();
+
+  //for each degree of freedom, compute the jacobian update
+  for (size_t dof = 0; dof < model->GetBasePose().GetNumDofs(); ++dof){
+
+    const ci::Vec3f &dof_derivatives_front = front_jacs[dof];
+    const ci::Vec3f &dof_derivatives_back = back_jacs[dof];
+
+    if (sdf == 0.0f){
+
+      const float deriv_x_front =
+        front_intersection_point[2] * ((inverse_rotation.at(0, 0) * dof_derivatives_front[0]) + (inverse_rotation.at(0, 1) * dof_derivatives_front[1]) + (inverse_rotation.at(0, 2) * dof_derivatives_front[2]))
+        -
+        front_intersection_point[0] * ((inverse_rotation.at(2, 0) * dof_derivatives_front[0]) + (inverse_rotation.at(2, 1) * dof_derivatives_front[1]) + (inverse_rotation.at(2, 2) * dof_derivatives_front[2]));
+
+      const float deriv_x = dsdf_dx * (fx * z_inv_sq_front * deriv_x_front);
+
+      const float deriv_y_front =
+        front_intersection_point[2] * ((inverse_rotation.at(1, 0) * dof_derivatives_front[0]) + (inverse_rotation.at(1, 1) * dof_derivatives_front[1]) + (inverse_rotation.at(1, 2) * dof_derivatives_front[2]))
+        -
+        front_intersection_point[1] * ((inverse_rotation.at(2, 0) * dof_derivatives_front[0]) + (inverse_rotation.at(2, 1) * dof_derivatives_front[1]) + (inverse_rotation.at(2, 2) * dof_derivatives_front[2]));
+
+      const float deriv_y = dsdf_dy * (fy * z_inv_sq_front * deriv_y_front);
+
+      //pval += dsdf_dy * (fy * (z_inv_sq_front*((front_intersection_point[2] * dof_derivatives_front[1]) - (front_intersection_point[1] * dof_derivatives_front[2]))) + fy * (z_inv_sq_back*((back_intersection_point[2] * dof_derivatives_back[1]) - (back_intersection_point[1] * dof_derivatives_back[2]))));
+      const float pval = DeltaFunction(sdf) * (deriv_x + deriv_y);
+
+      jacobian(dof) = region_agreement * pval;
+    }
+
+    else{
+
+      const float deriv_x_front =
+        front_intersection_point[2] * ((inverse_rotation.at(0, 0) * dof_derivatives_front[0]) + (inverse_rotation.at(0, 1) * dof_derivatives_front[1]) + (inverse_rotation.at(0, 2) * dof_derivatives_front[2]))
+        -
+        front_intersection_point[0] * ((inverse_rotation.at(2, 0) * dof_derivatives_front[0]) + (inverse_rotation.at(2, 1) * dof_derivatives_front[1]) + (inverse_rotation.at(2, 2) * dof_derivatives_front[2]));
+
+      const float deriv_x_back =
+        back_intersection_point[2] * ((inverse_rotation.at(0, 0) * dof_derivatives_back[0]) + (inverse_rotation.at(0, 1) * dof_derivatives_back[1]) + (inverse_rotation.at(0, 2) * dof_derivatives_back[2]))
+        -
+        back_intersection_point[0] * ((inverse_rotation.at(2, 0) * dof_derivatives_back[0]) + (inverse_rotation.at(2, 1) * dof_derivatives_back[1]) + (inverse_rotation.at(2, 2) * dof_derivatives_back[2]));
+
+      const float deriv_x = dsdf_dx * ((fx * z_inv_sq_front * deriv_x_front) + (fx * z_inv_sq_back * deriv_x_back));
+
+      const float deriv_y_front =
+        front_intersection_point[2] * ((inverse_rotation.at(1, 0) * dof_derivatives_front[0]) + (inverse_rotation.at(1, 1) * dof_derivatives_front[1]) + (inverse_rotation.at(1, 2) * dof_derivatives_front[2]))
+        -
+        front_intersection_point[1] * ((inverse_rotation.at(2, 0) * dof_derivatives_front[0]) + (inverse_rotation.at(2, 1) * dof_derivatives_front[1]) + (inverse_rotation.at(2, 2) * dof_derivatives_front[2]));
+
+      const float deriv_y_back =
+        back_intersection_point[2] * ((inverse_rotation.at(1, 0) * dof_derivatives_back[0]) + (inverse_rotation.at(1, 1) * dof_derivatives_back[1]) + (inverse_rotation.at(1, 2) * dof_derivatives_back[2]))
+        -
+        back_intersection_point[1] * ((inverse_rotation.at(2, 0) * dof_derivatives_back[0]) + (inverse_rotation.at(2, 1) * dof_derivatives_back[1]) + (inverse_rotation.at(2, 2) * dof_derivatives_back[2]));
+      const float deriv_y = dsdf_dy * ((fy * z_inv_sq_front * deriv_y_front) + (fy * z_inv_sq_back * deriv_y_back));
+
+      //pval += dsdf_dy * (fy * (z_inv_sq_front*((front_intersection_point[2] * dof_derivatives_front[1]) - (front_intersection_point[1] * dof_derivatives_front[2]))) + fy * (z_inv_sq_back*((back_intersection_point[2] * dof_derivatives_back[1]) - (back_intersection_point[1] * dof_derivatives_back[2]))));
+      const float pval = DeltaFunction(sdf) * (deriv_x + deriv_y);
+
+      jacobian(dof) = region_agreement * pval;
+
+    }
+  }
+
+}

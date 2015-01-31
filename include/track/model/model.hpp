@@ -43,7 +43,8 @@ namespace ttrk{
     /**
     * Render the nodes that make up this model.
     */
-    virtual void Render(bool bind_texture = false);
+    virtual void RenderTexture(int id);
+    virtual void RenderMaterial();
     
     /**
     * Get the principal axis of the Model. This may not be entirely meaningful for all shapes.
@@ -108,6 +109,8 @@ namespace ttrk{
     void WritePoseToFile();
 
     static std::string GetCurrentModelCount() { std::stringstream ss; ss << total_model_count_; return ss.str(); }
+
+    ci::gl::Texture &GetTexture() { return model_->GetTexture(); }
 
   protected:
 

@@ -4,9 +4,6 @@ using namespace ttrk;
 
 size_t RandomForest::PredictClass(const cv::Mat &pixel) const {
 
-  float pred = forest_.predict(pixel);
-  size_t pred_ = (size_t)forest_.predict(pixel);
-
   return (size_t)forest_.predict(pixel);
 
 }

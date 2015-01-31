@@ -63,6 +63,8 @@ namespace ttrk{
      
     static int channels_;
 
+    cv::Mat GetImage(const std::string &name) { return images_[name]; }
+
   protected:
 
     void ConvertBGR2HS(const cv::Mat &in,cv::Mat &hue,cv::Mat &sat);

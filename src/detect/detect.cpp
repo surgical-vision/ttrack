@@ -7,7 +7,8 @@
 #include "../../include/utils/helpers.hpp"
 #include "../../include/detect/randomforest.hpp"
 #include "../../include/detect/supportvectormachine.hpp"
-
+#include "../../include/detect/histogram.hpp"
+#include "../../include/detect/multiclass_randomforest.hpp"
 
 using namespace ttrk;
 
@@ -42,46 +43,48 @@ void Detect::Run(boost::shared_ptr<sv::Frame> image){
 
 void Detect::ClassifyFrame(){
 
-  if (frame_ == nullptr) return;
+  found_ = classifier_->ClassifyFrame(frame_);
 
-  assert(Loaded());
-  assert(frame_->GetImageROI().type() == CV_8UC3);
+  //if (frame_ == nullptr) return;
 
-  cv::Mat whole_frame = frame_->GetImage();
-  NDImage nd_image(whole_frame);
-  const int rows = whole_frame.rows;
-  const int cols = whole_frame.cols;
+  //assert(Loaded());
+  //assert(frame_->GetImageROI().type() == CV_8UC3);
 
-  static size_t frame_count = 0;
+  //cv::Mat whole_frame = frame_->GetImage();
+  //NDImage nd_image(whole_frame);
+  //const int rows = whole_frame.rows;
+  //const int cols = whole_frame.cols;
 
-  size_t pixel_count = 0;
+  //static size_t frame_count = 0;
+
+  //size_t pixel_count = 0;
 
   //unsigned char *frame_data = (unsigned char *)frame_->PtrToClassificationMap()->data;
-  float *frame_data = (float *)frame_->GetClassificationMap().data;
-  for(int r=0;r<rows;r++){
-    for(int c=0;c<cols;c++){
+  //float *frame_data = (float *)frame_->GetClassificationMap().data;
+  //for(int r=0;r<rows;r++){
+  //  for(int c=0;c<cols;c++){
 
-      const int index = r*cols + c;
+  //    const int index = r*cols + c;
 
-      cv::Mat pix = nd_image.GetPixelData(r,c);
+  //    cv::Mat pix = nd_image.GetPixelData(r,c);
 
-      float hue = pix.at<float>(0);
-      float sat = pix.at<float>(1);
-      float o1 = pix.at<float>(2);
-      float o2 = pix.at<float>(3);
+  //    float hue = pix.at<float>(0);
+  //    float sat = pix.at<float>(1);
+  //    float o1 = pix.at<float>(2);
+  //    float o2 = pix.at<float>(3);
 
-      //const unsigned char prediction = (unsigned char)255*classifier_->PredictClass(pix);
-      const float prediction = (const float)classifier_->PredictProb(pix, 1); //need to be between 0 - 255 for later processing stage
+  //    const unsigned char prediction = (unsigned char)255*classifier_->PredictClass(pix);
+  //    const float prediction = (const float)classifier_->PredictProb(pix, 1); //need to be between 0 - 255 for later processing stage
 
-      frame_data[index] = prediction;
+  //    frame_data[index] = prediction;
 
-      pixel_count += prediction > 0;
+  //    pixel_count += prediction > 0;
 
-    }
-  }
+  //  }
+  //}
 
-  if(pixel_count > (0.02*rows*cols)) found_ = true;
-  else found_ = false;
+  //if(pixel_count > (0.02*rows*cols)) found_ = true;
+  //else found_ = false;
 
 }
 
@@ -114,9 +117,11 @@ void Detect::SetupClassifier(const ClassifierType type){
 
     switch(type){
 
+      case MCRF: classifier_ = boost::static_pointer_cast<BaseClassifier, MultiClassRandomForest>(boost::shared_ptr<MultiClassRandomForest>(new MultiClassRandomForest(3))); break;
       case RF: classifier_ = boost::static_pointer_cast<BaseClassifier, RandomForest>(boost::shared_ptr<RandomForest>(new RandomForest)); break;
       case SVM: classifier_ = boost::static_pointer_cast<BaseClassifier, SupportVectorMachine>(boost::shared_ptr<SupportVectorMachine>(new SupportVectorMachine )); break;
       case NBAYES: throw("NBAYES not supported"); //NOT YET IMPLEMENTED!
+      case HISTOGRAM: classifier_ = boost::static_pointer_cast<BaseClassifier, Histogram>(boost::shared_ptr<Histogram>(new Histogram)); break;
       default: classifier_ = boost::static_pointer_cast<BaseClassifier, RandomForest>(boost::shared_ptr<RandomForest>(new RandomForest)); break;
 
     }

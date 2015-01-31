@@ -3,6 +3,7 @@
 #include "../../headers.hpp"
 #include "../pose.hpp"
 #include "../../utils/camera.hpp"
+#include "../../track/model/model.hpp"
 
 namespace ttrk {
 
@@ -13,32 +14,30 @@ namespace ttrk {
 
 
   struct Descriptor {
-    void write(cv::FileStorage &ofs, int count) const{
-      cv::Mat t(3,1,CV_64FC1);
-      for(int i=0;i<3;i++)
-        t.at<double>(i) = coordinate[i];
-      std::stringstream ss1,ss2;
-      ss1 << "Coordinate" << count;
-      ss2 << "Descriptor" << count;
-      ofs << ss1.str() << t << ss2.str() << descriptor;
-    }
-    void read(cv::FileStorage &ifs, int count) {
-      std::stringstream ss1,ss2;
-      ss1 << "Coordinate" << count;
-      cv::Mat mcoord;
-      ifs[ss1.str()] >> mcoord;
-
-      for(int i=0;i<3;i++){
-        if(mcoord.type() != CV_64FC1)
-          coordinate[i] = mcoord.at<double>(i);
-        else if(mcoord.type() != CV_32FC1)
-          coordinate[i] = mcoord.at<float>(i);
-      }
-
-      ss2 << "Descriptor" << count;
-      ifs[ss2.str()] >> descriptor;
-    }
-    cv::Vec3d coordinate;
+    //void write(cv::FileStorage &ofs, int count) const{
+    //  cv::Mat t(3,1,CV_64FC1);
+    //  for(int i=0;i<3;i++)
+    //    t.at<double>(i) = coordinate[i];
+    //  std::stringstream ss1,ss2;
+    //  ss1 << "Coordinate" << count;
+    //  ss2 << "Descriptor" << count;
+    //  ofs << ss1.str() << t << ss2.str() << descriptor;
+    //}
+    //void read(cv::FileStorage &ifs, int count) {
+    //  std::stringstream ss1,ss2;
+    //  ss1 << "Coordinate" << count;
+    //  cv::Mat mcoord;
+    //  ifs[ss1.str()] >> mcoord;
+    //  for(int i=0;i<3;i++){
+    //    if(mcoord.type() != CV_64FC1)
+    //      coordinate[i] = mcoord.at<double>(i);
+    //    else if(mcoord.type() != CV_32FC1)
+    //      coordinate[i] = mcoord.at<float>(i);
+    //  }
+    //  ss2 << "Descriptor" << count;
+    //  ifs[ss2.str()] >> descriptor;
+    //}
+    cv::Vec3f coordinate;
     cv::Mat descriptor;
     double TEST_DISTANCE;
   }; 
@@ -51,8 +50,8 @@ namespace ttrk {
 
 
   const int NUM_DESCRIPTOR = 120;
-  const int MATCHING_DISTANCE_THRESHOLD = 25;
-  const double DESCRIPTOR_SIMILARITY_THRESHOLD = 240.0;
+  const int MATCHING_DISTANCE_THRESHOLD = 10;
+  const double DESCRIPTOR_SIMILARITY_THRESHOLD = 200.0;
 
   class PointRegistration {
 
@@ -60,25 +59,27 @@ namespace ttrk {
 
     PointRegistration(boost::shared_ptr<MonocularCamera> camera);
 
-    //void GetPointDerivative(const cv::Point3d &world, cv::Point2d &image, const Pose &pose, PoseDerivs &pd) const ;
+    std::vector<float> GetPointDerivative(const cv::Point3d &world, cv::Point2f &image, const Pose &pose) const ;
     
-    //void FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, boost::shared_ptr<Model> model, const Pose &pose, cv::Mat &save_image);    
+    void FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, boost::shared_ptr<Model> model, const Pose &pose, std::vector<MatchedPair> &pnp);    
   
-    //void ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame> frame, boost::shared_ptr<Model> current_model, const cv::Mat &shape_image );
+    void ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame> frame, cv::Mat point_map, const Pose &pose);
 
   protected:
 
-    //void GetDescriptors(const cv::Mat &frame, std::vector<Descriptor> &ds);
-    //void MatchDescriptorsToModel(std::vector<Descriptor> &d1, std::vector<Descriptor> &d2, std::vector<DescriptorMatches> &dm);
-    //void ReadKeypoints(const std::string filename, std::vector<Descriptor> &descriptors, int count);
-    //
-    //void FindCorrespondingMatches(std::vector<Descriptor> &right_ds, std::vector<DescriptorMatches> &matched_ds);
+    void GetDescriptors(const cv::Mat &frame, std::vector<Descriptor> &ds);
+    void MatchDescriptorsToModel(std::vector<Descriptor> &d1, std::vector<Descriptor> &d2, std::vector<DescriptorMatches> &dm);
+    void ReadKeypoints(const std::string filename, std::vector<Descriptor> &descriptors, int count);
+    
+    void FindCorrespondingMatches(std::vector<Descriptor> &right_ds, std::vector<DescriptorMatches> &matched_ds);
 
-    //void FindPointCorrespondences(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &matched_pair);
+    void FindPointCorrespondences(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &matched_pair);
     
   private:
 
     boost::shared_ptr<MonocularCamera> camera_;
+
+    std::vector<Descriptor> model_points;
 
   };
 

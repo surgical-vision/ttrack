@@ -39,7 +39,7 @@ namespace ttrk {
     /**
     * Load the shaders we use to compute the projections and contours for the pose estimation.
     */
-    virtual void LoadShaders();
+    void LoadShaders();
 
     /**
     * Construct a signed distance function and the intersection images which hold the 3D points in camera space which each point on the image plane projects to. Points outside the contour project to GL_FAR.
@@ -49,7 +49,7 @@ namespace ttrk {
     * @param[out] front_intersection_image A 32 bit 3 channel image of the first 3D point that a ray cast from a pixel inside the contour projects to on the model (in camera coordinates).
     * @param[out] front_intersection_image A 32 bit 3 channel image of the last 3D point that a ray cast from a pixel inside the contour projects to on the model (in camera coordinates).
     */
-    void ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &sdf_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image);
+    virtual void ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &sdf_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image);
     
     /**
     * Render the mesh in the current pose getting the depth of the each pixel and the outer contour.
@@ -59,16 +59,16 @@ namespace ttrk {
     * @param[out] back_depth A 32 bit single channel image of the depth of the last 3D point that a ray cast from a pixel inside the contour projects to on the model (in camera coordinates).
     * @param[out] contour An 8 bit single channel image which is 0 at every point that is not on the outer contour of the projected mesh and 255 where it is.
     */
-    void RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_depth, cv::Mat &back_depth, cv::Mat &contour);
+    virtual void RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_depth, cv::Mat &back_depth, cv::Mat &contour);
 
     /**
     * Compute the first part of the derivative, getting a weight for each contribution based on the region agreements.
+    * @param[in] classification_image The classification image
     * @param[in] r The row index of the current pixel.
     * @param[in] c The column index of the current pixel.
     * @param[in] sdf The signed distance function image.
     */
-    virtual float GetRegionAgreement(const int r, const int c, const float sdf);
-    float GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf);
+    virtual float GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf) const;
     
     /** 
     * Update the jacobian by computing the second part of the derivative and multiplying by the region agreement.
@@ -129,9 +129,11 @@ namespace ttrk {
 
     int GetHeavisideWidth() const { return HEAVYSIDE_WIDTH; }
 
-    float GetErrorValue(const int row_idx, const int col_idx, const float sdf_value, const int target_label) const;
+    float GetErrorValue(const cv::Mat &classification_image, const int row_idx, const int col_idx, const float sdf_value, const int target_label) const;
 
   protected:
+
+    void ComputeAreas(cv::Mat &sdf, size_t &fg_area, size_t &bg_area, size_t &contour_area);
 
     boost::shared_ptr<sv::Frame> frame_; /**< Just a reference to the current frame, probably not really useful, may be removed. */
     

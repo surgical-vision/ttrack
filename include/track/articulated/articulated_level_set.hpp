@@ -39,7 +39,7 @@ namespace ttrk {
     * @param[in] sdf_value The signed distance function value for the current 
     * @param[in] target_label The target label for the pixel, needed to do one-vs-all classification.
     */
-    float GetRegionAgreement(const int row_idx, const int col_idx, const float sdf_value, const int target_label) const;
+    virtual float GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf, const int target_label) const;
 
     void UpdateArticulatedJacobian(const float region_agreement, const int frame_idx, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_image, const boost::shared_ptr<const Model> model, cv::Matx<float, 1, PRECISION> &jacobian);
 

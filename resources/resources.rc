@@ -1,0 +1,67 @@
+// Microsoft Visual C++ generated resource script.
+//
+
+#include "resource.h"
+#include <windows.h>
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United Kingdom) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// GLSL
+//
+
+128                     GLSL                    "./../resources/phong_frag.glsl"
+129                     GLSL                    "./../resources/phong_vert.glsl"
+130                     GLSL                    "./../resources/pwp3d_front_depth_frag.glsl"
+131                     GLSL                    "./../resources/pwp3d_front_depth_vert.glsl"
+132                     GLSL                    "./../resources/pwp3d_back_depth_contour_frag.glsl"
+133                     GLSL                    "./../resources/pwp3d_back_depth_contour_vert.glsl"
+134			GLSL			"./../resources/comp_ls_back_depth_contour_frag.glsl"
+135			GLSL			"./../resources/comp_ls_back_depth_contour_vert.glsl"
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (United Kingdom) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

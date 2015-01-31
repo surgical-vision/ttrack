@@ -1,40 +1,92 @@
-#include "../headers/ttrack.hpp"
-#include "../headers/utils/helpers.hpp"
 #include <boost/ref.hpp>
 #include <vector>
 #include <cassert>
 #include <string>
-#include "../headers/track/stt/stereo_tool_tracker.hpp"
-#include "../headers/track/stt/monocular_tool_tracker.hpp"
-#include "../headers/utils/result_plotter.hpp"
+#include <boost/interprocess/sync/scoped_lock.hpp>
+#include <boost/system/error_code.hpp>
+
+#include "../include/ttrack/headers.hpp"
+#include "../include/ttrack/ttrack_app.hpp"
+#include "../include/ttrack/ttrack.hpp"
+#include "../include/ttrack/utils/helpers.hpp"
+#include "../include/ttrack/track/stt/stereo_tool_tracker.hpp"
+#include "../include/ttrack/track/stt/monocular_tool_tracker.hpp"
 
 using namespace ttrk;
 
-void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, const CameraType camera_type){
+void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const std::string &left_media_file, const std::string &right_media_file, const std::vector< std::vector<float> > &starting_poses){
   
-  if(!boost::filesystem::exists(boost::filesystem::path(root_dir)))
-    throw std::runtime_error("Error, directory " + root_dir + " does not exist.\n");
+  SetUp(model_parameter_file, camera_calibration_file, classifier_path, results_dir, localizer_type, classifier_type, CameraType::STEREO, starting_poses);
+  tracker_->Tracking(false); 
+  handler_.reset(new StereoVideoHandler(left_media_file,right_media_file, results_dir_ + "/tracked_video.avi"));
+
+}
+
+std::vector<float> TTrack::PoseFromString(const std::string &pose_as_string){
+
+  std::vector<float> string_as_floats;
+  std::stringstream ss(pose_as_string);
+  
+  float x;
+  while (ss >> x){
+    string_as_floats.push_back(x);  
+  }
+
+  if (string_as_floats.size() != 15) throw std::runtime_error("Error, size is bad!");
+
+  //cv::Mat rots = (cv::Mat_<double>(3, 3) <<
+  //  string_as_floats[0], string_as_floats[1], string_as_floats[2],
+  //  string_as_floats[4], string_as_floats[5], string_as_floats[6],
+  //  string_as_floats[8], string_as_floats[9], string_as_floats[10]);
+
+  //Pose ret(sv::Quaternion(rots), ci::Vec3f(string_as_floats[3], string_as_floats[7], string_as_floats[11]));
+  return string_as_floats;
+
+}
+
+void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const std::string &media_file, const std::vector< std::vector<float> >&starting_poses){
+
+  SetUp(model_parameter_file, camera_calibration_file, classifier_path, results_dir, localizer_type, classifier_type, CameraType::MONOCULAR, starting_poses);
+  tracker_->Tracking(false); 
+  if(IS_VIDEO(boost::filesystem::path(media_file).extension().string()))
+    handler_.reset(new VideoHandler(media_file, results_dir_ + "/tracked_video.avi"));
+  else if(boost::filesystem::is_directory(boost::filesystem::path(media_file)))
+    handler_.reset(new ImageHandler(media_file, results_dir_ + "/tracked_frames/"));
+  else
+    throw(boost::filesystem::filesystem_error("Error, wrong file type\n",boost::system::error_code()));  
+
+}
+
+void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, ClassifierType classifier_type, const CameraType camera_type, const std::vector< std::vector<float> > &starting_poses){
   
   camera_type_ = camera_type;
+  results_dir_ = results_dir;
 
+  int n = 0;
+  while (boost::filesystem::is_directory(results_dir_)){
+    std::stringstream res; 
+    res << results_dir << "run_" << n;
+    results_dir_ = res.str();
+    ++n; 
+  }
+  
+  boost::filesystem::create_directories(results_dir_);
+  
   try{
   
-    //set the shared_ptr containing the directory where data is
-    root_dir_.reset(new std::string(root_dir)); 
-
     //if train type is NA, training is skipped
-    detector_.reset(new Detect(root_dir_,classifier_type));
+    detector_.reset(new Detect(classifier_path,classifier_type));
     
     //load the correct type of tool tracker
     switch(camera_type_){
     case STEREO:
-      tracker_.reset(new StereoToolTracker(2.97,50,*root_dir_ + "/config" , "camera.xml"));
+      tracker_.reset(new StereoToolTracker(model_parameter_file,camera_calibration_file, results_dir_, localizer_type));
       break;
     case MONOCULAR:
-      tracker_.reset(new MonocularToolTracker(2.97,50,*root_dir_ + "/config", "mono_camera.xml"));
+      tracker_.reset(new MonocularToolTracker(model_parameter_file, camera_calibration_file, results_dir_, localizer_type));
       break;
     default:
-      tracker_.reset(new StereoToolTracker(2.97,50,*root_dir_ + "/config", "camera.xml"));
+      tracker_.reset(new StereoToolTracker(model_parameter_file, camera_calibration_file, results_dir_, localizer_type));
       break;
     }
 
@@ -48,14 +100,29 @@ void TTrack::SetUp(std::string root_dir, const ClassifierType classifier_type, c
     SAFE_EXIT();
   }
   
+  for (auto &starting_pose : starting_poses)
+    tracker_->AddStartPose(starting_pose);
+
 }
 
-void TTrack::Run(){
+void TTrack::GetUpdate(std::vector<boost::shared_ptr<Model> > &models, const bool force_new_frame){
 
-  (*detector_)( GetPtrToNewFrame() ); 
+  if (tracker_->HasConverged() || force_new_frame){
+    detector_->Run(GetPtrToNewFrame());
+    tracker_->Run(GetPtrToClassifiedFrame(), detector_->Found());
+  }
+  else{
+    tracker_->RunStep();
+  }
+
+  tracker_->GetTrackedModels(models);
+
+}
+
+void TTrack::RunThreaded(){
+
+  detector_->Run( GetPtrToNewFrame() ); 
   
-  int count = 0;
-
   while( !handler_->Done() ){ //signals done by reading an empty image file either from a video or a directory of images
     
     boost::thread TrackThread(boost::ref(*(tracker_.get())), GetPtrToClassifiedFrame() , detector_->Found() );
@@ -63,108 +130,86 @@ void TTrack::Run(){
 
     TrackThread.join();
     DetectThread.join();
-    
-    SaveFrame();
-    SaveResults();
-    
-    if (count > 400) break;
-    count++;
-
+ 
   }
   
 }  
 
-void TTrack::RunVideo(const std::string &video_url){
-  
-  tracker_->Tracking(false); 
-  handler_.reset(new VideoHandler(*root_dir_ + video_url, *root_dir_ + "/tracked_video.avi"));
-  Run();
- 
-}
+LocalizerType TTrack::LocalizerTypeFromString(const std::string &str){
 
-void TTrack::RunVideo(const std::string &left_video_url,const std::string &right_video_url){
-  tracker_->Tracking(false); 
-  handler_.reset(new StereoVideoHandler(*root_dir_ + left_video_url, *root_dir_ + right_video_url, *root_dir_ + "/tracked_video.avi"));
-  Run();
-}
-
-void TTrack::RunImages(const std::string &image_url){
-
-  tracker_->Tracking(false);
-  handler_.reset(new ImageHandler(*root_dir_ + image_url, *root_dir_ + "/tracked_frames/"));
-  Run();
+  if (str == "PWP3D" || str == "pwp3d") return LocalizerType::PWP3DLocalizer;
+  else if (str == "Articulated" || str == "articulated") return LocalizerType::ArticulatedLevelSetLocalizer;
+  else if (str == "CompLS") return LocalizerType::ComponentLS;
+  else throw std::runtime_error("");
 
 }
 
+ClassifierType TTrack::ClassifierFromString(const std::string &classifier_name){
 
-void TTrack::SaveFrame(){
+  std::string classifier_name_lower = classifier_name;
+  std::transform(classifier_name.begin(), classifier_name.end(), classifier_name_lower.begin(), ::tolower);
 
-  boost::shared_ptr<sv::Frame> frame = tracker_->GetPtrToFinishedFrame();
+  if (classifier_name_lower == "rf"){
+    return ClassifierType::RF;
+  }
+  else if (classifier_name_lower == "mcrf"){
+    return ClassifierType::MCRF;
+  }
+  else if (classifier_name_lower == "svm"){
+    return ClassifierType::SVM;
+  }
+  else if (classifier_name_lower == "nb"){
+    return ClassifierType::NBAYES;
+  }
+  else if (classifier_name_lower == "histogram"){
+    return ClassifierType::HISTOGRAM;
+  }
+  else{
+    throw std::runtime_error("Error, bad classifier type");
+  }
 
-  //blend frame with classification map
-  cv::Mat blended;
-  cv::Mat classification_3channel;
-  std::vector<cv::Mat> chans;
-  chans.push_back(frame->GetClassificationMapROI());
-  chans.push_back(cv::Mat::zeros( frame->GetClassificationMapROI().size(),CV_8UC1) );
-  chans.push_back(cv::Mat::zeros( frame->GetClassificationMapROI().size(),CV_8UC1) );
-  cv::merge(chans,classification_3channel);
-  cv::addWeighted(frame->GetImageROI(),0.55,classification_3channel,0.45,0,blended);
+}
+
+void TTrack::SaveFrame(const cv::Mat &frame, bool flip) {
+
+  cv::Mat f;
+  if (flip){
+    cv::flip(frame, f, 0);
+  }
+  else{
+    f = frame.clone();
+  }
 
   //request the handler to save it to a video/image
-  handler_->SaveFrame(frame->GetImageROI());
-  //handler_->SaveFrame(blended);
+  handler_->SaveFrame(f);
 
 }
 
-void TTrack::SaveResults() const {
+void TTrack::SaveResults() {
   
-  boost::shared_ptr<const sv::Frame> frame = tracker_->GetPtrToFinishedFrame();
-  std::vector<KalmanTracker> &tracked_models = tracker_->TrackedModels();
+  std::vector<boost::shared_ptr<Model> > models;
+  tracker_->GetTrackedModels(models);
 
-  for( size_t i = 0 ; i < tracked_models.size() ; i++ ){
+  for (size_t i = 0; i < models.size(); i++){
 
-    KalmanTracker &model = tracked_models[i];
-    
-    boost::shared_ptr<std::ofstream> results_file = model.SaveFile();
-
-    if( !results_file->is_open() ){
-      
-      std::stringstream ss; ss << *root_dir_ + "/model_pose" << i << ".txt";
-      results_file->open( ss.str(),  std::ofstream::out);
-      
-    }
-
-    cv::Vec3f angle_axis = model.CurrentPose().rotation_.AngleAxis();
-    cv::Vec3f translation = model.CurrentPose().translation_;
-    cv::Vec3f point_of_interest = model.CurrentPose().Transform(model.PtrToModel()->GetTrackedPoint());
-
-    *results_file << translation[0] << "," << translation[1] << "," << translation[2] << "," << angle_axis[0] << "," << angle_axis[1] << "," << angle_axis[2] << "," << point_of_interest[0] << "," << point_of_interest[1] << "," << point_of_interest[2] << "\n" ;
-    results_file->flush();
+    models[i]->WritePoseToFile();
 
   }
 
 }
 
-void TTrack::DrawModel(cv::Mat &frame) const {
-
-  //for each model that we are tracking 
-  for(auto tracked_model = tracker_->TrackedModels().begin(); tracked_model != tracker_->TrackedModels().end(); tracked_model++){
- 
-    tracker_->DrawModelOnFrame(*tracked_model,frame);
-
-  }
-
+boost::shared_ptr<const sv::Frame> TTrack::GetPtrToCurrentFrame() const {
+  return frame_;
 }
 
 boost::shared_ptr<sv::Frame> TTrack::GetPtrToNewFrame(){
   
-  cv::Mat test = handler_->GetNewFrame();
-  
-  //if the input data has run out test will be empty, if this is so
+  cv::Mat frame = handler_->GetNewFrame();
+
+  //if the input data has run out frame will be empty, if this is so
   //reset the frame_ pointer to empty and return it. this will signal to 
   //the tracking/detect loop to stop
-  if (test.data == 0x0) {
+  if (frame.data == 0x0) {
     frame_.reset();
     return frame_;
   }
@@ -173,10 +218,10 @@ boost::shared_ptr<sv::Frame> TTrack::GetPtrToNewFrame(){
   switch(camera_type_){
   
   case STEREO:
-    frame_.reset( new sv::StereoFrame(test) );
+    frame_.reset(new sv::StereoFrame(frame));
     break;
   case MONOCULAR:
-    frame_.reset( new sv::MonoFrame(test) );
+    frame_.reset(new sv::MonoFrame(frame));
     break;
   }
   
@@ -196,7 +241,7 @@ boost::shared_ptr<sv::Frame> TTrack::GetPtrToClassifiedFrame(){
 
 bool TTrack::constructed_ = false;
 
-boost::scoped_ptr<TTrack> TTrack::instance_(new TTrack);
+boost::scoped_ptr<TTrack> TTrack::instance_;
 
 TTrack::TTrack(){}
 

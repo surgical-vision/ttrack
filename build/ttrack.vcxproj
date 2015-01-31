@@ -1,246 +1,210 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|x64">
-      <Configuration>Debug</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|x64">
-      <Configuration>Release</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Test|Win32">
-      <Configuration>Test</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Test|x64">
-      <Configuration>Test</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\headers\constants.hpp" />
-    <ClInclude Include="..\headers\detect\baseclassifier.hpp" />
-    <ClInclude Include="..\headers\detect\detect.hpp" />
-    <ClInclude Include="..\headers\detect\im_mask_set.hpp" />
-    <ClInclude Include="..\headers\detect\randomforest.hpp" />
-    <ClInclude Include="..\headers\detect\supportvectormachine.hpp" />
-    <ClInclude Include="..\headers\headers.hpp" />
-    <ClInclude Include="..\headers\track\kalman.hpp" />
-    <ClInclude Include="..\headers\track\localizer.hpp" />
-    <ClInclude Include="..\headers\track\model.hpp" />
-    <ClInclude Include="..\headers\track\pose.hpp" />
-    <ClInclude Include="..\headers\track\pwp3d\mono_pwp3d.hpp" />
-    <ClInclude Include="..\headers\track\pwp3d\pwp3d.hpp" />
-    <ClInclude Include="..\headers\track\pwp3d\register_points.hpp" />
-    <ClInclude Include="..\headers\track\pwp3d\stereo_pwp3d.hpp" />
-    <ClInclude Include="..\headers\track\stt\monocular_tool_tracker.hpp" />
-    <ClInclude Include="..\headers\track\stt\stereo_tool_tracker.hpp" />
-    <ClInclude Include="..\headers\track\stt\surgical_tool_tracker.hpp" />
-    <ClInclude Include="..\headers\track\tracker.hpp" />
-    <ClInclude Include="..\headers\ttrack.hpp" />
-    <ClInclude Include="..\headers\utils\camera.hpp" />
-    <ClInclude Include="..\headers\utils\exceptions.hpp" />
-    <ClInclude Include="..\headers\utils\handler.hpp" />
-    <ClInclude Include="..\headers\utils\helpers.hpp" />
-    <ClInclude Include="..\headers\utils\nd_image.hpp" />
-    <ClInclude Include="..\headers\utils\quasi_dense_stereo.hpp" />
-    <ClInclude Include="..\headers\utils\result_plotter.hpp" />
-  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{228AE26E-02EB-491B-8499-59A652A2A63C}</ProjectGuid>
+    <RootNamespace>ttrack</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseOfMfc>false</UseOfMfc>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\..\vs_props\opencv32_release.props" />
+    <Import Project="..\..\..\vs_props\cinder_release.props" />
+    <Import Project="..\..\..\vs_props\boost32_release.props" />
+    <Import Project="..\..\..\vs_props\ceres.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\..\vs_props\opencv32_debug.props" />
+    <Import Project="..\..\..\vs_props\cinder_debug.props" />
+    <Import Project="..\..\..\vs_props\boost32_debug.props" />
+    <Import Project="..\..\..\vs_props\ceres_debug.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\include;"..\..\Cinder\include";"..\..\Cinder\boost"</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader />
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <AdditionalOptions>/D_DEBUG %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>"..\..\Cinder\include";..\include</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Link>
+      <AdditionalDependencies>cinder_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>"..\..\Cinder\lib";"..\..\Cinder\lib\msw"</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention />
+      <TargetMachine>MachineX86</TargetMachine>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\include;"..\..\Cinder\include";"..\..\Cinder\boost"</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader />
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>MinSpace</Optimization>
+      <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
+    </ClCompile>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>"..\..\Cinder\include";..\include</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Link>
+      <AdditionalDependencies>cinder.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>"..\..\Cinder\lib";"..\..\Cinder\lib\msw"</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateMapFile>true</GenerateMapFile>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention />
+      <TargetMachine>MachineX86</TargetMachine>
+      <IgnoreSpecificDefaultLibraries>/NODEFAULTLIB:libcmt.lib</IgnoreSpecificDefaultLibraries>
+      <ShowProgress>NotSet</ShowProgress>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\detect\baseclassifier.cpp" />
     <ClCompile Include="..\src\detect\detect.cpp" />
+    <ClCompile Include="..\src\detect\histogram.cpp" />
     <ClCompile Include="..\src\detect\im_mask_set.cpp" />
+    <ClCompile Include="..\src\detect\multiclass_randomforest.cpp" />
     <ClCompile Include="..\src\detect\randomforest.cpp" />
     <ClCompile Include="..\src\detect\supportvectormachine.cpp" />
-    <ClCompile Include="..\src\main.cpp" />
-    <ClCompile Include="..\src\track\kalman.cpp" />
+    <ClCompile Include="..\src\track\articulated\articulated_level_set.cpp" />
+    <ClCompile Include="..\src\track\articulated\articulated_solver.cpp" />
+    <ClCompile Include="..\src\track\model\articulated_model.cpp" />
+    <ClCompile Include="..\src\track\model\model.cpp" />
+    <ClCompile Include="..\src\track\model\node.cpp" />
+    <ClCompile Include="..\src\track\pose.cpp" />
+    <ClCompile Include="..\src\track\pwp3d\comp_ls.cpp" />
     <ClCompile Include="..\src\track\pwp3d\mono_pwp3d.cpp" />
-    <ClCompile Include="..\src\track\pwp3d\pose.cpp" />
     <ClCompile Include="..\src\track\pwp3d\pwp3d.cpp" />
     <ClCompile Include="..\src\track\pwp3d\register_points.cpp" />
     <ClCompile Include="..\src\track\pwp3d\stereo_pwp3d.cpp" />
     <ClCompile Include="..\src\track\stt\monocular_tool_tracker.cpp" />
     <ClCompile Include="..\src\track\stt\stereo_tool_tracker.cpp" />
     <ClCompile Include="..\src\track\stt\surgical_tool_tracker.cpp" />
+    <ClCompile Include="..\src\track\temporal\temporal.cpp" />
     <ClCompile Include="..\src\track\tracker.cpp" />
     <ClCompile Include="..\src\ttrack.cpp" />
+    <ClCompile Include="..\src\ttrack_app.cpp" />
     <ClCompile Include="..\src\utils\camera.cpp" />
     <ClCompile Include="..\src\utils\handler.cpp" />
     <ClCompile Include="..\src\utils\helpers.cpp" />
-    <ClCompile Include="..\src\utils\model.cpp" />
     <ClCompile Include="..\src\utils\nd_image.cpp" />
-    <ClCompile Include="..\src\utils\quasi_dense_stereo.cpp" />
+    <ClCompile Include="..\src\utils\plotter.cpp" />
   </ItemGroup>
-  <PropertyGroup Label="Globals">
-    <ProjectGuid>{0B42D26C-2E7F-49CA-850F-369C1072DA49}</ProjectGuid>
-    <RootNamespace>ttrack</RootNamespace>
-  </PropertyGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <CharacterSet>MultiByte</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <CharacterSet>MultiByte</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <CharacterSet>MultiByte</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <CharacterSet>MultiByte</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>MultiByte</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>MultiByte</CharacterSet>
-  </PropertyGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <ImportGroup Label="ExtensionSettings">
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Test|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>C:\Program Files\boost\boost_1_51\;C:\Program Files\opencv\build\install\include\opencv\;C:\Program Files\opencv\build\install\include\opencv2\;C:\Program Files\opencv\build\install\include\;$(IncludePath)</IncludePath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|Win32'">
-    <IncludePath>C:\Program Files\boost\boost_1_51\;C:\Program Files\opencv\build\install\include\opencv\;C:\Program Files\opencv\build\install\include\opencv2\;C:\Program Files\opencv\build\install\include\;$(IncludePath)</IncludePath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\Program Files\boost\boost_1_51\;C:\Program Files\opencv\build\install\include\opencv\;C:\Program Files\opencv\build\install\include\opencv2\;C:\Program Files\opencv\build\install\include\;$(IncludePath)</IncludePath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'">
-    <IncludePath>C:\Program Files\boost\boost_1_51\;C:\Program Files\opencv\build\install\include\opencv\;C:\Program Files\opencv\build\install\include\opencv2\;C:\Program Files\opencv\build\install\include\;$(IncludePath)</IncludePath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LibraryPath>C:\Program Files\opencv\build\install\lib\;$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|Win32'">
-    <LibraryPath>C:\Program Files\opencv\build\install\lib\;$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LibraryPath>C:\Program Files\boost\boost_1_51\lib;C:\Program Files\opencv\build\install\lib\;$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'">
-    <LibraryPath>C:\Program Files\boost\boost_1_51\lib;C:\Program Files\opencv\build\install\lib\;$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LibraryPath>C:\Program Files\boost\boost_1_51\lib;c:\Program Files\opencv\build\install\lib\;$(LibraryPath)</LibraryPath>
-    <IncludePath>c:\Program Files\boost\boost_1_51\;c:\Program Files\opencv\build\install\include\opencv\;$(IncludePath)</IncludePath>
-  </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-    </ClCompile>
-    <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opencv_highgui249.lib;opencv_ml249.lib;opencv_imgproc249.lib;opencv_core249.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <TargetMachine>MachineX64</TargetMachine>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Test|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-    </ClCompile>
-    <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opencv_highgui249.lib;opencv_ml249.lib;opencv_imgproc249.lib;opencv_core249.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <TargetMachine>MachineX64</TargetMachine>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-    </ClCompile>
-    <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opencv_video249d.lib;opencv_calib3d249.lib;opencv_legacy249d.lib;opencv_ts249d.lib;opencv_features2d249d.lib;opencv_videostab249d.lib;opencv_highgui249d.lib;opencv_nonfree249d.lib;opencv_ml249d.lib;opencv_imgproc249d.lib;opencv_core249d.lib;boost_filesystem-vc100-mt-gd-1_51.lib;boost_thread-vc100-mt-gd-1_51.lib;boost_system-vc100-mt-gd-1_51.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\Program Files\opencv\build\lib\Debug</AdditionalLibraryDirectories>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-    </ClCompile>
-    <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opencv_highgui249.lib;opencv_ml249.lib;opencv_imgproc249.lib;opencv_core249.lib;boost_filesystem-vc100-mt-gd-1_51.lib;boost_thread-vc100-mt-gd-1_51.lib;boost_system-vc100-mt-gd-1_51.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-    </ClCompile>
-    <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>C:\Program Files\opencv\build\install\include;C:\Program Files\boost\boost_1_51\boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
-    <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>opencv_calib3d249.lib;opencv_contrib249.lib;opencv_core249.lib;opencv_features2d249.lib;opencv_nonfree249.lib;opencv_imgproc249.lib;opencv_highgui249.lib;opencv_legacy249.lib;opencv_objdetect249.lib;opencv_ml249.lib;opencv_video249.lib;boost_filesystem-vc100-mt-1_51.lib;boost_thread-vc100-mt-1_51.lib;boost_system-vc100-mt-1_51.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\Program Files\opencv\build\lib\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Link>
-  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="..\resources\cinder_app_icon.ico" />
+    <None Include="..\resources\comp_ls_back_depth_contour_frag.glsl" />
+    <None Include="..\resources\comp_ls_back_depth_contour_vert.glsl" />
+    <None Include="..\resources\glsl3.bin" />
+    <None Include="..\resources\phong_frag.glsl" />
+    <None Include="..\resources\phong_vert.glsl" />
+    <None Include="..\resources\pwp3d_back_depth_contour_frag.glsl" />
+    <None Include="..\resources\pwp3d_back_depth_contour_vert.glsl" />
+    <None Include="..\resources\pwp3d_front_depth_frag.glsl" />
+    <None Include="..\resources\pwp3d_front_depth_vert.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\constants.hpp" />
+    <ClInclude Include="..\include\detect\baseclassifier.hpp" />
+    <ClInclude Include="..\include\detect\detect.hpp" />
+    <ClInclude Include="..\include\detect\histogram.hpp" />
+    <ClInclude Include="..\include\detect\im_mask_set.hpp" />
+    <ClInclude Include="..\include\detect\multiclass_randomforest.hpp" />
+    <ClInclude Include="..\include\detect\randomforest.hpp" />
+    <ClInclude Include="..\include\detect\supportvectormachine.hpp" />
+    <ClInclude Include="..\include\headers.hpp" />
+    <ClInclude Include="..\include\resources.hpp" />
+    <ClInclude Include="..\include\track\articulated\articulated_level_set.hpp" />
+    <ClInclude Include="..\include\track\articulated\articulated_solver.hpp" />
+    <ClInclude Include="..\include\track\localizer.hpp" />
+    <ClInclude Include="..\include\track\model\articulated_model.hpp" />
+    <ClInclude Include="..\include\track\model\dh_helpers.hpp" />
+    <ClInclude Include="..\include\track\model\model.hpp" />
+    <ClInclude Include="..\include\track\model\node.hpp" />
+    <ClInclude Include="..\include\track\pose.hpp" />
+    <ClInclude Include="..\include\track\pwp3d\comp_ls.hpp" />
+    <ClInclude Include="..\include\track\pwp3d\mono_pwp3d.hpp" />
+    <ClInclude Include="..\include\track\pwp3d\pwp3d.hpp" />
+    <ClInclude Include="..\include\track\pwp3d\register_points.hpp" />
+    <ClInclude Include="..\include\track\pwp3d\stereo_pwp3d.hpp" />
+    <ClInclude Include="..\include\track\stt\monocular_tool_tracker.hpp" />
+    <ClInclude Include="..\include\track\stt\stereo_tool_tracker.hpp" />
+    <ClInclude Include="..\include\track\stt\surgical_tool_tracker.hpp" />
+    <ClInclude Include="..\include\track\temporal\temporal.hpp" />
+    <ClInclude Include="..\include\track\tracker.hpp" />
+    <ClInclude Include="..\include\ttrack.hpp" />
+    <ClInclude Include="..\include\ttrack_app.hpp" />
+    <ClInclude Include="..\include\utils\camera.hpp" />
+    <ClInclude Include="..\include\utils\config_reader.hpp" />
+    <ClInclude Include="..\include\utils\exceptions.hpp" />
+    <ClInclude Include="..\include\utils\handler.hpp" />
+    <ClInclude Include="..\include\utils\helpers.hpp" />
+    <ClInclude Include="..\include\utils\nd_image.hpp" />
+    <ClInclude Include="..\include\utils\plotter.hpp" />
+    <ClInclude Include="..\include\utils\UI.hpp" />
+    <ClInclude Include="..\resources\resource.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\resources\resources.rc" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets" />
 </Project>

@@ -25,10 +25,14 @@ ttrack
 build/ipch
 build/Debug
 build/x64
+build/Release
+build/ttrack_tests/Debug
+build/ttrack_tests/Release
 ipch
 ./ipch/*
 build/ttrack.opensdf
 build/ttrack.suo
+*.suo
 *.xyz
 *.stl
 frame_*
@@ -37,5 +41,8 @@ deps
 deps/*
 deps/quaternion
 deps/quaternion/*
+deps/image/
 deps/image
 scripts/data
+resources/resources.aps
+deps/image/*

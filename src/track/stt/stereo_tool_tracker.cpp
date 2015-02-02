@@ -81,7 +81,7 @@ bool StereoToolTracker::Init() {
     tracked_models_.back().model.reset(new DenavitHartenbergArticulatedModel(model_parameter_file_, results_dir_ + "/tracked_model" + Model::GetCurrentModelCount() + ".txt"));
     tracked_models_.back().temporal_tracker.reset(new KalmanFilterTracker);
 
-    InitFromFile();
+    InitFromFile(tracked_models_.back().model);
 
   }
 

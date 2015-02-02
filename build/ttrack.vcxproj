@@ -165,7 +165,6 @@
     <ClInclude Include="..\include\ttrack\detect\baseclassifier.hpp" />
     <ClInclude Include="..\include\ttrack\detect\detect.hpp" />
     <ClInclude Include="..\include\ttrack\detect\histogram.hpp" />
-    <ClInclude Include="..\include\ttrack\detect\im_mask_set.hpp" />
     <ClInclude Include="..\include\ttrack\detect\multiclass_randomforest.hpp" />
     <ClInclude Include="..\include\ttrack\detect\randomforest.hpp" />
     <ClInclude Include="..\include\ttrack\detect\supportvectormachine.hpp" />

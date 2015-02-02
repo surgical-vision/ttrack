@@ -8,7 +8,7 @@
 
 #include "../localizer.hpp"
 #include "../../utils/camera.hpp"
-#include "../../../deps/image/image/image.hpp"
+#include "../../utils/image.hpp"
 #include "../pose.hpp"
 #include "../../utils/plotter.hpp"
 

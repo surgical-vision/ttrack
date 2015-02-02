@@ -9,8 +9,9 @@ bool MultiClassRandomForest::ClassifyFrame(boost::shared_ptr<sv::Frame> frame){
   assert(frame->GetImageROI().type() == CV_8UC3);
 
   cv::Mat whole_frame = frame->GetImage();
-  //cv::imwrite("z:/frame.bmp", whole_frame);
+  
   NDImage nd_image(whole_frame);
+
   const int rows = whole_frame.rows;
   const int cols = whole_frame.cols;
 
@@ -18,7 +19,6 @@ bool MultiClassRandomForest::ClassifyFrame(boost::shared_ptr<sv::Frame> frame){
 
   size_t pixel_count = 0;
 
-  //unsigned char *frame_data = (unsigned char *)frame_->PtrToClassificationMap()->data;
   float *frame_data = (float *)frame->GetClassificationMap().data;
   size_t classification_map_channels = frame->GetClassificationMap().channels();
   

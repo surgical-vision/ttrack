@@ -15,7 +15,7 @@
 
 using namespace ttrk;
 
-PWP3D::PWP3D(const int width, const int height) : heaviside_width_(3,1,3,40,"Heaviside Width"){
+PWP3D::PWP3D(const int width, const int height) {
 
   //need the colour buffer to be 32bit
   ci::gl::Fbo::Format format;

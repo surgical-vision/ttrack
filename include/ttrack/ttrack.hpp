@@ -2,9 +2,11 @@
 #define _TTRACK_HPP_
 
 /**
- * @mainpage Surgical Instrument Tracking
+ * @mainpage Rigid object detection, pose estimation & tracking framework.
  * 
- * Information about the project...
+ * A general framework for doing object detection, pose estimation and tracking of multiple rigid objects. Handles video and image interaction, visualization and saving results.
+ * Using this framework involves using one of the subclasses of Detect (or creating a new one) to do frame detection, then subclassing Tracker to do tracking and subclassing Localizer to pose estimation.
+ * Pre-existing classes are included for rigid pose estimation using level sets and feature points and trackers are added for surgical robot instrument tracking.
  */
 
 
@@ -14,7 +16,7 @@
 #include <boost/scoped_ptr.hpp>
 #include <queue>
 
-#include "../deps/image/image/image.hpp"
+#include "utils/image.hpp"
 #include "track/tracker.hpp"
 #include "detect/detect.hpp"
 #include "utils/handler.hpp"
@@ -26,11 +28,16 @@
 
 namespace ttrk{
 
+  /**
+  * @enum CameraType
+  * Whether the tracking is done with a monocular or stereo camera.
+  */
+
    enum CameraType { MONOCULAR = 0, STEREO = 1 };
 
   /**
    * @class TTrack
-   * @brief The interface class for the project. Handles the interaction between all worker classes.
+   * @brief The main class for the project. Handles the interaction between all worker classes.
    *
    * This is the interface class of the project. It owns the tracker and the detector as well as
    * performing tasks like saving current frames for validation and the initial interaction with 
@@ -194,7 +201,7 @@ namespace ttrk{
     
     std::string results_dir_; /**< A string containing the results directory for the data in use. */
     
-    CameraType camera_type_;
+    CameraType camera_type_; /**< The camera type we are tracking with. */
 
   private:
 

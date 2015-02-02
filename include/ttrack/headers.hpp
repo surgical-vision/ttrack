@@ -30,14 +30,4 @@
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
 
-
-
-#ifndef DEBUG
-  #define DEBUG
-#endif
-
-#define SAVEDEBUG_1
-#define SAVEDEBUG_2
-
-
 #endif //_HEADERS_H_

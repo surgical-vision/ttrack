@@ -2,7 +2,7 @@
 
 #include "../../../include/ttrack/track/stt/surgical_tool_tracker.hpp"
 #include "../../../include/ttrack/track/pwp3d/pwp3d.hpp"
-#include "../../../deps/image/image/image.hpp"
+#include "../../../include/ttrack/utils/image.hpp"
 
 
 using namespace ttrk;
@@ -15,7 +15,7 @@ SurgicalToolTracker::SurgicalToolTracker(const std::string &model_parameter_file
 }
 
 
-void SurgicalToolTracker::InitFromFile(){
+void SurgicalToolTracker::InitFromFile(boost::shared_ptr<Model> tm){
 
   std::stringstream s(Model::GetCurrentModelCount());
   int i; s >> i;

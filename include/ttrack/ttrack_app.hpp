@@ -79,6 +79,12 @@ public:
 protected:
 
   /**
+  * Load the helper window.
+  * @param[in] framebuffer The framebuffer to draw the helper window in.
+  */
+  void drawHelpWindow(boost::shared_ptr<ci::gl::Fbo> framebuffer); 
+
+  /**
   * Save the results from all of the pose estimates for the current frame.
   */
   void saveResults();

@@ -138,8 +138,6 @@ void TTrack::RunThreaded(){
 LocalizerType TTrack::LocalizerTypeFromString(const std::string &str){
 
   if (str == "PWP3D" || str == "pwp3d") return LocalizerType::PWP3DLocalizer;
-  else if (str == "Articulated" || str == "articulated") return LocalizerType::ArticulatedLevelSetLocalizer;
-  else if (str == "CompLS") return LocalizerType::ComponentLS;
   else throw std::runtime_error("");
 
 }

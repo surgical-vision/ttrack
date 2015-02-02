@@ -8,8 +8,7 @@
 
 #include "../../../include/ttrack/track/stt/stereo_tool_tracker.hpp"
 #include "../../../include/ttrack/track/pwp3d/stereo_pwp3d.hpp"
-#include "../../../include/ttrack/track/pwp3d/comp_ls.hpp"
-#include "../../../include/ttrack/track/articulated/articulated_level_set.hpp"
+
 
 #include "../../../include/ttrack/track/model/articulated_model.hpp"
 #include "../../../include/ttrack/utils/helpers.hpp"
@@ -20,10 +19,6 @@ StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, co
 
   if (localizer_type == LocalizerType::PWP3DLocalizer)
     localizer_.reset(new StereoPWP3D(camera_));
-  else if (localizer_type == LocalizerType::ArticulatedLevelSetLocalizer)
-   localizer_.reset(new ArticulatedLevelSet(camera_));
-  else if (localizer_type == LocalizerType::ComponentLS)
-    localizer_.reset(new ComponentLevelSet(camera_));
   else
     throw std::runtime_error("");	
 
@@ -37,33 +32,6 @@ bool StereoToolTracker::Init() {
 
   //find the connected regions in the image
   std::vector<std::vector<cv::Vec2i> >connected_regions;
-
-  cv::Mat classification_image_multiclass = stereo_frame_->GetClassificationMapROI();
-  cv::Mat classification_image(classification_image_multiclass.size(), CV_32FC1);
-
-  float *data = (float *)classification_image_multiclass.data;
-
-  for (int r = 0; r < classification_image_multiclass.rows; ++r){
-    for (int c = 0; c < classification_image_multiclass.cols; ++c){
-      
-      float max_prob = std::numeric_limits<float>::min();
-      const int idx = r * classification_image_multiclass.cols + c;
-      
-      for (int i = 1; i < stereo_frame_->NumClassificationChannels(); ++i){
-        
-        float pval = data[idx * stereo_frame_->NumClassificationChannels() + i];
-        
-        if (pval > max_prob){
-
-          classification_image.at<float>(r, c) = pval;
-
-        }
-      
-      }
-    }
-  }
-
-  
 
   if (!FindConnectedRegions(stereo_frame_->GetClassificationMapROI(), connected_regions)) {
 

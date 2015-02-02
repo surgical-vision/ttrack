@@ -18,7 +18,6 @@
 #include "../include/ttrack/resources.hpp"
 #include "../include/ttrack/utils/config_reader.hpp"
 #include "../include/ttrack/utils/plotter.hpp"
-#include "../include/ttrack/utils/UI.hpp"
 
 using namespace ci;
 using namespace ci::app;
@@ -92,9 +91,6 @@ void TTrackApp::setup(){
   std::vector<std::string> cmd_line_args = getArgs();
 
   toolbar_ = SubWindow(0, 0, 300, 700);
-  
-  auto ui = ttrk::UIController::Instance();
-  if (!ui.IsInitialized()) ui.Initialize("title", toolbar_.framebuffer_->getWidth() - (2 * 20), toolbar_.framebuffer_->getHeight() - 20);
 
   force_new_frame_ = false;
 
@@ -244,11 +240,23 @@ void TTrackApp::saveResults(){
  
 }
 
+void TTrackApp::drawHelpWindow(boost::shared_ptr<ci::gl::Fbo> framebuffer){
+
+  static ci::gl::Texture help_frame(ci::loadImage(loadResource(HELPER_WIN)));
+  //framebuffer->bindFramebuffer();
+
+  //glViewport(0, 0, help_frame.getWidth(), help_frame.getHeight());
+  drawBackground(help_frame);
+  //gl::draw(help_frame);
+  //framebuffer->unbindFramebuffer();
+
+}
+
 void TTrackApp::draw(){
 
   gl::clear(ci::Color(0, 0, 0), true);
 
-  drawToolbar();
+  //drawToolbar();
 
   auto &ttrack = ttrk::TTrack::Instance();
   if (ttrack.IsRunning()){
@@ -259,6 +267,10 @@ void TTrackApp::draw(){
     drawPlotter(windows_[2].framebuffer_);
     draw3D(windows_[3].framebuffer_, windows_[0].framebuffer_->getTexture(), camera_->left_eye());
 
+  }
+  else{
+    drawHelpWindow(windows_[0].framebuffer_);
+    return;
   }
 
   if (ttrack.HasConverged()){
@@ -298,13 +310,6 @@ void TTrackApp::drawToolbar() {
   gl::drawLine(ci::Vec2f((float)(width - 2 * buffer), (float)(height - buffer)), ci::Vec2f((float)buffer, (float)(height - buffer)));
   gl::drawLine(ci::Vec2f((float)buffer, (float)(height - buffer)), ci::Vec2f((float)buffer, (float)buffer));
   
-
-  auto ui = ttrk::UIController::Instance();
-  auto menubar = ui.Menubar();
-  menubar.draw();
-  
-  //menubar_ = ci::params::InterfaceGl::create(ci::app::getWindow(), "Menubar", toPixels(ci::Vec2i(width - 2 * buffer, height - buffer)));
-
   toolbar_.framebuffer_->unbindFramebuffer();
 
   

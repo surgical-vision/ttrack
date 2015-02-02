@@ -6,7 +6,7 @@
 
 #include "../headers.hpp"
 #include "../utils/nd_image.hpp"
-#include "../../deps/image/image/image.hpp"
+#include "../utils/image.hpp"
 
 namespace ttrk{
   

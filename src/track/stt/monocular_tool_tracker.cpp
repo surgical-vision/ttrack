@@ -29,7 +29,7 @@ bool MonocularToolTracker::Init(){
     tracked_models_.back().model.reset(new DenavitHartenbergArticulatedModel(model_parameter_file_, results_dir_ + "/tracked_model" + Model::GetCurrentModelCount() + ".txt"));
     tracked_models_.back().temporal_tracker.reset(new KalmanFilterTracker);
 
-    InitFromFile();
+    InitFromFile(tracked_models_.back().model);
 
   }
 
@@ -103,9 +103,13 @@ void MonocularToolTracker::Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> 
   double abs_diff = sqrt( static_cast<double>( diff[0]*diff[0] + diff[1]*diff[1] + diff[2]*diff[2] ) );
 
   
-  double z = (2*tracked_models_.back().PtrToModel()->Radius())/abs_diff;
-  
+  double z = 80;
 
+  ci::Vec3f trans(center_unp.x, center_unp.y, center_unp.z);
+  trans *= z;
+
+  tracked_model->SetBasePose(Pose(ci::Quatf(0, 0, central_axis.dot(cv::Vec2f(0, 1))), trans));
+  
 } 
 
 float MonocularToolTracker::ComputeWidth(float e1, float e2, size_t mass) const {

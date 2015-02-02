@@ -20,8 +20,6 @@
 #include "../include/ttrack/utils/plotter.hpp"
 #include "../include/ttrack/utils/UI.hpp"
 
-#include <ceres/ceres.h>
-
 using namespace ci;
 using namespace ci::app;
 

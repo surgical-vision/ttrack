@@ -6,7 +6,7 @@
 #include "../headers.hpp"
 #include "../constants.hpp"
 
-const int channels = 4; /**< Number of channels we are using. */
+const int num_channels = 4; /**< Number of channels we are using. */
 
 namespace ttrk{
 
@@ -34,7 +34,7 @@ namespace ttrk{
     /**
      * Get the number of channels in the image, each channel contains data of type T
      */
-    size_t channels() const;
+    size_t channels() const { return num_channels; }
 
     /**
      * Get the number of rows in the image.
@@ -121,7 +121,7 @@ namespace ttrk{
 
   inline cv::Mat NDImage::GetPixelData(const int r, const int c) const {
 
-    float *data = (float *)images_new_.data + (r*cols_ + c)*channels;
+    float *data = (float *)images_new_.data + (r*cols_ + c)*channels();
     cv::Mat return_pix(1,4,CV_32FC1,data);
 
     return return_pix;

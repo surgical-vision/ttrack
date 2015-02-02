@@ -265,9 +265,6 @@
     <ClInclude Include="..\include\ttrack\track\localizer.hpp">
       <Filter>Header Files\track</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\ttrack\detect\im_mask_set.hpp">
-      <Filter>Header Files\utils</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\ttrack\track\pwp3d\stereo_pwp3d.hpp">
       <Filter>Header Files\track\pwp3d</Filter>
     </ClInclude>

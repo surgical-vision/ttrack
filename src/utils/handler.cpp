@@ -177,26 +177,3 @@ void VideoHandler::SaveFrame(const cv::Mat image){
   writer_ << rgb;
 
 }
-
-void Handler::SaveDebug(const std::vector< ImAndName > &to_save) const {
-
-  //iterate through list
-  //save in ./debug or something
-
-}
-
-void VideoHandler::SetInputFileName(const std::string &url){
-
-}
-
-void VideoHandler::SetOutputFileName(const std::string &url){
-
-}
-
-void ImageHandler::SetInputFileName(const std::string &url){
-
-}
-
-void ImageHandler::SetOutputFileName(const std::string &url){
-
-}

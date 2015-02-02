@@ -36,22 +36,47 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
 
   ComputeJacobiansForEye(stereo_frame->GetLeftClassificationMap(), current_model, stereo_camera_->left_eye(), jacobian, hessian_approx, left_error);
 
+  ////////////////////////////////
+  std::vector<MatchedPair> pnp_pairs;
+  point_registration_->FindPointCorrespondencesWithPose(frame_, current_model, current_model->GetBasePose(), pnp_pairs);
+
+  cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
+
+  for (auto pnp = pnp_pairs.begin(); pnp != pnp_pairs.end(); pnp++){
+    std::vector<float> point_jacobian = point_registration_->GetPointDerivative(pnp->learned_point, cv::Point2f(pnp->image_point[0], pnp->image_point[1]), current_model->GetBasePose());
+
+    for (int i = 0; i < jacobian.rows; ++i){
+      points_jacobian(i) += 0.0005 * point_jacobian[i];
+    }
+
+    jacobian += points_jacobian.t();
+    hessian_approx += (points_jacobian.t() * points_jacobian);
+  }
+
+  ///////////////////////////////
 #ifdef GRAD_DESCENT
   cv::Vec3f translation(jacobian(0), jacobian(1), jacobian(2));
   const float max_translation = 0.04; //mm
-  const float translation_mag = std::sqrt(translation.dot(translation));
-  translation = (max_translation / translation_mag) * translation;
+  float translation_mag = std::sqrt(translation.dot(translation));
+  if (translation_mag != 0.0)
+    translation = (max_translation / translation_mag) * translation;
+  else
+    translation = cv::Vec3f(0, 0, 0);
 
   cv::Vec4f rotation(jacobian(3), jacobian(4), jacobian(5), jacobian(6));
   const float max_rotation = 0.002;
-  const float rotation_mag = std::sqrt(rotation.dot(rotation));
-  rotation = (max_rotation / rotation_mag) * rotation;
+  float rotation_mag = std::sqrt(rotation.dot(rotation));
+  if (rotation_mag != 0.0)
+    rotation = (max_rotation / rotation_mag) * rotation;
+  else
+    rotation = cv::Vec4f(0, 0, 0, 0);
 
   for (int i = 0; i < 3; ++i)
     jacs[i] = -translation[i];
   for (int j = 0; j < 4; ++j){
     jacs[3 + j] = -rotation[j];
   }
+
   current_model->UpdatePose(jacs);
 #else
 
@@ -69,10 +94,15 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
   
 #ifdef GRAD_DESCENT
   translation = cv::Vec3f(jacobian(0), jacobian(1), jacobian(2));
+  translation_mag = std::sqrt(translation.dot(translation));
   translation = (max_translation / translation_mag) * translation;
 
   rotation = cv::Vec4f(jacobian(3), jacobian(4), jacobian(5), jacobian(6));
-  rotation = (max_rotation / rotation_mag) * rotation;
+  rotation_mag = std::sqrt(rotation.dot(rotation));
+  if (rotation_mag != 0.0)
+    rotation = (max_rotation / rotation_mag) * rotation;
+  else
+    rotation = cv::Vec4f(0, 0, 0, 0);
 
   for (int i = 0; i < 3; ++i)
     jacs[i] = -translation[i];
@@ -109,7 +139,7 @@ void StereoPWP3D::ComputeJacobiansForEye(const cv::Mat &classification_image, bo
     point_registration_->ComputeDescriptorsForPointTracking(frame_, front_intersection_image, current_model->GetBasePose());
   }
 
-  size_t fg_area, bg_area = 0;
+  float fg_area = 0, bg_area = 0;
   size_t contour_area = 0;
   ComputeAreas(sdf_image, fg_area, bg_area, contour_area);
 
@@ -126,10 +156,10 @@ void StereoPWP3D::ComputeJacobiansForEye(const cv::Mat &classification_image, bo
       if (sdf_im_data[i] <= float(HEAVYSIDE_WIDTH) - 1e-1 && sdf_im_data[i] >= -float(HEAVYSIDE_WIDTH) + 1e-1){
 
         //-log(H * P_f + (1-H) * P_b)
-        error += GetErrorValue(classification_image, r, c, sdf_im_data[i], 1.0f);
+        error += GetErrorValue(classification_image, r, c, sdf_im_data[i], 1.0f, fg_area, bg_area);
 
         //P_f - P_b / (H * P_f + (1 - H) * P_b)
-        const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i]);
+        const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i], fg_area, bg_area);
 
         int shifted_i = i;
 
@@ -169,21 +199,6 @@ void StereoPWP3D::ComputeJacobiansForEye(const cv::Mat &classification_image, bo
   //  ci::app::console() << jacobian(i) << ", ";
   //ci::app::console() << "]" << std::endl;
 
-  std::vector<MatchedPair> pnp_pairs;
-  point_registration_->FindPointCorrespondencesWithPose(frame_, current_model, current_model->GetBasePose(), pnp_pairs);
-
-  cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
-
-  for (auto pnp = pnp_pairs.begin(); pnp != pnp_pairs.end(); pnp++){
-    std::vector<float> point_jacobian = point_registration_->GetPointDerivative(pnp->learned_point, cv::Point2f(pnp->image_point[0], pnp->image_point[1]), current_model->GetBasePose());
-      
-    for (int i = 0; i < jacobian.rows; ++i){
-      points_jacobian(i) += 0.0005 * point_jacobian[i];
-    }
-
-    jacobian += points_jacobian.t();
-    hessian_approx += (points_jacobian.t() * points_jacobian);
-  }
 
   //ci::app::console() << "After Jacobian = [";
   //for (int i = 0; i < 7; ++i)

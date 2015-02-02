@@ -14,69 +14,95 @@ MonoPWP3D::MonoPWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera
 
 void MonoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
 
-  //frame_ = frame;
-  //SetBlurringScaleFactor(frame_->GetImageROI().cols);
-  //const int NUM_STEPS = 50;
-  //cv::Vec3d initial_translation = current_model.CurrentPose().translation_;
-  //
-  ////iterate until convergence
-  //for(int step=0,pixel_count=0; step < NUM_STEPS; ++step,pixel_count=0){
+  if (curr_step == NUM_STEPS) {
+    curr_step = 0;
+  }
 
-  //  //(x,y,z,w,r1,r2,r3)
-  //  PoseDerivs image_pose_derivatives = PoseDerivs::Zeros();
-  //  cv::Mat canvas, z_buffer, binary_image;
-  //  GetRenderedModelAtPose(current_model, canvas, z_buffer, binary_image);
-  //  cv::Mat sdf_image,front_intersection_image,back_intersection_image;
-  //  ProcessSDFAndIntersectionImage(current_model, z_buffer, sdf_image, binary_image, front_intersection_image, back_intersection_image);
+  ++curr_step;
 
-  //  //compute the derivates of the sdf images
-  //  cv::Mat dSDFdx, dSDFdy;
-  //  cv::Scharr(sdf_image,dSDFdx,CV_64FC1,1,0);
-  //  cv::Scharr(sdf_image,dSDFdy,CV_64FC1,0,1);
+  frame_ = frame;
 
-  //  //do region based tracking
-  //  for(int r=0;r<frame_->GetImageROI().rows;r+=3){
-  //    for(int c=0;c<frame_->GetImageROI().cols;c+=3,++pixel_count){
+  std::vector<float> jacs(7, 0);
 
-  //      //speedup tests by checking if we need to evaluate the cost function in this region
-  //      const double skip = Heaviside(sdf_image.at<double>(r,c), k_heaviside_width_ * blurring_scale_factor_);
-  //      if( skip < 0.00001 || skip > 0.99999 ) continue;
+  //for prototyping the articulated jacs, we use a cv::Matx. this will be flattened for faster estimation later
+  cv::Matx<float, 7, 1> jacobian = cv::Matx<float, 7, 1>::zeros();
+  cv::Matx<float, 7, 7> hessian_approx = cv::Matx<float, 7, 7>::zeros();
 
-  //      //P_f - P_b / (H * P_f + (1 - H) * P_b)
-  //      const double region_agreement = GetRegionAgreement(r, c, sdf_image.at<double>(r,c));
+  cv::Mat sdf_image, front_intersection_image, back_intersection_image;
 
-  //      //dH / dL
-  //      PoseDerivs per_pixel_pose_derivatives;
-  //      GetPoseDerivatives(r, c, sdf_image, dSDFdx.at<double>(r,c), dSDFdy.at<double>(r,c), current_model, front_intersection_image, back_intersection_image, per_pixel_pose_derivatives);
-  //      per_pixel_pose_derivatives.MultiplyByValue(-1 * region_agreement);
+  ProcessSDFAndIntersectionImage(current_model, camera_, sdf_image, front_intersection_image, back_intersection_image);
 
-  //      image_pose_derivatives.AddValues(per_pixel_pose_derivatives);
+  float fg_area, bg_area = 0;
+  size_t contour_area = 0;
+  ComputeAreas(sdf_image, fg_area, bg_area, contour_area);
 
-  //    }
-  //  }
+  float *sdf_im_data = (float *)sdf_image.data;
+  float *front_intersection_data = (float *)front_intersection_image.data;
+  float *back_intersection_data = (float *)back_intersection_image.data;
 
-  //  //do point based tracking
-  //  std::vector<MatchedPair> pnp_pairs;
-  //  cv::Mat point_save_image = frame_->GetImageROI().clone();
-  //  register_points_.FindPointCorrespondencesWithPose(frame_,current_model.PtrToModel(),current_model.CurrentPose(),point_save_image);
-  //  for(auto pnp=pnp_pairs.begin();pnp!=pnp_pairs.end();pnp++){
-  //    register_points_.GetPointDerivative(pnp->learned_point,cv::Point2d(pnp->image_point[0],pnp->image_point[1]), current_model.CurrentPose(), image_pose_derivatives);
-  //  } 
+  size_t error = 0;
 
-  //  //scale jacobian and update pose
-  //  ApplyGradientDescentStep(image_pose_derivatives,current_model.CurrentPose(),step,pixel_count);
-  //    
-  //}
-  //
-  ////update the velocity model... a bit crude
-  //cv::Vec3d translational_velocity = current_model.CurrentPose().translation_ - initial_translation;
-  //current_model.CurrentPose().translational_velocity_ = translational_velocity;
-  //
-  //return current_model.CurrentPose();
+  cv::Mat classification_image = frame_->GetClassificationMap();
+
+  for (int r = 5; r < classification_image.rows - 5; ++r){
+    for (int c = 5; c < classification_image.cols - 5; ++c){
+
+      int i = r*classification_image.cols + c;
+
+      if (sdf_im_data[i] <= float(HEAVYSIDE_WIDTH) - 1e-1 && sdf_im_data[i] >= -float(HEAVYSIDE_WIDTH) + 1e-1){
+
+        //-log(H * P_f + (1-H) * P_b)
+        error += GetErrorValue(classification_image, r, c, sdf_im_data[i], 1.0f, fg_area, bg_area);
+
+        //P_f - P_b / (H * P_f + (1 - H) * P_b)
+        const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i], fg_area, bg_area);
+
+        int shifted_i = i;
+
+        //find the closest point on the contour if this point is outside the contour
+        if (sdf_im_data[i] < 0.0) {
+          int closest_r, closest_c;
+          bool found = FindClosestIntersection(sdf_im_data, r, c, sdf_image.rows, sdf_image.cols, closest_r, closest_c);
+          if (!found) continue; //should this be allowed to happen?
+          shifted_i = closest_r * sdf_image.cols + closest_c;
+        }
+
+        cv::Matx<float, 1, 7> jacs;
+        for (int j = 0; j < 7; ++j){
+          jacs(j) = 0.0f;
+        }
+
+        const float dsdf_dx = 0.5f*(sdf_im_data[r*classification_image.cols + (c + 1)] - sdf_im_data[r*classification_image.cols + (c - 1)]);
+        const float dsdf_dy = 0.5f*(sdf_im_data[(r + 1)*classification_image.cols + c] - sdf_im_data[(r - 1)*classification_image.cols + c]);
+
+        //update the jacobian
+        
+        UpdateJacobian(region_agreement, sdf_im_data[i], dsdf_dx, dsdf_dy, camera_->Fx(), camera_->Fy(), front_intersection_image.at<cv::Vec3f>(shifted_i), back_intersection_image.at<cv::Vec3f>(shifted_i), current_model, jacs);
+        
+        jacobian += jacs.t();
+        hessian_approx += (jacs.t() * jacs);
+
+      }
+    }
+  }
+
+  cv::Vec3f translation(jacobian(0), jacobian(1), jacobian(2));
+  const float max_translation = 0.04; //mm
+  float translation_mag = std::sqrt(translation.dot(translation));
+  translation = (max_translation / translation_mag) * translation;
+
+  cv::Vec4f rotation(jacobian(3), jacobian(4), jacobian(5), jacobian(6));
+  const float max_rotation = 0.002;
+  float rotation_mag = std::sqrt(rotation.dot(rotation));
+  rotation = (max_rotation / rotation_mag) * rotation;
+
+  for (int i = 0; i < 3; ++i)
+    jacs[i] = -translation[i];
+  for (int j = 0; j < 4; ++j){
+    jacs[3 + j] = -rotation[j];
+  }
+  current_model->UpdatePose(jacs);
+
+
 }
 
-
-
-//void MonoPWP3D::GetFastDOFDerivs(const Pose &pose, double *pose_derivs, double *intersection) {
-//  pose.GetFastDOFDerivs(pose_derivs,intersection);
-//}

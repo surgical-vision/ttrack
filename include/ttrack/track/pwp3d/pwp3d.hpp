@@ -65,8 +65,11 @@ namespace ttrk {
     * @param[in] r The row index of the current pixel.
     * @param[in] c The column index of the current pixel.
     * @param[in] sdf The signed distance function image.
+    * @param[in] fg_area The area of the foreground region.
+    * @param[in] bg_area The area of the background region.
+    * @return The region agreement value.
     */
-    virtual float GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf) const;
+    virtual float GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf, const float fg_area, const float bg_area) const;
     
     /** 
     * Update the jacobian by computing the second part of the derivative and multiplying by the region agreement.
@@ -102,7 +105,8 @@ namespace ttrk {
     * @return The value scaled to between 0-1 with a smoothed logistic function manner.
     */
     float HeavisideFunction(const float x) const {
-      return 0.5f*(1.0f + x / float(HEAVYSIDE_WIDTH) + (1.0f / float(M_PI))*sin((float(M_PI)*x) / float(HEAVYSIDE_WIDTH)));
+      //return 0.5f*(1.0f + x / float(HEAVYSIDE_WIDTH) + (1.0f / float(M_PI))*sin((float(M_PI)*x) / float(HEAVYSIDE_WIDTH)));
+      return 0.5f + 0.5f*tanh(float(HEAVYSIDE_WIDTH)*x);
     }
 
     /**
@@ -139,9 +143,11 @@ namespace ttrk {
     * @param[in] col_idx The y-pixel coordinate for this image.
     * @param[in] sdf_value The signed distance function value for this pixel.
     * @param[in] target_label The target label for multiclass classification.
+    * @param[in] fg_area The area of the foreground region.
+    * @param[in] bg_area The area of the background region.
     * @return The error value.
     */
-    float GetErrorValue(const cv::Mat &classification_image, const int row_idx, const int col_idx, const float sdf_value, const int target_label) const;
+    float GetErrorValue(const cv::Mat &classification_image, const int row_idx, const int col_idx, const float sdf_value, const int target_label, const float fg_area, const float bg_area) const;
 
   protected:
 
@@ -152,7 +158,7 @@ namespace ttrk {
     * @param[out] bg_area The background area.
     * @param[out] contour_area The area of non-zero (or non-ludicrously-small) values from the signed distance function.
     */
-    void ComputeAreas(cv::Mat &sdf, size_t &fg_area, size_t &bg_area, size_t &contour_area);
+    void ComputeAreas(cv::Mat &sdf, float &fg_area, float &bg_area, size_t &contour_area);
 
     boost::shared_ptr<sv::Frame> frame_; /**< Just a reference to the current frame, probably not really useful, may be removed. */
     

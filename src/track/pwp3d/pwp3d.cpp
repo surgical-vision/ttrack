@@ -27,7 +27,7 @@ PWP3D::PWP3D(const int width, const int height) {
   format.enableColorBuffer(true, 2);
   back_depth_framebuffer_ = ci::gl::Fbo(width, height, format);
 
-  HEAVYSIDE_WIDTH = 6;
+  HEAVYSIDE_WIDTH = 3;
 
   NUM_STEPS = 45;// 125;
 
@@ -58,7 +58,7 @@ void PWP3D::LoadShaders(){
 
 }
 
-void PWP3D::ComputeAreas(cv::Mat &sdf, size_t &fg_area, size_t &bg_area, size_t &contour_area){
+void PWP3D::ComputeAreas(cv::Mat &sdf, float &fg_area, float &bg_area, size_t &contour_area){
 
   fg_area = bg_area = 0;
 
@@ -68,8 +68,10 @@ void PWP3D::ComputeAreas(cv::Mat &sdf, size_t &fg_area, size_t &bg_area, size_t 
       if (sdf.at<float>(r, c) <= float(3) - 1e-1 && sdf.at<float>(r, c) >= -float(3) + 1e-1)
         contour_area++;
 
-      fg_area += sdf.at<float>(r, c);
-      bg_area += (1.0f - sdf.at<float>(r, c));
+      const float sdf_v = sdf.at<float>(r, c);
+
+      fg_area += HeavisideFunction(sdf.at<float>(r, c));
+      bg_area += (1.0f - HeavisideFunction(sdf.at<float>(r, c)));
     }
   }
 
@@ -166,25 +168,29 @@ bool PWP3D::FindClosestIntersection(const float *sdf_im, const int r, const int 
 
 }
 
-float PWP3D::GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf) const {
+float PWP3D::GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf, const float fg_size, const float bg_size) const {
   
   const float heaviside_value = HeavisideFunction(sdf);
 
-  const float Pf = classification_image.at<cv::Vec4f>(r, c)[1]; //returns foreground pixel likelihood
-  const float Pb = classification_image.at<cv::Vec4f>(r, c)[0]; //returns background pixel likelihood
+  const float P = classification_image.at<float>(r, c);
+
+  const float Pf = P / fg_size;
+  const float Pb = (1-P) / bg_size;
 
   return (Pf - Pb) / ((heaviside_value*Pf) + ((1 - heaviside_value)*Pb));
 
 }
 
 
-float PWP3D::GetErrorValue(const cv::Mat &classification_image, const int row_idx, const int col_idx, const float sdf_value, const int target_label) const{
+float PWP3D::GetErrorValue(const cv::Mat &classification_image, const int row_idx, const int col_idx, const float sdf_value, const int target_label, const float fg_size, const float bg_size) const{
 
-  const float Pf = classification_image.at<cv::Vec4f>(row_idx, col_idx)[1];
-  const float Pb = classification_image.at<cv::Vec4f>(row_idx, col_idx)[0];
+  const float P = classification_image.at<float>(row_idx, col_idx);
   //assert(pixel_probability >= 0.0f && pixel_probability <= 1.0f);
+  const float Pf = P / fg_size;
+  const float Pb = (1 - P) / bg_size;
 
   const float heaviside_value = HeavisideFunction(sdf_value);
+
 
   float v = (heaviside_value * Pf) + ((1 - heaviside_value)*(Pb));
   v += 0.0000001f;

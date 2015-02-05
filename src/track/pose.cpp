@@ -1,4 +1,5 @@
 #include "../../include/ttrack/track/pose.hpp"
+#include <cinder/app/App.h>
 
 using namespace ttrk;
 
@@ -64,8 +65,6 @@ void Pose::SetPose(std::vector<float> &pose) {
   translation_[1] = pose[1];
   translation_[2] = pose[2];
 
-  //rotation_ = sv::Quaternion(pose[3], pose[4], pose[5], pose[6]);
-  //rotation_ = rotation_.Normalize();
   rotation_ = ci::Quatf(pose[3], pose[4], pose[5], pose[6]);
   rotation_.normalize();
 
@@ -172,8 +171,9 @@ void Pose::UpdatePose(const std::vector<float> &updates) {
   for (int i = 0; i < 3; ++i)
     translation_[i] += updates[i];
 
+  //w,x,y,z
   ci::Quatf rotation_update(updates[3], updates[4], updates[5], updates[6]);
-  
+
   rotation_ = rotation_ + rotation_update;
   rotation_.normalize();
 }

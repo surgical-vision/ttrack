@@ -32,6 +32,11 @@ void MonoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost
 
   ProcessSDFAndIntersectionImage(current_model, camera_, sdf_image, front_intersection_image, back_intersection_image);
 
+  if (!point_registration_){
+    point_registration_.reset(new PointRegistration(camera_));
+    point_registration_->ComputeDescriptorsForPointTracking(frame_, front_intersection_image, current_model->GetBasePose());
+  }
+
   float fg_area, bg_area = 0;
   size_t contour_area = 0;
   ComputeAreas(sdf_image, fg_area, bg_area, contour_area);

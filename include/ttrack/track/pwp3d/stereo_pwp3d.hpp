@@ -4,7 +4,7 @@
 #include <cinder/app/App.h>
 
 #include "pwp3d.hpp"
-#include "register_points.hpp"
+
 
 namespace ttrk {
  
@@ -80,7 +80,6 @@ namespace ttrk {
 
     std::vector<float> errors_; /**< The current set of errors. */
 
-    boost::shared_ptr<PointRegistration> point_registration_; /**< Computes the point registration error. */
 
   };
 

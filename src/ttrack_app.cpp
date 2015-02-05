@@ -215,12 +215,12 @@ void TTrackApp::drawEye(boost::shared_ptr<ci::gl::Fbo> framebuffer, ci::gl::Text
   shader_.uniform("tex0", 0);
 
   for (size_t i = 0; i < models_to_draw_.size(); ++i){
-    //glEnable(GL_BLEND);
-    //gl::color(1.0f, 1.0f, 1.0f, 0.8f); // Full Brightness, 50% Alpha ( NEW )
-    //glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    glEnable(GL_BLEND);
+    gl::color(1.0f, 1.0f, 1.0f, 0.8f); // Full Brightness, 50% Alpha ( NEW )
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
     models_to_draw_[i]->RenderTexture(0);
-    //glDisable(GL_BLEND);
-    //gl::color(1.0f, 1.0f, 1.0f, 1.0f);
+    glDisable(GL_BLEND);
+    gl::color(1.0f, 1.0f, 1.0f, 1.0f);
   }
 
   shader_.unbind();
@@ -405,30 +405,45 @@ void TTrackApp::draw3D(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture
   ci::Vec3f test_start_pose(10, -5, 60);
 
   ci::CameraPersp maya;
-  maya.setEyePoint(ci::Vec3f(-20, -20, -20));
-  maya.setWorldUp(ci::Vec3f(0, 1, 0));
-  maya.lookAt(test_start_pose);
-  
+  static bool first = true;
+  if (first){
+    maya.setEyePoint(ci::Vec3f(-20, -20, -20));
+    maya.setWorldUp(ci::Vec3f(0, 1, 0));
+    maya.lookAt(test_start_pose);
+    maya_cam_.setCurrentCam(maya);
+  }
+  first = false;
+
+  //
   gl::pushMatrices();
-  gl::setMatrices(maya);
+  gl::setMatrices(maya_cam_.getCamera());
 
   ci::Area viewport = gl::getViewport();
   gl::setViewport(ci::Area(0, 0, framebuffer->getWidth(), framebuffer->getHeight()));
 
   ci::gl::enableDepthRead();
   ci::gl::enableDepthWrite();
-  ci::gl::pushMatrices();
+  //ci::gl::pushMatrices();
   
+
   gl::pushModelView();
   //cam->SetupCameraForDrawing();
   
+  //gl::pushModelView();
+  //gl::multModelView(maya_cam_.getCamera().getModelViewMatrix().inverted());
+  //drawCamera(camera_view);
+  //gl::popModelView();
+
   cam->SetupLight();
 
   shader_.bind();
   shader_.uniform("tex0", 0);   
 
   for (size_t i = 0; i < models_to_draw_.size(); ++i){
+    //gl::pushModelView();
+    //gl::multModelView(maya_cam_.getCamera().getModelViewMatrix().inverted());
     models_to_draw_[i]->RenderTexture(0);
+    //gl::popModelView();
   }
 
   shader_.unbind();
@@ -437,7 +452,7 @@ void TTrackApp::draw3D(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture
 
   gl::popModelView();
 
-  ci::gl::popMatrices();
+  //gl::popMatrices();
 
   gl::setViewport(viewport);
   gl::popMatrices();
@@ -446,6 +461,74 @@ void TTrackApp::draw3D(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture
   framebuffer->unbindFramebuffer();
 
 }
+
+void TTrackApp::drawImageOnCamera(const gl::Texture &image_data, ci::Vec3f &tl, ci::Vec3f &bl, ci::Vec3f &tr, ci::Vec3f &br){
+
+  ci::gl::SaveTextureBindState saveBindState(image_data.getTarget());
+  ci::gl::BoolState saveEnabledState(image_data.getTarget());
+  ci::gl::ClientBoolState vertexArrayState(GL_VERTEX_ARRAY);
+  ci::gl::ClientBoolState texCoordArrayState(GL_TEXTURE_COORD_ARRAY);
+  image_data.enableAndBind();
+
+  glEnableClientState(GL_VERTEX_ARRAY);
+  GLfloat verts[12];
+  glVertexPointer(3, GL_FLOAT, 0, verts);
+
+  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+  GLfloat texCoords[8];
+  glTexCoordPointer(2, GL_FLOAT, 0, texCoords);
+
+  for (int i = 0; i < 3; ++i) { verts[0 * 3 + i] = tl[i]; }
+  for (int i = 0; i < 3; ++i) { verts[1 * 3 + i] = bl[i]; }
+  for (int i = 0; i < 3; ++i) { verts[2 * 3 + i] = tr[i]; }
+  for (int i = 0; i < 3; ++i) { verts[3 * 3 + i] = br[i]; }
+
+  texCoords[0 * 2 + 0] = 0; texCoords[0 * 2 + 1] = 0;
+  texCoords[1 * 2 + 0] = 0; texCoords[1 * 2 + 1] = 1;
+  texCoords[2 * 2 + 0] = 1; texCoords[2 * 2 + 1] = 0;
+  texCoords[3 * 2 + 0] = 1; texCoords[3 * 2 + 1] = 1;
+
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
+
+void TTrackApp::drawCamera(const gl::Texture &image_data){
+
+  ci::Vec3f vertex[8];
+
+  ci::Vec3f eye(0, 0, 0);
+  ci::Vec3f bottom_left(-5, -5, 20);
+  ci::Vec3f bottom_right(5, -5, 20);
+  ci::Vec3f top_left(-5, 5, 20);
+  ci::Vec3f top_right(5, 5, 20);
+
+  if (image_data)
+    drawImageOnCamera(image_data, top_left, bottom_left, top_right, bottom_right);
+
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glVertexPointer(3, GL_FLOAT, 0, &vertex[0].x);
+
+  vertex[0] = eye;
+  vertex[1] = bottom_left;
+  vertex[2] = eye;
+  vertex[3] = bottom_right;
+  vertex[4] = eye;
+  vertex[5] = top_left;
+  vertex[6] = eye;
+  vertex[7] = top_right;
+  glDrawArrays(GL_LINES, 0, 8);
+
+  glLineWidth(2.0f);
+  vertex[0] = bottom_left;
+  vertex[1] = bottom_right;
+  vertex[2] = top_right;
+  vertex[3] = top_left;
+  glDrawArrays(GL_LINE_LOOP, 0, 4);
+
+  glLineWidth(1.0f);
+  glDisableClientState(GL_VERTEX_ARRAY);
+
+}
+
 
 void TTrackApp::drawGrid(float size, float step, float plane_position){
 
@@ -496,16 +579,21 @@ void TTrackApp::mouseMove(MouseEvent m_event){
 }
 
 void TTrackApp::mouseDown(MouseEvent m_event){
+  
   // let the camera handle the interaction
-  maya_cam_.mouseDown(m_event.getPos());
+  if (windows_[3].window_coords_.contains(m_event.getPos()))
+    maya_cam_.mouseDown(m_event.getPos());
 }
 
 void TTrackApp::mouseDrag(MouseEvent m_event){
-  // keep track of the mouse
-  mouse_pos_ = m_event.getPos();
 
-  // let the camera handle the interaction
-  maya_cam_.mouseDrag(m_event.getPos(), m_event.isLeftDown(), m_event.isMiddleDown(), m_event.isRightDown());
+  if (windows_[3].window_coords_.contains(m_event.getPos())){
+    // keep track of the mouse
+    mouse_pos_ = m_event.getPos();
+    // let the camera handle the interaction
+    maya_cam_.mouseDrag(m_event.getPos(), m_event.isLeftDown(), m_event.isMiddleDown(), m_event.isRightDown());
+  }
+
 }
 
 void TTrackApp::resize(){

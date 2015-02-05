@@ -1,6 +1,8 @@
 #include "../../../include/ttrack/track/temporal/temporal.hpp"
 #include "../../../include/ttrack/utils/helpers.hpp"
 
+#include <cinder/app/App.h>
+
 using namespace ttrk;
 
 void KalmanFilterTracker::Init(std::vector<float> &start_pose) {
@@ -8,7 +10,7 @@ void KalmanFilterTracker::Init(std::vector<float> &start_pose) {
   static float dt = 1.0f/25; //frame rate of 25Hz
 
   //params (x,y,z,dx,dy,dz,r1,r2,r3,dr1,dr2,dr3) - euler angles allows linear parametrization
-  filter_.init(12, 6, 0); //dynamic params, measurement params, control params
+  filter_.init(12, 6, 0, CV_32F); //dynamic params, measurement params, control params
 
   filter_.transitionMatrix = cv::Mat::eye(12, 12, CV_32F);
   for (int i = 3; i<6; i++){
@@ -17,10 +19,10 @@ void KalmanFilterTracker::Init(std::vector<float> &start_pose) {
   }
 
   filter_.measurementMatrix = cv::Mat::zeros(6, 12, CV_32F);
-  for (int i = 0; i<6; i++)
+  for (int i = 0; i < 3; i++){
     filter_.measurementMatrix.at<float>(i, i) = 1;
-  //for (int i = 7; i<10; i++)
-    //filter_.measurementMatrix.at<float>(i, i) = 1;
+    filter_.measurementMatrix.at<float>(i + 3, i + 6) = 1;
+  }
 
   cv::Vec3f eulers = CiToCv<float>(ConvertQuatToEulers(ci::Quatf(start_pose[3], start_pose[4], start_pose[5], start_pose[6])));
 
@@ -37,8 +39,8 @@ void KalmanFilterTracker::Init(std::vector<float> &start_pose) {
   filter_.statePost.at<float>(10) = 0;
   filter_.statePost.at<float>(11) = 0;
     
-  cv::setIdentity(filter_.processNoiseCov, cv::Scalar::all(1e-2)); //uncertainty in the model
-  cv::setIdentity(filter_.measurementNoiseCov, cv::Scalar::all(1e-3)); //uncertainty in the measurement
+  cv::setIdentity(filter_.processNoiseCov, cv::Scalar::all(1)); //uncertainty in the model
+  cv::setIdentity(filter_.measurementNoiseCov, cv::Scalar::all(1e-2)); //uncertainty in the measurement
   cv::setIdentity(filter_.errorCovPost, cv::Scalar::all(1));
 
 }

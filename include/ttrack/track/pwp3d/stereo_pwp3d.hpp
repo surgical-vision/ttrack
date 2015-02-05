@@ -4,7 +4,7 @@
 #include <cinder/app/App.h>
 
 #include "pwp3d.hpp"
-#include "register_points.hpp"
+
 
 namespace ttrk {
  

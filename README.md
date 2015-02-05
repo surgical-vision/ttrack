@@ -28,6 +28,13 @@ Install Guide
 CMake.
 
 
+Usage
+-----
+
+Right now the core algorithm works as follows: frames are loaded using any class that inherits from the Handler interface and passed (via the single TTrack manager) to the detector. There features which are to be used for pose estimation are extracted, right now this is a pixel-wise classification for region based pose estimation although any other type of feature is possible. The TTrack manager then passes this detected frame to the tracker (which inherits from the Tracker interface). This defines a custom initialization function which allows the first pose to be roughly estimated before a more precise pose localizer (which inherits from Localizer) focusses on refinement. 
+
+Trackable objects are represented by subclassing the Model class and are loaded via a .json file which defines a possibly articulated structure where the standard tree-like model is used. Each node of the tree (from root to children to children-of-children) represents a single rigid body transform from its parent and possibly also some geometry (in mesh format) and texture (mtl or gl textures). It is useful to not make geometry mandatory as some robotic manipulators define their structure this way. Right now the example file is for a robotic instrument so the transforms are defined with DH paramters (using subclass DenavitHartenbergArticulatedModel) although it should be easy to subclass Model to handle SE3 or another parameterization.
+
 Contributors
 ------------
 

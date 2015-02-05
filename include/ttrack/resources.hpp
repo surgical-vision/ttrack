@@ -11,6 +11,7 @@
 #define PWP3D_BACK_DEPTH_AND_CONTOUR_VERT  CINDER_RESOURCE(../resources/, pwp3d_back_depth_contour_vert.glsl, 133, GLSL)
 #define COMP_LS_BACK_DEPTH_AND_CONTOUR_FRAG  CINDER_RESOURCE(../resources/, comp_ls_back_depth_contour_frag.glsl, 134, GLSL)
 #define COMP_LS_BACK_DEPTH_AND_CONTOUR_VERT  CINDER_RESOURCE(../resources/, comp_ls_back_depth_contour_vert.glsl, 135, GLSL)
+#define HELPER_WIN    CINDER_RESOURCE( ../resources/, start.png, 134, IMAGE )
 
 #endif
 

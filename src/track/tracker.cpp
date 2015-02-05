@@ -22,8 +22,7 @@ void Tracker::RunStep(){
   for (current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++){
 
     localizer_->TrackTargetInFrame(current_model_->model, frame_);
-    ci::app::console() << "Pose after GD step = " << current_model_->model->GetBasePose() << std::endl;
-    
+       
   }
 
 }
@@ -55,8 +54,7 @@ void Tracker::Run(boost::shared_ptr<sv::Frame> image, const bool found){
   else{
 
     for (current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++){
-      //current_model_->temporal_tracker->UpdatePoseWithMotionModel(current_model_->model);
-      ci::app::console() << "Pose after temporal update = " << current_model_->model->GetBasePose() << std::endl;
+      current_model_->temporal_tracker->UpdatePoseWithMotionModel(current_model_->model);
     }
 
   }

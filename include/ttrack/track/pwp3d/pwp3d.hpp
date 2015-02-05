@@ -11,6 +11,7 @@
 #include "../../utils/image.hpp"
 #include "../pose.hpp"
 #include "../../utils/plotter.hpp"
+#include "register_points.hpp"
 
 namespace ttrk {
 
@@ -65,8 +66,11 @@ namespace ttrk {
     * @param[in] r The row index of the current pixel.
     * @param[in] c The column index of the current pixel.
     * @param[in] sdf The signed distance function image.
+    * @param[in] fg_area The area of the foreground region.
+    * @param[in] bg_area The area of the background region.
+    * @return The region agreement value.
     */
-    virtual float GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf) const;
+    virtual float GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf, const float fg_area, const float bg_area) const;
     
     /** 
     * Update the jacobian by computing the second part of the derivative and multiplying by the region agreement.
@@ -83,6 +87,15 @@ namespace ttrk {
     */
     void UpdateJacobian(const float region_agreement, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_image, const boost::shared_ptr<const Model> model, cv::Matx<float, 1, 7> &jacobian);
 
+
+    /**
+    * Update the point registration jacobian, finding the updates to the pose parameters that minimize the point to point error.
+    * @param[in] current_model The model to align.
+    * @param[in] jacobian The jacobian to update.
+    * @param[in] hessian_approx The hessian approximation if using GN.
+    */
+    void ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_model, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx);
+
     /**
     * Find the closest intersection point for pixels which project 'very close' to the target mesh. This is done by searching the sdf_im for the closest zero value to (r,c).
     * @param[in] sdf_im A pointer to the image data for the Signed Distance Function image.
@@ -97,21 +110,31 @@ namespace ttrk {
     bool FindClosestIntersection(const float *sdf_im, const int r, const int c, const int height, const int width, int &closest_r, int &closest_c) const;
 
     /**
+    * Scale the jacobian for the rigid pose parameters when doing gradient descent.
+    * @param[in] jacobian The jacobian to be scaled.
+    * @return The scaled jacobian.
+    */
+    std::vector<float> ScaleRigidJacobian(cv::Matx<float, 7, 1> &jacobian) const;
+
+    /**
     * Compute a smoothed heaviside function output for a given value.
     * @param[in] x The input value.
     * @return The value scaled to between 0-1 with a smoothed logistic function manner.
     */
     float HeavisideFunction(const float x) const {
       return 0.5f*(1.0f + x / float(HEAVYSIDE_WIDTH) + (1.0f / float(M_PI))*sin((float(M_PI)*x) / float(HEAVYSIDE_WIDTH)));
+      //return 0.5f + 0.5f*tanh(float(HEAVYSIDE_WIDTH)*x);
     }
 
     /**
     * Compute a smoothed delta function output for a given value. This is basically a Gaussian approximation where the standard deviation is close to zero.
+    * Warning this approximation is only valid close to the zero line.
     * @param[in] x The input value.
     * @return The output value.
     */
     float DeltaFunction(const float x) const {
       return (1.0f / 2.0f / HEAVYSIDE_WIDTH*(1.0f + cos(float(M_PI)*x / HEAVYSIDE_WIDTH)));
+      //return (0.5 * HEAVYSIDE_WIDTH) / (cosh(HEAVYSIDE_WIDTH * x)*cosh(HEAVYSIDE_WIDTH*x));
     }
     
     /**
@@ -139,9 +162,11 @@ namespace ttrk {
     * @param[in] col_idx The y-pixel coordinate for this image.
     * @param[in] sdf_value The signed distance function value for this pixel.
     * @param[in] target_label The target label for multiclass classification.
+    * @param[in] fg_area The area of the foreground region.
+    * @param[in] bg_area The area of the background region.
     * @return The error value.
     */
-    float GetErrorValue(const cv::Mat &classification_image, const int row_idx, const int col_idx, const float sdf_value, const int target_label) const;
+    float GetErrorValue(const cv::Mat &classification_image, const int row_idx, const int col_idx, const float sdf_value, const int target_label, const float fg_area, const float bg_area) const;
 
   protected:
 
@@ -152,7 +177,7 @@ namespace ttrk {
     * @param[out] bg_area The background area.
     * @param[out] contour_area The area of non-zero (or non-ludicrously-small) values from the signed distance function.
     */
-    void ComputeAreas(cv::Mat &sdf, size_t &fg_area, size_t &bg_area, size_t &contour_area);
+    void ComputeAreas(cv::Mat &sdf, float &fg_area, float &bg_area, size_t &contour_area);
 
     boost::shared_ptr<sv::Frame> frame_; /**< Just a reference to the current frame, probably not really useful, may be removed. */
     
@@ -167,6 +192,8 @@ namespace ttrk {
     
     int HEAVYSIDE_WIDTH;  /**< Width of the heaviside blurring function. */
 
+    boost::shared_ptr<PointRegistration> point_registration_; /**< Computes the point registration error. */
+    
   };
 
 

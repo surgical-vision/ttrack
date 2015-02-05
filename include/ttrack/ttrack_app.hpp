@@ -78,6 +78,15 @@ public:
 
 protected:
 
+  void drawImageOnCamera(const gl::Texture &image_data, ci::Vec3f &tl, ci::Vec3f &bl, ci::Vec3f &tr, ci::Vec3f &br);
+  void drawCamera(const gl::Texture &image_data);
+
+  /**
+  * Load the helper window.
+  * @param[in] framebuffer The framebuffer to draw the helper window in.
+  */
+  void drawHelpWindow(boost::shared_ptr<ci::gl::Fbo> framebuffer); 
+
   /**
   * Save the results from all of the pose estimates for the current frame.
   */

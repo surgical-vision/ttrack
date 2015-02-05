@@ -1,0 +1,73 @@
+{
+    "root": {
+        "obj-file": "body.obj",
+        "mtl-file": "body.mtl",
+        "tex-file": "black_plastic.png",
+        "articulated": false,
+        "children": [
+            {
+                "name": "wrist-pitch",
+                "obj-file": "head.obj",
+                "mtl-file": "head.mtl",
+                "tex-file": "metal.png",
+                "articulated": true,
+                "dh": {
+                    "a": 0,
+                    "d": 0,
+                    "alpha": -1.570796,
+                    "theta": -1.570796,
+                    "type": "rotation"
+                },
+                "children": [
+                    {
+                        "name": "wrist-yaw",
+                        "articulated": true,
+                        "dh": {
+                            "a": 0.009,
+                            "d": 0,
+                            "alpha": -1.570796,
+                            "theta": -1.570796,
+                            "type": "rotation"
+                        },
+                        "children": [
+                            {
+                                "name": "clasper-base",
+                                "articulated": true,
+                                "dh": {
+                                    "a": 0,
+                                    "d": 0,
+                                    "alpha": -1.570796,
+                                    "theta": 0.0,
+                                    "type": "fixed"
+                                },
+                                "children": [
+                                    {
+                                        "name": "clasper-1",
+                                        "obj-file": "clasper1.obj",
+                                        "mtl-file": "clasper1.mtl",
+                                        "tex-file": "metal.png",
+                                        "articulated": true,
+                                        "rotate": [ 0, 1, 0 ],
+                                        "children": [
+                                        ]
+                                    },
+                                    {
+                                        "name": "clasper-2",
+                                        "obj-file": "clasper2.obj",
+                                        "mtl-file": "clasper2.mtl",
+                                        "tex-file": "metal.png",
+                                        "articulated": true,
+                                        "rotate": [ 0, -1, 0 ],
+                                        "children": [
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -38,11 +38,6 @@ bool MultiClassRandomForest::ClassifyFrame(boost::shared_ptr<sv::Frame> frame){
 
       cv::Mat pix = nd_image.GetPixelData(r, c);
 
-      float hue = pix.at<float>(0);
-      float sat = pix.at<float>(1);
-      float o1 = pix.at<float>(2);
-      float o2 = pix.at<float>(3);
-
       bool predicted_class = false;
 
       //predicted probability of each class

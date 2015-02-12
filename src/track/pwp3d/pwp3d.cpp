@@ -133,7 +133,16 @@ void PWP3D::UpdateJacobian(const float region_agreement, const float sdf, const 
 bool PWP3D::FindClosestIntersection(const float *sdf_im, const int r, const int c, const int height, const int width, int &closest_r, int &closest_c) const {
   
   const float &sdf_val = sdf_im[r * width + c];
+  ci::app::console() << "i = " << r * width + c << std::endl;
+
+  ci::app::console() << "SDF IMAGE DATA inside = " << sdf_val << std::endl;
+
   const int ceil_sdf = (int)std::abs(ceil(sdf_val));
+
+  if (ceil_sdf > 5){
+    throw std::runtime_error("");
+  }
+
   for (int w_c = c - ceil_sdf; w_c <= c + ceil_sdf; ++w_c){
     
     const int up_idx = (r + ceil_sdf)*width + w_c;

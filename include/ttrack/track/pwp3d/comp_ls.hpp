@@ -27,10 +27,8 @@ namespace ttrk {
     * @param[in] camera The camera model used for the projection.
     * @param[out] front_intersection_image A 32 bit 3 channel image of the first 3D point that a ray cast from a pixel inside the contour projects to on the model (in camera coordinates).
     * @param[out] front_intersection_image A 32 bit 3 channel image of the last 3D point that a ray cast from a pixel inside the contour projects to on the model (in camera coordinates).
-    * @param[out] component_ls_image The internal component signed distance function.
-    * @param[out] component_index_image The index values of the multiple components.
     */
-    void ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image, cv::Mat &component_sdf_image, cv::Mat &component_index_image);
+    void ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image);
 
     /**
     * Render the mesh in the current pose getting the depth of the each pixel and the outer contour.
@@ -41,10 +39,13 @@ namespace ttrk {
     * @param[out] contour An 8 bit single channel image which is 0 at every point that is not on the outer contour of the projected mesh and 255 where it is.
     * @param[out] component_map An 8 bit single channel image which contains the contours from the internal color segmentation.
     */
-    void RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_depth, cv::Mat &back_depth, cv::Mat &contour, cv::Mat &component_image, cv::Mat &component_contour_image);
+    void RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_depth, cv::Mat &back_depth);
 
+    float GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf_value, const size_t target_probability, const size_t neighbour_probability);
 
   protected:
+
+    unsigned char ComputeNearestNeighbourForPixel(int r, int c, float sdf_value, const int width, const int height);
 
     ci::gl::Fbo component_map_framebuffer_;
 
@@ -60,6 +61,7 @@ namespace ttrk {
 
     };
 
+    cv::Mat component_map_;
     std::vector<HomogenousComponent> components_;
 
   };

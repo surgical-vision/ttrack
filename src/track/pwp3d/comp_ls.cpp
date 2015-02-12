@@ -18,6 +18,13 @@ ComponentLevelSet::ComponentLevelSet(boost::shared_ptr<StereoCamera> camera) : S
 
   LoadShaders();
 
+  HomogenousComponent background(0);
+  HomogenousComponent shaft(1);
+  HomogenousComponent head(2);
+  components_.push_back(background);
+  components_.push_back(shaft);
+  components_.push_back(head);
+
 }
 
 ComponentLevelSet::~ComponentLevelSet(){
@@ -126,7 +133,6 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
 void ComponentLevelSet::ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image, cv::Mat &component_sdf_image, cv::Mat &component_index_image) {
 
   //find all the pixels which project to intersection points on the model
-  sdf_image = cv::Mat(frame_->GetImageROI().size(), CV_32FC1);
   front_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(), CV_32FC3);
   back_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(), CV_32FC3);
 
@@ -157,16 +163,27 @@ void ComponentLevelSet::ProcessSDFAndIntersectionImage(const boost::shared_ptr<M
   }
 
 
-  distanceTransform(contour, sdf_image, CV_DIST_L2, CV_DIST_MASK_PRECISE);
-  distanceTransform(component_map, component_sdf_image, CV_DIST_L2, CV_DIST_MASK_PRECISE);
+  //cv::Mat sdf_image;
+  distanceTransform(~component_contour_image, component_sdf_image, CV_DIST_L2, CV_DIST_MASK_PRECISE);
 
-  //flip the sign of the distance image for outside pixels
-  for (int r = 0; r<sdf_image.rows; r++){
-    for (int c = 0; c<sdf_image.cols; c++){
-      if (std::abs(front_depth.at<cv::Vec4f>(r, c)[0] - GL_FAR) < EPS)
-        sdf_image.at<float>(r, c) *= -1;
+  for (size_t i = 0; i < components_.size(); i++){
+    components_[i].sdf_image = cv::Mat(component_sdf_image.size(), CV_32FC1);
+    distanceTransform(~components_[i].contour_image, components_[i].sdf_image, CV_DIST_L2, CV_DIST_MASK_PRECISE);
+  }
+
+  for (int r = 0; r < component_sdf_image.rows; ++r){
+    for (int c = 0; c < component_sdf_image.cols; ++c){
+      for (size_t i = 0; i < components_.size(); i++){
+        if (components_[i].target_probability != component_map.at<unsigned char>(r, c)){
+          components_[i].sdf_image.at<float>(r, c) *= -1;
+        }
+      }
     }
   }
+
+  cv::Mat &a1 = components_[0].sdf_image;
+  cv::Mat &a2 = components_[1].sdf_image;
+  cv::Mat &a3 = components_[2].sdf_image;
 
 }
 
@@ -287,17 +304,25 @@ void ComponentLevelSet::RenderModelForDepthAndContour(const boost::shared_ptr<Mo
   unsigned char *comp_dst = (unsigned char *)component_index_image.data;
   component_contour_image = cv::Mat::zeros(contour.size(), CV_8UC1);
 
+  //get the binary component images and the component map.
+  for (size_t i = 0; i < components_.size(); ++i){
+    components_[i].binary_image = cv::Mat::zeros(contour.size(), CV_8UC1);
+    components_[i].contour_image = cv::Mat::zeros(contour.size(), CV_8UC1);
+  }
   for (int r = 0; r < mcontour.rows; ++r){
     for (int c = 0; c < mcontour.cols; ++c){
       dst[r * mcontour.cols + c] = (unsigned char)src[(r * mcontour.cols + c) * 4];
       if (std::abs(comp_src[(r * mcontour.cols + c) * 4]) < EPS){
         comp_dst[r * mcontour.cols + c] = 1; //plastic shaft
+        components_[1].binary_image.at<unsigned char>(r, c) = 255;
       }
       else if (std::abs(comp_src[(r * mcontour.cols + c) * 4] - 0.686) < 0.01){
         comp_dst[r * mcontour.cols + c] = 2; //metal head
+        components_[2].binary_image.at<unsigned char>(r, c) = 255;
       }
       else{
         comp_dst[r * mcontour.cols + c] = 0; //background
+        components_[0].binary_image.at<unsigned char>(r, c) = 255;
       }
     }
   }
@@ -308,6 +333,11 @@ void ComponentLevelSet::RenderModelForDepthAndContour(const boost::shared_ptr<Mo
     for (int c = 1; c < mcontour.cols - 1; ++c){
       if (IsGreaterThanNeighbour(component_index_image, r, c))
         component_contour_image.at<unsigned char>(r, c) = 255;
+      for (int i = 0; i < components_.size(); ++i){
+        if (IsGreaterThanNeighbour(components_[i].binary_image, r, c)){
+          components_[i].contour_image.at<unsigned char>(r, c) = 255;
+        }
+      }
     }
   }
 

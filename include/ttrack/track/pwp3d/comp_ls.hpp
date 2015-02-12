@@ -50,6 +50,18 @@ namespace ttrk {
 
     ci::gl::GlslProg component_shader_;
 
+    struct HomogenousComponent {
+
+      HomogenousComponent(size_t tp) : target_probability(tp) {}
+      cv::Mat sdf_image;
+      size_t target_probability;
+      cv::Mat binary_image;
+      cv::Mat contour_image;
+
+    };
+
+    std::vector<HomogenousComponent> components_;
+
   };
 
 

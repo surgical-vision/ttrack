@@ -107,9 +107,9 @@ void ArticulatedLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_i
   
   ProcessArticulatedSDFAndIntersectionImage(current_model, camera, sdf_image, front_intersection_image, back_intersection_image, index_image);
 
-  //cv::Mat sdf_save_im;
-  //cv::normalize(sdf_image, sdf_save_im, 0, 255, cv::NORM_MINMAX, CV_8UC1);
-  //cv::imwrite("z:/sdf_image.png", sdf_save_im);
+  float fg_area = 0, bg_area = 0;
+  size_t contour_area = 0;
+  ComputeAreas(sdf_image, fg_area, bg_area, contour_area);
 
   float *sdf_im_data = (float *)sdf_image.data;
   float *front_intersection_data = (float *)front_intersection_image.data;
@@ -124,7 +124,7 @@ void ArticulatedLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_i
       if (sdf_im_data[i] <= float(HEAVYSIDE_WIDTH) - 1e-1 && sdf_im_data[i] >= -float(HEAVYSIDE_WIDTH) + 1e-1){
 
         //-log(H * P_f + (1-H) * P_b)
-        error += GetErrorValue(classification_image, r, c, sdf_im_data[i], index_image_data[i]);
+        error += GetErrorValue(classification_image, r, c, sdf_im_data[i], index_image_data[i], fg_area, bg_area);
 
         //P_f - P_b / (H * P_f + (1 - H) * P_b)
         const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i], index_image_data[i]);
@@ -373,6 +373,10 @@ cv::Matx<float, NUM_RESIDUALS, PRECISION> ArticulatedLevelSet::ComputeJacobians(
   float *back_intersection_data = (float *)back_intersection_image.data;
   unsigned char *index_image_data = (unsigned char *)index_image.data;
 
+  float fg_area = 0, bg_area = 0;
+  size_t contour_area = 0;
+  ComputeAreas(sdf_image, fg_area, bg_area, contour_area);
+
   //float error_value = 0.0f;
 
   int current_row = 0;
@@ -384,7 +388,7 @@ cv::Matx<float, NUM_RESIDUALS, PRECISION> ArticulatedLevelSet::ComputeJacobians(
 
       if (sdf_im_data[i] <= float(HEAVYSIDE_WIDTH) - 1e-1 && sdf_im_data[i] >= -float(HEAVYSIDE_WIDTH) + 1e-1){
 
-        const float cost_value = GetErrorValue(classification_image, r, c, sdf_im_data[i], index_image_data[i]);
+        const float cost_value = GetErrorValue(classification_image, r, c, sdf_im_data[i], index_image_data[i], fg_area, bg_area);
 
         //P_f - P_b / (H * P_f + (1 - H) * P_b)
         const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i], index_image_data[i]);

@@ -177,7 +177,7 @@ namespace ttrk {
     * @param[out] bg_area The background area.
     * @param[out] contour_area The area of non-zero (or non-ludicrously-small) values from the signed distance function.
     */
-    void ComputeAreas(cv::Mat &sdf, float &fg_area, float &bg_area, size_t &contour_area);
+    void ComputeAreas(const cv::Mat &sdf, float &fg_area, float &bg_area, size_t &contour_area);
 
     boost::shared_ptr<sv::Frame> frame_; /**< Just a reference to the current frame, probably not really useful, may be removed. */
     

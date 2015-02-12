@@ -38,34 +38,10 @@ bool StereoToolTracker::Init() {
   //find the connected regions in the image
   std::vector<std::vector<cv::Vec2i> >connected_regions;
 
-  cv::Mat classification_image_multiclass = stereo_frame_->GetClassificationMapROI();
-  cv::Mat classification_image(classification_image_multiclass.size(), CV_32FC1);
+  //get a foreground background segmentation 
+  cv::Mat binary_classification_image = 255 * stereo_frame_->GetBinaryClassificationMapROI(0);
 
-  float *data = (float *)classification_image_multiclass.data;
-
-  for (int r = 0; r < classification_image_multiclass.rows; ++r){
-    for (int c = 0; c < classification_image_multiclass.cols; ++c){
-      
-      float max_prob = std::numeric_limits<float>::min();
-      const int idx = r * classification_image_multiclass.cols + c;
-      
-      for (int i = 1; i < stereo_frame_->NumClassificationChannels(); ++i){
-        
-        float pval = data[idx * stereo_frame_->NumClassificationChannels() + i];
-        
-        if (pval > max_prob){
-
-          classification_image.at<float>(r, c) = pval;
-
-        }
-      
-      }
-    }
-  }
-
-  
-
-  if (!FindConnectedRegions(stereo_frame_->GetClassificationMapROI(), connected_regions)) {
+  if (!FindConnectedRegions(binary_classification_image, connected_regions)) {
 
     ci::app::console() << "Failing to find connected regions!" << std::endl;
     return false;

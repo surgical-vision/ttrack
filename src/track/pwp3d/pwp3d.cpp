@@ -58,7 +58,7 @@ void PWP3D::LoadShaders(){
 
 }
 
-void PWP3D::ComputeAreas(cv::Mat &sdf, float &fg_area, float &bg_area, size_t &contour_area){
+void PWP3D::ComputeAreas(const cv::Mat &sdf, float &fg_area, float &bg_area, size_t &contour_area){
 
   fg_area = bg_area = 0;
 

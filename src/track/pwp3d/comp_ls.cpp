@@ -45,9 +45,9 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
     point_registration_->ComputeDescriptorsForPointTracking(frame_, front_intersection_image, current_model->GetBasePose());
   }
 
-  //size_t fg_area, bg_area = 0;
-  //size_t contour_area = 0;
-  //ComputeAreas(sdf_image, fg_area, bg_area, contour_area);
+  float fg_area, bg_area = 0;
+  size_t contour_area = 0;
+  ComputeAreas(sdf_image, fg_area, bg_area, contour_area);
 
   float *sdf_im_data = (float *)sdf_image.data;
   float *front_intersection_data = (float *)front_intersection_image.data;
@@ -62,10 +62,10 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
       if (sdf_im_data[i] <= float(HEAVYSIDE_WIDTH) - 1e-1 && sdf_im_data[i] >= -float(HEAVYSIDE_WIDTH) + 1e-1){
 
         //-log(H * P_f + (1-H) * P_b)
-        error += GetErrorValue(classification_image, r, c, sdf_im_data[i], 1.0f);
+        error += GetErrorValue(classification_image, r, c, sdf_im_data[i], 1.0f, fg_area, bg_area);
 
         //P_f - P_b / (H * P_f + (1 - H) * P_b)
-        const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i]);
+        const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i], fg_area, bg_area);
 
         int shifted_i = i;
 
@@ -206,9 +206,11 @@ void ComponentLevelSet::RenderModelForDepthAndContour(const boost::shared_ptr<Mo
   glDepthFunc(GL_LESS);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  //bind the front depth shader and render
+  //bind the component shader and render
   component_shader_.bind();
-  mesh->RenderMaterial();
+
+  component_shader_.uniform("tex0", 0);
+  mesh->RenderTexture(0);
   component_shader_.unbind();
 
   component_map_framebuffer_.unbindFramebuffer();
@@ -272,5 +274,9 @@ void ComponentLevelSet::RenderModelForDepthAndContour(const boost::shared_ptr<Mo
       dst[r * mcontour.cols + c] = (unsigned char)src[(r * mcontour.cols + c) * 4];
     }
   }
+
+  cv::Mat component_map = ci::toOcv(component_map_framebuffer_.getTexture());
+  cv::Mat f_component_map;
+  cv::flip(component_map, f_component_map, 0);
 
 }

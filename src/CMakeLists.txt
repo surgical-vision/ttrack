@@ -34,6 +34,7 @@ set(
   ${INCDIR}/utils/handler.hpp ${INCDIR}/utils/helpers.hpp
   ${INCDIR}/utils/nd_image.hpp ${INCDIR}/utils/plotter.hpp
   ${INCDIR}/utils/UI.hpp ${INCDIR}/track/articulated/articulated_level_set.hpp
+  ${INCDIR}/utils/image.hpp
   ${INCDIR}/track/localizer.hpp 
   ${INCDIR}/track/pose.hpp ${INCDIR}/track/model/articulated_model.hpp
   ${INCDIR}/track/tracker.hpp ${INCDIR}/track/model/dh_helpers.hpp
@@ -44,7 +45,7 @@ set(
   ${INCDIR}/track/stt/stereo_tool_tracker.hpp ${INCDIR}/track/stt/surgical_tool_tracker.hpp
   ${INCDIR}/track/temporal/temporal.hpp
   )
-#${INCDIR}/track/articulated/articulated_solver.hpp
+#
 
 ## Store list of source files
 set( SOURCES ttrack.cpp ttrack_app.cpp 

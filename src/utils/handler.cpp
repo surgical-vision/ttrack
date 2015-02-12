@@ -52,6 +52,17 @@ StereoVideoHandler::StereoVideoHandler(const std::string &left_input_url,const s
   
 cv::Mat StereoVideoHandler::GetNewFrame(){
 
+  static bool first = true;
+  if (first){
+    for (size_t i = 0; i < 5; i++)
+    {
+      cv::Mat t;
+      right_cap_ >> t;
+      VideoHandler::GetNewFrame();
+    }  
+    first = false;
+  }
+
   //create one big frame to return the image data in
   cv::Mat right_frame;
   right_cap_ >> right_frame; 

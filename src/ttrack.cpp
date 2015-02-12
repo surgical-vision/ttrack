@@ -91,12 +91,12 @@ void TTrack::SetUp(const std::string &model_parameter_file, const std::string &c
     }
 
   }catch(std::bad_alloc &e){
-    std::cerr << "Error, memory error. Could not construct detector/tracker.\n" << e.what();
-    std::cerr << "Exiting...\n";
+    ci::app::console() << "Error, memory error. Could not construct detector/tracker.\n" << e.what();
+    ci::app::console() << "Exiting...\n";
     SAFE_EXIT();
   }catch(std::exception &e){
-    std::cerr << "Error, caught exception.\n" <<  e.what();
-    std::cerr << "Exiting...\n";
+    ci::app::console() << "Error, caught exception.\n" << e.what();
+    ci::app::console() << "Exiting...\n";
     SAFE_EXIT();
   }
   

@@ -36,9 +36,9 @@ void ComponentLevelSet::LoadShaders(){
 
 void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_image, boost::shared_ptr<Model> current_model, boost::shared_ptr<MonocularCamera> camera, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx, float &error){
   
-  cv::Mat sdf_image, front_intersection_image, back_intersection_image;
+  cv::Mat sdf_image, front_intersection_image, back_intersection_image, component_sdf_image;
 
-  ProcessSDFAndIntersectionImage(current_model, camera, sdf_image, front_intersection_image, back_intersection_image);
+  ProcessSDFAndIntersectionImage(current_model, camera, sdf_image, front_intersection_image, back_intersection_image, component_sdf_image);
 
   if (!point_registration_){
     point_registration_.reset(new PointRegistration(stereo_camera_->left_eye()));
@@ -123,15 +123,15 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
 
 }
 
-void ComponentLevelSet::ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &sdf_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image) {
+void ComponentLevelSet::ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image, cv::Mat &component_sdf_image, cv::Mat &component_index_image) {
 
   //find all the pixels which project to intersection points on the model
   sdf_image = cv::Mat(frame_->GetImageROI().size(), CV_32FC1);
   front_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(), CV_32FC3);
   back_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(), CV_32FC3);
 
-  cv::Mat front_depth, back_depth, contour;
-  RenderModelForDepthAndContour(mesh, camera, front_depth, back_depth, contour);
+  cv::Mat front_depth, back_depth, contour, component_map, component_contour_image;
+  RenderModelForDepthAndContour(mesh, camera, front_depth, back_depth, contour, component_map, component_contour_image);
 
   cv::Mat unprojected_image_plane = camera->GetUnprojectedImagePlane(front_intersection_image.cols, front_intersection_image.rows);
 
@@ -158,6 +158,7 @@ void ComponentLevelSet::ProcessSDFAndIntersectionImage(const boost::shared_ptr<M
 
 
   distanceTransform(contour, sdf_image, CV_DIST_L2, CV_DIST_MASK_PRECISE);
+  distanceTransform(component_map, component_sdf_image, CV_DIST_L2, CV_DIST_MASK_PRECISE);
 
   //flip the sign of the distance image for outside pixels
   for (int r = 0; r<sdf_image.rows; r++){
@@ -169,7 +170,14 @@ void ComponentLevelSet::ProcessSDFAndIntersectionImage(const boost::shared_ptr<M
 
 }
 
-void ComponentLevelSet::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_depth, cv::Mat &back_depth, cv::Mat &contour){
+inline bool IsGreaterThanNeighbour(const cv::Mat &im, const int r, const int c){
+
+  const unsigned char v = im.at<unsigned char>(r, c);
+  return v > im.at<unsigned char>(r + 1, c) || v > im.at<unsigned char>(r - 1, c) || v > im.at<unsigned char>(r, c + 1) || v > im.at<unsigned char>(r, c - 1); 
+  
+}
+
+void ComponentLevelSet::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_depth, cv::Mat &back_depth, cv::Mat &contour, cv::Mat &component_index_image, cv::Mat &component_contour_image){
 
   assert(front_depth_framebuffer_.getWidth() == camera->Width() && front_depth_framebuffer_.getHeight() == camera->Height());
 
@@ -265,18 +273,43 @@ void ComponentLevelSet::RenderModelForDepthAndContour(const boost::shared_ptr<Mo
   cv::flip(back_depth_flipped, back_depth, 0);
   cv::flip(mcontour, fmcontour, 0);
 
+  cv::Mat f_component_map = ci::toOcv(component_map_framebuffer_.getTexture());
+
+  cv::flip(f_component_map, f_component_map, 0);
+
+  component_index_image = cv::Mat(f_component_map.size(), CV_8UC1);
   contour = cv::Mat(mcontour.size(), CV_8UC1);
+  
   float *src = (float *)fmcontour.data;
+  float *comp_src = (float *)f_component_map.data;
+
   unsigned char *dst = (unsigned char*)contour.data;
+  unsigned char *comp_dst = (unsigned char *)component_index_image.data;
+  component_contour_image = cv::Mat::zeros(contour.size(), CV_8UC1);
 
   for (int r = 0; r < mcontour.rows; ++r){
     for (int c = 0; c < mcontour.cols; ++c){
       dst[r * mcontour.cols + c] = (unsigned char)src[(r * mcontour.cols + c) * 4];
+      if (std::abs(comp_src[(r * mcontour.cols + c) * 4]) < EPS){
+        comp_dst[r * mcontour.cols + c] = 1; //plastic shaft
+      }
+      else if (std::abs(comp_src[(r * mcontour.cols + c) * 4] - 0.686) < 0.01){
+        comp_dst[r * mcontour.cols + c] = 2; //metal head
+      }
+      else{
+        comp_dst[r * mcontour.cols + c] = 0; //background
+      }
     }
   }
 
-  cv::Mat component_map = ci::toOcv(component_map_framebuffer_.getTexture());
-  cv::Mat f_component_map;
-  cv::flip(component_map, f_component_map, 0);
+  //create the contour map from the 
+
+  for (int r = 1; r < mcontour.rows - 1; ++r){
+    for (int c = 1; c < mcontour.cols - 1; ++c){
+      if (IsGreaterThanNeighbour(component_index_image, r, c))
+        component_contour_image.at<unsigned char>(r, c) = 255;
+    }
+  }
+
 
 }

@@ -59,6 +59,9 @@ bool StereoToolTracker::Init() {
 
     InitFromFile(tracked_models_.back().model);
 
+    //JUST A HACK FOR TESTING!!!
+    if (tracked_models_.size() > 0) break;
+
   }
 
   return true;

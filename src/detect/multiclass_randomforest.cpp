@@ -19,6 +19,7 @@ bool MultiClassRandomForest::ClassifyFrame(boost::shared_ptr<sv::Frame> frame){
 
   size_t pixel_count = 0;
 
+  cv::Mat &f = frame->GetClassificationMap();
   float *frame_data = (float *)frame->GetClassificationMap().data;
   size_t classification_map_channels = frame->GetClassificationMap().channels();
   

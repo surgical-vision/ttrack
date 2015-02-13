@@ -54,9 +54,12 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
 
   float fg_area = 1, bg_area = 1;
   
-  for (size_t comp = 0; comp < components_.size(); ++comp){
+  for (size_t comp = 1; comp < components_.size(); ++comp){
 
     cv::Mat &sdf_image = components_[comp].sdf_image;
+    cv::Mat target_label_image = cv::Mat::zeros(sdf_image.size(), CV_8UC1);
+    cv::Mat nearest_neighbour_label_image = cv::Mat::zeros(sdf_image.size(), CV_8UC1);
+    cv::Mat region_agreement_im = cv::Mat::zeros(sdf_image.size(), CV_32FC1);
 
     float *sdf_im_data = (float *)sdf_image.data;
     float *front_intersection_data = (float *)front_intersection_image.data;
@@ -69,30 +72,40 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
 
         if (sdf_im_data[i] <= float(HEAVYSIDE_WIDTH) - 1e-1 && sdf_im_data[i] >= -float(HEAVYSIDE_WIDTH) + 1e-1){
 
-          if (std::abs(sdf_im_data[i]) > 5){
-            throw std::runtime_error("Err");
-          }
 
+          //if (r == 329 && c == 350){
+          //  ci::app::console() << "\n";
+          //}
           //-log(H * P_f + (1-H) * P_b)
           //error += GetErrorValue(classification_image, r, c, sdf_im_data[i], components_[comp].target_probability, fg_area, bg_area);
 
-          //P_f - P_b / (H * P_f + (1 - H) * P_b)
-          const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i], components_[comp].target_probability, ComputeNearestNeighbourForPixel(r, c, sdf_im_data[i], classification_image.rows, classification_image.cols));
-
-          if (std::abs(sdf_im_data[i]) > 5){
-            throw std::runtime_error("Err");
+          size_t nearest_different_neighbour_label = ComputeNearestNeighbourForPixel(r, c, sdf_im_data[i], classification_image.cols, classification_image.rows);
+          if (nearest_different_neighbour_label == 255){
+            continue;
           }
+          
+          
+          size_t target_label = components_[comp].target_probability;
+          if (nearest_different_neighbour_label == target_label){
+            nearest_different_neighbour_label = component_map_.at<unsigned char>(r, c);
+          }
+          //target_label_image.at<unsigned char>(r, c) = target_label;
+          //nearest_neighbour_label_image.at<unsigned char>(r, c) = nearest_different_neighbour_label;
+
+          //P_f - P_b / (H * P_f + (1 - H) * P_b)
+          const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i], target_label, nearest_different_neighbour_label);
+          region_agreement_im.at<float>(r, c) = region_agreement;
+
           int shifted_i = i;
-
-          ci::app::console() << "i = " << i << std::endl;
-          ci::app::console() << "SDF IMAGE DATA = " << sdf_im_data[i] << std::endl;
-
+          
           //find the closest point on the contour if this point is outside the contour
           if (sdf_im_data[i] < 0.0) {
-            int closest_r, closest_c;
-            bool found = FindClosestIntersection(sdf_im_data, r, c, sdf_image.rows, sdf_image.cols, closest_r, closest_c);
-            if (!found) continue; //should this be allowed to happen?
-            shifted_i = closest_r * sdf_image.cols + closest_c;
+            if (nearest_different_neighbour_label == 0){
+              int closest_r, closest_c;
+              bool found = FindClosestIntersection(sdf_im_data, r, c, sdf_image.rows, sdf_image.cols, closest_r, closest_c);
+              if (!found) continue; //should this be allowed to happen?
+              shifted_i = closest_r * sdf_image.cols + closest_c;
+            }
           }
 
           cv::Matx<float, 1, 7> jacs;
@@ -117,6 +130,9 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
         }
       }
     }
+
+    ci::app::console() << "Done step\n";
+
   }
 
   /*std::vector<MatchedPair> pnp_pairs;
@@ -138,6 +154,8 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
 }
 
 unsigned char ComponentLevelSet::ComputeNearestNeighbourForPixel(const int r, const int c, const float sdf_value, const int width, const int height){
+
+  cv::Mat &component_map_m = component_map_;
 
   const unsigned char pixel_class = component_map_.at<unsigned char>(r, c);
 
@@ -168,21 +186,43 @@ unsigned char ComponentLevelSet::ComputeNearestNeighbourForPixel(const int r, co
     }
 
   }
-
-  return false;
+  
+  return 255;
 
 }
 
-float ComponentLevelSet::GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf_value, const size_t target_probability, const size_t neighbour_probability){
+inline bool SAFE_EQUALS(const float x, const float y){
+  return std::abs(x - y) < std::numeric_limits<float>::epsilon();
+}
+
+float ComponentLevelSet::GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf_value, const size_t target_label, const size_t neighbour_label){
 
   float *c_data = (float *)classification_image.data;
-  const float pixel_probability = c_data[(classification_image.cols * r + c) * classification_image.channels() + target_probability];
+
+  cv::Vec<float, 5> re = classification_image.at < cv::Vec<float, 5> >(r, c);
+
+  float pixel_probability = re[target_label]; //c_data[(classification_image.cols * r + c) * classification_image.channels() + target_label];
+  float neighbour_probability = re[neighbour_label];// c_data[(classification_image.cols * r + c) * classification_image.channels() + neighbour_label];
   const float heaviside_value = HeavisideFunction(sdf_value);
 
-  const float Pf = pixel_probability;
-  const float Pb = neighbour_probability;
 
-  return (Pf - Pb) / (((heaviside_value*Pf) + ((1 - heaviside_value)*Pb)) + EPS);
+  if (SAFE_EQUALS(pixel_probability, 0.0f) && SAFE_EQUALS(neighbour_probability, 1.0f)){
+    pixel_probability += 0.1;
+    neighbour_probability -= 0.1;
+  }
+  else if (SAFE_EQUALS(pixel_probability, 1.0f) && SAFE_EQUALS(neighbour_probability, 0.0f)){
+    pixel_probability -= 0.1;
+    neighbour_probability += 0.1;
+  }
+
+  if (neighbour_probability > pixel_probability)
+    ci::app::console() << "break here";
+
+  const float v = (pixel_probability - neighbour_probability) / (((heaviside_value*pixel_probability) + ((1 - heaviside_value)*neighbour_probability)) + EPS);
+  if (std::abs(v) > 6000) {
+    ci::app::console() << "large";
+  }
+  return v;
 
 }
 

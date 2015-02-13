@@ -29,7 +29,7 @@ PWP3D::PWP3D(const int width, const int height) {
 
   HEAVYSIDE_WIDTH = 3; //if this value is changed the Delta/Heavside approximations will be invalid!
 
-  NUM_STEPS = 20;// 125;
+  NUM_STEPS = 10;// 125;
 
   curr_step = NUM_STEPS; //so we report converged and ask for a new frame at the start
 
@@ -133,15 +133,7 @@ void PWP3D::UpdateJacobian(const float region_agreement, const float sdf, const 
 bool PWP3D::FindClosestIntersection(const float *sdf_im, const int r, const int c, const int height, const int width, int &closest_r, int &closest_c) const {
   
   const float &sdf_val = sdf_im[r * width + c];
-  ci::app::console() << "i = " << r * width + c << std::endl;
-
-  ci::app::console() << "SDF IMAGE DATA inside = " << sdf_val << std::endl;
-
   const int ceil_sdf = (int)std::abs(ceil(sdf_val));
-
-  if (ceil_sdf > 5){
-    throw std::runtime_error("");
-  }
 
   for (int w_c = c - ceil_sdf; w_c <= c + ceil_sdf; ++w_c){
     

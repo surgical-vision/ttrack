@@ -32,7 +32,7 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
   cv::Matx<float, 7, 1> jacobian = cv::Matx<float, 7, 1>::zeros();
   cv::Matx<float, 7, 7> hessian_approx = cv::Matx<float, 7, 7>::zeros();
   ComputeJacobiansForEye(stereo_frame->GetLeftClassificationMap(), current_model, stereo_camera_->left_eye(), jacobian, hessian_approx, left_error);
-  ComputePointRegistrationJacobian(current_model, jacobian, hessian_approx);
+  //ComputePointRegistrationJacobian(current_model, jacobian, hessian_approx);
 
 #ifdef GRAD_DESCENT
   
@@ -50,14 +50,14 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
 
 #endif
 
-  jacobian = cv::Matx<float, 7, 1>::zeros();
-  hessian_approx = cv::Matx<float, 7, 7>::zeros();
-  ComputeJacobiansForEye(stereo_frame->GetRightClassificationMap(), current_model, stereo_camera_->right_eye(), jacobian, hessian_approx, right_error);
+  //jacobian = cv::Matx<float, 7, 1>::zeros();
+  //hessian_approx = cv::Matx<float, 7, 7>::zeros();
+  //ComputeJacobiansForEye(stereo_frame->GetRightClassificationMap(), current_model, stereo_camera_->right_eye(), jacobian, hessian_approx, right_error);
   
 #ifdef GRAD_DESCENT
   
-  jacs = ScaleRigidJacobian(jacobian);
-  current_model->UpdatePose(jacs);
+  //jacs = ScaleRigidJacobian(jacobian);
+  //current_model->UpdatePose(jacs);
 
 #else
   

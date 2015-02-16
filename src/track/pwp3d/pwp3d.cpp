@@ -177,8 +177,17 @@ float PWP3D::GetRegionAgreement(const cv::Mat &classification_image, const int r
 
   const float pixel_probability = classification_image.at<float>(r, c);
 
-  const float Pf = pixel_probability;// / (fg_size * pixel_probability + bg_size * (1 - pixel_probability)); //P / fg_size;
-  const float Pb = (1 - pixel_probability);// / (fg_size * pixel_probability + bg_size * (1 - pixel_probability)); //(1 - P) / bg_size;
+  float Pf = pixel_probability;// / (fg_size * pixel_probability + bg_size * (1 - pixel_probability)); //P / fg_size;
+  float Pb = (1 - pixel_probability);// / (fg_size * pixel_probability + bg_size * (1 - pixel_probability)); //(1 - P) / bg_size;
+  
+  if (SAFE_EQUALS<float>(Pf, 0) && SAFE_EQUALS<float>(Pb, 1)){
+    Pf += 0.05;
+    Pb -= 0.05;
+  }
+  else if (SAFE_EQUALS<float>(Pf, 1) && SAFE_EQUALS<float>(Pb, 0)){
+    Pf -= 0.05;
+    Pb += 0.05;
+  }
 
   return (Pf - Pb) / (((heaviside_value*Pf) + ((1 - heaviside_value)*Pb)) + EPS);
 
@@ -201,7 +210,6 @@ void PWP3D::ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_mo
     jacobian += points_jacobian.t();
     hessian_approx += (points_jacobian.t() * points_jacobian);
   }
-
 
 }
 

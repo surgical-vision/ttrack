@@ -14,6 +14,9 @@ namespace ttrk {
     ComponentLevelSet(boost::shared_ptr<StereoCamera> camera);
     ~ComponentLevelSet();
 
+    virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
+
+
     virtual void ComputeJacobiansForEye(const cv::Mat &classification_image, boost::shared_ptr<Model> current_model, boost::shared_ptr<MonocularCamera> camera, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx, float &error);
 
     /**
@@ -28,7 +31,7 @@ namespace ttrk {
     * @param[out] front_intersection_image A 32 bit 3 channel image of the first 3D point that a ray cast from a pixel inside the contour projects to on the model (in camera coordinates).
     * @param[out] front_intersection_image A 32 bit 3 channel image of the last 3D point that a ray cast from a pixel inside the contour projects to on the model (in camera coordinates).
     */
-    void ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image);
+    virtual void ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image);
 
     /**
     * Render the mesh in the current pose getting the depth of the each pixel and the outer contour.
@@ -42,6 +45,21 @@ namespace ttrk {
     void RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_depth, cv::Mat &back_depth);
 
     float GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf_value, const size_t target_probability, const size_t neighbour_probability);
+
+
+    /**
+    * Get the error value for the current image.
+    * @param[in] classification_image The classification image for this frame.
+    * @param[in] row_idx The x-pixel coordinate for this image.
+    * @param[in] col_idx The y-pixel coordinate for this image.
+    * @param[in] sdf_value The signed distance function value for this pixel.
+    * @param[in] target_label The target label for multiclass classification.
+    * @param[in] fg_area The area of the foreground region.
+    * @param[in] bg_area The area of the background region.
+    * @return The error value.
+    */
+    float GetErrorValue(const cv::Mat &classification_image, const int row_idx, const int col_idx, const float sdf_value, const size_t target_probability, const size_t neighbour_probability) const;
+
 
   protected:
 
@@ -61,8 +79,13 @@ namespace ttrk {
 
     };
 
+    cv::Mat flow_frame;
+    cv::Mat previous_frame;
+
     cv::Mat component_map_;
     std::vector<HomogenousComponent> components_;
+
+    cv::Ptr<cv::DenseOpticalFlow> optical_flow;
 
   };
 

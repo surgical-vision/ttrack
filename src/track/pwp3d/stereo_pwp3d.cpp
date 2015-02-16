@@ -14,28 +14,78 @@ StereoPWP3D::StereoPWP3D(boost::shared_ptr<StereoCamera> camera) : PWP3D(camera-
 
 }
 
-void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
 
-  if (curr_step == NUM_STEPS) {
-    curr_step = 0;
-  }
+float StereoPWP3D::DoPointBasedAlignmentStepForLeftEye(boost::shared_ptr<Model> current_model){
 
-  ++curr_step;
+  if (!point_registration_) return 0.0;
 
-  frame_ = frame;
-
+  float error = 0.0f;
   auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
 
-  float left_error = 0.0f, right_error = 0.0f;
+  cv::Matx<float, 7, 1> jacobian = cv::Matx<float, 7, 1>::zeros();
+  cv::Matx<float, 7, 7> hessian_approx = cv::Matx<float, 7, 7>::zeros();
+
+  ComputePointRegistrationJacobian(current_model, jacobian, hessian_approx);
+  
+#ifdef GRAD_DESCENT
+
+  std::vector<float> jacs = ScaleRigidJacobian(jacobian);
+  current_model->UpdatePose(jacs);
+
+#else
+
+  jacobian = hessian_approx.inv() * jacobian;
+  for (size_t v = 0; v < 7; ++v){
+    jacs[v] = -jacobian(v);
+  }
+  current_model->UpdatePose(jacs);
+
+#endif
+
+  return error;
+
+}
+
+float StereoPWP3D::DoRegionBasedAlignmentStepForRightEye(boost::shared_ptr<Model> current_model){
+
+  float error = 0.0f;
+  auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
+
+  cv::Matx<float, 7, 1> jacobian = cv::Matx<float, 7, 1>::zeros();
+  cv::Matx<float, 7, 7> hessian_approx = cv::Matx<float, 7, 7>::zeros();
+  ComputeJacobiansForEye(stereo_frame->GetRightClassificationMap(), current_model, stereo_camera_->right_eye(), jacobian, hessian_approx, error);
+
+#ifdef GRAD_DESCENT
+
+  std::vector<float> jacs = ScaleRigidJacobian(jacobian);
+  current_model->UpdatePose(jacs);
+
+#else
+
+  jacobian = hessian_approx.inv() * jacobian;
+  for (size_t v = 0; v < 7; ++v){
+    jacs[v] = -jacobian(v);
+  }
+  current_model->UpdatePose(jacs);
+
+#endif
+
+  return error;
+
+}
+
+float StereoPWP3D::DoRegionBasedAlignmentStepForLeftEye(boost::shared_ptr<Model> current_model){
+
+  float error = 0.0f;
+  auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
 
   //for prototyping the articulated jacs, we use a cv::Matx. this will be flattened for faster estimation later
   cv::Matx<float, 7, 1> jacobian = cv::Matx<float, 7, 1>::zeros();
   cv::Matx<float, 7, 7> hessian_approx = cv::Matx<float, 7, 7>::zeros();
-  ComputeJacobiansForEye(stereo_frame->GetLeftClassificationMap(), current_model, stereo_camera_->left_eye(), jacobian, hessian_approx, left_error);
-  //ComputePointRegistrationJacobian(current_model, jacobian, hessian_approx);
+  ComputeJacobiansForEye(stereo_frame->GetLeftClassificationMap(), current_model, stereo_camera_->left_eye(), jacobian, hessian_approx, error);
 
 #ifdef GRAD_DESCENT
-  
+
   std::vector<float> jacs = ScaleRigidJacobian(jacobian);
   current_model->UpdatePose(jacs);
 
@@ -50,29 +100,29 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
 
 #endif
 
-  //jacobian = cv::Matx<float, 7, 1>::zeros();
-  //hessian_approx = cv::Matx<float, 7, 7>::zeros();
-  //ComputeJacobiansForEye(stereo_frame->GetRightClassificationMap(), current_model, stereo_camera_->right_eye(), jacobian, hessian_approx, right_error);
-  
-#ifdef GRAD_DESCENT
-  
-  //jacs = ScaleRigidJacobian(jacobian);
-  //current_model->UpdatePose(jacs);
 
-#else
-  
-  jacobian = hessian_approx.inv() * jacobian;
-  for (size_t v = 0; v < 7; ++v){
-    jacs[v] = -jacobian(v);
+
+  return error;
+
+}
+
+void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
+
+
+  if (curr_step == NUM_STEPS) {
+    curr_step = 0;
   }
-  current_model->UpdatePose(jacs);
 
-#endif
+  ++curr_step;
 
-  UpdateWithErrorValue(left_error + right_error);
-  errors_.push_back(left_error + right_error);
+  frame_ = frame;
 
+  float left_error = DoRegionBasedAlignmentStepForLeftEye(current_model);
+  float right_error = DoRegionBasedAlignmentStepForRightEye(current_model);
+  float point_error = DoPointBasedAlignmentStepForLeftEye(current_model);
 
+  UpdateWithErrorValue(left_error + right_error + point_error);
+  errors_.push_back(left_error + right_error + point_error);
 
 }
 
@@ -82,9 +132,11 @@ void StereoPWP3D::ComputeJacobiansForEye(const cv::Mat &classification_image, bo
 
   ProcessSDFAndIntersectionImage(current_model, camera, sdf_image, front_intersection_image, back_intersection_image);
 
+  //setup point registration for first frame
   if (!point_registration_){
+    auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
     point_registration_.reset(new PointRegistration(stereo_camera_->left_eye()));
-    point_registration_->ComputeDescriptorsForPointTracking(frame_, front_intersection_image, current_model->GetBasePose());
+    point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, current_model->GetBasePose());
   }
 
   float fg_area = 0, bg_area = 0;
@@ -141,33 +193,6 @@ void StereoPWP3D::ComputeJacobiansForEye(const cv::Mat &classification_image, bo
       }
     }
   }
-
-  //ci::app::console() << "Before Jacobian = [";
-  //for (int i = 0; i < 7; ++i)
-  //  ci::app::console() << jacobian(i) << ", ";
-  //ci::app::console() << "]" << std::endl;
-
-  std::vector<MatchedPair> pnp_pairs;
-  point_registration_->FindPointCorrespondencesWithPose(frame_, current_model, current_model->GetBasePose(), pnp_pairs);
-
-  cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
-
-  for (auto pnp = pnp_pairs.begin(); pnp != pnp_pairs.end(); pnp++){
-    std::vector<float> point_jacobian = point_registration_->GetPointDerivative(pnp->learned_point, cv::Point2f(pnp->image_point[0], pnp->image_point[1]), current_model->GetBasePose());
-      
-    for (int i = 0; i < jacobian.rows; ++i){
-      points_jacobian(i) += 0.0005 * point_jacobian[i];
-    }
-
-    jacobian += points_jacobian.t();
-    hessian_approx += (points_jacobian.t() * points_jacobian);
-  }
-
-  //ci::app::console() << "After Jacobian = [";
-  //for (int i = 0; i < 7; ++i)
-  //  ci::app::console() << jacobian(i) << ", ";
-  //ci::app::console() << "]" << std::endl;
-
 }
 
 void StereoPWP3D::UpdateJacobianRightEye(const float region_agreement, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_point, const boost::shared_ptr<const Model> model, cv::Matx<float, 1, 7> &jacobian){

@@ -12,6 +12,11 @@
 
 namespace ttrk{
 
+  template<typename Type>
+  inline bool SAFE_EQUALS(const Type &x, const Type &y){
+    return std::abs(x - y) < std::numeric_limits<Type>::epsilon();
+  }
+
   template<typename Type> 
   inline cv::Vec<Type,3> CiToCv(const ci::Vec3<Type> &v){ 
     cv::Vec<Type, 3> r;

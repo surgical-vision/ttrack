@@ -46,6 +46,11 @@ namespace ttrk {
 
   protected:   
     
+    float DoRegionBasedAlignmentStepForLeftEye(boost::shared_ptr<Model> current_model);
+    float DoRegionBasedAlignmentStepForRightEye(boost::shared_ptr<Model> current_model);
+    float DoPointBasedAlignmentStepForLeftEye(boost::shared_ptr<Model> current_model);
+
+
     void clearup(){
       errors_.clear();
     }
@@ -79,8 +84,6 @@ namespace ttrk {
     boost::shared_ptr<StereoCamera> stereo_camera_; /**< Representation of the camera. */
 
     std::vector<float> errors_; /**< The current set of errors. */
-
-    boost::shared_ptr<PointRegistration> point_registration_; /**< Computes the point registration error. */
 
   };
 

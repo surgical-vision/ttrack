@@ -54,7 +54,7 @@ cv::Mat StereoVideoHandler::GetNewFrame(){
 
   static bool first = true;
   if (first){
-    for (size_t i = 0; i < 5; i++)
+    for (size_t i = 0; i < 15; i++)
     {
       cv::Mat t;
       right_cap_ >> t;
@@ -75,9 +75,6 @@ cv::Mat StereoVideoHandler::GetNewFrame(){
   //load the right frame
   cv::Mat rhs = to_return(cv::Rect(right_frame.cols,0,right_frame.cols,right_frame.rows));
   right_frame.copyTo(rhs);
-
-  cv::imwrite("left.png",lhs);
-  cv::imwrite("right.png",rhs);
 
   if(to_return.data == 0x0) { 
     done_ = true;

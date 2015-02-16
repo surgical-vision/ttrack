@@ -20,11 +20,74 @@ PointRegistration::PointRegistration(boost::shared_ptr<MonocularCamera> camera) 
 }
 
 
+void PointRegistration::ComputeDescriptorsForPointTracking(cv::Mat &frame, cv::Mat &point_map, const Pose &pose){
+
+  //make a descriptor finder
+  cv::Mat image_gray;
+  cv::cvtColor(frame, image_gray, CV_RGB2GRAY);
+
+  //model_points.clear();
+
+  cv::SiftFeatureDetector detector;//(400);
+  std::vector<cv::KeyPoint> keypoints;
+  detector.detect(image_gray, keypoints);
+  std::vector<cv::KeyPoint> tool_keypoints;
+
+  //find the keypoints and filter for those inside the model projection
+  for (auto kp = keypoints.begin(); kp != keypoints.end(); kp++){
+
+    cv::Point2f &pt = kp->pt;
+    if (point_map.at<cv::Vec3f>(pt.y, pt.x) != cv::Vec3f((float)GL_FAR, (float)GL_FAR, (float)GL_FAR)){
+      tool_keypoints.push_back(*kp);
+    }
+
+  }
+
+  //sort them by their responses
+  std::sort(tool_keypoints.begin(), tool_keypoints.end(),
+    [](const cv::KeyPoint &a, const cv::KeyPoint &b) -> bool {
+    return a.response > b.response;
+  });
+
+  //collect descriptors in the image plane
+  cv::SiftDescriptorExtractor extractor;
+  cv::Mat descriptors;
+  extractor.compute(image_gray, tool_keypoints, descriptors);
+  int i = 0;
+
+  //only keep the NUM_DESCRIPTOR best descriptors
+  if (tool_keypoints.size() > NUM_DESCRIPTOR){
+    tool_keypoints = std::vector<cv::KeyPoint>(tool_keypoints.begin(), tool_keypoints.begin() + NUM_DESCRIPTOR);
+  }
+
+  //project them onto the model
+  for (auto kp = tool_keypoints.begin(); kp != tool_keypoints.end(); kp++){
+
+    cv::Point2f &pt = kp->pt;
+    cv::Vec3f front = point_map.at<cv::Vec3f>(cv::Point2i(int(pt.x), int(pt.y)));
+
+    cv::Vec3f front_on_model = pose.InverseTransformPoint(front);
+
+    Descriptor d;
+    d.coordinate = front_on_model;
+    d.descriptor = descriptors.row(i);
+    i++;
+    model_points.push_back(d);
+
+  }
+
+  int x = 0;
+  //previous_frame = frame->GetImageROI().clone();
+
+}
+
+
+
 void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, boost::shared_ptr<Model> model, const Pose &pose, std::vector<MatchedPair> &pnp){
 
-  cv::Mat save_image(cv::Size(frame->cols(), frame->rows()), CV_8UC3);
   pnp.clear();
-  
+  auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame);
+
   //transform the points from the base reference frame into the reference frame of the current camera
   std::vector<Descriptor> current_frame;
   for (auto i = 0; i < model_points.size(); ++i){
@@ -34,11 +97,10 @@ void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::F
     current_frame[i].TEST_DISTANCE = model_points[i].TEST_DISTANCE;
   }
 
-  double average_distance = 0.0;
 
   //search the image plane for features to match
   std::vector<Descriptor> frame_descriptors;
-  GetDescriptors(frame->GetImageROI(),frame_descriptors);
+  GetDescriptors(stereo_frame->GetLeftImage(), frame_descriptors);
 
   //for each keypoint
   for (auto kp = current_frame.begin(); kp != current_frame.end(); kp++){
@@ -46,61 +108,52 @@ void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::F
     std::vector<std::pair<Descriptor, double> > matching_queue;
     //project them to the image plane
     cv::Point2d projected_pt = camera_->ProjectPointToPixel(cv::Point3d(kp->coordinate));
-    cv::circle(save_image,projected_pt,2,cv::Scalar(255,0,0),1); //point on object
 
     //iterate over the found features
-    for(auto frame_descriptor = frame_descriptors.begin(); frame_descriptor != frame_descriptors.end(); frame_descriptor++){
+    for (auto frame_descriptor = frame_descriptors.begin(); frame_descriptor != frame_descriptors.end(); frame_descriptor++){
 
-      cv::Point2d pt_to_match(frame_descriptor->coordinate[0],frame_descriptor->coordinate[1]);
-      cv::circle(save_image,pt_to_match,2,cv::Scalar(0,0,255),1); //point on object
+      cv::Point2d pt_to_match(frame_descriptor->coordinate[0], frame_descriptor->coordinate[1]);
 
       //if the euclidean distance is < threshold then add this point to matching vector
       double euclidean_distance = std::sqrt((projected_pt.x - pt_to_match.x)*(projected_pt.x - pt_to_match.x) + (projected_pt.y - pt_to_match.y)*(projected_pt.y - pt_to_match.y));
-      if(euclidean_distance < MATCHING_DISTANCE_THRESHOLD) {
-        matching_queue.push_back(std::pair<Descriptor,double>(*frame_descriptor,0.0));
+      if (euclidean_distance < MATCHING_DISTANCE_THRESHOLD) {
+        matching_queue.push_back(std::pair<Descriptor, double>(*frame_descriptor, 0.0));
         matching_queue.back().first.TEST_DISTANCE = euclidean_distance;
       }
 
     }
 
-    if( !matching_queue.size() ) continue; //no matches found :(
+    if (!matching_queue.size()) continue; //no matches found :(
 
-    for(auto mq=matching_queue.begin(); mq != matching_queue.end(); mq++){
+    for (auto mq = matching_queue.begin(); mq != matching_queue.end(); mq++){
 
-      mq->second = l2_norm(kp->descriptor,mq->first.descriptor);
+      mq->second = l2_norm(kp->descriptor, mq->first.descriptor);
 
     }
 
-    std::sort(matching_queue.begin(),matching_queue.end(),[](const std::pair<Descriptor,double>& before, const std::pair<Descriptor,double>& after) -> bool
+    std::sort(matching_queue.begin(), matching_queue.end(), [](const std::pair<Descriptor, double>& before, const std::pair<Descriptor, double>& after) -> bool
     {
       return before.second < after.second;
     });
-    
+
     //run l2 norm based matching between learned point and points in this vector. is the matching score is good enough, add to the matches
 
     double size_of_best = matching_queue.front().second;//l2_norm( matching_queue.front().first.descriptor, cv::Mat::zeros(matching_queue.front().first.descriptor.size(),matching_queue.front().first.descriptor.type()));  
-    
-    if( (matching_queue.size() > 1 &&  size_of_best/matching_queue[1].second < 0.8) || ( matching_queue.size() == 1 && size_of_best < DESCRIPTOR_SIMILARITY_THRESHOLD) ){
-      
-      average_distance += matching_queue.front().first.TEST_DISTANCE;
 
-      cv::Point2d pt_to_match(matching_queue.front().first.coordinate[0],matching_queue.front().first.coordinate[1]);
-      //cv::circle(frame->GetImageROI(), cv::Point2i(pt_to_match.x,pt_to_match.y), 3, cv::Scalar(1, 255, 2), 2);
-      //cv::circle(frame->GetImageROI(), cv::Point(projected_pt), 3, cv::Scalar(255, 12, 52), 2);
+    if ((matching_queue.size() > 1 && size_of_best / matching_queue[1].second < 0.8) || (matching_queue.size() == 1 && size_of_best < DESCRIPTOR_SIMILARITY_THRESHOLD)){
 
       MatchedPair mp;
       mp.learned_point = kp->coordinate;
       mp.image_point = matching_queue.front().first.coordinate;
-      pnp.push_back( mp );
-    
+      pnp.push_back(mp);
+
     }
 
   }
-    
+
 }
 
-
-std::vector<float> PointRegistration::GetPointDerivative(const cv::Point3d &world, cv::Point2f &image, const Pose &pose) const{
+std::vector<float> PointRegistration::GetPointDerivative(const cv::Point3d &world, cv::Point2f &image, const Pose &pose) {
     
   cv::Vec3d front_intersection(world);
 
@@ -275,64 +328,6 @@ void PointRegistration::FindCorrespondingMatches(std::vector<Descriptor> &right_
     dm.right_image = d;
 
   }
-
-}
-
-
-void PointRegistration::ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame> frame, cv::Mat point_map, const Pose &pose ){
-
-  //make a descriptor finder
-  cv::Mat image_gray;
-  cv::cvtColor(frame->GetImageROI(),image_gray,CV_RGB2GRAY);
-
-  //cv::Mat shape_image;
-  //GetSDFAndIntersectionImage(current_model,shape_image,cv::Mat(),cv::Mat());
-
-  cv::SiftFeatureDetector detector;//(400);
-  std::vector<cv::KeyPoint> keypoints;
-  detector.detect(image_gray,keypoints);
-  std::vector<cv::KeyPoint> tool_keypoints;
-
-  for( auto kp = keypoints.begin(); kp != keypoints.end(); kp++ ){
-
-    cv::Point2f &pt = kp->pt;
-    if(point_map.at<cv::Vec3f>(pt.y,pt.x) != cv::Vec3f((float)GL_FAR, (float)GL_FAR, (float)GL_FAR)){
-      tool_keypoints.push_back(*kp);
-    }
-
-  }
-
-  std::sort(tool_keypoints.begin(),tool_keypoints.end(),
-    [](const cv::KeyPoint &a, const cv::KeyPoint &b) -> bool {
-      return a.response > b.response;
-  });
-
-  //collect descriptors in the image plane
-  //cv::SurfDescriptorExtractor extractor;
-  cv::SiftDescriptorExtractor extractor;
-  cv::Mat descriptors;
-  extractor.compute(image_gray,tool_keypoints,descriptors);
-  int i=0;
-
-  if (tool_keypoints.size() > NUM_DESCRIPTOR){
-    tool_keypoints = std::vector<cv::KeyPoint>(tool_keypoints.begin(), tool_keypoints.begin() + NUM_DESCRIPTOR);
-  }
-
-  for( auto kp = tool_keypoints.begin(); kp != tool_keypoints.end(); kp++ ){
-
-    cv::Point2f &pt = kp->pt;
-    cv::Vec3f front = point_map.at<cv::Vec3f>(cv::Point2i(int(pt.x), int(pt.y)));
-
-    cv::Vec3f front_on_model = pose.InverseTransformPoint(front);
-
-    Descriptor d;
-    d.coordinate = front_on_model;
-    d.descriptor = descriptors.row(i);
-    i++;
-    model_points.push_back(d);
-
-  }
-  
 
 }
 

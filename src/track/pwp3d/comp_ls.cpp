@@ -6,6 +6,7 @@
 #include "../../../include/ttrack/track/pwp3d/comp_ls.hpp"
 #include "../../../include/ttrack/resources.hpp"
 #include "../../../include/ttrack/constants.hpp"
+#include "../../../include/ttrack/utils/helpers.hpp"
 
 using namespace ttrk;
 
@@ -35,6 +36,38 @@ ComponentLevelSet::~ComponentLevelSet(){
 
 }
 
+
+void ComponentLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
+
+  frame_ = frame;
+
+  if (curr_step == NUM_STEPS) {
+    curr_step = 0;
+    if (previous_frame.data == 0x0){ //this is the first frame
+      previous_frame = frame_->GetImageROI();
+      cv::cvtColor(previous_frame, previous_frame, CV_BGR2GRAY);
+      optical_flow = cv::createOptFlow_DualTVL1();
+    }
+    else{
+      cv::Mat frame = frame_->GetImageROI();
+      cv::cvtColor(frame, frame, CV_BGR2GRAY);
+      optical_flow->calc(previous_frame, frame, flow_frame);
+      cv::imwrite("flow.bmp", flow_frame);
+    }
+  }
+
+  ++curr_step;
+
+
+  float left_error = DoRegionBasedAlignmentStepForLeftEye(current_model);
+  float right_error = DoRegionBasedAlignmentStepForRightEye(current_model);
+  float point_error = DoPointBasedAlignmentStepForLeftEye(current_model);
+
+  UpdateWithErrorValue(left_error + right_error + point_error);
+  errors_.push_back(left_error + right_error + point_error);
+
+}
+
 void ComponentLevelSet::LoadShaders(){
 
   component_shader_ = ci::gl::GlslProg(ci::app::loadResource(COMP_LS_BACK_DEPTH_AND_CONTOUR_VERT), ci::app::loadResource(COMP_LS_BACK_DEPTH_AND_CONTOUR_FRAG));
@@ -46,14 +79,15 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
   cv::Mat front_intersection_image, back_intersection_image;
 
   ProcessSDFAndIntersectionImage(current_model, camera, front_intersection_image, back_intersection_image);
-  
-  //if (!point_registration_){
-  //  point_registration_.reset(new PointRegistration(stereo_camera_->left_eye()));
-  //  point_registration_->ComputeDescriptorsForPointTracking(frame_, front_intersection_image, current_model->GetBasePose());
-  //}
 
-  float fg_area = 1, bg_area = 1;
-  
+  //setup point registration for first frame
+  if (!point_registration_){
+    auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
+    point_registration_.reset(new PointRegistration(stereo_camera_->left_eye()));
+    point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, current_model->GetBasePose());
+  }
+
+ 
   for (size_t comp = 1; comp < components_.size(); ++comp){
 
     cv::Mat &sdf_image = components_[comp].sdf_image;
@@ -70,27 +104,28 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
 
         const int i = r*classification_image.cols + c;
 
+        assert(sdf_image.at<float>(r, c) == sdf_im_data[i]);
+
         if (sdf_im_data[i] <= float(HEAVYSIDE_WIDTH) - 1e-1 && sdf_im_data[i] >= -float(HEAVYSIDE_WIDTH) + 1e-1){
-
-
-          //if (r == 329 && c == 350){
-          //  ci::app::console() << "\n";
-          //}
-          //-log(H * P_f + (1-H) * P_b)
-          //error += GetErrorValue(classification_image, r, c, sdf_im_data[i], components_[comp].target_probability, fg_area, bg_area);
-
-          size_t nearest_different_neighbour_label = ComputeNearestNeighbourForPixel(r, c, sdf_im_data[i], classification_image.cols, classification_image.rows);
-          if (nearest_different_neighbour_label == 255){
-            continue;
-          }
-          
-          
+         
+          //get the target label for this classification
           size_t target_label = components_[comp].target_probability;
-          if (nearest_different_neighbour_label == target_label){
+
+          //find the nearest neighbouring pixel with a different label to this one - if we are inside the contour then search for the nearest different label, if we are outside the contour (i.e. looking at 'background') then just choose the pixel.
+          size_t nearest_different_neighbour_label;
+          if (sdf_im_data[i] >= 0){
+            nearest_different_neighbour_label = ComputeNearestNeighbourForPixel(r, c, sdf_im_data[i], classification_image.cols, classification_image.rows);
+          }
+          else{
             nearest_different_neighbour_label = component_map_.at<unsigned char>(r, c);
           }
-          //target_label_image.at<unsigned char>(r, c) = target_label;
-          //nearest_neighbour_label_image.at<unsigned char>(r, c) = nearest_different_neighbour_label;
+          
+          if (nearest_different_neighbour_label == 255){
+            target_label_image.at<unsigned char>(r, c) = 255;
+            continue;
+          }
+                    
+          error += GetErrorValue(classification_image, r, c, sdf_im_data[i], target_label, nearest_different_neighbour_label);
 
           //P_f - P_b / (H * P_f + (1 - H) * P_b)
           const float region_agreement = GetRegionAgreement(classification_image, r, c, sdf_im_data[i], target_label, nearest_different_neighbour_label);
@@ -130,27 +165,7 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
         }
       }
     }
-
-    ci::app::console() << "Done step\n";
-
   }
-
-  /*std::vector<MatchedPair> pnp_pairs;
-  point_registration_->FindPointCorrespondencesWithPose(frame_, current_model, current_model->GetBasePose(), pnp_pairs);
-
-  cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
-
-  for (auto pnp = pnp_pairs.begin(); pnp != pnp_pairs.end(); pnp++){
-    std::vector<float> point_jacobian = point_registration_->GetPointDerivative(pnp->learned_point, cv::Point2f(pnp->image_point[0], pnp->image_point[1]), current_model->GetBasePose());
-
-    for (int i = 0; i < jacobian.rows; ++i){
-      points_jacobian(i) += 0.0005 * point_jacobian[i];
-    }
-
-    jacobian += points_jacobian.t();
-    hessian_approx += (points_jacobian.t() * points_jacobian);
-  }
-*/
 }
 
 unsigned char ComponentLevelSet::ComputeNearestNeighbourForPixel(const int r, const int c, const float sdf_value, const int width, const int height){
@@ -191,20 +206,14 @@ unsigned char ComponentLevelSet::ComputeNearestNeighbourForPixel(const int r, co
 
 }
 
-inline bool SAFE_EQUALS(const float x, const float y){
-  return std::abs(x - y) < std::numeric_limits<float>::epsilon();
-}
-
 float ComponentLevelSet::GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf_value, const size_t target_label, const size_t neighbour_label){
 
-  float *c_data = (float *)classification_image.data;
-
   cv::Vec<float, 5> re = classification_image.at < cv::Vec<float, 5> >(r, c);
-
-  float pixel_probability = re[target_label]; //c_data[(classification_image.cols * r + c) * classification_image.channels() + target_label];
-  float neighbour_probability = re[neighbour_label];// c_data[(classification_image.cols * r + c) * classification_image.channels() + neighbour_label];
+  
+  float pixel_probability = re[target_label]; //
+  float neighbour_probability = re[neighbour_label];
+  
   const float heaviside_value = HeavisideFunction(sdf_value);
-
 
   if (SAFE_EQUALS(pixel_probability, 0.0f) && SAFE_EQUALS(neighbour_probability, 1.0f)){
     pixel_probability += 0.1;
@@ -215,14 +224,31 @@ float ComponentLevelSet::GetRegionAgreement(const cv::Mat &classification_image,
     neighbour_probability += 0.1;
   }
 
-  if (neighbour_probability > pixel_probability)
-    ci::app::console() << "break here";
+  return (pixel_probability - neighbour_probability) / (((heaviside_value*pixel_probability) + ((1 - heaviside_value)*neighbour_probability)) + EPS);
 
-  const float v = (pixel_probability - neighbour_probability) / (((heaviside_value*pixel_probability) + ((1 - heaviside_value)*neighbour_probability)) + EPS);
-  if (std::abs(v) > 6000) {
-    ci::app::console() << "large";
+}
+
+float ComponentLevelSet::GetErrorValue(const cv::Mat &classification_image, const int r, const int c, const float sdf_value, const size_t target_label, const size_t neighbour_label) const {
+
+  const cv::Vec<float, 5> re = classification_image.at < cv::Vec<float, 5> >(r, c);
+
+  float pixel_probability = re[target_label]; //
+  float neighbour_probability = re[neighbour_label];
+
+  const float heaviside_value = HeavisideFunction(sdf_value);
+
+  if (SAFE_EQUALS(pixel_probability, 0.0f) && SAFE_EQUALS(neighbour_probability, 1.0f)){
+    pixel_probability += 0.1;
+    neighbour_probability -= 0.1;
   }
-  return v;
+  else if (SAFE_EQUALS(pixel_probability, 1.0f) && SAFE_EQUALS(neighbour_probability, 0.0f)){
+    pixel_probability -= 0.1;
+    neighbour_probability += 0.1;
+  }
+
+  float v = (heaviside_value * pixel_probability) + ((1 - heaviside_value)*(neighbour_probability));
+  v += 0.0000001f;
+  return -log(v);
 
 }
 

@@ -35,12 +35,14 @@ namespace ttrk {
 
     PointRegistration(boost::shared_ptr<MonocularCamera> camera);
 
-    std::vector<float> GetPointDerivative(const cv::Point3d &world, cv::Point2f &image, const Pose &pose) const ;
+    std::vector<float> GetPointDerivative(const cv::Point3d &world, cv::Point2f &image, const Pose &pose) ;
     
     void FindPointCorrespondencesWithPose(boost::shared_ptr<sv::Frame> frame, boost::shared_ptr<Model> model, const Pose &pose, std::vector<MatchedPair> &pnp);    
   
-    void ComputeDescriptorsForPointTracking(boost::shared_ptr<sv::Frame> frame, cv::Mat point_map, const Pose &pose);
-
+    void ComputeDescriptorsForPointTracking(cv::Mat &frame, cv::Mat &point_map, const Pose &pose); 
+  
+    float average_distance;
+    
   protected:
 
     void GetDescriptors(const cv::Mat &frame, std::vector<Descriptor> &ds);
@@ -51,6 +53,7 @@ namespace ttrk {
 
     void FindPointCorrespondences(boost::shared_ptr<sv::Frame> frame, std::vector<MatchedPair> &matched_pair);
     
+
   private:
 
     boost::shared_ptr<MonocularCamera> camera_;

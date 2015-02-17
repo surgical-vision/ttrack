@@ -77,6 +77,12 @@ void Model::LoadJson(const std::string &filename){
 
 }
 
+bool Model::PerformPicking(const ci::Vec3f &ray, ci::Vec3f &intersection, ci::Vec3f &normal) const{
+   
+  return model_->PerformPicking(world_to_model_coordinates_, ray, intersection, normal);
+  
+}
+
 void Model::RenderMaterial(){
 
   ci::gl::pushModelView();

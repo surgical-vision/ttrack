@@ -136,6 +136,8 @@ namespace ttrk{
     */
     ci::gl::Texture &GetTexture() { return model_->GetTexture(); }
 
+    virtual bool PerformPicking(const ci::Vec3f &ray, ci::Vec3f &intersection, ci::Vec3f &normal) const;
+
   protected:
 
     /**

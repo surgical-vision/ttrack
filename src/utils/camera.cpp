@@ -214,6 +214,7 @@ StereoCamera::StereoCamera(const std::string &calibration_filename) {
     cv::Mat image_dims;
     cv::Mat l_intrinsic, l_distortion;
     cv::Mat r_intrinsic, r_distortion;
+
     fs.open(calibration_filename.c_str(), cv::FileStorage::READ);
 
     fs["Image_Dimensions"] >> image_dims;

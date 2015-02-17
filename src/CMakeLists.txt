@@ -44,6 +44,7 @@ set(
   ${INCDIR}/track/pwp3d/stereo_pwp3d.hpp ${INCDIR}/track/stt/monocular_tool_tracker.hpp
   ${INCDIR}/track/stt/stereo_tool_tracker.hpp ${INCDIR}/track/stt/surgical_tool_tracker.hpp
   ${INCDIR}/track/temporal/temporal.hpp
+  ${INCDIR}/track/pwp3d/descriptor.hpp
   )
 #
 
@@ -59,7 +60,9 @@ set( SOURCES ttrack.cpp ttrack_app.cpp
       track/model/model.cpp track/model/node.cpp track/model/articulated_model.cpp
       track/pwp3d/comp_ls.cpp track/pwp3d/mono_pwp3d.cpp track/pwp3d/register_points.cpp track/pwp3d/stereo_pwp3d.cpp track/pwp3d/pwp3d.cpp
       track/stt/monocular_tool_tracker.cpp track/stt/stereo_tool_tracker.cpp track/stt/surgical_tool_tracker.cpp
-      track/temporal/temporal.cpp)
+      track/temporal/temporal.cpp
+	  track/pwp3d/descriptor.cpp
+	  )
 #track/articulated/articulated_solver.cpp - adds ceres dependency
 
 #######################################################

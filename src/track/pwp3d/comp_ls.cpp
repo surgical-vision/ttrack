@@ -76,9 +76,9 @@ void ComponentLevelSet::LoadShaders(){
 
 void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_image, boost::shared_ptr<Model> current_model, boost::shared_ptr<MonocularCamera> camera, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx, float &error){
   
-  cv::Mat front_intersection_image, back_intersection_image;
+  cv::Mat front_intersection_image, back_intersection_image, front_normal_image;
 
-  ProcessSDFAndIntersectionImage(current_model, camera, front_intersection_image, back_intersection_image);
+  ProcessSDFAndIntersectionImage(current_model, camera, front_intersection_image, back_intersection_image, front_normal_image);
 
   //setup point registration for first frame
   if (!point_registration_){
@@ -252,7 +252,7 @@ float ComponentLevelSet::GetErrorValue(const cv::Mat &classification_image, cons
 
 }
 
-void ComponentLevelSet::ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image) {
+void ComponentLevelSet::ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image, cv::Mat &front_normal_image) {
 
   //find all the pixels which project to intersection points on the model
   front_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(), CV_32FC3);

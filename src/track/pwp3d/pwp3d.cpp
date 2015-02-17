@@ -201,7 +201,7 @@ void PWP3D::ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_mo
   cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
 
   for (auto pnp = pnp_pairs.begin(); pnp != pnp_pairs.end(); pnp++){
-    std::vector<float> point_jacobian = point_registration_->GetPointDerivative(pnp->learned_point, cv::Point2f(pnp->image_point[0], pnp->image_point[1]), current_model->GetBasePose());
+    std::vector<float> point_jacobian = point_registration_->GetPointDerivative(pnp->eye_coordinates, pnp->image_coordinates, current_model->GetBasePose());
 
     for (int i = 0; i < jacobian.rows; ++i){
       points_jacobian(i) += 0.0005 * point_jacobian[i];

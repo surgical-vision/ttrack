@@ -93,6 +93,52 @@ void Node::RenderTexture(int id){
 
 }
 
+bool Node::PerformPicking(const ci::Matrix44f &mvm, const ci::Vec3f &ray, ci::Vec3f &intersection, ci::Vec3f &normal) const{
+
+  float result = 1.0e6f;
+  size_t polycount = model_.getNumTriangles();
+  float distance = 0.0f;
+  ci::Ray ray_(ci::Vec3f(0, 0, 0), ray);
+
+  for (size_t i = 0; i<polycount; ++i)
+  {
+    ci::Vec3f v0, v1, v2;
+    // get a single triangle from the mesh
+    model_.getTriangleVertices(i, &v0, &v1, &v2);
+
+    // transform triangle to world space
+    v0 = mvm.transformPointAffine(v0);
+    v1 = mvm.transformPointAffine(v1);
+    v2 = mvm.transformPointAffine(v2);
+
+
+    // test to see if the ray intersects with this triangle
+    if (ray_.calcTriangleIntersection(v0, v1, v2, &distance)) {
+      // set our result to this if its closer than any intersection we've had so far
+      if (distance < result) {
+        result = distance;
+        // assuming this is the closest triangle, we'll set our normal
+        // while we've got all the points handy
+        normal = (v1 - v0).cross(v2 - v0).normalized();
+      }
+    }
+  }
+
+  // did we have a hit?
+  if (distance > 0) {
+    intersection = ray_.calcPosition(result);
+    return true;
+  }
+  else
+    return false;
+
+  for (size_t i = 0; i < children_.size(); ++i){
+    bool x = children_[i]->PerformPicking(mvm, ray, intersection, normal);
+    if (x) return x;
+  }
+
+}
+
 std::vector<Node::ConstPtr> Node::GetChildren() const {
 
   std::vector<Node::ConstPtr> ret;

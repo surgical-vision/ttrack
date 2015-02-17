@@ -26,12 +26,13 @@ namespace ttrk {
     
     void SetFrontIntersectionImage(const cv::Mat &front_intersection_im) { front_intersection_image = front_intersection_im.clone(); }
 
+    std::vector<float> GetPointDerivative(const cv::Point3d &world, cv::Point2f &image, const Pose &pose);
+
+
   protected:
 
     typedef std::pair<cv::KeyPoint, cv::Mat> FoundKeyPoint;
 
-    std::vector<float> GetPointDerivative(const cv::Point3d &world, cv::Point2f &image, const Pose &pose);
-    
     void GetDescriptors(const cv::Mat &frame, std::vector<FoundKeyPoint> &ds);
 
   private:

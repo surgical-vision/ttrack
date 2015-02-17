@@ -20,7 +20,7 @@ PWP3D::PWP3D(const int width, const int height) {
   //need the colour buffer to be 32bit
   ci::gl::Fbo::Format format;
   format.setColorInternalFormat(GL_RGBA32F);
-  format.enableColorBuffer(true, 1);
+  format.enableColorBuffer(true, 2);
   front_depth_framebuffer_ = ci::gl::Fbo(width, height, format);
  
   //need 2 colour buffers for back contour
@@ -201,7 +201,7 @@ void PWP3D::ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_mo
   cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
 
   for (auto pnp = pnp_pairs.begin(); pnp != pnp_pairs.end(); pnp++){
-    std::vector<float> point_jacobian = point_registration_->GetPointDerivative(pnp->eye_coordinates, pnp->image_coordinates, current_model->GetBasePose());
+    std::vector<float> point_jacobian = point_registration_->GetPointDerivative(cv::Point3f(pnp->eye_coordinates), pnp->image_coordinates, current_model->GetBasePose());
 
     for (int i = 0; i < jacobian.rows; ++i){
       points_jacobian(i) += 0.0005 * point_jacobian[i];

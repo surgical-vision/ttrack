@@ -35,7 +35,7 @@ void MonoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost
   //setup point registration for first frame
   if (!point_registration_){
     point_registration_.reset(new PointRegistration(camera_));
-    point_registration_->ComputeDescriptorsForPointTracking(frame_->GetImageROI(), front_intersection_image, current_model->GetBasePose());
+    point_registration_->ComputeDescriptorsForPointTracking(frame_->GetImageROI(), front_intersection_image, cv::Mat(), current_model->GetBasePose());
   }
 
   float fg_area, bg_area = 0;

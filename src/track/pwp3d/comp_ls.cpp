@@ -84,7 +84,7 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
   if (!point_registration_){
     auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
     point_registration_.reset(new PointRegistration(stereo_camera_->left_eye()));
-    point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, current_model->GetBasePose());
+    point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, cv::Mat(), current_model->GetBasePose());
   }
 
  
@@ -259,7 +259,7 @@ void ComponentLevelSet::ProcessSDFAndIntersectionImage(const boost::shared_ptr<M
   back_intersection_image = cv::Mat::zeros(frame_->GetImageROI().size(), CV_32FC3);
 
   cv::Mat front_depth, back_depth;
-  RenderModelForDepthAndContour(mesh, camera, front_depth, back_depth);
+  RenderModelForDepthAndContour(mesh, camera, front_depth, back_depth, front_normal_image);
 
   cv::Mat unprojected_image_plane = camera->GetUnprojectedImagePlane(front_intersection_image.cols, front_intersection_image.rows);
 
@@ -316,7 +316,7 @@ inline bool IsGreaterThanNeighbour(const cv::Mat &im, const int r, const int c){
   
 }
 
-void ComponentLevelSet::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_depth, cv::Mat &back_depth){
+void ComponentLevelSet::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_depth, cv::Mat &back_depth, cv::Mat &front_normal_image){
 
   assert(front_depth_framebuffer_.getWidth() == camera->Width() && front_depth_framebuffer_.getHeight() == camera->Height());
 
@@ -337,9 +337,9 @@ void ComponentLevelSet::RenderModelForDepthAndContour(const boost::shared_ptr<Mo
   glDepthFunc(GL_LESS);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  //bind the front depth shader and render
+
   front_depth_.bind();
-  mesh->RenderMaterial();
+  mesh->RenderMaterial();  
   front_depth_.unbind();
 
   front_depth_framebuffer_.unbindFramebuffer();
@@ -448,4 +448,6 @@ void ComponentLevelSet::RenderModelForDepthAndContour(const boost::shared_ptr<Mo
   }
 
 
+  front_normal_image = ci::toOcv(front_depth_framebuffer_.getTexture(1));
+  ci::app::console() << "HEre";
 }

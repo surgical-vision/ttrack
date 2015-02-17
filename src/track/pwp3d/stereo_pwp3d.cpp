@@ -136,7 +136,7 @@ void StereoPWP3D::ComputeJacobiansForEye(const cv::Mat &classification_image, bo
   if (!point_registration_){
     auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
     point_registration_.reset(new PointRegistration(stereo_camera_->left_eye()));
-    point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, current_model->GetBasePose());
+    point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, cv::Mat(), current_model->GetBasePose());
   }
 
   float fg_area = 0, bg_area = 0;

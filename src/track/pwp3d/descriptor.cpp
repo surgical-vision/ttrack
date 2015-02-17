@@ -12,10 +12,13 @@ Descriptor::Descriptor(const cv::Vec3f pt, const cv::Vec3f normal, const cv::Mat
 
 }
 ci::Vec3f Descriptor::ciGetPointInEyeSpace(Pose &pose) const {
+
   ci::Vec4f c(coordinate_[0], coordinate_[1], coordinate_[2], 1);
-  ci::Vec4f r = pose * c;
+  ci::Matrix44f m = pose;
+  ci::Vec4f r = m * c;
   r.normalize();
   return r.xyz();
+
 }
 
 //void Descriptor::ConstructFromModelDescriptor(const boost::shared_ptr<Model> model, const LearnedDescriptor &model_descriptor){
@@ -28,7 +31,7 @@ ci::Vec3f Descriptor::ciGetPointInEyeSpace(Pose &pose) const {
 //
 //}
 
-bool Descriptor::ShouldUseThisDescriptor() const {
+bool Descriptor::ShouldUseThisDescriptor(Pose &pose) const {
 
   //check visibility and also check normals
 

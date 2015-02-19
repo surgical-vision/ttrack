@@ -1,6 +1,6 @@
 #version 110
 
-uniform sampler2D norm_tex
+uniform sampler2D norm_tex;
 varying float depth;
 varying vec3 N;
 

@@ -15,7 +15,7 @@ using namespace ttrk;
 
 PointRegistration::PointRegistration(boost::shared_ptr<MonocularCamera> camera)  : camera_(camera) {
 
-  dm_ = cv::DescriptorMatcher::create("L2");
+  dm_ = cv::DescriptorMatcher::create("BruteForce"); //BruteForce uses L2 norm
 
 }
 
@@ -24,66 +24,29 @@ void PointRegistration::ComputeDescriptorsForPointTracking(cv::Mat &frame, cv::M
 
   std::vector< FoundKeyPoint > initial_keypoints;
 
-  GetDescriptors(frame, initial_keypoints);
+  GetDescriptors(frame, point_map, initial_keypoints);
 
-  //make a descriptor finder
-  cv::Mat image_gray;
-  cv::cvtColor(frame, image_gray, CV_RGB2GRAY);
-
-  //model_points.clear();
-
-  cv::SiftFeatureDetector detector;//(400);
-  std::vector<cv::KeyPoint> keypoints;
-  detector.detect(image_gray, keypoints);
-  std::vector<cv::KeyPoint> tool_keypoints;
-
-  //find the keypoints and filter for those inside the model projection
-  for (auto kp = keypoints.begin(); kp != keypoints.end(); kp++){
-
-    cv::Point2f &pt = kp->pt;
-    if (point_map.at<cv::Vec3f>(pt.y, pt.x) != cv::Vec3f((float)GL_FAR, (float)GL_FAR, (float)GL_FAR)){
-      tool_keypoints.push_back(*kp);
-    }
-
-  }
-
-  //sort them by their responses
-  std::sort(tool_keypoints.begin(), tool_keypoints.end(),
-    [](const cv::KeyPoint &a, const cv::KeyPoint &b) -> bool {
-    return a.response > b.response;
-  });
-
-  //collect descriptors in the image plane
-  cv::SiftDescriptorExtractor extractor;
-  cv::Mat descriptors;
-  extractor.compute(image_gray, tool_keypoints, descriptors);
   int i = 0;
-
-  //only keep the NUM_DESCRIPTOR best descriptors
-  if (tool_keypoints.size() > NUM_DESCRIPTOR){
-    tool_keypoints = std::vector<cv::KeyPoint>(tool_keypoints.begin(), tool_keypoints.begin() + NUM_DESCRIPTOR);
-  }
-
   //project them onto the model
-  for (auto kp = tool_keypoints.begin(); kp != tool_keypoints.end(); kp++){
+  for (auto kp = initial_keypoints.begin(); kp != initial_keypoints.end(); kp++){
 
-    cv::Point2f &pt = kp->pt;
-    cv::Vec3f front = point_map.at<cv::Vec3f>(std::roundf(pt.x), std::roundf(pt.y));
-    cv::Vec3f normal = normal_map.at<cv::Vec3f>(std::roundf(pt.x), std::roundf(pt.y));
+    cv::Point2f &pt = kp->first.pt;
+    cv::Vec3f front = point_map.at<cv::Vec3f>(std::roundf(pt.y), std::roundf(pt.x));
+    cv::Vec3f normal = normal_map.at<cv::Vec3f>(std::roundf(pt.y), std::roundf(pt.x));
 
     cv::Vec3f front_on_model = pose.InverseTransformPoint(front);
     cv::Vec3f normal_on_model = pose.InverseTransformPoint(normal);
 
-    Descriptor d(front_on_model, normal, descriptors.row(i));
+    Descriptor d(front_on_model, normal, kp->second.row(i));
     i++;
     model_points.push_back(d);
     
     //add 
-    dm_->add(descriptors.row(i));
+    //dm_->add(descriptors.row(i));
 
   }
 
-  dm_->train();
+  //dm_->train();
 
 }
 
@@ -111,23 +74,34 @@ void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::F
 
   //search the image plane for features to match
   std::vector<FoundKeyPoint> frame_descriptors;
-  GetDescriptors(stereo_frame->GetLeftImage(), frame_descriptors);
+  GetDescriptors(stereo_frame->GetLeftImage(), cv::Mat(), frame_descriptors);
 
   //kind of slow to do it again but will optimize later
   cv::Mat source_descriptors(selection.size(), selection[0]->GetDescriptor().total(), selection[0]->GetDescriptor().type());
   cv::Mat target_descriptors(frame_descriptors.size(), source_descriptors.cols, source_descriptors.type());
 
   for (auto i = 0; i < selection.size(); ++i){
-    source_descriptors.row(i) = selection[i]->GetDescriptor();
+    cv::Mat &d = selection[i]->GetDescriptor();
+    for (int c = 0; c < d.cols; ++c){
+      source_descriptors.at<float>(i, c) = d.at<float>(c);
+    }
   }
 
   for (auto i = 0; i < frame_descriptors.size(); ++i){
-    target_descriptors.row(i) = frame_descriptors[i].second;
+    cv::Mat &d = frame_descriptors[i].second;
+    for (int c = 0; c < d.cols; ++c){
+      target_descriptors.at<float>(i, c) = d.at<float>(c);
+    }
   }
-  
+
+  //find best match for each descriptor from argument 1 (queryDescriptors) by searching argument 2 (trainDescriptors)
   std::vector<cv::DMatch> matches;
   dm_->match(target_descriptors, source_descriptors, matches);
   
+  cv::Mat im_100 = stereo_frame->GetLeftImage().clone();
+  cv::Mat im_200 = stereo_frame->GetLeftImage().clone();
+  cv::Mat im_300 = stereo_frame->GetLeftImage().clone();
+
   for (auto i = 0; i < matches.size(); ++i){
     
     cv::DMatch &mi = matches[i];
@@ -139,16 +113,37 @@ void PointRegistration::FindPointCorrespondencesWithPose(boost::shared_ptr<sv::F
 
     selection[mi.trainIdx]->IncrementTotalNumberOfAttempts();
 
+    
+
     if (l2_distance(cv::Vec2f(predicted_projection), cv::Vec2f(mp.image_coordinates)) > 20){
       continue;
     }
     
+    if (mp.matching_distance < 100) {
+      cv::circle(im_100, predicted_projection, 3, cv::Scalar(255, 0, 0));
+      cv::circle(im_100, mp.image_coordinates, 3, cv::Scalar(0, 255, 0));
+      cv::line(im_100, predicted_projection, mp.image_coordinates, cv::Scalar(0, 0, 255));
+    }
+    else if (mp.matching_distance < 200) {
+      cv::circle(im_200, predicted_projection, 3, cv::Scalar(255, 0, 0));
+      cv::circle(im_200, mp.image_coordinates, 3, cv::Scalar(0, 255, 0));
+      cv::line(im_200, predicted_projection, mp.image_coordinates, cv::Scalar(0, 0, 255));
+    }
+    else if (mp.matching_distance < 300) {
+      cv::circle(im_300, predicted_projection, 3, cv::Scalar(255, 0, 0));
+      cv::circle(im_300, mp.image_coordinates, 3, cv::Scalar(0, 255, 0));
+      cv::line(im_300, predicted_projection, mp.image_coordinates, cv::Scalar(0, 0, 255));
+    }
+    
+
     selection[mi.trainIdx]->IncrementNumberOfMatches();
     mp.matching_distance = mi.distance;
     
     pnp.push_back(mp);
 
   }
+
+
 
 }
 
@@ -188,7 +183,7 @@ std::vector<float> PointRegistration::GetPointDerivative(const cv::Point3d &worl
 
 }
 
-void PointRegistration::GetDescriptors(const cv::Mat &frame, std::vector< FoundKeyPoint > &kps){
+void PointRegistration::GetDescriptors(const cv::Mat &frame, const cv::Mat &filter, std::vector< FoundKeyPoint > &kps){
   
   cv::Mat image_gray;
   cv::cvtColor(frame, image_gray, CV_RGB2GRAY);
@@ -199,11 +194,62 @@ void PointRegistration::GetDescriptors(const cv::Mat &frame, std::vector< FoundK
   cv::Mat descriptors_image;
   extractor.compute(image_gray, keypoints, descriptors_image);
 
+  std::vector<cv::KeyPoint> tool_keypoints;
+
   int i = 0;
   for (auto kp = keypoints.begin(); kp != keypoints.end(); kp++, i++){
 
-    kps.push_back(FoundKeyPoint(*kp, descriptors_image.row(i)));
+    if (filter.total() == 0){
+      kps.push_back(FoundKeyPoint(*kp, descriptors_image.row(i)));
+    }
+
+    else if (filter.at<cv::Vec3f>(kp->pt.y, kp->pt.x) != cv::Vec3f((float)GL_FAR, (float)GL_FAR, (float)GL_FAR)){
+      kps.push_back(FoundKeyPoint(*kp, descriptors_image.row(i)));
+    }
 
   }
 
 }
+
+/*
+
+//make a descriptor finder
+cv::Mat image_gray;
+cv::cvtColor(frame, image_gray, CV_RGB2GRAY);
+
+model_points.clear();
+
+cv::SiftFeatureDetector detector;//(400);
+std::vector<cv::KeyPoint> keypoints;
+detector.detect(image_gray, keypoints);
+std::vector<cv::KeyPoint> tool_keypoints;
+
+//find the keypoints and filter for those inside the model projection
+for (auto kp = keypoints.begin(); kp != keypoints.end(); kp++){
+
+cv::Point2f &pt = kp->pt;
+if (point_map.at<cv::Vec3f>(pt.y, pt.x) != cv::Vec3f((float)GL_FAR, (float)GL_FAR, (float)GL_FAR)){
+tool_keypoints.push_back(*kp);
+}
+
+}
+
+//sort them by their responses
+std::sort(tool_keypoints.begin(), tool_keypoints.end(),
+[](const cv::KeyPoint &a, const cv::KeyPoint &b) -> bool {
+return a.response > b.response;
+});
+
+//collect descriptors in the image plane
+cv::SiftDescriptorExtractor extractor;
+cv::Mat descriptors;
+extractor.compute(image_gray, tool_keypoints, descriptors);
+int i = 0;
+
+//only keep the NUM_DESCRIPTOR best descriptors
+//if (tool_keypoints.size() > NUM_DESCRIPTOR){
+//  tool_keypoints = std::vector<cv::KeyPoint>(tool_keypoints.begin(), tool_keypoints.begin() + NUM_DESCRIPTOR);
+//}
+
+
+*/

@@ -43,17 +43,17 @@ void ComponentLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mode
 
   if (curr_step == NUM_STEPS) {
     curr_step = 0;
-    if (previous_frame.data == 0x0){ //this is the first frame
-      previous_frame = frame_->GetImageROI();
-      cv::cvtColor(previous_frame, previous_frame, CV_BGR2GRAY);
-      optical_flow = cv::createOptFlow_DualTVL1();
-    }
-    else{
-      cv::Mat frame = frame_->GetImageROI();
-      cv::cvtColor(frame, frame, CV_BGR2GRAY);
-      optical_flow->calc(previous_frame, frame, flow_frame);
-      cv::imwrite("flow.bmp", flow_frame);
-    }
+    //if (previous_frame.data == 0x0){ //this is the first frame
+    //  previous_frame = frame_->GetImageROI();
+    //  cv::cvtColor(previous_frame, previous_frame, CV_BGR2GRAY);
+    //  optical_flow = cv::createOptFlow_DualTVL1();
+    //}
+    //else{
+    //  cv::Mat frame = frame_->GetImageROI();
+    //  cv::cvtColor(frame, frame, CV_BGR2GRAY);
+    //  optical_flow->calc(previous_frame, frame, flow_frame);
+    //  cv::imwrite("flow.bmp", flow_frame);
+    //}
   }
 
   ++curr_step;
@@ -79,15 +79,18 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
   cv::Mat front_intersection_image, back_intersection_image, front_normal_image;
 
   ProcessSDFAndIntersectionImage(current_model, camera, front_intersection_image, back_intersection_image, front_normal_image);
+  
+  auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
 
   //setup point registration for first frame
   if (!point_registration_){
-    auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
     point_registration_.reset(new PointRegistration(stereo_camera_->left_eye()));
-    point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, cv::Mat(), current_model->GetBasePose());
   }
 
- 
+  point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, front_normal_image, current_model->GetBasePose());
+  
+  return;
+
   for (size_t comp = 1; comp < components_.size(); ++comp){
 
     cv::Mat &sdf_image = components_[comp].sdf_image;
@@ -449,5 +452,6 @@ void ComponentLevelSet::RenderModelForDepthAndContour(const boost::shared_ptr<Mo
 
 
   front_normal_image = ci::toOcv(front_depth_framebuffer_.getTexture(1));
-  ci::app::console() << "HEre";
+  cv::flip(front_normal_image, front_normal_image, 0);
+
 }

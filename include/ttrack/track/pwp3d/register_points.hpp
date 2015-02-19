@@ -33,7 +33,7 @@ namespace ttrk {
 
     typedef std::pair<cv::KeyPoint, cv::Mat> FoundKeyPoint;
 
-    void GetDescriptors(const cv::Mat &frame, std::vector<FoundKeyPoint> &ds);
+    void GetDescriptors(const cv::Mat &frame, const cv::Mat &filter, std::vector<FoundKeyPoint> &ds);
 
   private:
 

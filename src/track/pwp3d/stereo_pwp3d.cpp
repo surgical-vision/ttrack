@@ -17,7 +17,7 @@ StereoPWP3D::StereoPWP3D(boost::shared_ptr<StereoCamera> camera) : PWP3D(camera-
 
 float StereoPWP3D::DoPointBasedAlignmentStepForLeftEye(boost::shared_ptr<Model> current_model){
 
-  if (!point_registration_) return 0.0;
+  if (!lk_tracker_) return 0.0;
 
   float error = 0.0f;
   auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
@@ -31,6 +31,8 @@ float StereoPWP3D::DoPointBasedAlignmentStepForLeftEye(boost::shared_ptr<Model> 
 
   std::vector<float> jacs = ScaleRigidJacobian(jacobian);
   current_model->UpdatePose(jacs);
+
+  lk_tracker_->UpdatePointsOnModelAfterDerivatives(current_model->GetBasePose());
 
 #else
 
@@ -133,11 +135,14 @@ void StereoPWP3D::ComputeJacobiansForEye(const cv::Mat &classification_image, bo
   ProcessSDFAndIntersectionImage(current_model, camera, sdf_image, front_intersection_image, back_intersection_image);
 
   //setup point registration for first frame
-  if (!point_registration_){
-    auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
-    point_registration_.reset(new PointRegistration(stereo_camera_->left_eye()));
-    point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, cv::Mat(), current_model->GetBasePose());
+  if (!lk_tracker_){
+    lk_tracker_.reset(new LKTracker(stereo_camera_->left_eye()));
   }
+  auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
+
+  //point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, front_normal_image, current_model->GetBasePose());
+
+  lk_tracker_->TrackLocalPoints(stereo_frame->GetLeftImage());
 
   float fg_area = 0, bg_area = 0;
   size_t contour_area = 0;

@@ -41,30 +41,42 @@ void ComponentLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mode
 
   frame_ = frame;
 
+  cv::Mat front_intersection_image, back_intersection_image, front_normal_image;
+  ProcessSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), front_intersection_image, back_intersection_image, front_normal_image);
+
+
   if (curr_step == NUM_STEPS) {
+
     curr_step = 0;
-    //if (previous_frame.data == 0x0){ //this is the first frame
-    //  previous_frame = frame_->GetImageROI();
-    //  cv::cvtColor(previous_frame, previous_frame, CV_BGR2GRAY);
-    //  optical_flow = cv::createOptFlow_DualTVL1();
-    //}
-    //else{
-    //  cv::Mat frame = frame_->GetImageROI();
-    //  cv::cvtColor(frame, frame, CV_BGR2GRAY);
-    //  optical_flow->calc(previous_frame, frame, flow_frame);
-    //  cv::imwrite("flow.bmp", flow_frame);
-    //}
+    
+    auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
+    
+    if (!lk_tracker_){
+
+      lk_tracker_.reset(new LKTracker(stereo_camera_->left_eye()));
+      lk_tracker_->SetFrontIntersectionImage(front_intersection_image);
+      lk_tracker_->InitializeTracker(stereo_frame->GetLeftImage(), current_model->GetBasePose());
+
+    }
+    else{
+
+      lk_tracker_->SetFrontIntersectionImage(front_intersection_image);
+      lk_tracker_->TrackLocalPoints(stereo_frame->GetLeftImage());
+
+    }
+    
+    
+
   }
 
   ++curr_step;
 
-
-  float left_error = DoRegionBasedAlignmentStepForLeftEye(current_model);
-  float right_error = DoRegionBasedAlignmentStepForRightEye(current_model);
+  //float left_error = DoRegionBasedAlignmentStepForLeftEye(current_model);
+  //float right_error = DoRegionBasedAlignmentStepForRightEye(current_model);
   float point_error = DoPointBasedAlignmentStepForLeftEye(current_model);
 
-  UpdateWithErrorValue(left_error + right_error + point_error);
-  errors_.push_back(left_error + right_error + point_error);
+  //UpdateWithErrorValue(left_error + right_error + point_error);
+  //errors_.push_back(left_error + right_error + point_error);
 
 }
 
@@ -76,20 +88,20 @@ void ComponentLevelSet::LoadShaders(){
 
 void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_image, boost::shared_ptr<Model> current_model, boost::shared_ptr<MonocularCamera> camera, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx, float &error){
   
+  return;
   cv::Mat front_intersection_image, back_intersection_image, front_normal_image;
 
   ProcessSDFAndIntersectionImage(current_model, camera, front_intersection_image, back_intersection_image, front_normal_image);
   
-  auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
 
   //setup point registration for first frame
-  if (!point_registration_){
-    point_registration_.reset(new PointRegistration(stereo_camera_->left_eye()));
-  }
+  //if (!lk_tracker_){
+  //  lk_tracker_.reset(new LKTracker(stereo_camera_->left_eye()));
+ // }
 
-  point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, front_normal_image, current_model->GetBasePose());
-  
-  return;
+  //point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, front_normal_image, current_model->GetBasePose());
+  //if (camera == stereo_camera_->left_eye())
+  //  lk_tracker_->TrackLocalPoints(stereo_frame->GetLeftImage(), front_intersection_image);
 
   for (size_t comp = 1; comp < components_.size(); ++comp){
 

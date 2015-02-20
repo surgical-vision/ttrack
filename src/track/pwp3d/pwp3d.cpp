@@ -29,7 +29,7 @@ PWP3D::PWP3D(const int width, const int height) {
 
   HEAVYSIDE_WIDTH = 3; //if this value is changed the Delta/Heavside approximations will be invalid!
 
-  NUM_STEPS = 3;// 125;
+  NUM_STEPS = 6;// 125;
 
   curr_step = NUM_STEPS; //so we report converged and ask for a new frame at the start
 
@@ -195,8 +195,20 @@ float PWP3D::GetRegionAgreement(const cv::Mat &classification_image, const int r
 
 void PWP3D::ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_model, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx){
 
+  std::vector<float> derivs = lk_tracker_->GetDerivativesForPoints(current_model->GetBasePose());
+
+  cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
+  
+  for (int i = 0; i < derivs.size(); ++i){
+    points_jacobian(i) += 0.05 * derivs[i];
+  }
+  
+  jacobian += points_jacobian.t();
+  hessian_approx += (points_jacobian.t() * points_jacobian);
+
+  /*
   std::vector<MatchedPair> pnp_pairs;
-  point_registration_->FindPointCorrespondencesWithPose(frame_, current_model, current_model->GetBasePose(), pnp_pairs);
+  lk_->FindPointCorrespondencesWithPose(frame_, current_model, current_model->GetBasePose(), pnp_pairs);
 
   cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
 
@@ -210,7 +222,7 @@ void PWP3D::ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_mo
     jacobian += points_jacobian.t();
     hessian_approx += (points_jacobian.t() * points_jacobian);
   }
-
+*/
 }
 
 std::vector<float> PWP3D::ScaleRigidJacobian(cv::Matx<float, 7, 1> &jacobian) const{
@@ -219,6 +231,7 @@ std::vector<float> PWP3D::ScaleRigidJacobian(cv::Matx<float, 7, 1> &jacobian) co
 
   cv::Vec3f translation(jacobian(0), jacobian(1), jacobian(2));
   const float max_translation = 0.04; //mm
+  
   float translation_mag = std::sqrt(translation.dot(translation));
   if (translation_mag != 0.0)
     translation = (max_translation / translation_mag) * translation;
@@ -227,6 +240,7 @@ std::vector<float> PWP3D::ScaleRigidJacobian(cv::Matx<float, 7, 1> &jacobian) co
 
   cv::Vec4f rotation(jacobian(3), jacobian(4), jacobian(5), jacobian(6));
   const float max_rotation = 0.002;
+  
   float rotation_mag = std::sqrt(rotation.dot(rotation));
   if (rotation_mag != 0.0)
     rotation = (max_rotation / rotation_mag) * rotation;

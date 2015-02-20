@@ -54,7 +54,7 @@ cv::Mat StereoVideoHandler::GetNewFrame(){
 
   static bool first = true;
   if (first){
-    for (size_t i = 0; i < 15; i++)
+    for (size_t i = 0; i < 59; i++)
     {
       cv::Mat t;
       right_cap_ >> t;

@@ -12,6 +12,7 @@
 #include "../pose.hpp"
 #include "../../utils/plotter.hpp"
 #include "register_points.hpp"
+#include "lk_tracker.hpp"
 
 namespace ttrk {
 
@@ -192,8 +193,11 @@ namespace ttrk {
     
     int HEAVYSIDE_WIDTH;  /**< Width of the heaviside blurring function. */
 
-    boost::shared_ptr<PointRegistration> point_registration_; /**< Computes the point registration error. */
+    //boost::shared_ptr<PointRegistration> point_registration_; /**< Computes the point registration error. */
     
+    boost::shared_ptr<LKTracker> lk_tracker_;
+
+
   };
 
 

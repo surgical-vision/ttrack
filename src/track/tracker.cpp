@@ -45,11 +45,7 @@ void Tracker::Run(boost::shared_ptr<sv::Frame> image, const bool found){
     if (!Init() || !InitTemporalModels()) //do any custom initalisation in the virtual Init function
       return;
     tracking_ = true;
-
-    for (current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++){
-      ci::app::console() << "Pose after init = " << current_model_->model->GetBasePose() << std::endl;
-    }
-
+    
   }
   else{
 

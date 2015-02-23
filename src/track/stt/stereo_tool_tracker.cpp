@@ -33,7 +33,7 @@ StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, co
 
 bool StereoToolTracker::Init() {
 
-  boost::shared_ptr<sv::StereoFrame> stereo_frame_ = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
+   boost::shared_ptr<sv::StereoFrame> stereo_frame_ = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
 
   //find the connected regions in the image
   std::vector<std::vector<cv::Vec2i> >connected_regions;

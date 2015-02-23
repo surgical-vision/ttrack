@@ -20,15 +20,6 @@ void LKTracker::TrackLocalPoints(cv::Mat &current_frame){
 
   cv::calcOpticalFlowPyrLK(previous_frame_gray_, current_frame_gray_, points_test[0], points_test[1], status, err, win_size_, 3, term_crit_, 0, 0.001);
 
-  cv::Mat im = current_frame.clone();
-  for (auto pt : points_test[1]){
-    cv::circle(im, pt, 3, cv::Scalar(255, 0, 255));
-  }
-  static int cnt = 0;
-  std::stringstream ss; ss << "z:/points/frame" << cnt << ".jpg";
-  cv::imwrite(ss.str(), im);
-  cnt++;
-
   for (size_t i = 0; i < points_test[1].size(); ++i){
 
     if (status[i] == 0){
@@ -36,11 +27,8 @@ void LKTracker::TrackLocalPoints(cv::Mat &current_frame){
       continue;
     }
 
-    
     //do something with err?
     tracked_points_[i].found_image_point = points_test[1][i];
-
-    ci::app::console() << "Tracked model point [" << tracked_points_[i].model_point[0] << ", " << tracked_points_[i].model_point[1] << ", " << tracked_points_[i].model_point[2] << "] from(" << tracked_points_[i].frame_point[0] << ", " << tracked_points_[i].frame_point[1] << ") -> (" << tracked_points_[i].found_image_point[0] << ", " << tracked_points_[i].found_image_point[1] << ")" << std::endl;
   
   }
 

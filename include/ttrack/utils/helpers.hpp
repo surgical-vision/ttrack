@@ -39,6 +39,25 @@ namespace ttrk{
   
   ci::Quatf ConvertEulersToQuat(const ci::Vec3f &euler_angles);
 
+  inline void SaveSDFImage(const cv::Mat &sdf_image, const std::string &save_path){
+    
+    cv::Mat save_im(sdf_image.size(), CV_8UC1);
+    double min;
+    double max;
+    cv::minMaxIdx(sdf_image, &min, &max);
+    for (int r = 0; r < save_im.rows; ++r){
+      for (int c = 0; c < save_im.cols; ++c){
+        float from_zero = sdf_image.at<float>(r, c) + std::abs(min);
+        float range = max - min;
+        float zero_to_one = from_zero / range;
+        save_im.at<unsigned char>(r, c) = zero_to_one * 255;
+      }
+    }
+
+    cv::imwrite(save_path, save_im);
+
+  }
+
   inline double l2_norm(const cv::Mat &a, const cv::Mat &b) {
 
     double ret = 0.0;

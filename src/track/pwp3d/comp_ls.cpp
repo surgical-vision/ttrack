@@ -10,6 +10,8 @@
 
 using namespace ttrk;
 
+#define GRAD_DESCENT
+
 ComponentLevelSet::ComponentLevelSet(boost::shared_ptr<StereoCamera> camera) : StereoPWP3D(camera) {
 
   ci::gl::Fbo::Format format;
@@ -73,10 +75,48 @@ void ComponentLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mode
 
   //float left_error = DoRegionBasedAlignmentStepForLeftEye(current_model);
   //float right_error = DoRegionBasedAlignmentStepForRightEye(current_model);
-  float point_error = DoPointBasedAlignmentStepForLeftEye(current_model);
-
+  //float point_error = DoPointBasedAlignmentStepForLeftEye(current_model);
   //UpdateWithErrorValue(left_error + right_error + point_error);
   //errors_.push_back(left_error + right_error + point_error);
+
+  float error = DoAlignmentStep(current_model);
+  UpdateWithErrorValue(error);
+  errors_.push_back(error);
+
+  
+}
+
+float ComponentLevelSet::DoAlignmentStep(boost::shared_ptr<Model> current_model){
+
+  float error = 0.0f;
+  auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
+
+  //for prototyping the articulated jacs, we use a cv::Matx. this will be flattened for faster estimation later
+  cv::Matx<float, 7, 1> jacobian = cv::Matx<float, 7, 1>::zeros();
+  cv::Matx<float, 7, 7> hessian_approx = cv::Matx<float, 7, 7>::zeros();
+  ComputeJacobiansForEye(stereo_frame->GetLeftClassificationMap(), current_model, stereo_camera_->left_eye(), jacobian, hessian_approx, error);
+  ComputeJacobiansForEye(stereo_frame->GetRightClassificationMap(), current_model, stereo_camera_->right_eye(), jacobian, hessian_approx, error);
+  ComputePointRegistrationJacobian(current_model, jacobian, hessian_approx);
+
+#ifdef GRAD_DESCENT
+
+  std::vector<float> jacs = ScaleRigidJacobian(jacobian);
+  current_model->UpdatePose(jacs);
+
+#else
+
+  jacobian = hessian_approx.inv() * jacobian;
+  std::vector<float> jacs(7, 0);
+  for (size_t v = 0; v < 7; ++v){
+    jacs[v] = -jacobian(v);
+  }
+  current_model->UpdatePose(jacs);
+
+#endif
+
+  lk_tracker_->UpdatePointsOnModelAfterDerivatives(current_model->GetBasePose());
+  
+  return error;
 
 }
 
@@ -88,7 +128,7 @@ void ComponentLevelSet::LoadShaders(){
 
 void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_image, boost::shared_ptr<Model> current_model, boost::shared_ptr<MonocularCamera> camera, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx, float &error){
   
-  return;
+
   cv::Mat front_intersection_image, back_intersection_image, front_normal_image;
 
   ProcessSDFAndIntersectionImage(current_model, camera, front_intersection_image, back_intersection_image, front_normal_image);
@@ -106,6 +146,11 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
   for (size_t comp = 1; comp < components_.size(); ++comp){
 
     cv::Mat &sdf_image = components_[comp].sdf_image;
+
+    if (comp == 2)
+      cv::imwrite("z:/contour.png", components_[comp].contour_image);
+    //  SaveSDFImage(sdf_image, "z:/sdf_image.png");
+
     cv::Mat target_label_image = cv::Mat::zeros(sdf_image.size(), CV_8UC1);
     cv::Mat nearest_neighbour_label_image = cv::Mat::zeros(sdf_image.size(), CV_8UC1);
     cv::Mat region_agreement_im = cv::Mat::zeros(sdf_image.size(), CV_32FC1);

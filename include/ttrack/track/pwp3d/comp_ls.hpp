@@ -60,6 +60,7 @@ namespace ttrk {
     */
     float GetErrorValue(const cv::Mat &classification_image, const int row_idx, const int col_idx, const float sdf_value, const size_t target_probability, const size_t neighbour_probability) const;
 
+    float DoAlignmentStep(boost::shared_ptr<Model> current_model);
 
   protected:
 

@@ -76,8 +76,8 @@ void TTrackApp::SetupFromConfig(const std::string &path){
 
   windows_[3] = SubWindow((int)toolbar_.window_coords_.getWidth() + (int)windows_[2].window_coords_.getWidth(),
                           camera_->left_eye()->Height(), 
-                          (int)windows_[3].window_coords_.getWidth(),
-                          (int)windows_[3].window_coords_.getHeight());
+                          2*(int)windows_[3].window_coords_.getWidth(),
+                          2*(int)windows_[3].window_coords_.getHeight());
 
 
   //left_external_framebuffer_.reset(new gl::Fbo(camera_->left_eye()->Width(), camera_->left_eye()->Height()));
@@ -408,24 +408,21 @@ void TTrackApp::draw3D(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture
 
   framebuffer->bindFramebuffer();
 
-  gl::clear(Color(0.0, 0.0, 0.0));
+  gl::clear(Color(0.1, 0.1, 0.1));
 
   auto &ttrack = ttrk::TTrack::Instance();
   if (!ttrack.IsRunning()) return;
 
-  ci::Vec3f test_start_pose(10, -5, 60);
-
   ci::CameraPersp maya;
   static bool first = true;
   if (first){
-    maya.setEyePoint(ci::Vec3f(-20, -20, -20));
-    maya.setWorldUp(ci::Vec3f(0, 1, 0));
-    maya.lookAt(test_start_pose);
-    maya_cam_.setCurrentCam(maya);
+    CameraPersp cam;
+    cam.setEyePoint(Vec3f(77.7396, -69.9107, -150.47f));
+    cam.setOrientation(ci::Quatf(ci::Vec3f(0.977709, -0.0406959, 0.205982), 2.75995));
+    maya_cam_.setCurrentCam(cam);
+    first = false;
   }
-  first = false;
-
-  //
+  
   gl::pushMatrices();
   gl::setMatrices(maya_cam_.getCamera());
 
@@ -434,42 +431,29 @@ void TTrackApp::draw3D(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture
 
   ci::gl::enableDepthRead();
   ci::gl::enableDepthWrite();
-  //ci::gl::pushMatrices();
   
-
-  gl::pushModelView();
-  //cam->SetupCameraForDrawing();
+  drawCamera(camera_view);
   
-  //gl::pushModelView();
-  //gl::multModelView(maya_cam_.getCamera().getModelViewMatrix().inverted());
-  //drawCamera(camera_view);
-  //gl::popModelView();
-
   cam->SetupLight();
 
   shader_.bind();
   shader_.uniform("tex0", 0);   
 
   for (size_t i = 0; i < models_to_draw_.size(); ++i){
-    //gl::pushModelView();
-    //gl::multModelView(maya_cam_.getCamera().getModelViewMatrix().inverted());
     models_to_draw_[i]->RenderTexture(0);
-    //gl::popModelView();
   }
 
   shader_.unbind();
 
   cam->ShutDownCameraAfterDrawing();
 
-  gl::popModelView();
-
-  //gl::popMatrices();
-
   gl::setViewport(viewport);
   gl::popMatrices();
 
-  framebuffer->getTexture().setFlipped(true);
   framebuffer->unbindFramebuffer();
+
+  cv::Mat a = toOcv(framebuffer->getTexture());
+  cv::imwrite("z:/a.png", a);
 
 }
 
@@ -505,12 +489,12 @@ void TTrackApp::drawImageOnCamera(const gl::Texture &image_data, ci::Vec3f &tl, 
 void TTrackApp::drawCamera(const gl::Texture &image_data){
 
   ci::Vec3f vertex[8];
-
+ 
   ci::Vec3f eye(0, 0, 0);
-  ci::Vec3f bottom_left(-5, -5, 20);
-  ci::Vec3f bottom_right(5, -5, 20);
+  ci::Vec3f bottom_left(-5, -5, 20); 
+  ci::Vec3f bottom_right(5, -5, 20); 
   ci::Vec3f top_left(-5, 5, 20);
-  ci::Vec3f top_right(5, 5, 20);
+  ci::Vec3f top_right(5, 5, 20); 
 
   if (image_data)
     drawImageOnCamera(image_data, top_left, bottom_left, top_right, bottom_right);
@@ -538,6 +522,31 @@ void TTrackApp::drawCamera(const gl::Texture &image_data){
   glLineWidth(1.0f);
   glDisableClientState(GL_VERTEX_ARRAY);
 
+  size_t MF = 6;
+  bottom_left *= MF;
+  bottom_right *= MF;
+  top_left *= MF;
+  top_right *= MF;
+
+
+  ttrk::TTrack &trk = ttrk::TTrack::Instance();
+  cv::Mat x = cv::imread("z:/contour.png");
+  if (x.empty()) return;
+  ci::gl::Texture tempTex = fromOcv(x);
+  drawImageOnCamera(tempTex, top_left, bottom_left, top_right, bottom_right);
+
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glVertexPointer(3, GL_FLOAT, 0, &vertex[0].x);
+
+  glLineWidth(2.0f);
+  vertex[0] = bottom_left;
+  vertex[1] = bottom_right;
+  vertex[2] = top_right;
+  vertex[3] = top_left;
+  glDrawArrays(GL_LINE_LOOP, 0, 4);
+
+  glLineWidth(1.0f);
+  glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 

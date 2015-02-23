@@ -180,6 +180,7 @@ protected:
     SubWindow(int start_x, int start_y, int width, int height) : window_coords_(start_x, start_y, start_x + width, start_y + height) {
       
       gl::Fbo::Format f;
+      f.enableMipmapping();
       framebuffer_.reset(new gl::Fbo(width, height, f));
       texture_ = gl::Texture(width, height);
 

@@ -28,7 +28,7 @@ namespace ttrk {
     */
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
     
-    virtual bool HasConverged() const { 
+ /*   virtual bool HasConverged() const { 
       if (PWP3D::HasConverged()) {
         auto *th = const_cast<StereoPWP3D *>(this);
         th->clearup();
@@ -43,7 +43,7 @@ namespace ttrk {
       }
       return false;
     }
-
+*/
   protected:   
     
     float DoRegionBasedAlignmentStepForLeftEye(boost::shared_ptr<Model> current_model);

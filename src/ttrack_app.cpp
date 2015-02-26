@@ -76,8 +76,8 @@ void TTrackApp::SetupFromConfig(const std::string &path){
 
   windows_[3] = SubWindow((int)toolbar_.window_coords_.getWidth() + (int)windows_[2].window_coords_.getWidth(),
                           camera_->left_eye()->Height(), 
-                          2*(int)windows_[3].window_coords_.getWidth(),
-                          2*(int)windows_[3].window_coords_.getHeight());
+                          (int)windows_[3].window_coords_.getWidth(),
+                          (int)windows_[3].window_coords_.getHeight());
 
 
   //left_external_framebuffer_.reset(new gl::Fbo(camera_->left_eye()->Width(), camera_->left_eye()->Height()));
@@ -451,9 +451,9 @@ void TTrackApp::draw3D(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture
   gl::popMatrices();
 
   framebuffer->unbindFramebuffer();
-
-  cv::Mat a = toOcv(framebuffer->getTexture());
-  cv::imwrite("z:/a.png", a);
+/*
+  cv::Mat a = toOcv(framebuffer->getTexture());*/
+  //cv::imwrite("z:/a.png", a);
 
 }
 
@@ -528,25 +528,6 @@ void TTrackApp::drawCamera(const gl::Texture &image_data){
   top_left *= MF;
   top_right *= MF;
 
-
-  ttrk::TTrack &trk = ttrk::TTrack::Instance();
-  cv::Mat x = cv::imread("z:/contour.png");
-  if (x.empty()) return;
-  ci::gl::Texture tempTex = fromOcv(x);
-  drawImageOnCamera(tempTex, top_left, bottom_left, top_right, bottom_right);
-
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glVertexPointer(3, GL_FLOAT, 0, &vertex[0].x);
-
-  glLineWidth(2.0f);
-  vertex[0] = bottom_left;
-  vertex[1] = bottom_right;
-  vertex[2] = top_right;
-  vertex[3] = top_left;
-  glDrawArrays(GL_LINE_LOOP, 0, 4);
-
-  glLineWidth(1.0f);
-  glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 
@@ -581,6 +562,7 @@ void TTrackApp::keyDown(KeyEvent k_event){
 
   if (k_event.getChar() == ' '){
 
+    shutdown();
     quit();
 
   } 

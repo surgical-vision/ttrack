@@ -36,6 +36,7 @@ float StereoPWP3D::DoPointBasedAlignmentStepForLeftEye(boost::shared_ptr<Model> 
 
 #else
 
+  std::vector<float> jacs(7);
   jacobian = hessian_approx.inv() * jacobian;
   for (size_t v = 0; v < 7; ++v){
     jacs[v] = -jacobian(v);
@@ -63,7 +64,8 @@ float StereoPWP3D::DoRegionBasedAlignmentStepForRightEye(boost::shared_ptr<Model
   current_model->UpdatePose(jacs);
 
 #else
-
+  
+  std::vector<float> jacs(7);
   jacobian = hessian_approx.inv() * jacobian;
   for (size_t v = 0; v < 7; ++v){
     jacs[v] = -jacobian(v);

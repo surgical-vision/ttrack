@@ -200,7 +200,7 @@ void PWP3D::ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_mo
   cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
   
   for (int i = 0; i < derivs.size(); ++i){
-    points_jacobian(i) += 0.05 * derivs[i];
+    points_jacobian(i) += 3 * derivs[i];
   }
   
   jacobian += points_jacobian.t();

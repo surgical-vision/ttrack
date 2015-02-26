@@ -45,7 +45,6 @@ void LKTracker::UpdatePointsOnModelBeforeDerivatives(const Pose &pose){
     if (tracked_points_[i].frame_point[1] >= 0 && tracked_points_[i].frame_point[0] >= 0){
       
       if (tracked_points_[i].frame_point[1] > front_intersection_image_.rows || tracked_points_[i].frame_point[0] >= front_intersection_image_.cols){
-        ci::app::console() << "aoiefha" << std::endl;
       }
       else{
         cv::Vec3f pt = front_intersection_image_.at<cv::Vec3f>(tracked_points_[i].frame_point[1], tracked_points_[i].frame_point[0]);
@@ -53,9 +52,7 @@ void LKTracker::UpdatePointsOnModelBeforeDerivatives(const Pose &pose){
           tracked_points_[i].frame_point = cv::Vec2i(-1, -1);
         }
         else{
-          ci::app::console() << "Updating model point from new trackbefore derivative [" << tracked_points_[i].model_point[0] << ", " << tracked_points_[i].model_point[1] << ", " << tracked_points_[i].model_point[2] << "] from(" << tracked_points_[i].frame_point[0] << ", " << tracked_points_[i].frame_point[1] << ") to ";
           tracked_points_[i].model_point = pose.InverseTransformPoint(pt);
-          ci::app::console() << "[" << tracked_points_[i].model_point[0] << ", " << tracked_points_[i].model_point[1] << ", " << tracked_points_[i].model_point[2] << "]" << std::endl;
         }
       }
 
@@ -72,14 +69,9 @@ void LKTracker::UpdatePointsOnModelAfterDerivatives(const Pose &pose){
 
       cv::Vec3f in_camera_coords = pose.TransformPoint(tracked_points_[i].model_point);
       cv::Point2f on_image_plane = camera_->ProjectPoint(cv::Point3f(in_camera_coords));
-      ci::app::console() << "Updating 2D point location from new pose after derivative [" << tracked_points_[i].model_point[0] << ", " << tracked_points_[i].model_point[1] << ", " << tracked_points_[i].model_point[2] << "] from(" << tracked_points_[i].frame_point[0] << ", " << tracked_points_[i].frame_point[1] << ") to ";
-      ci::app::console() << "(" << on_image_plane.x << ", " << on_image_plane.y << ")" << std::endl;
       tracked_points_[i].frame_point = on_image_plane;
-      if (tracked_points_[i].frame_point[1] > front_intersection_image_.rows || tracked_points_[i].frame_point[0] >= front_intersection_image_.cols){
-        ci::app::console() << "aoiefha" << std::endl;
-      }
-
     }
+
   }
 
 }
@@ -108,8 +100,6 @@ std::vector<float> LKTracker::GetDerivativesForPoints(const Pose &pose) {
     }
 
   }
-
-  ci::app::console() << "Current average error = " << current_error_/tracked_points_.size() << std::endl;
 
   return ret;
 
@@ -163,10 +153,10 @@ void LKTracker::InitializeTracker(cv::Mat &current_frame, const Pose &pose){
   cv::cvtColor(current_frame, gray, CV_BGR2GRAY);
 
   //std::vector<cv::Point2f> points;
-  cv::goodFeaturesToTrack(gray, points_test[0], 20, 0.01, 10, CreateMask(), 3, 0, 0.04);
+  cv::goodFeaturesToTrack(gray, points_test[0], 50, 0.01, 10, CreateMask(), 3, 0, 0.04);
   cv::cornerSubPix(gray, points_test[0], subPixWinSize, cv::Size(-1, -1), term_crit_);
 
-  tracked_points_.clear();
+  tracked_points_.clear();\
   //for (int i = 0; i < points_test[0].size(); ++i){
   //  tracked_points_.push_back(TrackedPoint(cv::Vec3f(0, 0, 0), cv::Vec2f(0, 0)));
   //}

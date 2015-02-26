@@ -66,8 +66,6 @@ void ComponentLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mode
       lk_tracker_->TrackLocalPoints(stereo_frame->GetLeftImage());
 
     }
-    
-    
 
   }
 
@@ -133,23 +131,11 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
 
   ProcessSDFAndIntersectionImage(current_model, camera, front_intersection_image, back_intersection_image, front_normal_image);
   
-
-  //setup point registration for first frame
-  //if (!lk_tracker_){
-  //  lk_tracker_.reset(new LKTracker(stereo_camera_->left_eye()));
- // }
-
-  //point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, front_normal_image, current_model->GetBasePose());
-  //if (camera == stereo_camera_->left_eye())
-  //  lk_tracker_->TrackLocalPoints(stereo_frame->GetLeftImage(), front_intersection_image);
-
   for (size_t comp = 1; comp < components_.size(); ++comp){
 
     cv::Mat &sdf_image = components_[comp].sdf_image;
 
-    if (comp == 2)
-      cv::imwrite("z:/contour.png", components_[comp].contour_image);
-    //  SaveSDFImage(sdf_image, "z:/sdf_image.png");
+    //SaveSDFImage(sdf_image, "z:/sdf_image.png");
 
     cv::Mat target_label_image = cv::Mat::zeros(sdf_image.size(), CV_8UC1);
     cv::Mat nearest_neighbour_label_image = cv::Mat::zeros(sdf_image.size(), CV_8UC1);
@@ -225,6 +211,10 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
         }
       }
     }
+  }
+
+  for (int i = 0; i < 7; ++i){
+    ci::app::console() << "region jacobian[" << i << "] = " << jacobian(i) << std::endl;
   }
 }
 

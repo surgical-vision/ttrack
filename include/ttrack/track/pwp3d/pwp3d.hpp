@@ -96,6 +96,7 @@ namespace ttrk {
     * @param[in] hessian_approx The hessian approximation if using GN.
     */
     void ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_model, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx);
+    void ComputeLKJacobian(boost::shared_ptr<Model> current_model, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx);
 
     /**
     * Find the closest intersection point for pixels which project 'very close' to the target mesh. This is done by searching the sdf_im for the closest zero value to (r,c).
@@ -193,7 +194,7 @@ namespace ttrk {
     
     int HEAVYSIDE_WIDTH;  /**< Width of the heaviside blurring function. */
 
-    //boost::shared_ptr<PointRegistration> point_registration_; /**< Computes the point registration error. */
+    boost::shared_ptr<PointRegistration> point_registration_; /**< Computes the point registration error. */
     
     boost::shared_ptr<LKTracker> lk_tracker_;
 

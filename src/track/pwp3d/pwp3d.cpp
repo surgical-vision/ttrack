@@ -193,22 +193,25 @@ float PWP3D::GetRegionAgreement(const cv::Mat &classification_image, const int r
 
 }
 
-void PWP3D::ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_model, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx){
+void PWP3D::ComputeLKJacobian(boost::shared_ptr<Model> current_model, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx){
 
   std::vector<float> derivs = lk_tracker_->GetDerivativesForPoints(current_model->GetBasePose());
 
   cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
-  
+
   for (int i = 0; i < derivs.size(); ++i){
     points_jacobian(i) += 3 * derivs[i];
   }
-  
+
   jacobian += points_jacobian.t();
   hessian_approx += (points_jacobian.t() * points_jacobian);
 
-  /*
+}
+
+void PWP3D::ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_model, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx){
+
   std::vector<MatchedPair> pnp_pairs;
-  lk_->FindPointCorrespondencesWithPose(frame_, current_model, current_model->GetBasePose(), pnp_pairs);
+  point_registration_->FindPointCorrespondencesWithPose(frame_, current_model, current_model->GetBasePose(), pnp_pairs);
 
   cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
 
@@ -222,7 +225,7 @@ void PWP3D::ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_mo
     jacobian += points_jacobian.t();
     hessian_approx += (points_jacobian.t() * points_jacobian);
   }
-*/
+
 }
 
 std::vector<float> PWP3D::ScaleRigidJacobian(cv::Matx<float, 7, 1> &jacobian) const{

@@ -94,7 +94,7 @@ float ComponentLevelSet::DoAlignmentStep(boost::shared_ptr<Model> current_model)
   cv::Matx<float, 7, 7> hessian_approx = cv::Matx<float, 7, 7>::zeros();
   ComputeJacobiansForEye(stereo_frame->GetLeftClassificationMap(), current_model, stereo_camera_->left_eye(), jacobian, hessian_approx, error);
   ComputeJacobiansForEye(stereo_frame->GetRightClassificationMap(), current_model, stereo_camera_->right_eye(), jacobian, hessian_approx, error);
-  ComputePointRegistrationJacobian(current_model, jacobian, hessian_approx);
+  ComputeLKJacobian(current_model, jacobian, hessian_approx);
 
 #ifdef GRAD_DESCENT
 
@@ -213,9 +213,6 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
     }
   }
 
-  for (int i = 0; i < 7; ++i){
-    ci::app::console() << "region jacobian[" << i << "] = " << jacobian(i) << std::endl;
-  }
 }
 
 unsigned char ComponentLevelSet::ComputeNearestNeighbourForPixel(const int r, const int c, const float sdf_value, const int width, const int height){

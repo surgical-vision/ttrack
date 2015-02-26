@@ -113,18 +113,38 @@ float StereoPWP3D::DoRegionBasedAlignmentStepForLeftEye(boost::shared_ptr<Model>
 void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
 
 
+  frame_ = frame;
+
+  cv::Mat front_intersection_image, back_intersection_image, front_normal_image;
+  ProcessSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), front_intersection_image, back_intersection_image, front_normal_image);
+
+
   if (curr_step == NUM_STEPS) {
+
     curr_step = 0;
+
+    auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
+
+    if (!point_registration_){
+
+      point_registration_.reset(new PointRegistration(stereo_camera_->left_eye()));
+      point_registration_->SetFrontIntersectionImage(front_intersection_image);
+      point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, front_normal_image, current_model->GetBasePose());
+    }
+    else{
+
+      point_registration_->SetFrontIntersectionImage(front_intersection_image);
+      point_registration_->FindPointCorrespondencesWithPose()
+
+    }
+
   }
 
   ++curr_step;
 
-  frame_ = frame;
-
   float left_error = DoRegionBasedAlignmentStepForLeftEye(current_model);
   float right_error = DoRegionBasedAlignmentStepForRightEye(current_model);
   float point_error = DoPointBasedAlignmentStepForLeftEye(current_model);
-
   UpdateWithErrorValue(left_error + right_error + point_error);
   errors_.push_back(left_error + right_error + point_error);
 
@@ -136,15 +156,7 @@ void StereoPWP3D::ComputeJacobiansForEye(const cv::Mat &classification_image, bo
 
   ProcessSDFAndIntersectionImage(current_model, camera, sdf_image, front_intersection_image, back_intersection_image);
 
-  //setup point registration for first frame
-  if (!lk_tracker_){
-    lk_tracker_.reset(new LKTracker(stereo_camera_->left_eye()));
-  }
   auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
-
-  //point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, front_normal_image, current_model->GetBasePose());
-
-  lk_tracker_->TrackLocalPoints(stereo_frame->GetLeftImage());
 
   float fg_area = 0, bg_area = 0;
   size_t contour_area = 0;

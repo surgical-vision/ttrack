@@ -32,8 +32,6 @@ float StereoPWP3D::DoPointBasedAlignmentStepForLeftEye(boost::shared_ptr<Model> 
   std::vector<float> jacs = ScaleRigidJacobian(jacobian);
   current_model->UpdatePose(jacs);
 
-  lk_tracker_->UpdatePointsOnModelAfterDerivatives(current_model->GetBasePose());
-
 #else
 
   std::vector<float> jacs(7);
@@ -115,9 +113,7 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
 
   frame_ = frame;
 
-  cv::Mat front_intersection_image, back_intersection_image, front_normal_image;
-  ProcessSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), front_intersection_image, back_intersection_image, front_normal_image);
-
+  
 
   if (curr_step == NUM_STEPS) {
 
@@ -127,20 +123,20 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
 
     if (!point_registration_){
 
+      cv::Mat front_intersection_image, back_intersection_image, sdf_image;
+      ProcessSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), sdf_image, front_intersection_image, back_intersection_image);
+
       point_registration_.reset(new PointRegistration(stereo_camera_->left_eye()));
-      point_registration_->SetFrontIntersectionImage(front_intersection_image);
-      point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, front_normal_image, current_model->GetBasePose());
+      //point_registration_->SetFrontIntersectionImage(front_intersection_image);
+      point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, current_model->GetBasePose());
+    
     }
-    else{
 
-      point_registration_->SetFrontIntersectionImage(front_intersection_image);
-      point_registration_->FindPointCorrespondencesWithPose()
-
-    }
 
   }
 
   ++curr_step;
+
 
   float left_error = DoRegionBasedAlignmentStepForLeftEye(current_model);
   float right_error = DoRegionBasedAlignmentStepForRightEye(current_model);
@@ -158,9 +154,9 @@ void StereoPWP3D::ComputeJacobiansForEye(const cv::Mat &classification_image, bo
 
   auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
 
-  float fg_area = 0, bg_area = 0;
+  float fg_area = 1.0f, bg_area = 1.0f;
   size_t contour_area = 0;
-  ComputeAreas(sdf_image, fg_area, bg_area, contour_area);
+  //ComputeAreas(sdf_image, fg_area, bg_area, contour_area);
   
   float *sdf_im_data = (float *)sdf_image.data;
   float *front_intersection_data = (float *)front_intersection_image.data;

@@ -175,7 +175,9 @@ float PWP3D::GetRegionAgreement(const cv::Mat &classification_image, const int r
   
   const float heaviside_value = HeavisideFunction(sdf);
 
-  const float pixel_probability = classification_image.at<float>(r, c);
+  cv::Vec<float, 5> re = classification_image.at < cv::Vec<float, 5> >(r, c);
+
+  const float pixel_probability = re[0];
 
   float Pf = pixel_probability;// / (fg_size * pixel_probability + bg_size * (1 - pixel_probability)); //P / fg_size;
   float Pb = (1 - pixel_probability);// / (fg_size * pixel_probability + bg_size * (1 - pixel_probability)); //(1 - P) / bg_size;
@@ -216,7 +218,7 @@ void PWP3D::ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_mo
   cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
 
   for (auto pnp = pnp_pairs.begin(); pnp != pnp_pairs.end(); pnp++){
-    std::vector<float> point_jacobian = point_registration_->GetPointDerivative(cv::Point3f(pnp->eye_coordinates), pnp->image_coordinates, current_model->GetBasePose());
+    std::vector<float> point_jacobian = point_registration_->GetPointDerivative(pnp->learned_point, cv::Point2f(pnp->image_point[0], pnp->image_point[1]), current_model->GetBasePose());
 
     for (int i = 0; i < jacobian.rows; ++i){
       points_jacobian(i) += 0.0005 * point_jacobian[i];

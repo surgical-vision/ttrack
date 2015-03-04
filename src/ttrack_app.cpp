@@ -43,7 +43,7 @@ void TTrackApp::SetupFromConfig(const std::string &path){
     std::stringstream ss;
     ss << "starting-pose-" << i;
     try{
-      starting_poses.push_back(ttrk::TTrack::PoseFromString(reader.get_element(ss.str()))); 
+      starting_poses.push_back(ttrk::TTrack::PoseFromString(reader.get_element(ss.str())));
     }
     catch (std::runtime_error &){
       break;
@@ -52,30 +52,33 @@ void TTrackApp::SetupFromConfig(const std::string &path){
   }
 
   //throwing errors here? did you remember the zero at element 15 of start pose or alteranatively set the trackable dir to absolute in the cfg file
-  ttrack.SetUp(reader.get_element("trackable"), 
-               root_dir + "/" + reader.get_element("camera-config"), 
-               root_dir + "/" + reader.get_element("classifier-config"), 
-               reader.get_element("output-dir"), 
+  ttrack.SetUp(reader.get_element("trackable"),
+               root_dir + "/" + reader.get_element("camera-config"),
+               root_dir + "/" + reader.get_element("classifier-config"),
+               reader.get_element("output-dir"),
                ttrk::TTrack::LocalizerTypeFromString(reader.get_element("localizer-type")),
-               ttrk::TTrack::ClassifierFromString(reader.get_element("classifier-type")), 
-               root_dir + "/" + reader.get_element("left-input-video"), 
-               root_dir + "/" + reader.get_element("right-input-video"), 
+               ttrk::TTrack::ClassifierFromString(reader.get_element("classifier-type")),
+               root_dir + "/" + reader.get_element("left-input-video"),
+               root_dir + "/" + reader.get_element("right-input-video"),
                starting_poses);
+  
+  int width = reader.get_element_as_type<int>("window-width");
+  int height = reader.get_element_as_type<int>("window-height");
 
   camera_.reset(new ttrk::StereoCamera(root_dir + "/" + reader.get_element("camera-config")));
   
-  windows_[0] = SubWindow((int)toolbar_.window_coords_.getWidth(), 0, camera_->left_eye()->Width(), camera_->left_eye()->Height());
-  windows_[1] = SubWindow((int)toolbar_.window_coords_.getWidth() + camera_->left_eye()->Width(), 0, camera_->left_eye()->Width(), camera_->left_eye()->Height());
+  windows_[0] = SubWindow((int)toolbar_.window_coords_.getWidth(), 0, camera_->left_eye()->Width(), camera_->left_eye()->Height(), width, height);
+  windows_[1] = SubWindow((int)toolbar_.window_coords_.getWidth() + width, 0, camera_->right_eye()->Width(), camera_->right_eye()->Height(), width, height);
 
 
   windows_[2] = SubWindow((int)toolbar_.window_coords_.getWidth(),
-                          camera_->left_eye()->Height(), 
+                          height, 
                           (int)windows_[2].window_coords_.getWidth(),
                           (int)windows_[2].window_coords_.getHeight());
   
 
   windows_[3] = SubWindow((int)toolbar_.window_coords_.getWidth() + (int)windows_[2].window_coords_.getWidth(),
-                          camera_->left_eye()->Height(), 
+                          height, 
                           (int)windows_[3].window_coords_.getWidth(),
                           (int)windows_[3].window_coords_.getHeight());
 
@@ -150,7 +153,7 @@ void TTrackApp::update(){
   force_new_frame_ = false;
 
   boost::shared_ptr<const sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<const sv::StereoFrame>(ttrack.GetPtrToCurrentFrame());
-  
+ 
   windows_[0].texture_ = ci::fromOcv(stereo_frame->GetLeftImage());
   windows_[1].texture_ = ci::fromOcv(stereo_frame->GetRightImage());
 
@@ -220,7 +223,7 @@ void TTrackApp::drawEye(boost::shared_ptr<ci::gl::Fbo> framebuffer, ci::gl::Text
 
   for (size_t i = 0; i < models_to_draw_.size(); ++i){
     //glEnable(GL_BLEND);
-    //gl::color(1.0f, 1.0f, 1.0f, 0.8f); // Full Brightness, 50% Alpha ( NEW )
+    //gl::color(1.0f, 1.0f, 1.0f, 0.5f); // Full Brightness, 50% Alpha ( NEW )
     //glBlendFunc(GL_SRC_ALPHA, GL_ONE);
     models_to_draw_[i]->RenderTexture(0);
     //glDisable(GL_BLEND);
@@ -287,7 +290,17 @@ void TTrackApp::draw(){
 
   for (auto i = 0; i < windows_.size(); ++i){
   
-    gl::draw(windows_[i].framebuffer_->getTexture(), ci::Rectf(windows_[i].window_coords_.x1, windows_[i].window_coords_.y2, windows_[i].window_coords_.x2, windows_[i].window_coords_.y1));
+    gl::Texture tex = windows_[i].framebuffer_->getTexture();
+    if (tex.getWidth() != windows_[i].window_coords_.getWidth() || tex.getHeight() != windows_[i].window_coords_.getHeight()){
+
+      cv::Mat x = toOcv(tex);
+      cv::Mat x_;
+      cv::resize(x, x_, cv::Size(windows_[i].window_coords_.getWidth(), windows_[i].window_coords_.getHeight()));
+      tex = fromOcv(x_);
+
+    }
+      
+    gl::draw(tex, ci::Rectf(windows_[i].window_coords_.x1, windows_[i].window_coords_.y2, windows_[i].window_coords_.x2, windows_[i].window_coords_.y1));
     
   }
 

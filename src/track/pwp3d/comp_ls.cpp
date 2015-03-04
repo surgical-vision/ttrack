@@ -43,11 +43,24 @@ void ComponentLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mode
 
   frame_ = frame;
 
-  cv::Mat front_intersection_image, back_intersection_image, front_normal_image;
-  ProcessSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), front_intersection_image, back_intersection_image, front_normal_image);
+  //if (frame_count_ == 0){
 
+  //  if (curr_step == NUM_STEPS) {
+  //    curr_step = 0;
+  //  }
+
+  //  DoAlignmentStep(current_model, false);
+  //  DoAlignmentStep(current_model, false);
+
+  //  curr_step++;
+  //  return;
+
+  //}
 
   if (curr_step == NUM_STEPS) {
+
+    cv::Mat front_intersection_image, back_intersection_image, front_normal_image;
+    ProcessSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), front_intersection_image, back_intersection_image, front_normal_image);
 
     curr_step = 0;
     
@@ -77,14 +90,14 @@ void ComponentLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mode
   //UpdateWithErrorValue(left_error + right_error + point_error);
   //errors_.push_back(left_error + right_error + point_error);
 
-  float error = DoAlignmentStep(current_model);
+  float error = DoAlignmentStep(current_model, true);
   UpdateWithErrorValue(error);
   errors_.push_back(error);
 
   
 }
 
-float ComponentLevelSet::DoAlignmentStep(boost::shared_ptr<Model> current_model){
+float ComponentLevelSet::DoAlignmentStep(boost::shared_ptr<Model> current_model, bool track_points){
 
   float error = 0.0f;
   auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
@@ -94,11 +107,19 @@ float ComponentLevelSet::DoAlignmentStep(boost::shared_ptr<Model> current_model)
   cv::Matx<float, 7, 7> hessian_approx = cv::Matx<float, 7, 7>::zeros();
   ComputeJacobiansForEye(stereo_frame->GetLeftClassificationMap(), current_model, stereo_camera_->left_eye(), jacobian, hessian_approx, error);
   ComputeJacobiansForEye(stereo_frame->GetRightClassificationMap(), current_model, stereo_camera_->right_eye(), jacobian, hessian_approx, error);
-  ComputeLKJacobian(current_model, jacobian, hessian_approx);
+  if (track_points)
+    ComputeLKJacobian(current_model, jacobian, hessian_approx);
 
 #ifdef GRAD_DESCENT
 
   std::vector<float> jacs = ScaleRigidJacobian(jacobian);
+  
+  ci::app::console() << "Jacs = [ ";
+  for (auto f : jacs){
+    ci::app::console() << f << ", ";
+  }
+  ci::app::console() << std::endl;
+
   current_model->UpdatePose(jacs);
 
 #else
@@ -112,7 +133,8 @@ float ComponentLevelSet::DoAlignmentStep(boost::shared_ptr<Model> current_model)
 
 #endif
 
-  lk_tracker_->UpdatePointsOnModelAfterDerivatives(current_model->GetBasePose());
+  if (track_points)
+    lk_tracker_->UpdatePointsOnModelAfterDerivatives(current_model->GetBasePose());
   
   return error;
 
@@ -349,11 +371,6 @@ void ComponentLevelSet::ProcessSDFAndIntersectionImage(const boost::shared_ptr<M
       }
     }
   }
-
-  cv::Mat &a1 = components_[0].sdf_image;
-  cv::Mat &a2 = components_[1].sdf_image;
-  cv::Mat &a3 = components_[2].sdf_image;
-
 }
 
 inline bool IsGreaterThanNeighbour(const cv::Mat &im, const int r, const int c){
@@ -448,10 +465,12 @@ void ComponentLevelSet::RenderModelForDepthAndContour(const boost::shared_ptr<Mo
   camera->ShutDownCameraAfterDrawing();
 
   cv::Mat front_depth_flipped = ci::toOcv(front_depth_framebuffer_.getTexture());
-  cv::Mat back_depth_flipped = ci::toOcv(back_depth_framebuffer_.getTexture(0));
-
   cv::flip(front_depth_flipped, front_depth, 0);
+  front_depth_flipped.release();
+
+  cv::Mat back_depth_flipped = ci::toOcv(back_depth_framebuffer_.getTexture(0));
   cv::flip(back_depth_flipped, back_depth, 0);
+  back_depth_flipped.release();
 
   cv::Mat f_component_map = ci::toOcv(component_map_framebuffer_.getTexture());
   cv::flip(f_component_map, f_component_map, 0);
@@ -462,21 +481,21 @@ void ComponentLevelSet::RenderModelForDepthAndContour(const boost::shared_ptr<Mo
 
   //get the binary component images and the component map.
   for (size_t i = 0; i < components_.size(); ++i){
-    components_[i].binary_image = cv::Mat::zeros(front_depth_flipped.size(), CV_8UC1);
-    components_[i].contour_image = cv::Mat::zeros(front_depth_flipped.size(), CV_8UC1);
+    components_[i].binary_image = cv::Mat::zeros(front_depth.size(), CV_8UC1);
+    components_[i].contour_image = cv::Mat::zeros(front_depth.size(), CV_8UC1);
   }
-  for (int r = 0; r < front_depth_flipped.rows; ++r){
-    for (int c = 0; c < front_depth_flipped.cols; ++c){
-      if (std::abs(comp_src[(r * front_depth_flipped.cols + c) * 4]) < EPS){
-        comp_dst[r * front_depth_flipped.cols + c] = 1; //plastic shaft
+  for (int r = 0; r < front_depth.rows; ++r){
+    for (int c = 0; c < front_depth.cols; ++c){
+      if (std::abs(comp_src[(r * front_depth.cols + c) * 4]) < EPS){
+        comp_dst[r * front_depth.cols + c] = 1; //plastic shaft
         components_[1].binary_image.at<unsigned char>(r, c) = 255;
       }
-      else if (std::abs(comp_src[(r * front_depth_flipped.cols + c) * 4] - 0.686) < 0.01){
-        comp_dst[r * front_depth_flipped.cols + c] = 2; //metal head
+      else if (std::abs(comp_src[(r * front_depth.cols + c) * 4] - 0.686) < 0.01){
+        comp_dst[r * front_depth.cols + c] = 2; //metal head
         components_[2].binary_image.at<unsigned char>(r, c) = 255;
       }
       else{
-        comp_dst[r * front_depth_flipped.cols + c] = 0; //background
+        comp_dst[r * front_depth.cols + c] = 0; //background
         components_[0].binary_image.at<unsigned char>(r, c) = 255;
       }
     }
@@ -484,8 +503,8 @@ void ComponentLevelSet::RenderModelForDepthAndContour(const boost::shared_ptr<Mo
 
   //create the contour map from the 
 
-  for (int r = 1; r < front_depth_flipped.rows - 1; ++r){
-    for (int c = 1; c < front_depth_flipped.cols - 1; ++c){
+  for (int r = 1; r < front_depth.rows - 1; ++r){
+    for (int c = 1; c < front_depth.cols - 1; ++c){
       for (int i = 0; i < components_.size(); ++i){
         if (IsGreaterThanNeighbour(components_[i].binary_image, r, c)){
           components_[i].contour_image.at<unsigned char>(r, c) = 255;

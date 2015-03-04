@@ -29,7 +29,7 @@ PWP3D::PWP3D(const int width, const int height) {
 
   HEAVYSIDE_WIDTH = 3; //if this value is changed the Delta/Heavside approximations will be invalid!
 
-  NUM_STEPS = 12;// 125;
+  NUM_STEPS = 18;// 125;
 
   curr_step = NUM_STEPS; //so we report converged and ask for a new frame at the start
 

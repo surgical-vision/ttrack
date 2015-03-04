@@ -7,7 +7,7 @@
 
 using namespace ttrk;
 
-Tracker::Tracker(const std::string &model_parameter_file, const std::string &results_dir) : model_parameter_file_(model_parameter_file), results_dir_(results_dir), tracking_(false) {}
+Tracker::Tracker(const std::string &model_parameter_file, const std::string &results_dir) : model_parameter_file_(model_parameter_file), results_dir_(results_dir), tracking_(false), frame_count_(-1) {}
 
 Tracker::~Tracker(){}
 
@@ -21,6 +21,7 @@ void Tracker::RunStep(){
 
   for (current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++){
 
+    localizer_->SetFrameCount(frame_count_);
     localizer_->TrackTargetInFrame(current_model_->model, frame_);
        
   }
@@ -31,6 +32,8 @@ void Tracker::RunStep(){
 void Tracker::Run(boost::shared_ptr<sv::Frame> image, const bool found){
 
   SetHandleToFrame(image);
+
+  frame_count_++;
 
   if (!found || image == nullptr){
     //tracking_ = false;

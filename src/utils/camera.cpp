@@ -289,6 +289,7 @@ ci::Vec3f StereoCamera::TransformPointFromRightToLeft(const ci::Vec3f &point_in_
 
   ci::Matrix44f tr = right_eye_->rotation_.inverted();
   tr.setTranslate(-right_eye_->camera_center_);
+  //use inverse to transform points as coordinate rotation,translation we store is relative orientation of cameras rather than x_right = Rx_left + T type R|T transform.
   return tr.inverted() * point_in_right_eye_coords;
 
 }

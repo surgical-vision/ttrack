@@ -35,6 +35,16 @@ namespace ttrk {
     */
     virtual bool HasConverged() const = 0;
 
+    /**
+    * Setter for frame count variable.
+    * @param[in] fc The current frame count.
+    */
+    void SetFrameCount(int fc) { frame_count_ = fc; }
+
+  protected:
+
+    int frame_count_; /**< Current frame count */
+
   };
 
 

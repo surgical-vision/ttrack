@@ -146,6 +146,8 @@ namespace ttrk{
 
     std::string results_dir_; /**< A directory to save the model results. */   
 
+    int frame_count_; /**< Current frame number. */
+
   };
 
 }

@@ -222,6 +222,7 @@ void StereoPWP3D::UpdateJacobianRightEye(const float region_agreement, const flo
   std::vector<ci::Vec3f> front_jacs = model->ComputeJacobian(front_intersection_left_eye, 0);
   std::vector<ci::Vec3f> back_jacs = model->ComputeJacobian(back_intersection_left_eye, 0);
 
+  //use the 'inverse' of the point transform. as we store the relative orientation (which is already the inverse of the point transform) just use that here.
   const ci::Matrix33f inverse_rotation = stereo_camera_->ciExtrinsicRotation();
 
   //for each degree of freedom, compute the jacobian update

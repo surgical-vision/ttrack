@@ -224,19 +224,19 @@ namespace ttrk{
     ci::Vec3f TransformPointFromLeftToRight(const ci::Vec3f &point_in_left_eye_coords) const;
 
     /**
-    * Accessor for the camera right eye orientation relative to left eye.
+    * Accessor for the camera right eye orientation relative to left eye. This does not transform points from the left to the right coordinate system, rather it's the orientation of the right coordinate system w.r.t the left.
     * @return The right eye orientation.
     */
     inline ci::Matrix33f ciExtrinsicRotation() const { return right_eye_->rotation_; }
 
     /**
-    * Accessor for the camera right eye translation relative to left eye.
+    * Accessor for the camera right eye translation relative to left eye. This does not transform points from the left to the right coordinate system, rather it's the orientation of the right coordinate system w.r.t the left.
     * @return The right eye translation.
     */
     inline ci::Vec3f ciExtrinsicTranslation() const { return right_eye_->camera_center_; }
 
     /**
-    * Accessor for the camera right eye orientation relative to left eye.
+    * Accessor for the camera right eye orientation relative to left eye. This does not transform points from the left to the right coordinate system, rather it's the orientation of the right coordinate system w.r.t the left.
     * @return The right eye orientation.
     */
     inline cv::Mat cvExtrinsicRotation() const;

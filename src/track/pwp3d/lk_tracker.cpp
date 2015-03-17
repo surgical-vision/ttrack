@@ -11,6 +11,8 @@ LKTracker::LKTracker(boost::shared_ptr<MonocularCamera> camera) : camera_(camera
 
 void LKTracker::TrackLocalPoints(cv::Mat &current_frame){
 
+  double t = (double)cv::getTickCount();
+
   cv::cvtColor(current_frame, current_frame_gray_, CV_BGR2GRAY);
 
   //points_test[0] = GetPointsOnPreviousImage();
@@ -35,6 +37,9 @@ void LKTracker::TrackLocalPoints(cv::Mat &current_frame){
   std::swap(points_test[0], points_test[1]);
 
   previous_frame_gray_ = current_frame_gray_.clone();
+
+  t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
+  ci::app::console() << "Processing LK time = " << t << std::endl;
 
 }
 

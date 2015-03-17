@@ -10,6 +10,8 @@
 #include "../../include/ttrack/detect/histogram.hpp"
 #include "../../include/ttrack/detect/multiclass_randomforest.hpp"
 
+#include <cinder/app/App.h>
+
 using namespace ttrk;
 
 Detect::Detect(const std::string &classifier_path, ClassifierType classifier_type){
@@ -43,7 +45,10 @@ void Detect::Run(boost::shared_ptr<sv::Frame> image){
 
 void Detect::ClassifyFrame(){
 
+  double t = (double)cv::getTickCount();
   found_ = classifier_->ClassifyFrame(frame_);
+  t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
+  ci::app::console() << "Processing detect time = " << t << std::endl;
 
   //if (frame_ == nullptr) return;
 

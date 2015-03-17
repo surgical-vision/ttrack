@@ -7,7 +7,7 @@ bool MultiClassRandomForest::ClassifyFrame(boost::shared_ptr<sv::Frame> frame){
   if (frame == nullptr) return false;
 
   assert(frame->GetImageROI().type() == CV_8UC3);
-
+ 
   cv::Mat whole_frame = frame->GetImage();
   
   NDImage nd_image(whole_frame);

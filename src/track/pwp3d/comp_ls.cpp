@@ -105,20 +105,22 @@ float ComponentLevelSet::DoAlignmentStep(boost::shared_ptr<Model> current_model,
   //for prototyping the articulated jacs, we use a cv::Matx. this will be flattened for faster estimation later
   cv::Matx<float, 7, 1> jacobian = cv::Matx<float, 7, 1>::zeros();
   cv::Matx<float, 7, 7> hessian_approx = cv::Matx<float, 7, 7>::zeros();
+  
+  double t = (double)cv::getTickCount();
+
   ComputeJacobiansForEye(stereo_frame->GetLeftClassificationMap(), current_model, stereo_camera_->left_eye(), jacobian, hessian_approx, error);
   ComputeJacobiansForEye(stereo_frame->GetRightClassificationMap(), current_model, stereo_camera_->right_eye(), jacobian, hessian_approx, error);
+  
+  t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
+
+  ci::app::console() << "Processing for regions time = " << t << std::endl;
+
   if (track_points)
     ComputeLKJacobian(current_model, jacobian, hessian_approx);
 
 #ifdef GRAD_DESCENT
 
   std::vector<float> jacs = ScaleRigidJacobian(jacobian);
-  
-  ci::app::console() << "Jacs = [ ";
-  for (auto f : jacs){
-    ci::app::console() << f << ", ";
-  }
-  ci::app::console() << std::endl;
 
   current_model->UpdatePose(jacs);
 

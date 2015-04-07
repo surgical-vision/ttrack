@@ -20,8 +20,6 @@ StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, co
 
   if (localizer_type == LocalizerType::PWP3DLocalizer)
     localizer_.reset(new StereoPWP3D(camera_));
-  else if (localizer_type == LocalizerType::ArticulatedLevelSetLocalizer)
-   localizer_.reset(new ArticulatedLevelSet(camera_));
   else if (localizer_type == LocalizerType::ComponentLS)
     localizer_.reset(new ComponentLevelSet(camera_));
   else

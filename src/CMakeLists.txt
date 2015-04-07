@@ -33,16 +33,21 @@ set(
   ${INCDIR}/utils/config_reader.hpp ${INCDIR}/utils/exceptions.hpp
   ${INCDIR}/utils/handler.hpp ${INCDIR}/utils/helpers.hpp
   ${INCDIR}/utils/nd_image.hpp ${INCDIR}/utils/plotter.hpp
+  ${INCDIR}/utils/UI.hpp 
+  ${INCDIR}/utils/image.hpp
   ${INCDIR}/track/localizer.hpp 
   ${INCDIR}/track/pose.hpp ${INCDIR}/track/model/articulated_model.hpp
   ${INCDIR}/track/tracker.hpp ${INCDIR}/track/model/dh_helpers.hpp
   ${INCDIR}/track/model/node.hpp ${INCDIR}/track/model/model.hpp
-  ${INCDIR}/track/pwp3d/mono_pwp3d.hpp
+  ${INCDIR}/track/pwp3d/comp_ls.hpp ${INCDIR}/track/pwp3d/mono_pwp3d.hpp
   ${INCDIR}/track/pwp3d/pwp3d.hpp ${INCDIR}/track/pwp3d/register_points.hpp
   ${INCDIR}/track/pwp3d/stereo_pwp3d.hpp ${INCDIR}/track/stt/monocular_tool_tracker.hpp
   ${INCDIR}/track/stt/stereo_tool_tracker.hpp ${INCDIR}/track/stt/surgical_tool_tracker.hpp
   ${INCDIR}/track/temporal/temporal.hpp
+  ${INCDIR}/track/pwp3d/lk_tracker.hpp
+  ${INCDIR}/track/pwp3d/descriptor.hpp
   )
+#
 
 ## Store list of source files
 set( SOURCES ttrack.cpp ttrack_app.cpp 
@@ -52,10 +57,14 @@ set( SOURCES ttrack.cpp ttrack_app.cpp
       detect/supportvectormachine.cpp
       utils/camera.cpp utils/handler.cpp utils/helpers.cpp utils/nd_image.cpp utils/plotter.cpp 
       track/pose.cpp track/tracker.cpp 
+       
       track/model/model.cpp track/model/node.cpp track/model/articulated_model.cpp
-      track/pwp3d/mono_pwp3d.cpp track/pwp3d/register_points.cpp track/pwp3d/stereo_pwp3d.cpp track/pwp3d/pwp3d.cpp
+      track/pwp3d/comp_ls.cpp track/pwp3d/mono_pwp3d.cpp track/pwp3d/register_points.cpp track/pwp3d/stereo_pwp3d.cpp track/pwp3d/pwp3d.cpp
       track/stt/monocular_tool_tracker.cpp track/stt/stereo_tool_tracker.cpp track/stt/surgical_tool_tracker.cpp
-      track/temporal/temporal.cpp)
+      track/temporal/temporal.cpp
+      track/pwp3d/descriptor.cpp
+      track/pwp3d/lk_tracker.cpp
+	  )
 #track/articulated/articulated_solver.cpp - adds ceres dependency
 
 #######################################################
@@ -86,6 +95,9 @@ endif()
 find_package(OpenCV REQUIRED)
 list(APPEND USER_INC "${OpenCV_INCLUDE_DIRS}" )
 list(APPEND LINK_LIBS "${OpenCV_LIBRARIES}" )
+
+MESSAGE(${OpenCV_LIBRARIES})
+MESSAGE(${OpenCV_LIB_DIR})
 
 find_package(Cinder REQUIRED)
 list(APPEND USER_INC "${CINDER_INCLUDE_DIRS}" )

@@ -136,6 +136,8 @@ namespace ttrk{
     */
     ci::gl::Texture &GetTexture() { return model_->GetTexture(); }
 
+    virtual bool PerformPicking(const ci::Vec3f &ray, ci::Vec3f &intersection, ci::Vec3f &normal) const;
+
   protected:
 
     /**
@@ -179,6 +181,9 @@ namespace ttrk{
     std::ofstream ofs_; /**< A file to save the pose of the model at each frame. */
 
     static size_t total_model_count_; /** Count of all created models so when we create a new one it gets it's own file. */
+
+
+    
 
   };
 

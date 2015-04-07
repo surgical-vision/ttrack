@@ -91,12 +91,12 @@ void TTrack::SetUp(const std::string &model_parameter_file, const std::string &c
     }
 
   }catch(std::bad_alloc &e){
-    std::cerr << "Error, memory error. Could not construct detector/tracker.\n" << e.what();
-    std::cerr << "Exiting...\n";
+    ci::app::console() << "Error, memory error. Could not construct detector/tracker.\n" << e.what();
+    ci::app::console() << "Exiting...\n";
     SAFE_EXIT();
   }catch(std::exception &e){
-    std::cerr << "Error, caught exception.\n" <<  e.what();
-    std::cerr << "Exiting...\n";
+    ci::app::console() << "Error, caught exception.\n" << e.what();
+    ci::app::console() << "Exiting...\n";
     SAFE_EXIT();
   }
   
@@ -107,18 +107,14 @@ void TTrack::SetUp(const std::string &model_parameter_file, const std::string &c
 
 void TTrack::GetUpdate(std::vector<boost::shared_ptr<Model> > &models, const bool force_new_frame){
 
-  //static bool first = true;
-  //if (first){
-    if (tracker_->HasConverged() || force_new_frame){
-      ci::app::console() << "Loading new frame!" << std::endl;
-      detector_->Run(GetPtrToNewFrame());
-      tracker_->Run(GetPtrToClassifiedFrame(), detector_->Found());
-    }
-    else{
-      tracker_->RunStep();
-    }
-  //}
-  //first = false;
+  if (tracker_->HasConverged() || force_new_frame){
+    detector_->Run(GetPtrToNewFrame());
+    tracker_->Run(GetPtrToClassifiedFrame(), detector_->Found());
+  }
+  else{
+    tracker_->RunStep();
+  }
+
   tracker_->GetTrackedModels(models);
 
 }
@@ -142,6 +138,8 @@ void TTrack::RunThreaded(){
 LocalizerType TTrack::LocalizerTypeFromString(const std::string &str){
 
   if (str == "PWP3D" || str == "pwp3d") return LocalizerType::PWP3DLocalizer;
+  else if (str == "Articulated" || str == "articulated") return LocalizerType::ArticulatedLevelSetLocalizer;
+  else if (str == "CompLS") return LocalizerType::ComponentLS;
   else throw std::runtime_error("");
 
 }

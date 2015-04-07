@@ -20,7 +20,7 @@ PWP3D::PWP3D(const int width, const int height) {
   //need the colour buffer to be 32bit
   ci::gl::Fbo::Format format;
   format.setColorInternalFormat(GL_RGBA32F);
-  format.enableColorBuffer(true, 1);
+  format.enableColorBuffer(true, 2);
   front_depth_framebuffer_ = ci::gl::Fbo(width, height, format);
  
   //need 2 colour buffers for back contour
@@ -29,7 +29,7 @@ PWP3D::PWP3D(const int width, const int height) {
 
   HEAVYSIDE_WIDTH = 3; //if this value is changed the Delta/Heavside approximations will be invalid!
 
-  NUM_STEPS = 20;// 125;
+  NUM_STEPS = 24;// 125;
 
   curr_step = NUM_STEPS; //so we report converged and ask for a new frame at the start
 
@@ -58,7 +58,7 @@ void PWP3D::LoadShaders(){
 
 }
 
-void PWP3D::ComputeAreas(cv::Mat &sdf, float &fg_area, float &bg_area, size_t &contour_area){
+void PWP3D::ComputeAreas(const cv::Mat &sdf, float &fg_area, float &bg_area, size_t &contour_area){
 
   fg_area = bg_area = 0;
 
@@ -134,6 +134,7 @@ bool PWP3D::FindClosestIntersection(const float *sdf_im, const int r, const int 
   
   const float &sdf_val = sdf_im[r * width + c];
   const int ceil_sdf = (int)std::abs(ceil(sdf_val));
+
   for (int w_c = c - ceil_sdf; w_c <= c + ceil_sdf; ++w_c){
     
     const int up_idx = (r + ceil_sdf)*width + w_c;
@@ -174,12 +175,38 @@ float PWP3D::GetRegionAgreement(const cv::Mat &classification_image, const int r
   
   const float heaviside_value = HeavisideFunction(sdf);
 
-  const float pixel_probability = classification_image.at<float>(r, c);
+  cv::Vec<float, 5> re = classification_image.at < cv::Vec<float, 5> >(r, c);
 
-  const float Pf = pixel_probability;// / (fg_size * pixel_probability + bg_size * (1 - pixel_probability)); //P / fg_size;
-  const float Pb = (1 - pixel_probability);// / (fg_size * pixel_probability + bg_size * (1 - pixel_probability)); //(1 - P) / bg_size;
+  const float pixel_probability = re[0];
+
+  float Pf = pixel_probability;// / (fg_size * pixel_probability + bg_size * (1 - pixel_probability)); //P / fg_size;
+  float Pb = (1 - pixel_probability);// / (fg_size * pixel_probability + bg_size * (1 - pixel_probability)); //(1 - P) / bg_size;
+  
+  if (SAFE_EQUALS<float>(Pf, 0) && SAFE_EQUALS<float>(Pb, 1)){
+    Pf += 0.05;
+    Pb -= 0.05;
+  }
+  else if (SAFE_EQUALS<float>(Pf, 1) && SAFE_EQUALS<float>(Pb, 0)){
+    Pf -= 0.05;
+    Pb += 0.05;
+  }
 
   return (Pf - Pb) / (((heaviside_value*Pf) + ((1 - heaviside_value)*Pb)) + EPS);
+
+}
+
+void PWP3D::ComputeLKJacobian(boost::shared_ptr<Model> current_model, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx){
+
+  std::vector<float> derivs = lk_tracker_->GetDerivativesForPoints(current_model->GetBasePose());
+
+  cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
+
+  for (int i = 0; i < derivs.size(); ++i){
+    points_jacobian(i) += 3 * derivs[i];
+  }
+
+  jacobian += points_jacobian.t();
+  hessian_approx += (points_jacobian.t() * points_jacobian);
 
 }
 
@@ -210,6 +237,7 @@ std::vector<float> PWP3D::ScaleRigidJacobian(cv::Matx<float, 7, 1> &jacobian) co
 
   cv::Vec3f translation(jacobian(0), jacobian(1), jacobian(2));
   const float max_translation = 0.04; //mm
+  
   float translation_mag = std::sqrt(translation.dot(translation));
   if (translation_mag != 0.0)
     translation = (max_translation / translation_mag) * translation;
@@ -218,6 +246,7 @@ std::vector<float> PWP3D::ScaleRigidJacobian(cv::Matx<float, 7, 1> &jacobian) co
 
   cv::Vec4f rotation(jacobian(3), jacobian(4), jacobian(5), jacobian(6));
   const float max_rotation = 0.002;
+  
   float rotation_mag = std::sqrt(rotation.dot(rotation));
   if (rotation_mag != 0.0)
     rotation = (max_rotation / rotation_mag) * rotation;

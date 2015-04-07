@@ -22,7 +22,11 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 131                     GLSL                    "./../resources/pwp3d_front_depth_vert.glsl"
 132                     GLSL                    "./../resources/pwp3d_back_depth_contour_frag.glsl"
 133                     GLSL                    "./../resources/pwp3d_back_depth_contour_vert.glsl"
-134                     IMAGE                   "./../resources/start.png"
+134			                GLSL			              "./../resources/comp_ls_back_depth_contour_frag.glsl"
+135			                GLSL			              "./../resources/comp_ls_back_depth_contour_vert.glsl"
+136                     IMAGE                   "./../resources/start.png"
+
+
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //

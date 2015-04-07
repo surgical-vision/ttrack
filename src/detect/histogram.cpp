@@ -80,7 +80,9 @@ size_t Histogram::PredictClass(const cv::Mat &pixel) const {
   }
   
   if (Pf >= Pb) return 1;
-  if (Pb > Pf) return 0; 
+  else if (Pb > Pf) return 0;
+  else
+    throw std::runtime_error("");
 
 }
 

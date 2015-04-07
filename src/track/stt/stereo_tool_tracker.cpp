@@ -8,7 +8,8 @@
 
 #include "../../../include/ttrack/track/stt/stereo_tool_tracker.hpp"
 #include "../../../include/ttrack/track/pwp3d/stereo_pwp3d.hpp"
-
+#include "../../../include/ttrack/track/pwp3d/comp_ls.hpp"
+#include "../../../include/ttrack/track/articulated/articulated_level_set.hpp"
 
 #include "../../../include/ttrack/track/model/articulated_model.hpp"
 #include "../../../include/ttrack/utils/helpers.hpp"
@@ -19,6 +20,10 @@ StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, co
 
   if (localizer_type == LocalizerType::PWP3DLocalizer)
     localizer_.reset(new StereoPWP3D(camera_));
+  else if (localizer_type == LocalizerType::ArticulatedLevelSetLocalizer)
+   localizer_.reset(new ArticulatedLevelSet(camera_));
+  else if (localizer_type == LocalizerType::ComponentLS)
+    localizer_.reset(new ComponentLevelSet(camera_));
   else
     throw std::runtime_error("");	
 
@@ -28,12 +33,15 @@ StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, co
 
 bool StereoToolTracker::Init() {
 
-  boost::shared_ptr<sv::StereoFrame> stereo_frame_ = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
+   boost::shared_ptr<sv::StereoFrame> stereo_frame_ = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
 
   //find the connected regions in the image
   std::vector<std::vector<cv::Vec2i> >connected_regions;
 
-  if (!FindConnectedRegions(stereo_frame_->GetClassificationMapROI(), connected_regions)) {
+  //get a foreground background segmentation 
+  cv::Mat binary_classification_image = 255 * stereo_frame_->GetBinaryClassificationMapROI(0);
+
+  if (!FindConnectedRegions(binary_classification_image, connected_regions)) {
 
     ci::app::console() << "Failing to find connected regions!" << std::endl;
     return false;
@@ -50,6 +58,8 @@ bool StereoToolTracker::Init() {
     tracked_models_.back().temporal_tracker.reset(new KalmanFilterTracker);
 
     InitFromFile(tracked_models_.back().model);
+
+    break;
 
   }
 

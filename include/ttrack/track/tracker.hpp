@@ -19,7 +19,7 @@ namespace ttrk{
   * @enum LocalizerType
   * The type of frame-by-frame pose localizer to use in tracking.
   */
-  enum LocalizerType { PWP3DLocalizer };
+  enum LocalizerType { PWP3DLocalizer, ComponentLS };
 
  /**
  * @class Tracker
@@ -145,6 +145,8 @@ namespace ttrk{
     std::string model_parameter_file_; /**< The parameter file for the model type this tracker will track. */
 
     std::string results_dir_; /**< A directory to save the model results. */   
+
+    int frame_count_; /**< Current frame number. */
 
   };
 

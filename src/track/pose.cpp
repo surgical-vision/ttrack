@@ -65,6 +65,8 @@ void Pose::SetPose(std::vector<float> &pose) {
   translation_[1] = pose[1];
   translation_[2] = pose[2];
 
+  //rotation_ = sv::Quaternion(pose[3], pose[4], pose[5], pose[6]);
+  //rotation_ = rotation_.Normalize();
   rotation_ = ci::Quatf(pose[3], pose[4], pose[5], pose[6]);
   rotation_.normalize();
 

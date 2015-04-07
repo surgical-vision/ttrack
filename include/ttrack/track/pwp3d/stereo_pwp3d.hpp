@@ -28,7 +28,7 @@ namespace ttrk {
     */
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
     
-    virtual bool HasConverged() const { 
+ /*   virtual bool HasConverged() const { 
       if (PWP3D::HasConverged()) {
         auto *th = const_cast<StereoPWP3D *>(this);
         th->clearup();
@@ -43,9 +43,14 @@ namespace ttrk {
       }
       return false;
     }
-
+*/
   protected:   
     
+    float DoRegionBasedAlignmentStepForLeftEye(boost::shared_ptr<Model> current_model);
+    float DoRegionBasedAlignmentStepForRightEye(boost::shared_ptr<Model> current_model);
+    float DoPointBasedAlignmentStepForLeftEye(boost::shared_ptr<Model> current_model);
+
+
     void clearup(){
       errors_.clear();
     }
@@ -79,7 +84,6 @@ namespace ttrk {
     boost::shared_ptr<StereoCamera> stereo_camera_; /**< Representation of the camera. */
 
     std::vector<float> errors_; /**< The current set of errors. */
-
 
   };
 

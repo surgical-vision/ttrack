@@ -32,10 +32,14 @@ void MonoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost
 
   ProcessSDFAndIntersectionImage(current_model, camera_, sdf_image, front_intersection_image, back_intersection_image);
 
-  if (!point_registration_){
-    point_registration_.reset(new PointRegistration(camera_));
-    point_registration_->ComputeDescriptorsForPointTracking(frame_, front_intersection_image, current_model->GetBasePose());
+  //setup point registration for first frame
+  if (!lk_tracker_){
+    lk_tracker_.reset(new LKTracker(camera_));
   }
+
+  //point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, front_normal_image, current_model->GetBasePose());
+
+  lk_tracker_->TrackLocalPoints(frame_->GetImage());
 
   float fg_area, bg_area = 0;
   size_t contour_area = 0;

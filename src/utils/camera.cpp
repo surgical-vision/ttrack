@@ -214,7 +214,8 @@ StereoCamera::StereoCamera(const std::string &calibration_filename) {
     cv::Mat image_dims;
     cv::Mat l_intrinsic, l_distortion;
     cv::Mat r_intrinsic, r_distortion;
-    fs.open(calibration_filename, cv::FileStorage::READ);
+
+    fs.open(calibration_filename.c_str(), cv::FileStorage::READ);
 
     fs["Image_Dimensions"] >> image_dims;
     int image_width = image_dims.at<int>(0);
@@ -288,6 +289,7 @@ ci::Vec3f StereoCamera::TransformPointFromRightToLeft(const ci::Vec3f &point_in_
 
   ci::Matrix44f tr = right_eye_->rotation_.inverted();
   tr.setTranslate(-right_eye_->camera_center_);
+  //use inverse to transform points as coordinate rotation,translation we store is relative orientation of cameras rather than x_right = Rx_left + T type R|T transform.
   return tr.inverted() * point_in_right_eye_coords;
 
 }

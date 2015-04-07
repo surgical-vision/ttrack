@@ -12,6 +12,7 @@
 #include "../pose.hpp"
 #include "../../utils/plotter.hpp"
 #include "register_points.hpp"
+#include "lk_tracker.hpp"
 
 namespace ttrk {
 
@@ -95,6 +96,7 @@ namespace ttrk {
     * @param[in] hessian_approx The hessian approximation if using GN.
     */
     void ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_model, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx);
+    void ComputeLKJacobian(boost::shared_ptr<Model> current_model, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx);
 
     /**
     * Find the closest intersection point for pixels which project 'very close' to the target mesh. This is done by searching the sdf_im for the closest zero value to (r,c).
@@ -177,7 +179,7 @@ namespace ttrk {
     * @param[out] bg_area The background area.
     * @param[out] contour_area The area of non-zero (or non-ludicrously-small) values from the signed distance function.
     */
-    void ComputeAreas(cv::Mat &sdf, float &fg_area, float &bg_area, size_t &contour_area);
+    void ComputeAreas(const cv::Mat &sdf, float &fg_area, float &bg_area, size_t &contour_area);
 
     boost::shared_ptr<sv::Frame> frame_; /**< Just a reference to the current frame, probably not really useful, may be removed. */
     
@@ -194,6 +196,9 @@ namespace ttrk {
 
     boost::shared_ptr<PointRegistration> point_registration_; /**< Computes the point registration error. */
     
+    boost::shared_ptr<LKTracker> lk_tracker_;
+
+
   };
 
 

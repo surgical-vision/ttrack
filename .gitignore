@@ -19,7 +19,6 @@ config
 config/*
 data
 data/*
-ttrack
 *.sdf
 *.exe
 build/ipch

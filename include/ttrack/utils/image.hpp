@@ -25,6 +25,10 @@ namespace sv {
     void Reset(const cv::Size size);
     cv::Size Size() const;
     int NumChannels() const { return Channels; }
+    
+    PixelType GetPixelData(const int row, const int col, const int channel) const {
+      return *((PixelType *)frame_.data + (row * frame_.cols + col)*Channels + channel);
+    }
 
     cv::Rect frame_roi_;
     cv::Mat frame_;
@@ -68,6 +72,27 @@ namespace sv {
 
     int NumClassificationChannels() const { return classification_map_data_.NumChannels(); }
 
+    cv::Mat GetBinaryClassificationMap(size_t background_index){
+
+      cv::Mat ret = cv::Mat::zeros(classification_map_data_.Size(), CV_8UC1);
+      for (int r = 0; r < ret.rows; ++r){
+        for (int c = 0; c < ret.cols; ++c){
+
+          ret.at<unsigned char>(r, c) = classification_map_data_.GetPixelData(r, c, 0) < 0.5;
+
+        }
+      }
+
+      return ret;
+
+    }
+
+    cv::Mat GetBinaryClassificationMapROI(size_t background_index){
+
+      return GetBinaryClassificationMap(background_index)(classification_map_data_.frame_roi_);
+
+    }
+
     static cv::Mat GetChannel(cv::Mat multi_channel, int channel_idx){
 
       std::vector<cv::Mat> channels(multi_channel.channels());
@@ -84,7 +109,7 @@ namespace sv {
   protected:    
     
     __InnerImage<PixelType,Channels> image_data_;
-    __InnerImage<float,1> classification_map_data_;
+    __InnerImage<float,5> classification_map_data_;
     
   };
 

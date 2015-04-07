@@ -177,13 +177,31 @@ protected:
     * @param[in] width The height of the sub window in pixels.
     * @param[in] height The width of the sub window in pixels.
     */
-    SubWindow(int start_x, int start_y, int width, int height) : window_coords_(start_x, start_y, start_x + width, start_y + height) {
+    SubWindow(int start_x, int start_y, int width, int height){
+      Init(start_x, start_y, width, height, width, height);
+    }
+
+    /**
+    * Create a window with dimensions.
+    * @param[in] start_x The x coordinate of the top left of the box in the main window reference frame.
+    * @param[in] start_y The y coordinate of the top left of the box in the main window reference frame.
+    * @param[in] width The height of the sub window in pixels.
+    * @param[in] height The width of the sub window in pixels.
+    */
+    SubWindow(int start_x, int start_y, int eye_width, int eye_height, int draw_width, int draw_height)  {
       
-      gl::Fbo::Format f;
-      framebuffer_.reset(new gl::Fbo(width, height, f));
-      texture_ = gl::Texture(width, height);
+      Init(start_x, start_y, eye_width, eye_height, draw_width, draw_height);
 
     }
+
+    void Init(int start_x, int start_y, int eye_width, int eye_height, int draw_width, int draw_height){
+      window_coords_ = ci::Rectf(start_x, start_y, start_x + draw_width, start_y + draw_height);
+      gl::Fbo::Format f;
+      f.enableMipmapping();
+      framebuffer_.reset(new gl::Fbo(eye_width, eye_height, f));
+      texture_ = gl::Texture(eye_width, eye_height);
+    }
+
 
     ci::Rectf window_coords_; /**< The window coordinates within the main window reference frame. */
     boost::shared_ptr<gl::Fbo> framebuffer_; /**< The framebuffer of size width, height which is rendered to when we draw to this subwindow. */

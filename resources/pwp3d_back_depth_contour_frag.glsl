@@ -26,15 +26,5 @@ void main(void)
 	else
 		gl_FragData[1] = vec4(far,far,far,far);
 	
-	//if(texture2D(tex_fd, vec2( (p.x-1.0)/tex_w, (p.y-1.0)/tex_h ) ).x < texture2D(tex_col, gl_TexCoord[0].st).x ||
-	//   texture2D(tex_fd, vec2( (p.x)/tex_w,     (p.y-1.0)/tex_h ) ).x < texture2D(tex_col, gl_TexCoord[0].st).x ||
-    //   texture2D(tex_fd, vec2( (p.x+1.0)/tex_w, (p.y-1.0)/tex_h ) ).x < texture2D(tex_col, gl_TexCoord[0].st).x ||
-    //   texture2D(tex_fd, vec2( (p.x+1.0)/tex_w, (p.y)/tex_h ) ).x     < texture2D(tex_col, gl_TexCoord[0].st).x ||
-    //   texture2D(tex_fd, vec2( (p.x+1.0)/tex_w, (p.y+1.0)/tex_h ) ).x < texture2D(tex_col, gl_TexCoord[0].st).x ||
-    //   texture2D(tex_fd, vec2( (p.x)/tex_w,     (p.y+1.0)/tex_h ) ).x < texture2D(tex_col, gl_TexCoord[0].st).x ||
-    //   texture2D(tex_fd, vec2( (p.x-1.0)/tex_w, (p.y+1.0)/tex_h ) ).x < texture2D(tex_col, gl_TexCoord[0].st).x ||
-    //   texture2D(tex_fd, vec2( (p.x-1.0)/tex_w, (p.y)/tex_h ) ).x     < texture2D(tex_col, gl_TexCoord[0].st).x)
-	
-	
 		
 }

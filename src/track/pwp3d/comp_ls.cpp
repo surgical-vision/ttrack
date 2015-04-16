@@ -84,12 +84,6 @@ void ComponentLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mode
 
   ++curr_step;
 
-  //float left_error = DoRegionBasedAlignmentStepForLeftEye(current_model);
-  //float right_error = DoRegionBasedAlignmentStepForRightEye(current_model);
-  //float point_error = DoPointBasedAlignmentStepForLeftEye(current_model);
-  //UpdateWithErrorValue(left_error + right_error + point_error);
-  //errors_.push_back(left_error + right_error + point_error);
-
   float error = DoAlignmentStep(current_model, true);
   UpdateWithErrorValue(error);
   errors_.push_back(error);
@@ -158,8 +152,6 @@ void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_ima
   for (size_t comp = 1; comp < components_.size(); ++comp){
 
     cv::Mat &sdf_image = components_[comp].sdf_image;
-
-    //SaveSDFImage(sdf_image, "z:/sdf_image.png");
 
     cv::Mat target_label_image = cv::Mat::zeros(sdf_image.size(), CV_8UC1);
     cv::Mat nearest_neighbour_label_image = cv::Mat::zeros(sdf_image.size(), CV_8UC1);

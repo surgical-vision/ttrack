@@ -14,9 +14,9 @@
 
 using namespace ttrk;
 
-void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const std::string &left_media_file, const std::string &right_media_file, const std::vector< std::vector<float> > &starting_poses){
+void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const std::string &left_media_file, const std::string &right_media_file, const std::vector< std::vector<float> > &starting_poses, const size_t number_of_labels){
   
-  SetUp(model_parameter_file, camera_calibration_file, classifier_path, results_dir, localizer_type, classifier_type, CameraType::STEREO, starting_poses);
+  SetUp(model_parameter_file, camera_calibration_file, classifier_path, results_dir, localizer_type, classifier_type, CameraType::STEREO, starting_poses, number_of_labels);
   tracker_->Tracking(false); 
   handler_.reset(new StereoVideoHandler(left_media_file,right_media_file, results_dir_ + "/tracked_video.avi"));
 
@@ -34,19 +34,13 @@ std::vector<float> TTrack::PoseFromString(const std::string &pose_as_string){
 
   if (string_as_floats.size() != 15) throw std::runtime_error("Error, size is bad!");
 
-  //cv::Mat rots = (cv::Mat_<double>(3, 3) <<
-  //  string_as_floats[0], string_as_floats[1], string_as_floats[2],
-  //  string_as_floats[4], string_as_floats[5], string_as_floats[6],
-  //  string_as_floats[8], string_as_floats[9], string_as_floats[10]);
-
-  //Pose ret(sv::Quaternion(rots), ci::Vec3f(string_as_floats[3], string_as_floats[7], string_as_floats[11]));
   return string_as_floats;
 
 }
 
-void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const std::string &media_file, const std::vector< std::vector<float> >&starting_poses){
+void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const std::string &media_file, const std::vector< std::vector<float> >&starting_poses, const size_t number_of_labels){
 
-  SetUp(model_parameter_file, camera_calibration_file, classifier_path, results_dir, localizer_type, classifier_type, CameraType::MONOCULAR, starting_poses);
+  SetUp(model_parameter_file, camera_calibration_file, classifier_path, results_dir, localizer_type, classifier_type, CameraType::MONOCULAR, starting_poses, number_of_labels);
   tracker_->Tracking(false); 
   if(IS_VIDEO(boost::filesystem::path(media_file).extension().string()))
     handler_.reset(new VideoHandler(media_file, results_dir_ + "/tracked_video.avi"));
@@ -57,49 +51,38 @@ void TTrack::SetUp(const std::string &model_parameter_file, const std::string &c
 
 }
 
-void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, ClassifierType classifier_type, const CameraType camera_type, const std::vector< std::vector<float> > &starting_poses){
+void TTrack::SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, ClassifierType classifier_type, const CameraType camera_type, const std::vector< std::vector<float> > &starting_poses, const size_t number_of_labels){
   
   camera_type_ = camera_type;
   results_dir_ = results_dir;
 
   int n = 0;
   while (boost::filesystem::is_directory(results_dir_)){
-    std::stringstream res; 
+    std::stringstream res;
     res << results_dir << "run_" << n;
     results_dir_ = res.str();
-    ++n; 
+    ++n;
   }
-  
+
   boost::filesystem::create_directories(results_dir_);
   
-  try{
-  
-    //if train type is NA, training is skipped
-    detector_.reset(new Detect(classifier_path,classifier_type));
-    
-    //load the correct type of tool tracker
-    switch(camera_type_){
-    case STEREO:
-      tracker_.reset(new StereoToolTracker(model_parameter_file,camera_calibration_file, results_dir_, localizer_type));
-      break;
-    case MONOCULAR:
-      tracker_.reset(new MonocularToolTracker(model_parameter_file, camera_calibration_file, results_dir_, localizer_type));
-      break;
-    default:
-      tracker_.reset(new StereoToolTracker(model_parameter_file, camera_calibration_file, results_dir_, localizer_type));
-      break;
-    }
+  //if train type is NA, training is skipped
+  detector_.reset(new Detect(classifier_path, classifier_type, number_of_labels));
 
-  }catch(std::bad_alloc &e){
-    ci::app::console() << "Error, memory error. Could not construct detector/tracker.\n" << e.what();
-    ci::app::console() << "Exiting...\n";
-    SAFE_EXIT();
-  }catch(std::exception &e){
-    ci::app::console() << "Error, caught exception.\n" << e.what();
-    ci::app::console() << "Exiting...\n";
-    SAFE_EXIT();
+  //load the correct type of tool tracker
+  switch (camera_type_){
+  case STEREO:
+    tracker_.reset(new StereoToolTracker(model_parameter_file, camera_calibration_file, results_dir_, localizer_type, number_of_labels));
+    break;
+  case MONOCULAR:
+    tracker_.reset(new MonocularToolTracker(model_parameter_file, camera_calibration_file, results_dir_, localizer_type, number_of_labels));
+    break;
+  default:
+    tracker_.reset(new StereoToolTracker(model_parameter_file, camera_calibration_file, results_dir_, localizer_type, number_of_labels));
+    break;
   }
-  
+
+
   for (auto &starting_pose : starting_poses)
     tracker_->AddStartPose(starting_pose);
 

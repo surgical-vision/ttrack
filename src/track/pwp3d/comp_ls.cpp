@@ -12,7 +12,7 @@ using namespace ttrk;
 
 #define GRAD_DESCENT
 
-ComponentLevelSet::ComponentLevelSet(boost::shared_ptr<StereoCamera> camera) : StereoPWP3D(camera) {
+ComponentLevelSet::ComponentLevelSet(size_t number_of_components, boost::shared_ptr<StereoCamera> camera) : StereoPWP3D(camera) {
 
   ci::gl::Fbo::Format format;
   format.setColorInternalFormat(GL_RGBA32F);
@@ -21,13 +21,10 @@ ComponentLevelSet::ComponentLevelSet(boost::shared_ptr<StereoCamera> camera) : S
 
   LoadShaders();
 
-  HomogenousComponent background(0);
-  HomogenousComponent shaft(1);
-  HomogenousComponent head(2);
-  components_.push_back(background);
-  components_.push_back(shaft);
-  components_.push_back(head);
-
+  for (size_t i = 0; i < number_of_components; ++i){
+    components_.push_back(HomogenousComponent(i));
+  }
+  
 }
 
 ComponentLevelSet::~ComponentLevelSet(){
@@ -42,20 +39,6 @@ ComponentLevelSet::~ComponentLevelSet(){
 void ComponentLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
 
   frame_ = frame;
-
-  //if (frame_count_ == 0){
-
-  //  if (curr_step == NUM_STEPS) {
-  //    curr_step = 0;
-  //  }
-
-  //  DoAlignmentStep(current_model, false);
-  //  DoAlignmentStep(current_model, false);
-
-  //  curr_step++;
-  //  return;
-
-  //}
 
   if (curr_step == NUM_STEPS) {
 
@@ -144,10 +127,9 @@ void ComponentLevelSet::LoadShaders(){
 
 void ComponentLevelSet::ComputeJacobiansForEye(const cv::Mat &classification_image, boost::shared_ptr<Model> current_model, boost::shared_ptr<MonocularCamera> camera, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx, float &error){
   
+  cv::Mat front_intersection_image, back_intersection_image, articulated_component_image;
 
-  cv::Mat front_intersection_image, back_intersection_image, front_normal_image;
-
-  ProcessSDFAndIntersectionImage(current_model, camera, front_intersection_image, back_intersection_image, front_normal_image);
+  ProcessSDFAndIntersectionImage(current_model, camera, front_intersection_image, back_intersection_image, articulated_component_image);
   
   for (size_t comp = 1; comp < components_.size(); ++comp){
 
@@ -478,6 +460,8 @@ void ComponentLevelSet::RenderModelForDepthAndContour(const boost::shared_ptr<Mo
     components_[i].binary_image = cv::Mat::zeros(front_depth.size(), CV_8UC1);
     components_[i].contour_image = cv::Mat::zeros(front_depth.size(), CV_8UC1);
   }
+
+
   for (int r = 0; r < front_depth.rows; ++r){
     for (int c = 0; c < front_depth.cols; ++c){
       if (std::abs(comp_src[(r * front_depth.cols + c) * 4]) < EPS){

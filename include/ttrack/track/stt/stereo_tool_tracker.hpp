@@ -17,8 +17,9 @@ namespace ttrk {
     * @param[in] calibration_filename The url of the file containing the camera calibration.
     * @param[in] results_dir The directory where to save the results from tracked models.
     * @param[in] localizer_type The type of localizer to use in the frame-by-frame pose estimation.
+    * @param[in] number_of_labels The number of labels used in detection. This includes the background label.
     */
-    StereoToolTracker(const std::string &model_parameter_file, const std::string &calibration_filename, const std::string &results_dir, const LocalizerType &localizer_type);
+    StereoToolTracker(const std::string &model_parameter_file, const std::string &calibration_filename, const std::string &results_dir, const LocalizerType &localizer_type, const size_t number_of_labels);
 
     /**
     * Destructor

@@ -51,6 +51,13 @@ void TTrackApp::SetupFromConfig(const std::string &path){
 
   }
 
+  //load the number of labels from the config file. This should include background! 
+  size_t number_of_labels = 2;
+  try{
+    number_of_labels = reader.get_element_as_type<size_t>("num-labels");
+  }
+  catch (std::runtime_error &){ }
+
   //throwing errors here? did you remember the zero at element 15 of start pose or alteranatively set the trackable dir to absolute in the cfg file
   ttrack.SetUp(reader.get_element("trackable"),
                root_dir + "/" + reader.get_element("camera-config"),
@@ -60,7 +67,8 @@ void TTrackApp::SetupFromConfig(const std::string &path){
                ttrk::TTrack::ClassifierFromString(reader.get_element("classifier-type")),
                root_dir + "/" + reader.get_element("left-input-video"),
                root_dir + "/" + reader.get_element("right-input-video"),
-               starting_poses);
+               starting_poses,
+               number_of_labels);
   
   int width = reader.get_element_as_type<int>("window-width");
   int height = reader.get_element_as_type<int>("window-height");

@@ -11,8 +11,17 @@ namespace ttrk {
 
   public:
 
-    ComponentLevelSet(boost::shared_ptr<StereoCamera> camera);
-    ~ComponentLevelSet();
+    /**
+    * Construct a component level set tracked for tracking objects by diving them into homogenous regions rather than one bag-of-pixels model.
+    * @param[in] number_of_components The number of homogenous components which consistute the model. Right now this is manually estimated. Potentially we can estimate this automatically.
+    * @param[in] camera The pinhole camera model to use.
+    */
+    ComponentLevelSet(size_t number_of_components, boost::shared_ptr<StereoCamera> camera);
+
+    /**
+    * Destructor.
+    */
+    virtual ~ComponentLevelSet();
 
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
 
@@ -66,27 +75,23 @@ namespace ttrk {
 
     unsigned char ComputeNearestNeighbourForPixel(int r, int c, float sdf_value, const int width, const int height);
 
-    ci::gl::Fbo component_map_framebuffer_;
-
-    ci::gl::GlslProg component_shader_;
+    ci::gl::Fbo component_map_framebuffer_; /**< The framebuffer to render the component indexing image into. */
+    cv::Mat component_map_; /**< The framebuffer is vertically flipped and stored in this. */
+    
+    ci::gl::GlslProg component_shader_; /**< The shader which uses the model texture map to render an 'indexing' image which contains the homogenous region index. */
 
     struct HomogenousComponent {
 
       HomogenousComponent(size_t tp) : target_probability(tp) {}
-      cv::Mat sdf_image;
-      size_t target_probability;
+      cv::Mat sdf_image; /**< Each component has it's own sdf. This means it's treated an independent bag-of-pixles model which is tracked jointly with the other components.*/
+      size_t target_probability; /**< The target probability. Requires some level of coupling with the detector as the detector output must match the expected labelled of this component. */
       cv::Mat binary_image;
       cv::Mat contour_image;
 
     };
 
-    cv::Mat flow_frame;
-    cv::Mat previous_frame;
-
-    cv::Mat component_map_;
+   
     std::vector<HomogenousComponent> components_;
-
-    cv::Ptr<cv::DenseOpticalFlow> optical_flow;
 
   };
 

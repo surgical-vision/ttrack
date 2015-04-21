@@ -8,13 +8,6 @@ namespace ttrk{
   const int histogram_channel_num = 3;
   const int histogram_bin_num = 32;
 
-/**
-* @class Histogram
-* @brief The histogram classifier.
-*
-* The class for handling classification with a histogram. Can handle large numbers of classes.
-*/
-
   template<int HISTOGRAM_CHANNEL_NUM, int HISTOGRAM_BIN_NUM>
   struct InternalHistogram {
 
@@ -35,6 +28,14 @@ namespace ttrk{
 
   };
 
+
+  /**
+  * @class Histogram
+  * @brief The histogram classifier.
+  *
+  * The class for handling classification with a histogram. Can handle large numbers of classes in principal but for now just
+  * does 3 classes. Will extend if have time.
+  */
   class Histogram : public BaseClassifier {
 
   public:
@@ -81,7 +82,12 @@ namespace ttrk{
     * @return The string "random_forest"
     */
     virtual std::string NameAsString() const;
-
+    
+    /**
+    * Check if the loaded classifier supports classifying multiple classes or if it just does binary classification.
+    * @return Whether the classifier supports mulitple classes or not.
+    */
+    virtual bool IsBinary() const override { return false; }
 
   protected:
 

@@ -11,60 +11,90 @@ set( INCDIR "../include/ttrack")
 set( BINARY_NAME "ttrack")
 set( MAIN_FILE "ttrack_app.cpp" )
 
-#set( TTRACK_INCDIR "z:/phd/ttrack/include/" )
-#set( TTRACK_REL_LIBDIR "z:/phd/ttrack/build/Release" )
-#set( TTRACK_DEB_LIBDIR "z:/phd/ttrack/build/Debug" )
-#set( TTRACK_REL_LIBS ${TTRACK_REL_LIBDIR}/articulated_model.obj
-#                     ${TTRACK_REL_LIBDIR}/handler.obj
-#                     ${TTRACK_REL_LIBDIR}/model.obj
-#                     )
-                     
-#set( TTRACK_DEB_LIBS ${TTRACK_DEB_LIBDIR}/articulated_model.obj
-#                     ${TTRACK_DEB_LIBDIR}/handler.obj
-#                     ${TTRACK_DEB_LIBDIR}/model.obj
-#                     )
-
 ## Header only includes 
 set(
   HEADERS
-  ${INCDIR}/constants.hpp ${INCDIR}/headers.hpp
-  ${INCDIR}/resources.hpp ${INCDIR}/ttrack.hpp
-  ${INCDIR}/utils/camera.hpp ${INCDIR}/ttrack_app.hpp 
-  ${INCDIR}/utils/config_reader.hpp ${INCDIR}/utils/exceptions.hpp
-  ${INCDIR}/utils/handler.hpp ${INCDIR}/utils/helpers.hpp
-  ${INCDIR}/utils/nd_image.hpp ${INCDIR}/utils/plotter.hpp
-  ${INCDIR}/utils/UI.hpp ${INCDIR}/track/articulated/articulated_level_set.hpp
+  ${INCDIR}/constants.hpp 
+  ${INCDIR}/headers.hpp
+  ${INCDIR}/resources.hpp 
+  ${INCDIR}/ttrack.hpp
+  ${INCDIR}/utils/camera.hpp 
+  ${INCDIR}/ttrack_app.hpp 
+  ${INCDIR}/detect/baseclassifier.hpp
+  ${INCDIR}/detect/detect.hpp
+  ${INCDIR}/detect/histogram.hpp
+  ${INCDIR}/detect/im_mask_set.hpp
+  ${INCDIR}/detect/multiclass_randomforest.hpp
+  ${INCDIR}/detect/randomforest.hpp
+  ${INCDIR}/detect/supportvectormachine.hpp
+  ${INCDIR}/utils/config_reader.hpp 
+  ${INCDIR}/utils/exceptions.hpp
+  ${INCDIR}/utils/handler.hpp 
+  ${INCDIR}/utils/helpers.hpp
+  ${INCDIR}/utils/nd_image.hpp 
+  ${INCDIR}/utils/plotter.hpp
+  ${INCDIR}/utils/UI.hpp
+  ${INCDIR}/track/articulated/articulated_level_set.hpp
+  ${INCDIR}/track/localizer/articulated_component_level_set.hpp
   ${INCDIR}/utils/image.hpp
   ${INCDIR}/track/localizer.hpp 
-  ${INCDIR}/track/pose.hpp ${INCDIR}/track/model/articulated_model.hpp
-  ${INCDIR}/track/tracker.hpp ${INCDIR}/track/model/dh_helpers.hpp
-  ${INCDIR}/track/model/node.hpp ${INCDIR}/track/model/model.hpp
-  ${INCDIR}/track/pwp3d/comp_ls.hpp ${INCDIR}/track/pwp3d/mono_pwp3d.hpp
-  ${INCDIR}/track/pwp3d/pwp3d.hpp ${INCDIR}/track/pwp3d/register_points.hpp
-  ${INCDIR}/track/pwp3d/stereo_pwp3d.hpp ${INCDIR}/track/stt/monocular_tool_tracker.hpp
-  ${INCDIR}/track/stt/stereo_tool_tracker.hpp ${INCDIR}/track/stt/surgical_tool_tracker.hpp
+  ${INCDIR}/track/pose.hpp 
+  ${INCDIR}/track/model/articulated_model.hpp
+  ${INCDIR}/track/tracker.hpp 
+  ${INCDIR}/track/model/dh_helpers.hpp
+  ${INCDIR}/track/model/node.hpp 
+  ${INCDIR}/track/model/model.hpp
+  ${INCDIR}/track/pwp3d/comp_ls.hpp 
+  ${INCDIR}/track/pwp3d/mono_pwp3d.hpp
+  ${INCDIR}/track/pwp3d/pwp3d.hpp 
+  ${INCDIR}/track/pwp3d/register_points.hpp
+  ${INCDIR}/track/pwp3d/stereo_pwp3d.hpp 
+  ${INCDIR}/track/stt/monocular_tool_tracker.hpp
+  ${INCDIR}/track/stt/stereo_tool_tracker.hpp 
+  ${INCDIR}/track/stt/surgical_tool_tracker.hpp
   ${INCDIR}/track/temporal/temporal.hpp
   ${INCDIR}/track/pwp3d/lk_tracker.hpp
   ${INCDIR}/track/pwp3d/descriptor.hpp
   )
-#
+
 
 ## Store list of source files
-set( SOURCES ttrack.cpp ttrack_app.cpp 
-      detect/baseclassifier.cpp detect/detect.cpp
-      detect/histogram.cpp detect/im_mask_set.cpp
-      detect/multiclass_randomforest.cpp detect/randomforest.cpp
-      detect/supportvectormachine.cpp
-      utils/camera.cpp utils/handler.cpp utils/helpers.cpp utils/nd_image.cpp utils/plotter.cpp 
-      track/pose.cpp track/tracker.cpp 
-      track/articulated/articulated_level_set.cpp 
-      track/model/model.cpp track/model/node.cpp track/model/articulated_model.cpp
-      track/pwp3d/comp_ls.cpp track/pwp3d/mono_pwp3d.cpp track/pwp3d/register_points.cpp track/pwp3d/stereo_pwp3d.cpp track/pwp3d/pwp3d.cpp
-      track/stt/monocular_tool_tracker.cpp track/stt/stereo_tool_tracker.cpp track/stt/surgical_tool_tracker.cpp
-      track/temporal/temporal.cpp
-      track/pwp3d/descriptor.cpp
-      track/pwp3d/lk_tracker.cpp
-	  )
+set( 
+  SOURCES 
+  ttrack.cpp 
+  ttrack_app.cpp 
+  detect/baseclassifier.cpp 
+  detect/detect.cpp
+  detect/histogram.cpp 
+  detect/im_mask_set.cpp
+  detect/multiclass_randomforest.cpp 
+  detect/randomforest.cpp
+  detect/supportvectormachine.cpp
+  utils/camera.cpp 
+  utils/handler.cpp 
+  utils/helpers.cpp 
+  utils/nd_image.cpp 
+  utils/plotter.cpp 
+  track/pose.cpp 
+  track/tracker.cpp 
+  track/articulated/articulated_level_set.cpp
+  track/localizer/articulated_component_level_set.cpp 
+  track/model/model.cpp 
+  track/model/node.cpp 
+  track/model/articulated_model.cpp
+  track/pwp3d/comp_ls.cpp 
+  track/pwp3d/mono_pwp3d.cpp 
+  track/pwp3d/register_points.cpp 
+  track/pwp3d/stereo_pwp3d.cpp 
+  track/pwp3d/pwp3d.cpp
+  track/stt/monocular_tool_tracker.cpp 
+  track/stt/stereo_tool_tracker.cpp 
+  track/stt/surgical_tool_tracker.cpp
+  track/temporal/temporal.cpp
+  track/pwp3d/descriptor.cpp
+  track/pwp3d/lk_tracker.cpp
+  )
+
 #track/articulated/articulated_solver.cpp - adds ceres dependency
 
 #######################################################

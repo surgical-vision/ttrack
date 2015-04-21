@@ -16,12 +16,16 @@
 
 using namespace ttrk;
 
-StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, const std::string &calibration_file, const std::string &results_dir, const LocalizerType &localizer_type) : SurgicalToolTracker(model_parameter_file, results_dir), camera_(new StereoCamera(calibration_file)){
+StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, const std::string &calibration_file, const std::string &results_dir, const LocalizerType &localizer_type, const size_t number_of_labels) : SurgicalToolTracker(model_parameter_file, results_dir), camera_(new StereoCamera(calibration_file)){
+
+  /**
+  * HARD CODING NUMBER OF COMPONENTS FOR NOW
+  */
 
   if (localizer_type == LocalizerType::PWP3DLocalizer)
     localizer_.reset(new StereoPWP3D(camera_));
   else if (localizer_type == LocalizerType::ComponentLS)
-    localizer_.reset(new ComponentLevelSet(camera_));
+    localizer_.reset(new ComponentLevelSet(number_of_labels - 1, camera_)); //we don't count the background with component level set
   else
     throw std::runtime_error("");	
 

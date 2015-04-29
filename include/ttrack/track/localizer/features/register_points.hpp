@@ -26,7 +26,7 @@ namespace ttrk {
  
   protected:
 
-    cv::Mat descriptors_previous_frame_;
+    Pose pose_;
 
   };
 

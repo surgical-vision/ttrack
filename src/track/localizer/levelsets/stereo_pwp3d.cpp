@@ -113,15 +113,12 @@ float StereoPWP3D::DoRegionBasedAlignmentStepForLeftEye(boost::shared_ptr<Model>
 
 void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
 
-
   frame_ = frame;
-
-  
 
   if (curr_step == NUM_STEPS) {
 
     cv::Mat front_intersection_image, back_intersection_image, front_normal_image;
-    ProcessSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), front_intersection_image, back_intersection_image, front_normal_image);
+    ProcessSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), cv::Mat(), front_intersection_image, back_intersection_image);
 
     curr_step = 0;
 
@@ -147,8 +144,8 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
 
   ++curr_step;
   
-  float left_error = 0.0f;// DoRegionBasedAlignmentStepForLeftEye(current_model);
-  float right_error = 0.0f; //DoRegionBasedAlignmentStepForRightEye(current_model);
+  float left_error = DoRegionBasedAlignmentStepForLeftEye(current_model);
+  float right_error = DoRegionBasedAlignmentStepForRightEye(current_model);
   float point_error = DoPointBasedAlignmentStepForLeftEye(current_model);
 
   UpdateWithErrorValue(left_error + right_error + point_error);

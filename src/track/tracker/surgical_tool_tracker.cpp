@@ -1,7 +1,7 @@
 #include <boost/filesystem.hpp>
 
-#include "../../../include/ttrack/track/stt/surgical_tool_tracker.hpp"
-#include "../../../include/ttrack/track/pwp3d/pwp3d.hpp"
+#include "../../../include/ttrack/track/tracker/surgical_tool_tracker.hpp"
+#include "../../../include/ttrack/track/localizer/levelsets/pwp3d.hpp"
 #include "../../../include/ttrack/utils/image.hpp"
 
 

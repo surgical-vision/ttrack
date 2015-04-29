@@ -18,6 +18,8 @@ bool BaseClassifier::ClassifyFrame(boost::shared_ptr<sv::Frame> frame){
 
   size_t pixel_count = 0;
 
+  if (frame->NumClassificationChannels() < 2) throw(std::runtime_error("Error, there must be 2 or more channels!"));
+
   float *frame_data = (float *)frame->GetClassificationMap().data;
   for (int r = 0; r<rows; r++){
     for (int c = 0; c<cols; c++){
@@ -28,9 +30,11 @@ bool BaseClassifier::ClassifyFrame(boost::shared_ptr<sv::Frame> frame){
 
       const float prediction = (const float)PredictProb(pix, 1); //need to be between 0 - 255 for later processing stage
 
-      frame_data[index*frame->NumClassificationChannels()] = prediction;
+      //even though this is redundant, it allows compatibility with multiclass classifiers
+      frame_data[index*frame->NumClassificationChannels()] = (1 - prediction); //background
+      frame_data[index*frame->NumClassificationChannels() + 1] = (prediction); //foreground
 
-      for (int k = 1; k < frame->NumClassificationChannels(); ++k){
+      for (int k = 2; k < frame->NumClassificationChannels(); ++k){
 
         frame_data[index*frame->NumClassificationChannels() + k] = 0;
 

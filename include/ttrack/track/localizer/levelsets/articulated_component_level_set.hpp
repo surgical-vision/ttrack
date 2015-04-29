@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../pwp3d/comp_ls.hpp"
+#include "comp_ls.hpp"
 
 namespace ttrk{
 

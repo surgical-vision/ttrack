@@ -1,9 +1,9 @@
 #include <cinder/app/App.h>
 
-#include "../include/ttrack/headers.hpp"
-#include "../../include/ttrack/track/tracker.hpp"
-#include "../../include/ttrack/utils/helpers.hpp"
-#include "../../include/ttrack/utils/camera.hpp"
+#include "../../../include/ttrack/headers.hpp"
+#include "../../../include/ttrack/track/tracker/tracker.hpp"
+#include "../../../include/ttrack/utils/helpers.hpp"
+#include "../../../include/ttrack/utils/camera.hpp"
 
 using namespace ttrk;
 

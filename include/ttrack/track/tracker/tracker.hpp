@@ -7,11 +7,11 @@
 #include <algorithm>
 #include <vector>
 
-#include "../headers.hpp"
-#include "../utils/image.hpp"
-#include "localizer.hpp"
-#include "model/model.hpp"
-#include "temporal/temporal.hpp"
+#include "../../headers.hpp"
+#include "../../utils/image.hpp"
+#include "../localizer/localizer.hpp"
+#include "../model/model.hpp"
+#include "../temporal/temporal.hpp"
 
 namespace ttrk{
 

@@ -6,10 +6,10 @@
 #include <cinder/app/App.h>
 #include <CinderOpenCV.h>
 
-#include "../../../include/ttrack/track/stt/stereo_tool_tracker.hpp"
-#include "../../../include/ttrack/track/pwp3d/stereo_pwp3d.hpp"
-#include "../../../include/ttrack/track/pwp3d/comp_ls.hpp"
-#include "../../../include/ttrack/track/articulated/articulated_level_set.hpp"
+#include "../../../include/ttrack/track/tracker/stereo_tool_tracker.hpp"
+#include "../../../include/ttrack/track/localizer/levelsets/stereo_pwp3d.hpp"
+#include "../../../include/ttrack/track/localizer/levelsets/comp_ls.hpp"
+#include "../../../include/ttrack/track/localizer/levelsets/articulated_level_set.hpp"
 
 #include "../../../include/ttrack/track/model/articulated_model.hpp"
 #include "../../../include/ttrack/utils/helpers.hpp"
@@ -25,7 +25,7 @@ StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, co
   if (localizer_type == LocalizerType::PWP3DLocalizer)
     localizer_.reset(new StereoPWP3D(camera_));
   else if (localizer_type == LocalizerType::ComponentLS)
-    localizer_.reset(new ComponentLevelSet(number_of_labels - 1, camera_)); //we don't count the background with component level set
+    localizer_.reset(new ComponentLevelSet(number_of_labels, camera_)); 
   else
     throw std::runtime_error("");	
 

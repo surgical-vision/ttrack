@@ -9,8 +9,8 @@
 #include "../include/ttrack/ttrack_app.hpp"
 #include "../include/ttrack/ttrack.hpp"
 #include "../include/ttrack/utils/helpers.hpp"
-#include "../include/ttrack/track/stt/stereo_tool_tracker.hpp"
-#include "../include/ttrack/track/stt/monocular_tool_tracker.hpp"
+#include "../include/ttrack/track/tracker/stereo_tool_tracker.hpp"
+#include "../include/ttrack/track/tracker/monocular_tool_tracker.hpp"
 
 using namespace ttrk;
 

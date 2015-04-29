@@ -5,7 +5,7 @@
 #include <opencv2/opencv.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "../model/model.hpp"
+#include "../../model/model.hpp"
 
 namespace ttrk{
 

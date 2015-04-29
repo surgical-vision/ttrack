@@ -2,8 +2,8 @@
 #define __ARTICULATED_LEVEL_SET_HPP__
 
 #include "../localizer.hpp"
-#include "../pwp3d/stereo_pwp3d.hpp"
-#include "../model/node.hpp"
+#include "stereo_pwp3d.hpp"
+#include "../../model/node.hpp"
 
 namespace ttrk {
 

@@ -1,7 +1,7 @@
 #ifndef _SURGICAL_TOOL_TRACKER_HPP_
 #define _SURGICAL_TOOL_TRACKER_HPP_
 #include "../../headers.hpp"
-#include "../tracker.hpp"
+#include "tracker.hpp"
 #include "../../utils/camera.hpp"
 
 namespace ttrk{

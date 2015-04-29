@@ -3,7 +3,7 @@
 #include <CinderOpenCV.h>
 #include <cinder/CinderMath.h>
 
-#include "../../../include/ttrack/track/pwp3d/comp_ls.hpp"
+#include "../../../include/ttrack/track/localizer/levelsets/comp_ls.hpp"
 #include "../../../include/ttrack/resources.hpp"
 #include "../../../include/ttrack/constants.hpp"
 #include "../../../include/ttrack/utils/helpers.hpp"

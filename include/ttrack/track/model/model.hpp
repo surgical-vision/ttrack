@@ -13,7 +13,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-#include "../pose.hpp"
+#include "pose.hpp"
 #include "../../utils/camera.hpp"
 #include "node.hpp"
 

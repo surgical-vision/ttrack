@@ -4,21 +4,14 @@
 #include <opencv2/video/tracking.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include "../../headers.hpp"
-#include "../pose.hpp"
-#include "../../utils/camera.hpp"
-#include "../../track/model/model.hpp"
-#include "../../constants.hpp"
-namespace ttrk{
-  
-  struct TrackedPoint {
-    TrackedPoint(const cv::Vec3f &mp, const cv::Vec2f &fp) : model_point(mp), frame_point(fp), found_image_point(fp) {}
-    cv::Vec3f model_point;
-    cv::Vec2f frame_point;
-    cv::Vec2f found_image_point;
-  };
+#include "../../../headers.hpp"
+#include "../../model/pose.hpp"
+#include "../../../utils/camera.hpp"
+#include "../../model/model.hpp"
+#include "../../../constants.hpp"
+#include "feature_localizer.hpp"
 
-  
+namespace ttrk{
 
   class LKTracker {
 

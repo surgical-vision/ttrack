@@ -24,7 +24,7 @@ namespace ttrk{
     * Check if the loaded classifier supports classifying multiple classes or if it just does binary classification.
     * @return Whether the classifier supports mulitple classes or not.
     */
-    virtual bool IsBinary() const override { return false; }
+    virtual bool IsBinary() const override { return num_classes_ == 2; }
 
   protected:
 

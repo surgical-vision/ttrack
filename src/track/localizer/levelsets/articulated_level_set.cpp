@@ -1,7 +1,7 @@
 #include <cinder/app/App.h>
 #include <numeric>
 
-#include "../../../include/ttrack/track/articulated/articulated_level_set.hpp"
+#include "../../../include/ttrack/track/localizer/levelsets/articulated_level_set.hpp"
 #include "../../../include/ttrack/constants.hpp"
 
 using namespace ttrk;

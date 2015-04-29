@@ -3,8 +3,8 @@
 
 #include <cinder/app/Renderer.h>
 
-#include "model/model.hpp"
-#include "../utils/image.hpp"
+#include "../model/model.hpp"
+#include "../../utils/image.hpp"
 
 namespace ttrk {
 

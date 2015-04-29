@@ -34,27 +34,28 @@ set(
   ${INCDIR}/utils/nd_image.hpp 
   ${INCDIR}/utils/plotter.hpp
   ${INCDIR}/utils/UI.hpp
-  ${INCDIR}/track/articulated/articulated_level_set.hpp
-  ${INCDIR}/track/localizer/articulated_component_level_set.hpp
   ${INCDIR}/utils/image.hpp
-  ${INCDIR}/track/localizer.hpp 
-  ${INCDIR}/track/pose.hpp 
+  ${INCDIR}/track/model/pose.hpp 
   ${INCDIR}/track/model/articulated_model.hpp
-  ${INCDIR}/track/tracker.hpp 
   ${INCDIR}/track/model/dh_helpers.hpp
   ${INCDIR}/track/model/node.hpp 
   ${INCDIR}/track/model/model.hpp
-  ${INCDIR}/track/pwp3d/comp_ls.hpp 
-  ${INCDIR}/track/pwp3d/mono_pwp3d.hpp
-  ${INCDIR}/track/pwp3d/pwp3d.hpp 
-  ${INCDIR}/track/pwp3d/register_points.hpp
-  ${INCDIR}/track/pwp3d/stereo_pwp3d.hpp 
-  ${INCDIR}/track/stt/monocular_tool_tracker.hpp
-  ${INCDIR}/track/stt/stereo_tool_tracker.hpp 
-  ${INCDIR}/track/stt/surgical_tool_tracker.hpp
+  ${INCDIR}/track/tracker/tracker.hpp 
+  ${INCDIR}/track/tracker/monocular_tool_tracker.hpp
+  ${INCDIR}/track/tracker/stereo_tool_tracker.hpp 
+  ${INCDIR}/track/tracker/surgical_tool_tracker.hpp
+  ${INCDIR}/track/localizer/localizer.hpp
+  ${INCDIR}/track/localizer/levelsets/comp_ls.hpp 
+  ${INCDIR}/track/localizer/levelsets/mono_pwp3d.hpp
+  ${INCDIR}/track/localizer/levelsets/pwp3d.hpp 
+  ${INCDIR}/track/localizer/levelsets/stereo_pwp3d.hpp 
+  ${INCDIR}/track/localizer/levelsets/articulated_level_set.hpp
+  ${INCDIR}/track/localizer/levelsets/articulated_component_level_set.hpp  
+  ${INCDIR}/track/localizer/features/feature_localizer.hpp
+  ${INCDIR}/track/localizer/features/register_points.hpp
+  ${INCDIR}/track/localizer/features/lk_tracker.hpp
+  ${INCDIR}/track/localizer/features/descriptor.hpp
   ${INCDIR}/track/temporal/temporal.hpp
-  ${INCDIR}/track/pwp3d/lk_tracker.hpp
-  ${INCDIR}/track/pwp3d/descriptor.hpp
   )
 
 
@@ -75,24 +76,26 @@ set(
   utils/helpers.cpp 
   utils/nd_image.cpp 
   utils/plotter.cpp 
-  track/pose.cpp 
-  track/tracker.cpp 
-  track/articulated/articulated_level_set.cpp
-  track/localizer/articulated_component_level_set.cpp 
+  track/tracker/tracker.cpp 
+  track/tracker/monocular_tool_tracker.cpp 
+  track/tracker/stereo_tool_tracker.cpp 
+  track/tracker/surgical_tool_tracker.cpp
   track/model/model.cpp 
   track/model/node.cpp 
+  track/model/pose.cpp 
   track/model/articulated_model.cpp
-  track/pwp3d/comp_ls.cpp 
-  track/pwp3d/mono_pwp3d.cpp 
-  track/pwp3d/register_points.cpp 
-  track/pwp3d/stereo_pwp3d.cpp 
-  track/pwp3d/pwp3d.cpp
-  track/stt/monocular_tool_tracker.cpp 
-  track/stt/stereo_tool_tracker.cpp 
-  track/stt/surgical_tool_tracker.cpp
+  track/localizer/levelsets/comp_ls.cpp 
+  track/localizer/levelsets/mono_pwp3d.cpp 
+  track/localizer/features/register_points.cpp 
+  track/localizer/levelsets/stereo_pwp3d.cpp 
+  track/localizer/levelsets/pwp3d.cpp
+  track/localizer/features/feature_localizer.cpp
+  track/localizer/features/descriptor.cpp
+  track/localizer/features/lk_tracker.cpp
+  track/localizer/levelsets/articulated_level_set.cpp
+  track/localizer/levelsets/articulated_component_level_set.cpp
   track/temporal/temporal.cpp
-  track/pwp3d/descriptor.cpp
-  track/pwp3d/lk_tracker.cpp
+  
   )
 
 #track/articulated/articulated_solver.cpp - adds ceres dependency

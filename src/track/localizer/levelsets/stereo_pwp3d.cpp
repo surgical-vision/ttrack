@@ -1,7 +1,7 @@
 #include <boost/filesystem.hpp>
 #include <cinder/app/App.h>
 
-#include "../../../include/ttrack/track/pwp3d/stereo_pwp3d.hpp"
+#include "../../../include/ttrack/track/localizer/levelsets/stereo_pwp3d.hpp"
 #include "../../../include/ttrack/utils/helpers.hpp"
 
 using namespace ttrk;
@@ -17,7 +17,7 @@ StereoPWP3D::StereoPWP3D(boost::shared_ptr<StereoCamera> camera) : PWP3D(camera-
 
 float StereoPWP3D::DoPointBasedAlignmentStepForLeftEye(boost::shared_ptr<Model> current_model){
 
-  if (!lk_tracker_) return 0.0;
+  if (!point_registration_) return 0.0;
 
   float error = 0.0f;
   auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
@@ -42,6 +42,9 @@ float StereoPWP3D::DoPointBasedAlignmentStepForLeftEye(boost::shared_ptr<Model> 
   current_model->UpdatePose(jacs);
 
 #endif
+
+
+  point_registration_->UpdatePointsOnModelAfterDerivatives(current_model->GetBasePose());
 
   return error;
 
@@ -117,30 +120,37 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
 
   if (curr_step == NUM_STEPS) {
 
+    cv::Mat front_intersection_image, back_intersection_image, front_normal_image;
+    ProcessSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), front_intersection_image, back_intersection_image, front_normal_image);
+
     curr_step = 0;
 
     auto stereo_frame = boost::dynamic_pointer_cast<sv::StereoFrame>(frame_);
 
     if (!point_registration_){
 
-      cv::Mat front_intersection_image, back_intersection_image, sdf_image;
-      ProcessSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), sdf_image, front_intersection_image, back_intersection_image);
-
       point_registration_.reset(new PointRegistration(stereo_camera_->left_eye()));
-      //point_registration_->SetFrontIntersectionImage(front_intersection_image);
-      point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, current_model->GetBasePose());
+      point_registration_->SetFrontIntersectionImage(front_intersection_image);
+      point_registration_->InitializeTracker(stereo_frame->GetLeftImage(), current_model->GetBasePose());
     
     }
+    else{
+
+      point_registration_->SetFrontIntersectionImage(front_intersection_image);
+      point_registration_->TrackLocalPoints(stereo_frame->GetLeftImage());
+
+    }
+
 
 
   }
 
   ++curr_step;
-
-
-  float left_error = DoRegionBasedAlignmentStepForLeftEye(current_model);
-  float right_error = DoRegionBasedAlignmentStepForRightEye(current_model);
+  
+  float left_error = 0.0f;// DoRegionBasedAlignmentStepForLeftEye(current_model);
+  float right_error = 0.0f; //DoRegionBasedAlignmentStepForRightEye(current_model);
   float point_error = DoPointBasedAlignmentStepForLeftEye(current_model);
+
   UpdateWithErrorValue(left_error + right_error + point_error);
   errors_.push_back(left_error + right_error + point_error);
 

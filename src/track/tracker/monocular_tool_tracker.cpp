@@ -1,5 +1,5 @@
-#include "../../../include/ttrack/track/stt/monocular_tool_tracker.hpp"
-#include "../../../include/ttrack/track/pwp3d/mono_pwp3d.hpp"
+#include "../../../include/ttrack/track/tracker/monocular_tool_tracker.hpp"
+#include "../../../include/ttrack/track/localizer/levelsets/mono_pwp3d.hpp"
 #include "../../../include/ttrack/utils/helpers.hpp"
 #include "../../../include/ttrack/track/model/articulated_model.hpp"
 

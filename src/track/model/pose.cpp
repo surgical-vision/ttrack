@@ -1,5 +1,6 @@
-#include "../../include/ttrack/track/pose.hpp"
 #include <cinder/app/App.h>
+
+#include "../../../include/ttrack/track/model/pose.hpp"
 
 using namespace ttrk;
 

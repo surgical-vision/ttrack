@@ -7,12 +7,12 @@
 #include <cinder/gl/Texture.h>
 
 #include "../localizer.hpp"
-#include "../../utils/camera.hpp"
-#include "../../utils/image.hpp"
-#include "../pose.hpp"
-#include "../../utils/plotter.hpp"
-#include "register_points.hpp"
-#include "lk_tracker.hpp"
+#include "../../../utils/camera.hpp"
+#include "../../../utils/image.hpp"
+#include "../../model/pose.hpp"
+#include "../../../utils/plotter.hpp"
+#include "../features/register_points.hpp"
+#include "../features/lk_tracker.hpp"
 
 namespace ttrk {
 

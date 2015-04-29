@@ -82,28 +82,16 @@ void Detect::SetupClassifier(const ClassifierType type, const size_t number_of_l
 
   classifier_.reset();
 
-  //construct the classifier from scratch
-  try{
+  switch (type){
 
-    switch(type){
-
-      case MCRF: classifier_ = boost::static_pointer_cast<BaseClassifier, MultiClassRandomForest>(boost::shared_ptr<MultiClassRandomForest>(new MultiClassRandomForest(number_of_labels))); break;
-      case RF: classifier_ = boost::static_pointer_cast<BaseClassifier, RandomForest>(boost::shared_ptr<RandomForest>(new RandomForest)); break;
-      case SVM: classifier_ = boost::static_pointer_cast<BaseClassifier, SupportVectorMachine>(boost::shared_ptr<SupportVectorMachine>(new SupportVectorMachine )); break;
-      case NBAYES: throw("NBAYES not supported"); //NOT YET IMPLEMENTED!
-      case HISTOGRAM: classifier_ = boost::static_pointer_cast<BaseClassifier, Histogram>(boost::shared_ptr<Histogram>(new Histogram)); break;
-      default: classifier_ = boost::static_pointer_cast<BaseClassifier, RandomForest>(boost::shared_ptr<RandomForest>(new RandomForest)); break;
-
-    }
-
-  }catch(std::bad_alloc &e){
-    std::cerr << "Error, could not create classifier: " << e.what();
-    SAFE_EXIT();
+  case MCRF: classifier_ = boost::static_pointer_cast<BaseClassifier, MultiClassRandomForest>(boost::shared_ptr<MultiClassRandomForest>(new MultiClassRandomForest(number_of_labels))); break;
+  case RF: classifier_ = boost::static_pointer_cast<BaseClassifier, RandomForest>(boost::shared_ptr<RandomForest>(new RandomForest)); break;
+  case SVM: classifier_ = boost::static_pointer_cast<BaseClassifier, SupportVectorMachine>(boost::shared_ptr<SupportVectorMachine>(new SupportVectorMachine)); break;
+  case NBAYES: throw("NBAYES not supported"); //NOT YET IMPLEMENTED!
+  case HISTOGRAM: classifier_ = boost::static_pointer_cast<BaseClassifier, Histogram>(boost::shared_ptr<Histogram>(new Histogram)); break;
+  default: classifier_ = boost::static_pointer_cast<BaseClassifier, RandomForest>(boost::shared_ptr<RandomForest>(new RandomForest)); break;
+  
   }
-
-#if defined (DEBUG) || defined(_DEBUG_)
-  assert(classifier_.get()); //check it actually points to something now
-#endif
 }
 
 void Detect::LoadClassifier(const std::string &classifier_path){

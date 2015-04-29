@@ -8,10 +8,10 @@
 #include <CinderOpenCV.h>
 #include <cinder/CinderMath.h>
 
-#include "../../../include/ttrack/track/pwp3d/pwp3d.hpp"
-#include "../../../include/ttrack/utils/helpers.hpp"
-#include "../../../include/ttrack/resources.hpp"
-#include "../../../include/ttrack/constants.hpp"
+#include "../../../../include/ttrack/track/localizer/levelsets/pwp3d.hpp"
+#include "../../../../include/ttrack/utils/helpers.hpp"
+#include "../../../../include/ttrack/resources.hpp"
+#include "../../../../include/ttrack/constants.hpp"
 
 using namespace ttrk;
 
@@ -177,10 +177,13 @@ float PWP3D::GetRegionAgreement(const cv::Mat &classification_image, const int r
 
   cv::Vec<float, 5> re = classification_image.at < cv::Vec<float, 5> >(r, c);
 
-  const float pixel_probability = re[0];
-
-  float Pf = pixel_probability;// / (fg_size * pixel_probability + bg_size * (1 - pixel_probability)); //P / fg_size;
-  float Pb = (1 - pixel_probability);// / (fg_size * pixel_probability + bg_size * (1 - pixel_probability)); //(1 - P) / bg_size;
+  float pixel_probability = re[1];
+  for (int i = 2; i < 5; ++i){
+    pixel_probability = std::max(pixel_probability, re[i]);
+  }
+ 
+  float Pf = pixel_probability;
+  float Pb = re[0];
   
   if (SAFE_EQUALS<float>(Pf, 0) && SAFE_EQUALS<float>(Pb, 1)){
     Pf += 0.05;
@@ -212,21 +215,16 @@ void PWP3D::ComputeLKJacobian(boost::shared_ptr<Model> current_model, cv::Matx<f
 
 void PWP3D::ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_model, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx){
 
-  std::vector<MatchedPair> pnp_pairs;
-  point_registration_->FindPointCorrespondencesWithPose(frame_, current_model, current_model->GetBasePose(), pnp_pairs);
+  std::vector<float> derivs = point_registration_->GetDerivativesForPoints(current_model->GetBasePose());
 
   cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
 
-  for (auto pnp = pnp_pairs.begin(); pnp != pnp_pairs.end(); pnp++){
-    std::vector<float> point_jacobian = point_registration_->GetPointDerivative(pnp->learned_point, cv::Point2f(pnp->image_point[0], pnp->image_point[1]), current_model->GetBasePose());
-
-    for (int i = 0; i < jacobian.rows; ++i){
-      points_jacobian(i) += 0.0005 * point_jacobian[i];
-    }
-
-    jacobian += points_jacobian.t();
-    hessian_approx += (points_jacobian.t() * points_jacobian);
+  for (int i = 0; i < derivs.size(); ++i){
+    points_jacobian(i) += 3 * derivs[i];
   }
+
+  jacobian += points_jacobian.t();
+  hessian_approx += (points_jacobian.t() * points_jacobian);
 
 }
 

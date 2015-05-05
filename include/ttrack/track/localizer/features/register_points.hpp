@@ -23,8 +23,13 @@ namespace ttrk {
 
     virtual void InitializeTracker(cv::Mat &current_frame, const Pose &pose);
 
+    void UpdatePose(const Pose &pose) {
+      pose_ = pose;
+    }
  
   protected:
+
+    void ComputeRootSiftFeatureFromSiftFeatures(cv::Mat &sift_descriptors) const;
 
     Pose pose_;
 

@@ -29,7 +29,7 @@ PWP3D::PWP3D(const int width, const int height) {
 
   HEAVYSIDE_WIDTH = 3; //if this value is changed the Delta/Heavside approximations will be invalid!
 
-  NUM_STEPS = 24;// 125;
+  NUM_STEPS = 24;
 
   curr_step = NUM_STEPS; //so we report converged and ask for a new frame at the start
 
@@ -220,7 +220,7 @@ void PWP3D::ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_mo
   cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
 
   for (int i = 0; i < derivs.size(); ++i){
-    points_jacobian(i) += 3 * derivs[i];
+    points_jacobian(i) += 10.0 * derivs[i]; //no scaling?
   }
 
   jacobian += points_jacobian.t();

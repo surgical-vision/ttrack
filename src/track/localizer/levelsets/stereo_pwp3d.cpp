@@ -133,12 +133,11 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
     }
     else{
 
+      point_registration_->UpdatePose(current_model->GetBasePose());
       point_registration_->SetFrontIntersectionImage(front_intersection_image);
       point_registration_->TrackLocalPoints(stereo_frame->GetLeftImage());
 
     }
-
-
 
   }
 

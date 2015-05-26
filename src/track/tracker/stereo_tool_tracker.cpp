@@ -10,7 +10,7 @@
 #include "../../../include/ttrack/track/localizer/levelsets/stereo_pwp3d.hpp"
 #include "../../../include/ttrack/track/localizer/levelsets/comp_ls.hpp"
 #include "../../../include/ttrack/track/localizer/levelsets/articulated_level_set.hpp"
-
+#include "../../../include/ttrack/track/localizer/levelsets/articulated_solver.hpp"
 #include "../../../include/ttrack/track/model/articulated_model.hpp"
 #include "../../../include/ttrack/utils/helpers.hpp"
 
@@ -18,13 +18,10 @@ using namespace ttrk;
 
 StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, const std::string &calibration_file, const std::string &results_dir, const LocalizerType &localizer_type, const size_t number_of_labels) : SurgicalToolTracker(model_parameter_file, results_dir), camera_(new StereoCamera(calibration_file)){
 
-  /**
-  * HARD CODING NUMBER OF COMPONENTS FOR NOW
-  */
-
   if (localizer_type == LocalizerType::PWP3DLocalizer)
     localizer_.reset(new StereoPWP3D(camera_));
   else if (localizer_type == LocalizerType::ComponentLS)
+    //localizer_.reset(new ArticulatedLevelSetSolver(camera_));
     localizer_.reset(new ComponentLevelSet(number_of_labels, camera_)); 
   else
     throw std::runtime_error("");	

@@ -51,6 +51,7 @@ set(
   ${INCDIR}/track/localizer/levelsets/stereo_pwp3d.hpp 
   ${INCDIR}/track/localizer/levelsets/articulated_level_set.hpp
   ${INCDIR}/track/localizer/levelsets/articulated_component_level_set.hpp  
+  ${INCDIR}/track/localizer/levelsets/articulated_solver.hpp
   ${INCDIR}/track/localizer/features/feature_localizer.hpp
   ${INCDIR}/track/localizer/features/register_points.hpp
   ${INCDIR}/track/localizer/features/lk_tracker.hpp
@@ -89,6 +90,7 @@ set(
   track/localizer/features/register_points.cpp 
   track/localizer/levelsets/stereo_pwp3d.cpp 
   track/localizer/levelsets/pwp3d.cpp
+  track/localizer/levelsets/articulated_solver.cpp
   track/localizer/features/feature_localizer.cpp
   track/localizer/features/descriptor.cpp
   track/localizer/features/lk_tracker.cpp
@@ -98,7 +100,6 @@ set(
   
   )
 
-#track/articulated/articulated_solver.cpp - adds ceres dependency
 
 #######################################################
 ## User build options
@@ -136,6 +137,12 @@ find_package(Cinder REQUIRED)
 list(APPEND USER_INC "${CINDER_INCLUDE_DIRS}" )
 list(APPEND LINK_LIBS "${CINDER_LIBRARIES}" )
 
+#find_package(Eigen3 REQUIRED)
+#list(APPEND USER_INC "${EIGEN3_INCLUDE_DIR}")
+
+find_package(Ceres REQUIRED)
+list(APPEND USER_INC "${CERES_INCLUDE_DIRS}")
+list(APPEND LINK_LIBS "${CERES_LIBRARIES}")
 
 #######################################################
 ## Add Libraries / Include Directories / Link directories

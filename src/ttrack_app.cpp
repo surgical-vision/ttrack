@@ -378,6 +378,12 @@ void TTrackApp::drawPlotter(boost::shared_ptr<gl::Fbo> framebuffer) {
   gl::drawLine(ci::Vec2f(start_x, start_y), ci::Vec2f(start_x, end_y));
   gl::drawLine(ci::Vec2f(start_x, start_y), ci::Vec2f(end_x, start_y));
   
+  /* remove */
+  gl::color(1, 1, 1);
+  framebuffer->unbindFramebuffer();
+  return;
+  /* remove */
+
   float largest_error = -1;
   auto &plotter = ttrk::ErrorMetricPlotter::Instance();
   auto &plots = plotter.GetPlottables();

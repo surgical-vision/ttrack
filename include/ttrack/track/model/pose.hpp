@@ -50,6 +50,9 @@ namespace ttrk {
 
     std::vector<float> GetPose() const;
 
+    ci::Quatf GetRotation() const { return rotation_; }
+    ci::Vec3f GetTranslation() const { return translation_; }
+
     void SetPose(std::vector<float> &pose);
 
     /**

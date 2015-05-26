@@ -16,7 +16,7 @@ PointRegistration::PointRegistration(boost::shared_ptr<MonocularCamera> camera) 
 
 void PointRegistration::ComputeRootSiftFeatureFromSiftFeatures(cv::Mat &sift_descriptors) const{
 
-  if (sift_descriptors.type() != CV_32FC1) throw std::runtime_error("");
+  assert(sift_descriptors.type() == CV_32FC1);
 
   for (int r = 0; r < sift_descriptors.rows; ++r){
 

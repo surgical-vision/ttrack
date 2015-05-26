@@ -9,10 +9,6 @@
 
 namespace ttrk {
 
-  const int NUM_DESCRIPTOR = 120;
-  const int MATCHING_DISTANCE_THRESHOLD = 10;
-  const double DESCRIPTOR_SIMILARITY_THRESHOLD = 200.0;
-
   class PointRegistration : public FeatureLocalizer {
 
   public:

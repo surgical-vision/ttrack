@@ -51,7 +51,6 @@ set(
   ${INCDIR}/track/localizer/levelsets/stereo_pwp3d.hpp 
   ${INCDIR}/track/localizer/levelsets/articulated_level_set.hpp
   ${INCDIR}/track/localizer/levelsets/articulated_component_level_set.hpp  
-  ${INCDIR}/track/localizer/levelsets/articulated_solver.hpp
   ${INCDIR}/track/localizer/features/feature_localizer.hpp
   ${INCDIR}/track/localizer/features/register_points.hpp
   ${INCDIR}/track/localizer/features/lk_tracker.hpp
@@ -90,7 +89,6 @@ set(
   track/localizer/features/register_points.cpp 
   track/localizer/levelsets/stereo_pwp3d.cpp 
   track/localizer/levelsets/pwp3d.cpp
-  track/localizer/levelsets/articulated_solver.cpp
   track/localizer/features/feature_localizer.cpp
   track/localizer/features/descriptor.cpp
   track/localizer/features/lk_tracker.cpp
@@ -107,24 +105,45 @@ set(
 # Project headers trump everything 
 list(APPEND LIB_INC_DIR  "${PROJECT_SOURCE_DIR}/include;${CMAKE_CURRENT_BINARY_DIR}/include" )
 
-#Boost
-set(Boost_USE_STATIC_LIBS OFF) 
-set(Boost_USE_MULTITHREADED ON)  
-set(Boost_USE_STATIC_RUNTIME OFF) 
-find_package(Boost REQUIRED COMPONENTS regex chrono date_time system filesystem thread) 
 
+#Cuda
+option(WITH_CUDA "Use CUDA optimized functions" OFF)
+if(WITH_CUDA)
+  find_package(CUDA REQUIRED QUIET)
+  if(CUDA_FOUND)
+    add_definitions(-DUSE_CUDA)
+  	set(USE_CUDA 1)
+	  set(CUDA_NVCC_FLAGS "-arch sm_30")
+
+	  add_definitions(-DCUDA_BUILD)
+	  message(STATUS "CUDA Found and Enabled")
+
+    string(FIND "${EXTERNAL_INC_DIRS}" "${CUDA_INCLUDE_DIRS}" HAS_INCLUDED REVERSE)
+    if(HAS_INCLUDED LESS 0 OR HAS_INCLUDED EQUAL 0)
+    		list(APPEND EXTERNAL_INC_DIRS ${CUDA_INCLUDE_DIRS})
+   	    list(APPEND EXTERNAL_LIBRARIES ${CUDA_LIBRARIES})
+  	endif()
+  endif()
+endif()
+
+if(USE_CUDA)
+	list(APPEND HEADERS ${INCDIR}/track/localizer/levelsets/pwp3d_cuda.hpp)
+	list(APPEND SOURCES track/localizer/levelsets/pwp3d.cu)
+endif()
+
+#Boost
+
+#add_definitions( -DBOOST_ALL_NO_LIB )
+#boost setting must go before find_package
+set(Boost_USE_STATIC_LIBS ON) 
+set(Boost_USE_MULTITHREADED ON)  
+set(Boost_USE_STATIC_RUNTIME OFF)
+#set(Boost_BOOST_ALL_DYN_LINK)
+find_package(Boost REQUIRED COMPONENTS regex chrono date_time system filesystem thread)
 if(Boost_FOUND)
     list(APPEND USER_INC "${Boost_INCLUDE_DIRS}")
     list(APPEND LINK_LIBS "${Boost_LIBRARIES}")
 endif()
-#set(Boost_USE_STATIC_LIBS OFF) # only find static libs
-#set(Boost_USE_MULTITHREADED ON)
-#set(Boost_USE_STATIC_RUNTIME OFF)
-#set(BOOST_ALL_DYN_LINK ON)
-#find_package(Boost REQUIRED QUIET)
-#list(APPEND USER_INC  "${Boost_INCLUDE_DIRS}" )
-#list(APPEND LINK_LIBS "${Boost_LIBRARIES}" )
-#list(APPEND USER_LIB "${Boost_LIBRARY_DIR}" )
 
 find_package(OpenCV REQUIRED)
 list(APPEND USER_INC "${OpenCV_INCLUDE_DIRS}" )
@@ -137,13 +156,20 @@ find_package(Cinder REQUIRED)
 list(APPEND USER_INC "${CINDER_INCLUDE_DIRS}" )
 list(APPEND LINK_LIBS "${CINDER_LIBRARIES}" )
 
-#find_package(Eigen3 REQUIRED)
-#list(APPEND USER_INC "${EIGEN3_INCLUDE_DIR}")
+option(WITH_CERES "Use Ceres based optimization" OFF)
+if(WITH_CERES)
+  add_definitions(-DUSE_CERES) 
+  #find_package(Eigen3 REQUIRED)
+  #list(APPEND USER_INC "${EIGEN3_INCLUDE_DIR}")
 
-find_package(Ceres REQUIRED)
-list(APPEND USER_INC "${CERES_INCLUDE_DIRS}")
-list(APPEND LINK_LIBS "${CERES_LIBRARIES}")
+  find_package(Ceres REQUIRED)
+  list(APPEND USER_INC "${CERES_INCLUDE_DIRS}")
+  list(APPEND LINK_LIBS "${CERES_LIBRARIES}")
 
+  list(APPEND HEADERS ${INCDIR}/track/localizer/levelsets/articulated_solver.hpp)
+  list(APPEND SOURCES track/localizer/levelsets/articulated_solver.cpp)
+
+endif()
 #######################################################
 ## Add Libraries / Include Directories / Link directories
 
@@ -151,11 +177,19 @@ include_directories( ${LIB_INC_DIR} )
 include_directories( ${USER_INC} )
 link_directories( ${USER_LIB} )
 
-#if(_WIN_)
+if(USE_CUDA)
+if(_WIN_)
+#unset(WIN32)
+cuda_add_executable(${BINARY_NAME} "../resources/Resources.rc" ${MAIN_FILE} ${SOURCES} ${HEADERS} )
+set_property(TARGET ${BINARY_NAME} PROPERTY WIN32_EXECUTABLE TRUE)
+#set(WIN32 1)
+else(_WIN_)
+cuda_add_executable(${BINARY_NAME} ${MAIN_FILE} ${SOURCES} ${HEADERS} )
+endif()
+else(USE_CUDA)
 add_executable(${BINARY_NAME} WIN32 "../resources/Resources.rc" ${MAIN_FILE} ${SOURCES} ${HEADERS} )
-#else
-#add_executable(${BINARY_NAME} ${MAIN_FILE} ${SOURCES} ${HEADERS} )
-#endif
+endif()
+
 
 
 target_link_libraries(${BINARY_NAME} ${LINK_LIBS})

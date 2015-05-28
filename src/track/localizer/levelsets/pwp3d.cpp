@@ -8,6 +8,11 @@
 #include <CinderOpenCV.h>
 #include <cinder/CinderMath.h>
 
+#define USE_CUDA
+#ifdef USE_CUDA
+#include "../../../../include/ttrack/track/localizer/levelsets/pwp3d_cuda.hpp"
+#endif 
+
 #include "../../../../include/ttrack/track/localizer/levelsets/pwp3d.hpp"
 #include "../../../../include/ttrack/utils/helpers.hpp"
 #include "../../../../include/ttrack/resources.hpp"
@@ -32,6 +37,8 @@ PWP3D::PWP3D(const int width, const int height) {
   NUM_STEPS = 24;
 
   curr_step = NUM_STEPS; //so we report converged and ask for a new frame at the start
+
+  //testCudaFunction << <1, 1 >> >();
 
 }
 

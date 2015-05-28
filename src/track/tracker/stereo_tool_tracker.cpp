@@ -10,9 +10,12 @@
 #include "../../../include/ttrack/track/localizer/levelsets/stereo_pwp3d.hpp"
 #include "../../../include/ttrack/track/localizer/levelsets/comp_ls.hpp"
 #include "../../../include/ttrack/track/localizer/levelsets/articulated_level_set.hpp"
-#include "../../../include/ttrack/track/localizer/levelsets/articulated_solver.hpp"
 #include "../../../include/ttrack/track/model/articulated_model.hpp"
 #include "../../../include/ttrack/utils/helpers.hpp"
+
+#ifdef USE_CERES
+#include "../../../include/ttrack/track/localizer/levelsets/articulated_solver.hpp"
+#endif
 
 using namespace ttrk;
 

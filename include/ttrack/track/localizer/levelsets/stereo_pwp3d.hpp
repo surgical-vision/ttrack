@@ -66,6 +66,8 @@ namespace ttrk {
     */
     virtual void ComputeJacobiansForEye(const cv::Mat &classification_image, boost::shared_ptr<Model> current_model, boost::shared_ptr<MonocularCamera> camera, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx, float &error);
 
+    void ComputeJacobiansForEyeCUDA(const cv::Mat &classification_image, boost::shared_ptr<Model> current_model, boost::shared_ptr<MonocularCamera> camera, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx, float &error);
+
     /**
     * Specialization of the jacobian computation for the right eye (the pose parameters we target are w.r.t. the left eye).
     * @param[in] region_agreement The region agreement for this pixel.

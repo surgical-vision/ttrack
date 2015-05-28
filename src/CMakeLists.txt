@@ -113,7 +113,7 @@ if(WITH_CUDA)
   if(CUDA_FOUND)
     add_definitions(-DUSE_CUDA)
   	set(USE_CUDA 1)
-	  set(CUDA_NVCC_FLAGS "-arch sm_30")
+	  set(CUDA_NVCC_FLAGS "-arch sm_20")
 
 	  add_definitions(-DCUDA_BUILD)
 	  message(STATUS "CUDA Found and Enabled")

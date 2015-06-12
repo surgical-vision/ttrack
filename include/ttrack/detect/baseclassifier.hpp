@@ -50,6 +50,12 @@ namespace ttrk{
     * Default destructor.
     */
     virtual ~BaseClassifier();
+    
+    /**
+    * Classify a frame. This method assumes binary classification problem where the target label is 1. It will return the frame with each pixel
+    * labelled with the probability that it takes label 1. As we typically pass in frames with 5 channels (allowing up to 5 labels) this will return
+    * an image where the first channel 
+    */
 
     virtual bool ClassifyFrame(boost::shared_ptr<sv::Frame> frame);
 
@@ -93,6 +99,12 @@ namespace ttrk{
      * @return The classifier name as a string.
      */
     virtual std::string NameAsString() const = 0;
+
+    /**
+    * Check if the loaded classifier supports classifying multiple classes or if it just does binary classification.
+    * @return Whether the classifier supports mulitple classes or not.
+    */
+    virtual bool IsBinary() const = 0;
 
   protected:
 

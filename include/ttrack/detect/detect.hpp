@@ -31,8 +31,9 @@ namespace ttrk{
      * Construct a detection system and train it.
      * @param[in] classifier_path The saved classifier that will be loaded by the detection system.
      * @param[in] classifier_type The type of classifier to load.
+     * @param[in] number_of_labels The number of labels we are trying to classify. This includes the background label.
      */
-    Detect(const std::string &classifier_path, ClassifierType classifier_type);
+    Detect(const std::string &classifier_path, ClassifierType classifier_type, const size_t number_of_labels);
 
     /**
     * Default destructor.
@@ -91,8 +92,9 @@ namespace ttrk{
     /**
      * Construct the classifier of choice.
      * @param[in] type The desired type of classification algorithm.
+     * @param[in] number_of_labels The number of labels we are trying to classify. This includes the background label.
      */
-    void SetupClassifier(const ClassifierType type);
+    void SetupClassifier(const ClassifierType type, const size_t number_of_labels);
 
     /**
      * Load the classifier from the classifier directory.

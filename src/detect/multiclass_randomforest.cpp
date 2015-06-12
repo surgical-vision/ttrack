@@ -23,6 +23,8 @@ bool MultiClassRandomForest::ClassifyFrame(boost::shared_ptr<sv::Frame> frame){
   float *frame_data = (float *)frame->GetClassificationMap().data;
   size_t classification_map_channels = frame->GetClassificationMap().channels();
   
+  //cv::Mat saveframe = cv::Mat::zeros(frame->GetClassificationMap().size(), CV_8UC3);
+
   if (num_classes_ > classification_map_channels){
     throw std::runtime_error("");
   }
@@ -40,6 +42,7 @@ bool MultiClassRandomForest::ClassifyFrame(boost::shared_ptr<sv::Frame> frame){
 
       bool predicted_class = false;
 
+      //float largest_pred = 0;
       //predicted probability of each class
       for (size_t cls = 0; cls < num_classes_; ++cls){
         const float prediction = (const float)PredictProb(pix, cls);
@@ -47,7 +50,14 @@ bool MultiClassRandomForest::ClassifyFrame(boost::shared_ptr<sv::Frame> frame){
 
         if (cls > 0 && prediction){
           predicted_class = true;
+          //if (prediction > largest_pred){
+          //largest_pred = prediction;
+          //if (cls == 1)
+          ///  saveframe.at<cv::Vec3b>(r, c) = cv::Vec3b(255, 0, 0);
+          //else if (cls == 2)
+          //  saveframe.at<cv::Vec3b>(r, c) = cv::Vec3b(0, 255, 0);
         }
+
       }
 
       //zero the rest of the values for sanity
@@ -59,15 +69,6 @@ bool MultiClassRandomForest::ClassifyFrame(boost::shared_ptr<sv::Frame> frame){
 
     }
   }
-
-
-  
-  std::vector<cv::Mat> splitted;
-  cv::split(frame->GetClassificationMap(), splitted);
-  cv::Mat background = splitted[0];
-  cv::Mat foreground_tip = splitted[1];
-  cv::Mat foreground_shaft = splitted[2];
-  cv::Mat foreground_other = splitted[3];
 
   if (pixel_count > (0.02*rows*cols)) return true;
   else return false;

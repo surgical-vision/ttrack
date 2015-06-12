@@ -17,7 +17,7 @@
 #include <queue>
 
 #include "utils/image.hpp"
-#include "track/tracker.hpp"
+#include "track/tracker/tracker.hpp"
 #include "detect/detect.hpp"
 #include "utils/handler.hpp"
 
@@ -112,8 +112,9 @@ namespace ttrk{
      * @param[in] right_media_file The right input video.
      * @param[in] starting_pose Temporary, will be removed. Just a hack until the initializer is done.
      * @param[in] starting_poses Hack in the starting poses for cases where we don't have strong auto initialization.
+     * @param[in] number_of_labels The number of labels we are trying to classify. This includes the background label.
      */
-    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const std::string &left_media_file, const std::string &right_media_file, const std::vector< std::vector<float> > &starting_pose);
+    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const std::string &left_media_file, const std::string &right_media_file, const std::vector< std::vector<float> > &starting_pose, const size_t number_of_labels);
     
     /**
     * Setup the tracking system with the files it needs to find, localize and track the objects for monocular inputs.
@@ -125,8 +126,9 @@ namespace ttrk{
     * @param[in] classifier_type Specify the type of classifier.
     * @param[in] media_file The input video.
     * @param[in] starting_poses Hack in the starting poses for cases where we don't have strong auto initialization.
+    * @param[in] number_of_labels The number of labels we are trying to classify. This includes the background label.
     */
-    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const std::string &media_file, const  std::vector< std::vector<float> > &starting_pose);
+    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const std::string &media_file, const  std::vector< std::vector<float> > &starting_pose, const size_t number_of_labels);
 
     /**
     * Quick method to convert a string formulation of a classifier type (e.g. RF or SVM) to the ClassifierType.
@@ -172,8 +174,9 @@ namespace ttrk{
     * @param[in] classifier_type Specify the type of classifier.
     * @param[in] camera_type Whether we are doing monocular or stereo work.
     * @param[in] starting_poses Hack in the starting poses for cases where we don't have strong auto initialization.
+    * @param[in] number_of_labels The number of labels we are trying to classify. This includes the background label.
     */
-    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const CameraType camera_type, const  std::vector< std::vector<float> > &starting_poses);
+    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const CameraType camera_type, const  std::vector< std::vector<float> > &starting_poses, const size_t number_of_labels);
 
     /**
      * Grab a ptr to a new frame. This is the interface to use if reading from images or reading from a videofile.

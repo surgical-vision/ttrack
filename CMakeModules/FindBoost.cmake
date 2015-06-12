@@ -874,6 +874,7 @@ else()
     ${Boost_INCLUDE_DIR}/lib
     ${Boost_INCLUDE_DIR}/../lib
     ${Boost_INCLUDE_DIR}/stage/lib
+    ${Boost_INCLUDE_DIR}/../lib32-msvc-12.0
     )
   if( Boost_NO_SYSTEM_PATHS )
     list(APPEND _boost_LIBRARY_SEARCH_DIRS NO_CMAKE_SYSTEM_PATH)
@@ -882,6 +883,7 @@ else()
       C:/boost/lib
       C:/boost
       /sw/local/lib
+      "C:/Program Files (x86)/Boost/lib32-msvc-12.0/"
       )
   endif()
 endif()

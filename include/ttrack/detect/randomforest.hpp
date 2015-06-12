@@ -54,6 +54,12 @@ namespace ttrk{
      */
     virtual std::string NameAsString() const;
 
+    /**
+    * Check if the loaded classifier supports classifying multiple classes or if it just does binary classification.
+    * @return Whether the classifier supports mulitple classes or not.
+    */
+    virtual bool IsBinary() const override { return true; }
+
 
   protected:
 

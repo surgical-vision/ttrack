@@ -51,6 +51,13 @@ void TTrackApp::SetupFromConfig(const std::string &path){
 
   }
 
+  //load the number of labels from the config file. This should include background! 
+  size_t number_of_labels = 2;
+  try{
+    number_of_labels = reader.get_element_as_type<size_t>("num-labels");
+  }
+  catch (std::runtime_error &){ }
+
   //throwing errors here? did you remember the zero at element 15 of start pose or alteranatively set the trackable dir to absolute in the cfg file
   ttrack.SetUp(reader.get_element("trackable"),
                root_dir + "/" + reader.get_element("camera-config"),
@@ -60,7 +67,8 @@ void TTrackApp::SetupFromConfig(const std::string &path){
                ttrk::TTrack::ClassifierFromString(reader.get_element("classifier-type")),
                root_dir + "/" + reader.get_element("left-input-video"),
                root_dir + "/" + reader.get_element("right-input-video"),
-               starting_poses);
+               starting_poses,
+               number_of_labels);
   
   int width = reader.get_element_as_type<int>("window-width");
   int height = reader.get_element_as_type<int>("window-height");
@@ -369,6 +377,12 @@ void TTrackApp::drawPlotter(boost::shared_ptr<gl::Fbo> framebuffer) {
   gl::drawLine(ci::Vec2f(start_x, start_y), ci::Vec2f(start_x, end_y));
   gl::drawLine(ci::Vec2f(start_x, start_y), ci::Vec2f(end_x, start_y));
   
+  /* remove */
+  gl::color(1, 1, 1);
+  framebuffer->unbindFramebuffer();
+  return;
+  /* remove */
+
   float largest_error = -1;
   auto &plotter = ttrk::ErrorMetricPlotter::Instance();
   auto &plots = plotter.GetPlottables();

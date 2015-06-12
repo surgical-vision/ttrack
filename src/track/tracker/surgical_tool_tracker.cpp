@@ -15,16 +15,9 @@ SurgicalToolTracker::SurgicalToolTracker(const std::string &model_parameter_file
 }
 
 
-void SurgicalToolTracker::InitFromFile(boost::shared_ptr<Model> tm){
+void SurgicalToolTracker::InitFromFile(boost::shared_ptr<Model> tm, size_t idx){
 
-  std::stringstream s(Model::GetCurrentModelCount());
-  int i; s >> i;
-  std::vector<float> start_poses = GetStartPose(i - 1);
-
-  //cv::Mat rots = (cv::Mat_<float>(3, 3) <<
-  //  start_poses[0], start_poses[1], start_poses[2],
-  // start_poses[4], start_poses[5], start_poses[6],
-  //  start_poses[8], start_poses[9], start_poses[10]);
+  std::vector<float> start_poses = GetStartPose(idx);
 
   ci::Matrix33f r(start_poses[0], start_poses[4], start_poses[8], start_poses[1], start_poses[5], start_poses[9], start_poses[2], start_poses[6], start_poses[10]);
 

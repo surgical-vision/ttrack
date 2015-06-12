@@ -23,13 +23,13 @@ namespace ttrk{
       menubar_ = cinder::params::InterfaceGl(title, ci::Vec2i(width, height));
     }
 
-    std::vector<UIControllableVariableBase *> GetVars() { return vars_; }
+    //std::vector<UIControllableVariableBase *> GetVars() { return vars_; }
 
     template<typename T>
-    void Add(UIControllableVariableBase *v){
-      //vars_.push_back(uiv);
-      T *xt = (T *)v->GetValPtr();
-      menubar_.addParam(v->GetName(), xt, "min = " + v->GetMin() + " max = " + v->GetMax() + " step = " + v->GetIncrement(), false);
+    void AddVar(T *val, T min, T max, T step){
+      std::stringstream ss;
+      ss << "min = " << min << " max = " << max << " step = " + step;
+      menubar_.addParam(v->GetName(), val, ss.str());
     }
 
     cinder::params::InterfaceGl &Menubar() { return menubar_; }
@@ -37,7 +37,7 @@ namespace ttrk{
   protected:
 
     cinder::params::InterfaceGl menubar_;
-    std::vector<UIControllableVariableBase *> vars_;
+    //std::vector<UIControllableVariableBase *> vars_;
     bool initialized_;
 
 
@@ -47,7 +47,7 @@ namespace ttrk{
 
   };
 
-  class UIControllableVariableBase {
+  /*class UIControllableVariableBase {
 
   public:
 
@@ -159,6 +159,6 @@ namespace ttrk{
   template<>
   int UIControllableVariable<double>::GetValType() const {
     return 13;
-  }
+  }*/
   
 }

@@ -8,10 +8,6 @@
 #include <CinderOpenCV.h>
 #include <cinder/CinderMath.h>
 
-#ifdef USE_CUDA
-#include "../../../../include/ttrack/track/localizer/levelsets/pwp3d_cuda.hpp"
-#endif 
-
 #include "../../../../include/ttrack/track/localizer/levelsets/pwp3d.hpp"
 #include "../../../../include/ttrack/utils/helpers.hpp"
 #include "../../../../include/ttrack/resources.hpp"
@@ -33,16 +29,10 @@ PWP3D::PWP3D(const int width, const int height) {
 
   HEAVYSIDE_WIDTH = 3; //if this value is changed the Delta/Heavside approximations will be invalid!
 
-  NUM_STEPS = 2;
+  NUM_STEPS = 20;
 
   curr_step = NUM_STEPS; //so we report converged and ask for a new frame at the start
-
-#ifdef USE_CUDA
-  if (!ttrk::gpu::checkCudaFunctionality()){
-    throw std::runtime_error("Error, no CUDA devices found!");
-  }
-#endif
-
+  
 }
 
 PWP3D::~PWP3D(){

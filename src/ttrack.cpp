@@ -122,10 +122,6 @@ LocalizerType TTrack::LocalizerTypeFromString(const std::string &str){
 
   if (str == "PWP3D" || str == "pwp3d") return LocalizerType::PWP3DLocalizer;
   else if (str == "CompLS") return LocalizerType::ComponentLS;
-  else if (str == "ArticultatedComponentLS") return LocalizerType::ArticulatedComponentLS;
-#ifdef USE_CERES
-  else if (str == "CeresLevelSetSolver") return LocalizerType::CeresLevelSetSolver;
-#endif
   else throw std::runtime_error("");
 
 }

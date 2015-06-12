@@ -61,8 +61,9 @@ namespace ttrk{
     /**
     * Initialize the pose of the tool from a configuation file.
     * @param[in] tm The tracked model to initialize the pose of.
+    * @param[in] idx The index of the model
     */
-    void InitFromFile(boost::shared_ptr<Model> tm);
+    void InitFromFile(boost::shared_ptr<Model> tm, size_t idx);
 
     void ShiftCenter(cv::Vec2d &center_of_mass, const cv::Vec2d &central_axis, double length) const;
     bool ThresholdImage(const cv::Mat &image, std::vector<std::vector<cv::Point> > &contours) const;

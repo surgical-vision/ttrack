@@ -5,8 +5,6 @@
 
 namespace ttrk {
 
-  const int NUM_COMPONENTS = 2;
-
   class ComponentLevelSet : public StereoPWP3D {
 
   public:
@@ -63,13 +61,11 @@ namespace ttrk {
     * @param[in] col_idx The y-pixel coordinate for this image.
     * @param[in] sdf_value The signed distance function value for this pixel.
     * @param[in] target_label The target label for multiclass classification.
-    * @param[in] fg_area The area of the foreground region.
-    * @param[in] bg_area The area of the background region.
     * @return The error value.
     */
     float GetErrorValue(const cv::Mat &classification_image, const int row_idx, const int col_idx, const float sdf_value, const size_t target_probability, const size_t neighbour_probability) const;
 
-    float DoAlignmentStep(boost::shared_ptr<Model> current_model, bool track_points);
+    virtual float DoAlignmentStep(boost::shared_ptr<Model> current_model, bool track_points);
 
   protected:
 

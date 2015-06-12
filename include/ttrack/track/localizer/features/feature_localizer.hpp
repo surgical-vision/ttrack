@@ -13,7 +13,7 @@ namespace ttrk {
     TrackedPoint(const cv::Vec3f &mp, const cv::Vec2f &fp) : model_point(mp), frame_point(fp), found_image_point(fp) {}
     cv::Vec3f model_point;
     cv::Vec2f frame_point;
-    cv::Vec2f found_image_point;
+    cv::Vec2f found_image_point; /**< In FeatureLocalizer::TrackLocalPoints we update*/
   };
 
 
@@ -31,6 +31,11 @@ namespace ttrk {
     std::vector<float> GetDerivativesForPoints(const Pose &pose);
 
     void SetFrontIntersectionImage(cv::Mat &im) { front_intersection_image_ = im.clone(); }
+
+    /**
+    * Update the frame_point of each each TrackedPoint after we have changed the pose.
+    * @param[in] pose The pose of the object after the gradient-based update
+    */
 
     void UpdatePointsOnModelAfterDerivatives(const Pose &pose);
     

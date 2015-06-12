@@ -83,14 +83,14 @@ float ComponentLevelSet::DoAlignmentStep(boost::shared_ptr<Model> current_model,
   cv::Matx<float, 7, 1> jacobian = cv::Matx<float, 7, 1>::zeros();
   cv::Matx<float, 7, 7> hessian_approx = cv::Matx<float, 7, 7>::zeros();
   
-  double t = (double)cv::getTickCount();
+  //double t = (double)cv::getTickCount();
 
   ComputeJacobiansForEye(stereo_frame->GetLeftClassificationMap(), current_model, stereo_camera_->left_eye(), jacobian, hessian_approx, error);
   ComputeJacobiansForEye(stereo_frame->GetRightClassificationMap(), current_model, stereo_camera_->right_eye(), jacobian, hessian_approx, error);
   
-  t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
+  //t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
 
-  ci::app::console() << "Processing for regions time = " << t << std::endl;
+  //ci::app::console() << "Processing for regions time = " << t << std::endl;
 
   if (track_points)
     ComputeLKJacobian(current_model, jacobian, hessian_approx);

@@ -4,6 +4,10 @@
 #include "../../../include/ttrack/track/localizer/levelsets/stereo_pwp3d.hpp"
 #include "../../../include/ttrack/utils/helpers.hpp"
 
+#ifdef USE_CUDA
+#include "../../../../include/ttrack/track/localizer/levelsets/pwp3d_cuda.hpp"
+#endif 
+
 using namespace ttrk;
 
 #define GRAD_DESCENT
@@ -145,7 +149,8 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
   
   float left_error = DoRegionBasedAlignmentStepForLeftEye(current_model);
   float right_error = DoRegionBasedAlignmentStepForRightEye(current_model);
-  float point_error = DoPointBasedAlignmentStepForLeftEye(current_model);
+  float point_error = 0;
+  //float point_error = DoPointBasedAlignmentStepForLeftEye(current_model);
 
   UpdateWithErrorValue(left_error + right_error + point_error);
   errors_.push_back(left_error + right_error + point_error);

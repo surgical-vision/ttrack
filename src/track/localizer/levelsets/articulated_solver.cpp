@@ -5,7 +5,7 @@
 
 using namespace ttrk;
 
-ArticulatedLevelSet *GLOBAL_ALS = 0x0;
+CeresLevelSetSolver *GLOBAL_ALS = 0x0;
 
 struct CostFunctor : public StereoPWP3D {
 
@@ -90,7 +90,7 @@ struct CostFunctor : public StereoPWP3D {
 };
 
 //
-void ArticulatedLevelSetSolver::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
+void CeresLevelSetSolver::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
 
   static bool thing = true;
   if (thing){

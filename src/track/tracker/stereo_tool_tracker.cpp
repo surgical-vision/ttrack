@@ -10,6 +10,7 @@
 #include "../../../include/ttrack/track/localizer/levelsets/stereo_pwp3d.hpp"
 #include "../../../include/ttrack/track/localizer/levelsets/comp_ls.hpp"
 #include "../../../include/ttrack/track/localizer/levelsets/articulated_level_set.hpp"
+
 #include "../../../include/ttrack/track/model/articulated_model.hpp"
 #include "../../../include/ttrack/utils/helpers.hpp"
 
@@ -24,8 +25,13 @@ StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, co
   if (localizer_type == LocalizerType::PWP3DLocalizer)
     localizer_.reset(new StereoPWP3D(camera_));
   else if (localizer_type == LocalizerType::ComponentLS)
-    //localizer_.reset(new ArticulatedLevelSetSolver(camera_));
-    localizer_.reset(new ComponentLevelSet(number_of_labels, camera_)); 
+    localizer_.reset(new ComponentLevelSet(number_of_labels, camera_));
+  else if (localizer_type == LocalizerType::ArticulatedComponentLS)
+    localizer_.reset(new ArticulatedComponentLevelSet(11, number_of_labels, camera_));
+#ifdef USE_CERES
+  else if (localizer_type == LocalizerType::CeresLevelSetSolver)
+    localizer_.reset(new CeresLevelSetSolver(camera_));
+#endif
   else
     throw std::runtime_error("");	
 

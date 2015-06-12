@@ -128,6 +128,7 @@ endif()
 
 if(USE_CUDA)
 	list(APPEND HEADERS ${INCDIR}/track/localizer/levelsets/pwp3d_cuda.hpp)
+	#list(APPEND HEADERS ${INCDIR}/track/localizer/levelsets/pwp3d_cuda_inc.hpp) 
 	list(APPEND SOURCES track/localizer/levelsets/pwp3d.cu)
 endif()
 

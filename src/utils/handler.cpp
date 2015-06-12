@@ -65,23 +65,28 @@ cv::Mat StereoVideoHandler::GetNewFrame(){
 
   //create one big frame to return the image data in
   cv::Mat right_frame;
-  for (int i = 0; i < 5; ++i)
-    right_cap_ >> right_frame; 
+  right_cap_ >> right_frame; 
   cv::Mat to_return(right_frame.rows,2*right_frame.cols,right_frame.type());
 
   //load the left frame
   cv::Mat lhs = to_return(cv::Rect(0,0,right_frame.cols,right_frame.rows));
-  for (int i = 0; i < 5; ++i)
-    VideoHandler::GetNewFrame().copyTo(lhs);
+  VideoHandler::GetNewFrame().copyTo(lhs);
 
   //load the right frame
   cv::Mat rhs = to_return(cv::Rect(right_frame.cols,0,right_frame.cols,right_frame.rows));
   right_frame.copyTo(rhs);
 
+  
 
   if (rhs.size() == cv::Size(1920, 1080)){
     cv::Mat resized;
     cv::resize(to_return, resized, cv::Size(0, 0), 0.5, 0.5);
+    to_return = resized;
+  }
+
+  if (rhs.size() == cv::Size(854, 480)){
+    cv::Mat resized;
+    cv::resize(to_return, resized, cv::Size(720*2, 576));
     to_return = resized;
   }
 

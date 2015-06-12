@@ -8,13 +8,13 @@
 
 namespace ttrk{
 
-  class ArticulatedLevelSetSolver : public Localizer, public ErrorMetricPlottable {
+  class CeresLevelSetSolver : public Localizer, public ErrorMetricPlottable {
 
   public:
 
-    ArticulatedLevelSetSolver(boost::shared_ptr<StereoCamera> camera, boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame) : stereo_camera_(camera), current_model_(model), frame_(frame) {}
+    CeresLevelSetSolver(boost::shared_ptr<StereoCamera> camera, boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame) : stereo_camera_(camera), current_model_(model), frame_(frame) {}
 
-    ArticulatedLevelSetSolver(boost::shared_ptr<StereoCamera> camera) : stereo_camera_(camera) {}
+    CeresLevelSetSolver(boost::shared_ptr<StereoCamera> camera) : stereo_camera_(camera) {}
 
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
 

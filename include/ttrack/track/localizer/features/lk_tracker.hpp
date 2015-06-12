@@ -13,31 +13,17 @@
 
 namespace ttrk{
 
-  class LKTracker {
+  class LKTracker : public FeatureLocalizer {
 
   public:
 
     LKTracker(boost::shared_ptr<MonocularCamera> camera);
 
-    void TrackLocalPoints(cv::Mat &current_frame);
+    virtual void TrackLocalPoints(cv::Mat &current_frame);
 
-    std::vector<float> GetDerivativesForPoints(const Pose &pose);
-
-    void SetFrontIntersectionImage(cv::Mat &im) { front_intersection_image_ = im.clone(); }
-
-    void UpdatePointsOnModelAfterDerivatives(const Pose &pose);
-
-    void InitializeTracker(cv::Mat &current_frame, const Pose &pose);
+    virtual void InitializeTracker(cv::Mat &current_frame, const Pose &pose);
     
   protected:
-
-    void UpdatePointsOnModelBeforeDerivatives(const Pose &pose);
-    
-    std::vector<float> GetPointDerivative(const cv::Vec3f &world_previous_, const cv::Vec2f &image_previous, const cv::Vec2f &image_new, const Pose &pose);
-
-    cv::Mat CreateMask();
-
-    std::vector<cv::Point2f> GetPointsOnPreviousImage();
 
     std::vector<TrackedPoint> tracked_points_;
 

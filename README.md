@@ -40,7 +40,3 @@ Contributors
 
 * Max Allan
 * Ping-Lin Chang
-
-If you make use of this code, please cite the following paper
-
-M Allan, S. Thompson, M. Clarkson, S. Ourselin, D. Hawkes, J. Kelly and D. Stoyanov, 2D-3D Pose Tracking of Rigid Instruments in Minimally Invasive Surgery, IPCAI 2014

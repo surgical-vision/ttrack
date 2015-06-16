@@ -188,6 +188,7 @@ namespace ttrk{
 
     static size_t total_model_count_; /** Count of all created models so when we create a new one it gets it's own file. */
 
+    std::string save_file_; /**< The save file for the model pose. */
 
     
 

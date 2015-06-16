@@ -12,13 +12,12 @@ using namespace ttrk;
 
 size_t Model::total_model_count_ = 0;
 
-Model::Model(const std::string &model_parameter_file, const std::string &save_file){
+Model::Model(const std::string &model_parameter_file, const std::string &save_file) : save_file_(save_file) {
   
   total_model_count_++;
 
   LoadFromFile(model_parameter_file);
-  ofs_.open(save_file);
-  if (!ofs_.is_open()) throw std::runtime_error("");
+  
 
 }
 
@@ -31,6 +30,9 @@ Model::Model(Node::Ptr component, const ci::Matrix44f &world_to_model_transform)
 
 void Model::WritePoseToFile() {
 
+  if (!ofs_.is_open())
+    ofs_.open(save_file_);
+  
   if (!ofs_.is_open()) throw std::runtime_error("");
 
   std::vector<float> current_pose;

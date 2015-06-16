@@ -161,6 +161,8 @@ void TTrackApp::setup(){
     ui.AddFunction("Save Localizer Output", std::bind(&ttrk::SubWindow::InitSavingWindow, &(windows_[4])));
     ui.AddFunction("Save 3D Viewer Output", std::bind(&ttrk::SubWindow::InitSavingWindow, &(windows_[5])));
 
+    ui.AddSeparator();
+
   }
 
   force_new_frame_ = false;
@@ -330,8 +332,8 @@ void TTrackApp::drawImageContents(ttrk::SubWindow &window, gl::Texture &image){
 
   GLint vp[4];
   glGetIntegerv(GL_VIEWPORT, vp);
-  glViewport(0, 0, window.GetRectWithBuffer().getWidth(), window.GetRectWithBuffer().getHeight());
-  glScissor(0, 0, window.GetRectWithBuffer().getWidth(), window.GetRectWithBuffer().getHeight());
+  glViewport(0, 0, window.BufferWidth(), window.BufferHeight());
+  glScissor(0, 0, window.BufferWidth(), window.BufferHeight());
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -379,7 +381,6 @@ void TTrackApp::drawBackground(ttrk::SubWindow &window, ci::gl::Texture &backgro
   window.BindAndClear();
   drawImageContents(window, background);
   window.UnBind();
-  window.Draw();
 
 }
 
@@ -412,6 +413,9 @@ void TTrackApp::draw(){
   drawToolbar();
 
   auto &ttrack = ttrk::TTrack::Instance();
+
+  if (!run_tracking_) return;
+
   if (ttrack.IsRunning()){
 
     drawEye(windows_[0], left_eye_image_, camera_->left_eye());
@@ -453,57 +457,56 @@ void TTrackApp::drawPlotter(ttrk::SubWindow &window) {
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
  
-#ifdef USE_MATHGL
+#ifdef USE_MATHGL && NOT_MATHGL
 
-  //mglGraph graph(0, width, height);
+  mglGraph graph(0, width, height);
 
-  //graph.Alpha(true);
-  //
-  //graph.Light(true);
-  //graph.Axis("xy");
+  graph.Alpha(true);
+  
+  graph.Light(true);
+  graph.Axis("xy");
 
-  //graph.SetTicks('x', 400);
-  //graph.SetTicks('y', 400);
+  graph.SetTicks('x', 400);
+  graph.SetTicks('y', 400);
 
-  //graph.Label('x', "Frame No", 0);
-  //graph.Label('y', "Error", 0);
+  graph.Label('x', "Frame No", 0);
+  graph.Label('y', "Error", 0);
 
 
-  //auto &plotter = ttrk::ErrorMetricPlotter::Instance();
-  //auto &plots = plotter.GetPlottables();
-  //
-  //for (auto &plot : plots){
-  //  auto vals = plot->GetErrorValues();
-  //  for (int i = 0; i < 400; i++){
-  //    vals.push_back(i);
-  //  }
-  //  mglData error_data;
-  //  error_data.Create(vals.size(), 1);
-  //  error_data.Set(vals);
-  //  //memcpy(error_data.a, vals.data(), sizeof(float)*vals.size());   
-  //  graph.Plot(error_data);
-  //}
+  auto &plotter = ttrk::ErrorMetricPlotter::Instance();
+  auto &plots = plotter.GetPlottables();
+  
+  for (auto &plot : plots){
+    auto vals = plot->GetErrorValues();
+    for (int i = 0; i < 400; i++){
+      vals.push_back(i);
+    }
+    mglData error_data;
+    error_data.Create(vals.size(), 1);
+    error_data.Set(vals);
+    //memcpy(error_data.a, vals.data(), sizeof(float)*vals.size());   
+    graph.Plot(error_data);
+  }
 
-  //unsigned char *buf = new uchar[4 * width*height];
-  //graph.GetBGRN(buf, 4 * width*height);
+  unsigned char *buf = new uchar[4 * width*height];
+  graph.GetBGRN(buf, 4 * width*height);
 
-  //cv::Mat m(cv::Size(width, height), CV_8UC4, (void *)buf);
+  cv::Mat m(cv::Size(width, height), CV_8UC4, (void *)buf);
 
-  //tex = fromOcv(m);
+  tex = fromOcv(m);
+
+#else
 
   ci::TextLayout text;
 
   text.setColor(Color(0.9f, 0.9f, 0.9f));
   text.setFont(Font("Arial Black", 50));
   text.addCenteredLine("MathGL not enabled!");
-  Surface8u rendered = text.render( true );
+  Surface8u rendered = text.render(true);
 
   tex = rendered;
 
-  gl::draw(tex, ci::Vec2f(0.3*width, 0.5*height));
-
-#else
-
+  gl::draw(tex);
   
   
 #endif
@@ -517,8 +520,8 @@ void TTrackApp::draw3D(ttrk::SubWindow &window, const gl::Texture &camera_view, 
 
   window.BindAndClear();
 
-  const int width = window.GetRect().getWidth();
-  const int height = window.GetRect().getHeight();
+  const int width = window.BufferWidth();
+  const int height = window.BufferHeight();
 
   auto &ttrack = ttrk::TTrack::Instance();
   if (!ttrack.IsRunning()) return;
@@ -561,9 +564,6 @@ void TTrackApp::draw3D(ttrk::SubWindow &window, const gl::Texture &camera_view, 
   gl::popMatrices();
 
   window.UnBind();
-
-  window.Draw();
-
 
 }
 

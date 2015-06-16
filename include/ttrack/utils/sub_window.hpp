@@ -122,6 +122,9 @@ namespace ttrk {
     */
     ci::Rectf GetRectWithBuffer() const { ci::Rectf r = window_coords_; r.scaleCentered(0.95); return r; }
     
+    size_t BufferWidth() const { return framebuffer_->getWidth(); }
+    size_t BufferHeight() const { return framebuffer_->getHeight(); }
+
     /**
     * Accessor for the subwindow width.
     * @return The window width.

@@ -55,9 +55,6 @@ void TTrack::SetUp(const std::string &model_parameter_file, const std::string &c
   
   camera_type_ = camera_type;
   results_dir_ = results_dir;
-
-  if (!boost::filesystem::exists(results_dir_))
-    boost::filesystem::create_directories(results_dir_);
   
   //if train type is NA, training is skipped
   detector_.reset(new Detect(classifier_path, classifier_type, number_of_labels));
@@ -78,6 +75,7 @@ void TTrack::SetUp(const std::string &model_parameter_file, const std::string &c
 
   for (auto &starting_pose : starting_poses)
     tracker_->AddStartPose(starting_pose);
+
 
 }
 
@@ -156,6 +154,9 @@ ClassifierType TTrack::ClassifierFromString(const std::string &classifier_name){
 
 void TTrack::SaveFrame(const cv::Mat &frame, bool flip) {
 
+  if (!boost::filesystem::exists(results_dir_))
+    boost::filesystem::create_directories(results_dir_);
+
   cv::Mat f;
   if (flip){
     cv::flip(frame, f, 0);
@@ -171,6 +172,9 @@ void TTrack::SaveFrame(const cv::Mat &frame, bool flip) {
 
 void TTrack::SaveResults() {
   
+  if (!boost::filesystem::exists(results_dir_))
+    boost::filesystem::create_directories(results_dir_);
+
   std::vector<boost::shared_ptr<Model> > models;
   tracker_->GetTrackedModels(models);
 

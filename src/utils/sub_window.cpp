@@ -99,9 +99,9 @@ void SubWindow::Draw(){
    
   ci::gl::draw(framebuffer_->getTexture() , window_with_buffer);
 
-  if (can_save_){
-    Draw(save_params_, window_with_buffer.getUpperLeft() + ci::Vec2i(20, 20), ci::Vec2i(150, 50));
-  }
+  //if (can_save_){
+  //  Draw(save_params_, window_with_buffer.getUpperLeft() + ci::Vec2i(20, 20), ci::Vec2i(150, 50));
+  //}
 
 }
 
@@ -114,6 +114,8 @@ void SubWindow::CloseStream(){
 }
 
 void SubWindow::InitSavingWindow(){
+
+  can_save_ = true;
 
   std::string &save_dir = output_directory;
   if (!boost::filesystem::exists(save_dir)) {

@@ -162,6 +162,18 @@ namespace ttrk{
     */
     void SaveResults();
 
+    /**
+    * Get the current image from the detector.
+    * @return The detector's current output.
+    */
+    cv::Mat GetCurrentDetectorImage() { return detector_image_; }
+    
+    /**
+    * Get the current image from the localizer.
+    * @return The localizer's current output.
+    */
+    cv::Mat GetCurrentLocalizerImage() { return localizer_image_; }
+
   protected:
    
     /**
@@ -202,6 +214,9 @@ namespace ttrk{
     boost::scoped_ptr<Handler> handler_; /**< Pointer to either an ImageHandler or a VideoHandler which handles getting and saving frames with a simple interface */
     boost::shared_ptr<sv::Frame> frame_; /**< A pointer to the current frame that will be passed from the classifier to the tracker. */
     
+    cv::Mat detector_image_; /**< A copy of the detector's current output - for GUI/visualization purposes. */
+    cv::Mat localizer_image_; /**< A copy of the localizer's current output - for GUI/visualization purposes. */
+
     std::string results_dir_; /**< A string containing the results directory for the data in use. */
     
     CameraType camera_type_; /**< The camera type we are tracking with. */

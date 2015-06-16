@@ -35,6 +35,7 @@ set(
   ${INCDIR}/utils/plotter.hpp
   ${INCDIR}/utils/UI.hpp
   ${INCDIR}/utils/image.hpp
+  ${INCDIR}/utils/sub_window.hpp
   ${INCDIR}/track/model/pose.hpp 
   ${INCDIR}/track/model/articulated_model.hpp
   ${INCDIR}/track/model/dh_helpers.hpp
@@ -76,6 +77,7 @@ set(
   utils/helpers.cpp 
   utils/nd_image.cpp 
   utils/plotter.cpp 
+  utils/sub_window.cpp
   track/tracker/tracker.cpp 
   track/tracker/monocular_tool_tracker.cpp 
   track/tracker/stereo_tool_tracker.cpp 
@@ -105,6 +107,20 @@ set(
 # Project headers trump everything 
 list(APPEND LIB_INC_DIR  "${PROJECT_SOURCE_DIR}/include;${CMAKE_CURRENT_BINARY_DIR}/include" )
 
+#MathGL
+option(WITH_MATHGL2 "Use MathGL for graph plotting" OFF)
+if(WITH_MATHGL2)
+  find_package(MathGL2 REQUIRED)
+  if(MATHGL2_FOUND)
+    add_definitions(-DUSE_MATHGL)
+    set(USE_MATHGL 1)
+    message(STATUS "MathGL2 Found and Enabled")
+    
+    
+    list(APPEND USER_INC ${MATHGL2_INCLUDE_DIRS})
+   	list(APPEND LINK_LIBS ${MATHGL2_LIBRARIES})
+  endif()
+endif()
 
 #Cuda
 option(WITH_CUDA "Use CUDA optimized functions" OFF)
@@ -120,8 +136,8 @@ if(WITH_CUDA)
 
     string(FIND "${EXTERNAL_INC_DIRS}" "${CUDA_INCLUDE_DIRS}" HAS_INCLUDED REVERSE)
     if(HAS_INCLUDED LESS 0 OR HAS_INCLUDED EQUAL 0)
-    		list(APPEND EXTERNAL_INC_DIRS ${CUDA_INCLUDE_DIRS})
-   	    list(APPEND EXTERNAL_LIBRARIES ${CUDA_LIBRARIES})
+    		list(APPEND USER_INC ${CUDA_INCLUDE_DIRS})
+   	    list(APPEND LINK_LIBS ${CUDA_LIBRARIES})
   	endif()
   endif()
 endif()
@@ -180,15 +196,17 @@ link_directories( ${USER_LIB} )
 
 if(USE_CUDA)
 if(_WIN_)
-#unset(WIN32)
 cuda_add_executable(${BINARY_NAME} "../resources/Resources.rc" ${MAIN_FILE} ${SOURCES} ${HEADERS} )
 set_property(TARGET ${BINARY_NAME} PROPERTY WIN32_EXECUTABLE TRUE)
-#set(WIN32 1)
 else(_WIN_)
 cuda_add_executable(${BINARY_NAME} ${MAIN_FILE} ${SOURCES} ${HEADERS} )
 endif()
 else(USE_CUDA)
+if(_WIN_)
 add_executable(${BINARY_NAME} WIN32 "../resources/Resources.rc" ${MAIN_FILE} ${SOURCES} ${HEADERS} )
+else(_WIN_)
+add_executable(${BINARY_NAME} "../resources/Resources.rc" ${MAIN_FILE} ${SOURCES} ${HEADERS} )
+endif(_WIN_)
 endif()
 
 

@@ -12,6 +12,11 @@
 #include <cinder/MayaCamUI.h>
 #include <cinder/Rand.h>
 #include <cinder/TriMesh.h>
+#include <cinder/Text.h>
+
+#ifdef USE_MATHGL
+#include <mgl2/mgl.h>
+#endif
 
 #include "../include/ttrack/headers.hpp"
 #include "../include/ttrack/ttrack_app.hpp"
@@ -36,6 +41,9 @@ void TTrackApp::SetupFromConfig(const std::string &path){
     boost::filesystem::create_directory(reader.get_element("output-dir"));
   }
 
+
+
+
   auto &ttrack = ttrk::TTrack::Instance();
   std::vector< std::vector <float> > starting_poses;
   for (int i = 0;; ++i){
@@ -58,11 +66,21 @@ void TTrackApp::SetupFromConfig(const std::string &path){
   }
   catch (std::runtime_error &){ }
 
+  const std::string results_dir = reader.get_element("output-dir");
+  std::string output_dir_this_run = results_dir;
+  int n = 0;
+  while (boost::filesystem::is_directory(output_dir_this_run)){
+    std::stringstream res;
+    res << results_dir << "/run_" << n;
+    output_dir_this_run = res.str();
+    ++n;
+  }
+
   //throwing errors here? did you remember the zero at element 15 of start pose or alteranatively set the trackable dir to absolute in the cfg file
   ttrack.SetUp(reader.get_element("trackable"),
                root_dir + "/" + reader.get_element("camera-config"),
                root_dir + "/" + reader.get_element("classifier-config"),
-               reader.get_element("output-dir"),
+               output_dir_this_run,
                ttrk::TTrack::LocalizerTypeFromString(reader.get_element("localizer-type")),
                ttrk::TTrack::ClassifierFromString(reader.get_element("classifier-type")),
                root_dir + "/" + reader.get_element("left-input-video"),
@@ -75,26 +93,26 @@ void TTrackApp::SetupFromConfig(const std::string &path){
 
   camera_.reset(new ttrk::StereoCamera(root_dir + "/" + reader.get_element("camera-config")));
   
-  windows_[0] = SubWindow((int)toolbar_.window_coords_.getWidth(), 0, camera_->left_eye()->Width(), camera_->left_eye()->Height(), width, height);
-  windows_[1] = SubWindow((int)toolbar_.window_coords_.getWidth() + width, 0, camera_->right_eye()->Width(), camera_->right_eye()->Height(), width, height);
+  windows_[0].Init("Left Eye", toolbar_.GetRect().x2, 0, camera_->left_eye()->Width(), camera_->left_eye()->Height(), 625, 500, false);
+  windows_[1].Init("Right Eye", toolbar_.GetRect().x2, windows_[0].GetRect().y2, camera_->left_eye()->Width(), camera_->left_eye()->Height(), 625, 500, false);
 
+  windows_[2].Init("Left Classification", 0, toolbar_.GetRect().y2, camera_->left_eye()->Width(), camera_->left_eye()->Height(), toolbar_.GetRect().getWidth(), toolbar_.GetRect().getWidth(), false);
+  windows_[3].Init("Right Classification", 0, toolbar_.GetRect().y2, camera_->left_eye()->Width(), camera_->left_eye()->Height(), toolbar_.GetRect().getWidth(), toolbar_.GetRect().getWidth(), false);
+  windows_[4].Init("Localizer Output", 0, toolbar_.GetRect().y2, camera_->left_eye()->Width(), camera_->left_eye()->Height(), toolbar_.GetRect().getWidth(), toolbar_.GetRect().getWidth(), false);
+  windows_[5].Init("3D Viewer", 0, toolbar_.GetRect().y2, camera_->left_eye()->Width(), camera_->left_eye()->Height(), toolbar_.GetRect().getWidth(), toolbar_.GetRect().getWidth(), false);
+  windows_[6].Init("Plotter", 0, toolbar_.GetRect().y2, camera_->left_eye()->Width(), camera_->left_eye()->Height(), toolbar_.GetRect().getWidth(), toolbar_.GetRect().getWidth(), false);
 
-  windows_[2] = SubWindow((int)toolbar_.window_coords_.getWidth(),
-                          height, 
-                          (int)windows_[2].window_coords_.getWidth(),
-                          (int)windows_[2].window_coords_.getHeight());
-  
+  ttrk::SubWindow::output_directory = output_dir_this_run;
 
-  windows_[3] = SubWindow((int)toolbar_.window_coords_.getWidth() + (int)windows_[2].window_coords_.getWidth(),
-                          height, 
-                          (int)windows_[3].window_coords_.getWidth(),
-                          (int)windows_[3].window_coords_.getHeight());
-
-
-  //left_external_framebuffer_.reset(new gl::Fbo(camera_->left_eye()->Width(), camera_->left_eye()->Height()));
-  //right_external_framebuffer_.reset(new gl::Fbo(camera_->left_eye()->Width(), camera_->left_eye()->Height()));
+  show_extra_view_ = EXTRA_VIEW_3D;
 
   resize();
+
+}
+
+void TTrackApp::startTracking(){
+
+  run_tracking_ = !run_tracking_;
 
 }
 
@@ -102,24 +120,53 @@ void TTrackApp::setup(){
 
   std::vector<std::string> cmd_line_args = getArgs();
 
-  toolbar_ = SubWindow(0, 0, 300, 700);
-  
-  auto ui = ttrk::UIController::Instance();
-  if (!ui.IsInitialized()) ui.Initialize("title", toolbar_.framebuffer_->getWidth() - (2 * 20), toolbar_.framebuffer_->getHeight() - 20);
+  const size_t width_of_toolbar = 375;
 
-  force_new_frame_ = false;
+  toolbar_.Init("GUI", 0, 0, width_of_toolbar, 500, false);
+  
 
   //create left eye window
-  windows_.push_back(SubWindow(100, 0, 600, 500));
-  windows_.push_back(SubWindow(700, 0, 600, 500));
+  for (size_t i = 0; i < 7; ++i)
+    windows_.push_back(ttrk::SubWindow());
 
-  //create error plot
-  windows_.push_back(SubWindow(100, 500, 600, 300));
+  windows_[0].Init("Left Eye", toolbar_.GetRect().x2, 0, 625, 500, true);
+  windows_[1].Init("Right Eye", toolbar_.GetRect().x2, windows_[0].GetRect().y2, 625, 500, true);
+  windows_[2].Init("Left Classification", 0, toolbar_.GetRect().y2, 625, 500, width_of_toolbar, width_of_toolbar, true);
+  windows_[3].Init("Right Classification", 0, toolbar_.GetRect().y2, 625, 500, width_of_toolbar, width_of_toolbar, true);
+  windows_[4].Init("Localizer Output", 0, toolbar_.GetRect().y2, 625, 500, width_of_toolbar, width_of_toolbar, true);
+  windows_[5].Init("3D Viewer", 0, toolbar_.GetRect().y2, 625, 500, width_of_toolbar, width_of_toolbar, true);
+  windows_[6].Init("Plotter", 0, toolbar_.GetRect().y2, 625, 500, width_of_toolbar, width_of_toolbar, true);
 
-  //create 3D viewer
-  windows_.push_back(SubWindow(700, 500, 600, 300));
 
-  
+  auto &ui = ttrk::UIController::Instance();
+  if (!ui.IsInitialized()) {
+    ui.Initialize("ToolBar", toolbar_.GetRect().getWidth(), toolbar_.GetRect().getHeight());
+
+    ui.AddFunction("Start Tracking", std::bind(&TTrackApp::startTracking, this));
+
+    ui.AddFunction("Quit application", std::bind(&TTrackApp::shutdown, this));
+    ui.AddFunction("View 3D Scene", std::bind(&TTrackApp::show3DScene, this));
+    ui.AddFunction("View Error Function", std::bind(&TTrackApp::showPlotter, this));
+    ui.AddFunction("View Left Eye Detector Output", std::bind(&TTrackApp::showDetectorOutput, this));
+    ui.AddFunction("View Localizer Output", std::bind(&TTrackApp::showLocalizerOutput, this));
+    ui.AddFunction("Reset 3D Scene", std::bind(&TTrackApp::reset3DViewerPosition, this));
+
+    ui.AddSeparator();
+
+    auto bind_both = [this]() { windows_[2].InitSavingWindow(); windows_[3].InitSavingWindow(); };
+
+    ui.AddFunction("Save Left Eye", std::bind(&ttrk::SubWindow::InitSavingWindow, &(windows_[0])));
+    ui.AddFunction("Save Right Eye", std::bind(&ttrk::SubWindow::InitSavingWindow, &(windows_[1])));
+    ui.AddFunction("Save Classification", std::bind(bind_both));
+    ui.AddFunction("Save Localizer Output", std::bind(&ttrk::SubWindow::InitSavingWindow, &(windows_[4])));
+    ui.AddFunction("Save 3D Viewer Output", std::bind(&ttrk::SubWindow::InitSavingWindow, &(windows_[5])));
+
+  }
+
+  force_new_frame_ = false;
+  reset_3D_viewport_ = true;
+  run_tracking_ = false;
+   
   if (cmd_line_args.size() == 2){
 
     try{
@@ -147,7 +194,7 @@ void TTrackApp::setup(){
 void TTrackApp::update(){
 
   auto &ttrack = ttrk::TTrack::Instance();
-  if (!ttrack.IsRunning()) return;
+  if (!ttrack.IsRunning() || !run_tracking_) return;
 
   models_to_draw_.clear();
   ttrack.GetUpdate(models_to_draw_, force_new_frame_);
@@ -162,8 +209,24 @@ void TTrackApp::update(){
 
   boost::shared_ptr<const sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<const sv::StereoFrame>(ttrack.GetPtrToCurrentFrame());
  
-  windows_[0].texture_ = ci::fromOcv(stereo_frame->GetLeftImage());
-  windows_[1].texture_ = ci::fromOcv(stereo_frame->GetRightImage());
+  left_eye_image_ = ci::fromOcv(stereo_frame->GetLeftImage());
+  right_eye_image_ = ci::fromOcv(stereo_frame->GetRightImage());
+
+  cv::Mat d = ttrack.GetCurrentDetectorImage();
+    
+  if (!d.empty()){
+   
+    cv::Mat left_d = d(cv::Rect(0, 0, d.cols / 2, d.rows)).clone();
+    cv::Mat right_d = d(cv::Rect(d.cols / 2, 0, d.cols / 2, d.rows)).clone();
+
+    left_detector_image_ = ci::fromOcv(left_d);
+    right_detector_image_ = ci::fromOcv(right_d);
+
+  }
+
+  cv::Mat l = ttrack.GetCurrentLocalizerImage();
+  if (!l.empty())
+    localizer_image_ = ci::fromOcv(l);
 
 }
 
@@ -173,23 +236,25 @@ void TTrackApp::shutdown(){
 
   cinder::app::AppNative::shutdown();
 
+  cinder::app::AppNative::quit();
+
 }
 
-void TTrackApp::drawBackground(gl::Texture &background){
+void TTrackApp::drawBackground(gl::Texture &background, const cv::Size target_size){
 
   if (!background || background.getWidth() == 0 || background.getHeight() == 0) return;
 
   GLint vp[4];
   glGetIntegerv(GL_VIEWPORT, vp);
-  glViewport(0, 0, background.getWidth(), background.getHeight());
-  glScissor(0, 0, background.getWidth(), background.getHeight());
+  glViewport(0, 0, target_size.width, target_size.height);
+  glScissor(0, 0, target_size.width, target_size.height);
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glMatrixMode(GL_PROJECTION);
   glPushMatrix();
   glLoadIdentity();
-  glOrtho(0, background.getWidth(), 0, background.getHeight(), 0, 1);
+  glOrtho(0, target_size.width, 0, target_size.height, 0, 1);
 
   glMatrixMode(GL_MODELVIEW);
   glPushMatrix();
@@ -210,15 +275,13 @@ void TTrackApp::drawBackground(gl::Texture &background){
 
 }
 
-void TTrackApp::drawEye(boost::shared_ptr<ci::gl::Fbo> framebuffer, ci::gl::Texture &background, const boost::shared_ptr<ttrk::MonocularCamera> cam){
+void TTrackApp::drawEye(ttrk::SubWindow &window, ci::gl::Texture &background, const boost::shared_ptr<ttrk::MonocularCamera> cam, bool draw_models){
 
-  framebuffer->bindFramebuffer();
-
-  ci::gl::clear(Color(0, 0, 0));
+  window.BindAndClear();
 
   ci::gl::disableDepthRead();
 
-  drawBackground(background);
+  drawBackground(background, cv::Size(cam->Width(), cam->Height()));
 
   ci::gl::enableDepthRead();
   ci::gl::enableDepthWrite();
@@ -229,13 +292,10 @@ void TTrackApp::drawEye(boost::shared_ptr<ci::gl::Fbo> framebuffer, ci::gl::Text
   shader_.bind();
   shader_.uniform("tex0", 0);
 
-  for (size_t i = 0; i < models_to_draw_.size(); ++i){
-    //glEnable(GL_BLEND);
-    //gl::color(1.0f, 1.0f, 1.0f, 0.5f); // Full Brightness, 50% Alpha ( NEW )
-    //glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+  for (size_t i = 0; i < models_to_draw_.size() && draw_models; ++i){
+
     models_to_draw_[i]->RenderTexture(0);
-    //glDisable(GL_BLEND);
-    //gl::color(1.0f, 1.0f, 1.0f, 1.0f);
+
   }
 
   shader_.unbind();
@@ -244,26 +304,104 @@ void TTrackApp::drawEye(boost::shared_ptr<ci::gl::Fbo> framebuffer, ci::gl::Text
 
   ci::gl::popMatrices();
 
-  framebuffer->unbindFramebuffer();
+  window.UnBind();
+
+  window.Draw();
+
 }
 
 void TTrackApp::saveResults(){
   
   auto &ttrack = ttrk::TTrack::Instance(); 
-  ttrack.SaveFrame(toOcv(windows_[0].framebuffer_->getTexture()), true);
+  ttrack.SaveFrame(toOcv(windows_[0].GetContents()), true);
   ttrack.SaveResults();
+
+  for (auto &sub_win : windows_){
+    if (sub_win.CanSave()){
+      sub_win.WriteFrameToFile();
+    }
+  }
  
 }
 
-void TTrackApp::drawHelpWindow(boost::shared_ptr<ci::gl::Fbo> framebuffer){
+void TTrackApp::drawImageContents(ttrk::SubWindow &window, gl::Texture &image){
+
+  if (!image || image.getWidth() == 0 || image.getHeight() == 0) return;
+
+  GLint vp[4];
+  glGetIntegerv(GL_VIEWPORT, vp);
+  glViewport(0, 0, window.GetRectWithBuffer().getWidth(), window.GetRectWithBuffer().getHeight());
+  glScissor(0, 0, window.GetRectWithBuffer().getWidth(), window.GetRectWithBuffer().getHeight());
+
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  glMatrixMode(GL_PROJECTION);
+  glPushMatrix();
+  glLoadIdentity();
+  glOrtho(0, image.getWidth(), 0, image.getHeight(), 0, 1);
+
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+  glLoadIdentity();
+
+  glDisable(GL_DEPTH_TEST);
+
+  image.setFlipped(true);
+
+  gl::draw(image);
+
+  glMatrixMode(GL_PROJECTION);
+  glPopMatrix();
+  glMatrixMode(GL_MODELVIEW);
+  glPopMatrix();
+
+  glViewport(vp[0], vp[1], vp[2], vp[3]);
+
+}
+
+void TTrackApp::drawHelpWindow(ttrk::SubWindow &window){
 
   static ci::gl::Texture help_frame(ci::loadImage(loadResource(HELPER_WIN)));
-  //framebuffer->bindFramebuffer();
 
-  //glViewport(0, 0, help_frame.getWidth(), help_frame.getHeight());
-  drawBackground(help_frame);
-  //gl::draw(help_frame);
-  //framebuffer->unbindFramebuffer();
+  window.BindAndClear();
+  
+  drawImageContents(window, help_frame);
+  
+  window.UnBind();
+
+  window.Draw();
+   
+
+}
+
+void TTrackApp::drawBackground(ttrk::SubWindow &window, ci::gl::Texture &background){
+
+  window.BindAndClear();
+  drawImageContents(window, background);
+  window.UnBind();
+  window.Draw();
+
+}
+
+void TTrackApp::drawExtra(){
+
+  drawBackground(windows_[2], left_detector_image_);
+  drawBackground(windows_[3], right_detector_image_);
+  drawBackground(windows_[4], localizer_image_);
+  draw3D(windows_[5], left_eye_image_, camera_->left_eye());
+  drawPlotter(windows_[6]);
+
+  if (show_extra_view_ == EXTRA_VIEW_PLOTTER)
+    windows_[6].Draw();
+
+  else if (show_extra_view_ == EXTRA_VIEW_3D)
+    windows_[5].Draw();
+
+  else if (show_extra_view_ == EXTRA_VIEW_DETECTOR && left_detector_image_)
+    windows_[2].Draw();
+
+  else if (show_extra_view_ == EXTRA_VIEW_LOCALIZER && localizer_image_)
+    windows_[4].Draw();  
 
 }
 
@@ -276,185 +414,130 @@ void TTrackApp::draw(){
   auto &ttrack = ttrk::TTrack::Instance();
   if (ttrack.IsRunning()){
 
-    drawEye(windows_[0].framebuffer_, windows_[0].texture_, camera_->left_eye());
-    drawEye(windows_[1].framebuffer_, windows_[1].texture_, camera_->right_eye());
-
-    drawPlotter(windows_[2].framebuffer_);
-    draw3D(windows_[3].framebuffer_, windows_[0].framebuffer_->getTexture(), camera_->left_eye());
+    drawEye(windows_[0], left_eye_image_, camera_->left_eye());
+    drawEye(windows_[1], right_eye_image_, camera_->right_eye());
+    
+    drawExtra();
+    
+    if (ttrack.HasConverged()){
+      saveResults();
+    }
 
   }
   else{
-    drawHelpWindow(windows_[0].framebuffer_);
+    drawHelpWindow(windows_[0]);
     return;
-  }
-
-  if (ttrack.HasConverged()){
-    saveResults();
-  }
-
-  glViewport(0, 0, width_, height_);
-
-  gl::draw(toolbar_.framebuffer_->getTexture(), ci::Rectf(toolbar_.window_coords_.x1, toolbar_.window_coords_.y2, toolbar_.window_coords_.x2, toolbar_.window_coords_.y1));
-
-  for (auto i = 0; i < windows_.size(); ++i){
-  
-    gl::Texture tex = windows_[i].framebuffer_->getTexture();
-    if (tex.getWidth() != windows_[i].window_coords_.getWidth() || tex.getHeight() != windows_[i].window_coords_.getHeight()){
-
-      cv::Mat x = toOcv(tex);
-      cv::Mat x_;
-      cv::resize(x, x_, cv::Size(windows_[i].window_coords_.getWidth(), windows_[i].window_coords_.getHeight()));
-      tex = fromOcv(x_);
-
-    }
-      
-    gl::draw(tex, ci::Rectf(windows_[i].window_coords_.x1, windows_[i].window_coords_.y2, windows_[i].window_coords_.x2, windows_[i].window_coords_.y1));
-    
   }
 
 }
 
 void TTrackApp::drawToolbar() {
 
-  toolbar_.framebuffer_->bindFramebuffer();
-
-  glViewport(0, 0, width_, height_);
-
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  gl::color(1, 1, 1);
-
-  const int width = toolbar_.framebuffer_->getWidth();
-  const int height = toolbar_.framebuffer_->getHeight();
-  const int buffer = 20;
-
-  //draw line from 20 - 20 to
-  
-  gl::drawLine(ci::Vec2f((float)buffer, (float)buffer), ci::Vec2f((float)(width - 2 * buffer), (float)buffer));
-  gl::drawLine(ci::Vec2f((float)(width - 2 * buffer), (float)buffer), ci::Vec2f((float)(width - 2 * buffer), (float)(height - buffer)));
-  gl::drawLine(ci::Vec2f((float)(width - 2 * buffer), (float)(height - buffer)), ci::Vec2f((float)buffer, (float)(height - buffer)));
-  gl::drawLine(ci::Vec2f((float)buffer, (float)(height - buffer)), ci::Vec2f((float)buffer, (float)buffer));
-  
-
-  auto ui = ttrk::UIController::Instance();
-  auto menubar = ui.Menubar();
-  menubar.draw();
-  
-  //menubar_ = ci::params::InterfaceGl::create(ci::app::getWindow(), "Menubar", toPixels(ci::Vec2i(width - 2 * buffer, height - buffer)));
-
-  toolbar_.framebuffer_->unbindFramebuffer();
-
-  
-  //for (auto v : i.GetVars())
-  //  menubar_->implAddParam(v->GetName(), v->GetValPtr(), v->GetValType(), "min = " + v->GetMin() + " max = " + v->GetMax() + " step = " + v->GetIncrement(), false);
+  auto &ui = ttrk::UIController::Instance();
+  toolbar_.Draw(ui.Menubar());
   
 }
 
-void TTrackApp::drawPlotter(boost::shared_ptr<gl::Fbo> framebuffer) {
+void TTrackApp::drawPlotter(ttrk::SubWindow &window) {
 
-  framebuffer->bindFramebuffer();
+  window.BindAndClear(); 
+  
+  const int width = window.GetRect().getWidth();
+  const int height = window.GetRect().getHeight();
 
-  glViewport(0, 0, framebuffer->getWidth(), framebuffer->getHeight());
+  gl::Texture tex;
+
+  //glMatrixMode(GL_PROJECTION);
+  //glLoadIdentity();
+  glViewport(0, 0, width, height);
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  gl::clear(ci::Color(1,1,1));
+ 
+#ifdef USE_MATHGL
 
-  gl::color(0, 0, 0);
+  //mglGraph graph(0, width, height);
 
-  const int width = framebuffer->getWidth();
-  const int height = framebuffer->getHeight();
-  const int y_edge = 50;
-  const int x_edge = 50;
+  //graph.Alpha(true);
+  //
+  //graph.Light(true);
+  //graph.Axis("xy");
+
+  //graph.SetTicks('x', 400);
+  //graph.SetTicks('y', 400);
+
+  //graph.Label('x', "Frame No", 0);
+  //graph.Label('y', "Error", 0);
+
+
+  //auto &plotter = ttrk::ErrorMetricPlotter::Instance();
+  //auto &plots = plotter.GetPlottables();
+  //
+  //for (auto &plot : plots){
+  //  auto vals = plot->GetErrorValues();
+  //  for (int i = 0; i < 400; i++){
+  //    vals.push_back(i);
+  //  }
+  //  mglData error_data;
+  //  error_data.Create(vals.size(), 1);
+  //  error_data.Set(vals);
+  //  //memcpy(error_data.a, vals.data(), sizeof(float)*vals.size());   
+  //  graph.Plot(error_data);
+  //}
+
+  //unsigned char *buf = new uchar[4 * width*height];
+  //graph.GetBGRN(buf, 4 * width*height);
+
+  //cv::Mat m(cv::Size(width, height), CV_8UC4, (void *)buf);
+
+  //tex = fromOcv(m);
+
+  ci::TextLayout text;
+
+  text.setColor(Color(0.9f, 0.9f, 0.9f));
+  text.setFont(Font("Arial Black", 50));
+  text.addCenteredLine("MathGL not enabled!");
+  Surface8u rendered = text.render( true );
+
+  tex = rendered;
+
+  gl::draw(tex, ci::Vec2f(0.3*width, 0.5*height));
+
+#else
+
   
-  const int start_x = x_edge;
-  const int end_x = x_edge + (int)(2.8 * width);
-  const int start_y = y_edge + 2 * height;
-  const int end_y = y_edge;
-
-  int num_steps = 50;
-  const int normalized_height = end_y - start_y;
-  const int normalized_width = end_x - start_x;
-
-  gl::drawLine(ci::Vec2f(start_x, start_y), ci::Vec2f(start_x, end_y));
-  gl::drawLine(ci::Vec2f(start_x, start_y), ci::Vec2f(end_x, start_y));
   
-  /* remove */
-  gl::color(1, 1, 1);
-  framebuffer->unbindFramebuffer();
-  return;
-  /* remove */
+#endif
 
-  float largest_error = -1;
-  auto &plotter = ttrk::ErrorMetricPlotter::Instance();
-  auto &plots = plotter.GetPlottables();
-  for (auto &plot : plots){
-    auto vals = plot->GetErrorValues();
-    for (auto &val : vals){
-      if (val > largest_error){
-        largest_error = val;
-      }
-    }
-    if (vals.size() > num_steps)
-      num_steps = vals.size();
-  }
-
-  if (largest_error != -1){
-
-    const float y_range = 1.5 * largest_error;
-    for (auto &plot : plots){
-      auto vals = plot->GetErrorValues();
-      for (auto i = 1; i < vals.size(); ++i){
-
-        float v1 = vals[i];
-        float v1_normed = v1 / y_range;
-        float y1 = v1_normed * normalized_height;
-
-        float v0 = vals[i-1];
-        float v0_normed = v0 / y_range;
-        float y0 = v0_normed * normalized_height;
-
-        float x1 = (float)i / num_steps;
-        x1 *= normalized_width;
-        float x0 = (float)(i - 1)/num_steps;
-        x0 *= normalized_width;
-
-        gl::drawLine(ci::Vec2i(start_x + x0, start_y + y0), ci::Vec2i(start_x + x1, start_y + y1));
-
-      }
-    }
-
-  }
-
-  gl::color(1, 1, 1);
-
-  framebuffer->unbindFramebuffer();
+  
+  window.UnBind();
 
 } 
 
-void TTrackApp::draw3D(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture &camera_view, const boost::shared_ptr<ttrk::MonocularCamera> cam) {
+void TTrackApp::draw3D(ttrk::SubWindow &window, const gl::Texture &camera_view, const boost::shared_ptr<ttrk::MonocularCamera> cam) {
 
-  framebuffer->bindFramebuffer();
+  window.BindAndClear();
 
-  gl::clear(Color(0.1, 0.1, 0.1));
+  const int width = window.GetRect().getWidth();
+  const int height = window.GetRect().getHeight();
 
   auto &ttrack = ttrk::TTrack::Instance();
   if (!ttrack.IsRunning()) return;
 
   ci::CameraPersp maya;
-  static bool first = true;
-  if (first){
+  
+  if (reset_3D_viewport_){
     CameraPersp cam;
     cam.setEyePoint(Vec3f(77.7396, -69.9107, -150.47f));
     cam.setOrientation(ci::Quatf(ci::Vec3f(0.977709, -0.0406959, 0.205982), 2.75995));
     maya_cam_.setCurrentCam(cam);
-    first = false;
+    reset_3D_viewport_ = false;
   }
   
   gl::pushMatrices();
   gl::setMatrices(maya_cam_.getCamera());
 
   ci::Area viewport = gl::getViewport();
-  gl::setViewport(ci::Area(0, 0, framebuffer->getWidth(), framebuffer->getHeight()));
+  gl::setViewport(ci::Area(0, 0, width, height));
 
   ci::gl::enableDepthRead();
   ci::gl::enableDepthWrite();
@@ -477,10 +560,10 @@ void TTrackApp::draw3D(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture
   gl::setViewport(viewport);
   gl::popMatrices();
 
-  framebuffer->unbindFramebuffer();
-/*
-  cv::Mat a = toOcv(framebuffer->getTexture());*/
-  //cv::imwrite("z:/a.png", a);
+  window.UnBind();
+
+  window.Draw();
+
 
 }
 
@@ -557,7 +640,6 @@ void TTrackApp::drawCamera(const gl::Texture &image_data){
 
 }
 
-
 void TTrackApp::drawGrid(float size, float step, float plane_position){
 
   gl::color(Colorf(0.5f, 0.5f, 0.5f));
@@ -610,13 +692,14 @@ void TTrackApp::mouseMove(MouseEvent m_event){
 void TTrackApp::mouseDown(MouseEvent m_event){
   
   // let the camera handle the interaction
-  if (windows_[3].window_coords_.contains(m_event.getPos()))
+  if (windows_[2].GetRect().contains(m_event.getPos()) && show_extra_view_ == EXTRA_VIEW_3D )
     maya_cam_.mouseDown(m_event.getPos());
+
 }
 
 void TTrackApp::mouseDrag(MouseEvent m_event){
 
-  if (windows_[3].window_coords_.contains(m_event.getPos())){
+  if (windows_[2].GetRect().contains(m_event.getPos()) && show_extra_view_ == EXTRA_VIEW_3D){
     // keep track of the mouse
     mouse_pos_ = m_event.getPos();
     // let the camera handle the interaction
@@ -627,18 +710,11 @@ void TTrackApp::mouseDrag(MouseEvent m_event){
 
 void TTrackApp::resize(){
 
-  int width = toolbar_.window_coords_.getWidth();
-  int height = 0;
+  const int width = toolbar_.GetRect().getWidth() + windows_[0].GetRect().getWidth();
 
-  const int width_of_eyes = windows_[0].window_coords_.getWidth() + windows_[1].window_coords_.getWidth();
-  const int width_of_viewers = windows_[2].window_coords_.getWidth() + windows_[3].window_coords_.getWidth();
+  int height = toolbar_.GetRect().getHeight() + windows_[2].GetRect().getHeight();
+  height = std::max(height, (int)(windows_[0].GetRect().getHeight() + windows_[1].GetRect().getHeight()));
 
-  const int height_of_toolbar = toolbar_.window_coords_.getHeight();
-  const int height_of_eyes_and_left_viewer = windows_[0].window_coords_.getHeight() + windows_[2].window_coords_.getHeight();
-  const int height_of_eyes_and_right_viewer = windows_[0].window_coords_.getHeight() + windows_[3].window_coords_.getHeight();
-
-  width += std::max<int>(width_of_eyes, width_of_viewers);
-  height += std::max<int>(height_of_toolbar, std::max<int>(height_of_eyes_and_left_viewer, height_of_eyes_and_right_viewer));
 
   setWindowSize(width, height);
 

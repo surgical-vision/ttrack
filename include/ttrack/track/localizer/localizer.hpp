@@ -41,7 +41,15 @@ namespace ttrk {
     */
     void SetFrameCount(int fc) { frame_count_ = fc; }
 
+    /**
+    * Accessor for the progress frame for visualization in the GUI.
+    * @return The progress frame.
+    */
+    cv::Mat GetProgressFrame() { return progress_frame_; }
+
   protected:
+
+    cv::Mat progress_frame_; /**< Localizer progress frame. For viewing progress in a GUI or something similar. */
 
     int frame_count_; /**< Current frame count */
 

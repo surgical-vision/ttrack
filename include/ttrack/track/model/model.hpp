@@ -128,7 +128,13 @@ namespace ttrk{
     * Get the total number of models as a string, useful for saving etc.
     * @return The total number of models as a string.
     */
-    static std::string GetCurrentModelCount() { std::stringstream ss; ss << total_model_count_; return ss.str(); }
+    static std::string GetCurrentModelCountStr() { std::stringstream ss; ss << total_model_count_; return ss.str(); }
+
+    /**
+    * Get the total number of models.
+    * @return The total number of models.
+`    */
+    static size_t GetCurrentModelCountInt() { return total_model_count_; }
 
     /**
     * Get a reference to the model's texture (for binding etc).

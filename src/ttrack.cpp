@@ -56,15 +56,8 @@ void TTrack::SetUp(const std::string &model_parameter_file, const std::string &c
   camera_type_ = camera_type;
   results_dir_ = results_dir;
 
-  int n = 0;
-  while (boost::filesystem::is_directory(results_dir_)){
-    std::stringstream res;
-    res << results_dir << "run_" << n;
-    results_dir_ = res.str();
-    ++n;
-  }
-
-  boost::filesystem::create_directories(results_dir_);
+  if (!boost::filesystem::exists(results_dir_))
+    boost::filesystem::create_directories(results_dir_);
   
   //if train type is NA, training is skipped
   detector_.reset(new Detect(classifier_path, classifier_type, number_of_labels));
@@ -91,12 +84,17 @@ void TTrack::SetUp(const std::string &model_parameter_file, const std::string &c
 void TTrack::GetUpdate(std::vector<boost::shared_ptr<Model> > &models, const bool force_new_frame){
 
   if (tracker_->HasConverged() || force_new_frame){
+    
     detector_->Run(GetPtrToNewFrame());
+
     tracker_->Run(GetPtrToClassifiedFrame(), detector_->Found());
+
   }
   else{
     tracker_->RunStep();
   }
+
+  localizer_image_ = tracker_->GetLocalizerProgressFrame();
 
   tracker_->GetTrackedModels(models);
 
@@ -218,6 +216,21 @@ boost::shared_ptr<sv::Frame> TTrack::GetPtrToNewFrame(){
 boost::shared_ptr<sv::Frame> TTrack::GetPtrToClassifiedFrame(){
 
   frame_ = detector_->GetPtrToClassifiedFrame();
+
+  cv::Mat m_channel = frame_->GetClassificationMap().clone();
+  std::vector<cv::Mat> channels;
+  for (size_t i = 0; i < frame_->NumClassificationChannels() && i < 3; ++i){
+
+    cv::Mat chan = sv::Frame::GetChannel(m_channel, i);
+    chan.convertTo(chan, CV_8U);
+    chan = 255 * chan;
+
+    channels.push_back(chan);
+    
+  }
+
+  cv::merge(channels, detector_image_);
+  
   detector_->ResetHandleToFrame(); //once classified detector has nothing to do with the old frame so it can forget about it
   return frame_;
 

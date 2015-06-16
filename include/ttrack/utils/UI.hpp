@@ -20,24 +20,49 @@ namespace ttrk{
     bool IsInitialized() { return initialized_; }
 
     void Initialize(const std::string &title, int width, const int height){
-      menubar_ = cinder::params::InterfaceGl(title, ci::Vec2i(width, height));
+      initialized_ = true;
+      menubar_ = cinder::params::InterfaceGl::create(title, ci::Vec2i(width, height));
     }
 
-    std::vector<UIControllableVariableBase *> GetVars() { return vars_; }
+    //std::vector<UIControllableVariableBase *> GetVars() { return vars_; }
+
+    void AddFunction(const std::string &name, const std::function<void ()> &function){
+
+      menubar_->addButton(name, function);
+
+    }
+
+    void AddSeparator(){
+
+      static size_t index = 0;
+      std::stringstream ss;
+      ss << "separator" << index;
+      index++;
+      menubar_->addSeparator(ss.str());
+
+    }
 
     template<typename T>
-    void Add(UIControllableVariableBase *v){
-      //vars_.push_back(uiv);
-      T *xt = (T *)v->GetValPtr();
-      menubar_.addParam(v->GetName(), xt, "min = " + v->GetMin() + " max = " + v->GetMax() + " step = " + v->GetIncrement(), false);
+    void AddMemberFunction(const std::string &name, std::function<void> &function, T *self){
+
+      menubar_->addButton(name, std::bind(function, self));
+
     }
 
-    cinder::params::InterfaceGl &Menubar() { return menubar_; }
+
+    template<typename T>
+    void AddVar(T *val, T min, T max, T step){
+      std::stringstream ss;
+      ss << "min = " << min << " max = " << max << " step = " + step;
+      menubar_.addParam(v->GetName(), val, ss.str());
+    }
+
+    cinder::params::InterfaceGlRef Menubar() { return menubar_; }
 
   protected:
 
-    cinder::params::InterfaceGl menubar_;
-    std::vector<UIControllableVariableBase *> vars_;
+    cinder::params::InterfaceGlRef menubar_;
+    //std::vector<UIControllableVariableBase *> vars_;
     bool initialized_;
 
 
@@ -47,7 +72,7 @@ namespace ttrk{
 
   };
 
-  class UIControllableVariableBase {
+  /*class UIControllableVariableBase {
 
   public:
 
@@ -159,6 +184,6 @@ namespace ttrk{
   template<>
   int UIControllableVariable<double>::GetValType() const {
     return 13;
-  }
+  }*/
   
 }

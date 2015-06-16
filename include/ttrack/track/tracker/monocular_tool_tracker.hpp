@@ -38,29 +38,6 @@ namespace ttrk {
     
   protected:
         
-    /**
-    * Initialise the 2D pose of the instrument from the moments of the connected region.
-    * @param[in] connected_region A connected region of pixels.
-    * @param[in] The model to be initialized.
-    */
-    void Init2DPoseFromMOITensor(const std::vector<cv::Vec2i> &connected_region, boost::shared_ptr<Model> tracked_model);
-    
-    /**
-    * Finds the center of mass of a connceted region of pixels.
-    * @param[in] A cluster of pixels coordindates.
-    * @param[out] The cluster center.
-    */
-    const cv::Vec2i FindCenterOfMass(const std::vector<cv::Vec2i> &connected_region) const;
-
-    /**
-    * Compute the width of model from 2D MOI tensor.
-    * @param[in] e1 Largest eigenvalue of the tensor.
-    * @param[in] e2 Smallest eigenvalue of the tensor.
-    * @param[in] size The number of pixels in the 'blob'.
-    * @return The width in pixels.
-    */
-    float ComputeWidth(float e1, float e2, size_t size) const ;
-
     boost::shared_ptr<MonocularCamera> camera_; /**< The pinhole camera model used to view the scene. */
 
   };

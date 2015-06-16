@@ -189,11 +189,17 @@ void VideoHandler::SaveFrame(const cv::Mat image){
   if(!writer_.isOpened()) throw std::runtime_error("Error, attempt to save frame without available video writer.\n");
   
   cv::Mat rgb(image.size(), CV_8UC3);
-  for (int r = 0; r < rgb.rows; ++r){
-    for (int c = 0; c < rgb.cols; ++c){
-      const auto &t = image.at<cv::Vec4b>(r, c);
-      rgb.at<cv::Vec3b>(r, c) = cv::Vec3b(t[0], t[1], t[2]);
+
+  if (image.type() == CV_8UC4){
+    for (int r = 0; r < rgb.rows; ++r){
+      for (int c = 0; c < rgb.cols; ++c){
+        const auto &t = image.at<cv::Vec4b>(r, c);
+        rgb.at<cv::Vec3b>(r, c) = cv::Vec3b(t[0], t[1], t[2]);
+      }
     }
+  }
+  else{
+    rgb = image;
   }
 
   writer_ << rgb;

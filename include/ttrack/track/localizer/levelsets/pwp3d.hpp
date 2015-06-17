@@ -204,8 +204,8 @@ namespace ttrk {
     ci::gl::GlslProg front_depth_;  /**< Shader to compute the front depth buffer. */
     ci::gl::GlslProg back_depth_and_contour_;  /**< Shader to compute the back depth buffer and contour. */
 
-    size_t NUM_STEPS;  /**< Number of step for the optimization. */
-    size_t curr_step; /**< Current step in the optimization. */
+    int NUM_STEPS;  /**< Number of step for the optimization. */
+    int curr_step; /**< Current step in the optimization. */
     
     int HEAVYSIDE_WIDTH;  /**< Width of the heaviside blurring function. */
 

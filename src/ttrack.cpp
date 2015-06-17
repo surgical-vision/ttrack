@@ -81,7 +81,7 @@ void TTrack::SetUp(const std::string &model_parameter_file, const std::string &c
 
 void TTrack::GetUpdate(std::vector<boost::shared_ptr<Model> > &models, const bool force_new_frame){
 
-  if (tracker_->HasConverged() || force_new_frame){
+  if (tracker_->HasConverged() || force_new_frame || tracker_->IsFirstRun()){
     
     detector_->Run(GetPtrToNewFrame());
 

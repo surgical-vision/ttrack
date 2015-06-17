@@ -28,7 +28,7 @@ void Tracker::RunStep(){
 
   }
 
-  
+  if (localizer_->IsFirstRun()) localizer_->DoneFirstStep();  
 
 }
 

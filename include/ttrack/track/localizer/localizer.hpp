@@ -16,6 +16,8 @@ namespace ttrk {
 
   public:
 
+    Localizer() : first_run_(false) {}
+
     /**
     * Do single frame pose estimation. This method receives a model (which may or may not have some initial estimate of pose) and tries to 
     * estimate a new estimate for the object in the new frame. The update is applied to the model in this method.
@@ -47,11 +49,17 @@ namespace ttrk {
     */
     cv::Mat GetProgressFrame() { return progress_frame_; }
 
+    bool IsFirstRun() { return first_run_; }
+     
+    void DoneFirstStep() { first_run_ = true; }
+
   protected:
 
     cv::Mat progress_frame_; /**< Localizer progress frame. For viewing progress in a GUI or something similar. */
 
     int frame_count_; /**< Current frame count */
+
+    bool first_run_;
 
   };
 

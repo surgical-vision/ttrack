@@ -30,7 +30,7 @@ namespace ttrk {
     * Constructor for testing etc when there is no save file.
     * @param[in] model_parameter_file The file containing the locations of meshes and DH parameters for this model.
     */
-    explicit DenavitHartenbergArticulatedModel(const std::string &model_parameter_file);
+    //explicit DenavitHartenbergArticulatedModel(const std::string &model_parameter_file);
 
     /**
     * Specialization of the JSON parsing function to enable the DH parameters to be loaded.

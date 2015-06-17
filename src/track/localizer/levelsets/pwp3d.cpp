@@ -16,6 +16,7 @@
 #include "../../../../include/ttrack/utils/helpers.hpp"
 #include "../../../../include/ttrack/resources.hpp"
 #include "../../../../include/ttrack/constants.hpp"
+#include "../include/ttrack/utils/UI.hpp"
 
 using namespace ttrk;
 
@@ -34,6 +35,9 @@ PWP3D::PWP3D(const int width, const int height) {
   HEAVYSIDE_WIDTH = 3; //if this value is changed the Delta/Heavside approximations will be invalid!
 
   NUM_STEPS = 2;
+
+  auto &ui = ttrk::UIController::Instance();
+  ui.AddVar<int>("Gradient Descent Steps", &NUM_STEPS, 1, 50, 1);
 
   curr_step = NUM_STEPS; //so we report converged and ask for a new frame at the start
 

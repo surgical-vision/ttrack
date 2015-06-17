@@ -112,6 +112,8 @@ namespace ttrk{
     */
     cv::Mat GetLocalizerProgressFrame() { return localizer_image_; }
 
+    bool IsFirstRun() { return localizer_->IsFirstRun(); }
+
   protected:
 
     /**

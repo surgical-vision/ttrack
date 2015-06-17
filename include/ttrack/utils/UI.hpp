@@ -49,10 +49,10 @@ namespace ttrk{
 
 
     template<typename T>
-    void AddVar(T *val, T min, T max, T step){
+    void AddVar(const std::string &name, T *val, T min, T max, T step){
       std::stringstream ss;
       ss << "min = " << min << " max = " << max << " step = " + step;
-      menubar_.addParam(v->GetName(), val, ss.str());
+      menubar_->addParam(name, val, ss.str());
     }
 
     cinder::params::InterfaceGlRef Menubar() { return menubar_; }

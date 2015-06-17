@@ -444,54 +444,74 @@ void TTrackApp::drawToolbar() {
 
 void TTrackApp::drawPlotter(ttrk::SubWindow &window) {
 
-  window.BindAndClear(); 
-  
-  const int width = window.GetRect().getWidth();
-  const int height = window.GetRect().getHeight();
+  const int width = window.BufferWidth();
+  const int height = window.BufferHeight();
 
-  gl::Texture tex;
+  gl::Texture tex(720, 576);
 
-  //glMatrixMode(GL_PROJECTION);
-  //glLoadIdentity();
-  glViewport(0, 0, width, height);
-
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
- 
-#ifdef USE_MATHGL && NOT_MATHGL
+#ifdef USE_MATHGL
 
   mglGraph graph(0, width, height);
 
+  graph.Title("Localizer error");
   graph.Alpha(true);
-  
   graph.Light(true);
-  graph.Axis("xy");
 
-  graph.SetTicks('x', 400);
-  graph.SetTicks('y', 400);
+  size_t number_of_frames = 0;
+  float max_element = std::numeric_limits<float>::min();
+  float min_element = std::numeric_limits<float>::max();
 
   graph.Label('x', "Frame No", 0);
   graph.Label('y', "Error", 0);
 
-
   auto &plotter = ttrk::ErrorMetricPlotter::Instance();
   auto &plots = plotter.GetPlottables();
+
+  for (auto &plot : plots){
+    std::vector<float> &vals = plot->GetErrorValues();
+    if (vals.size() > number_of_frames) number_of_frames = vals.size();
+    float max_element_of_plot = *std::max_element(vals.begin(), vals.end());
+    float min_element_of_plot = *std::min_element(vals.begin(), vals.end());
+
+    if (max_element_of_plot > max_element)
+      max_element = max_element_of_plot;
+    if (min_element_of_plot < min_element)
+      min_element = min_element_of_plot;
+
+  }
+
+
+  //graph.SetRange('x', 0, number_of_frames);
+  //graph.SetRange('y', min_element, max_element);
+  graph.SetRanges(0, number_of_frames, min_element, max_element);
+  graph.Axis();
+
   
   for (auto &plot : plots){
-    auto vals = plot->GetErrorValues();
-    for (int i = 0; i < 400; i++){
-      vals.push_back(i);
-    }
-    mglData error_data;
-    error_data.Create(vals.size(), 1);
-    error_data.Set(vals);
-    //memcpy(error_data.a, vals.data(), sizeof(float)*vals.size());   
+
+    std::vector<float> &vals = plot->GetErrorValues();
+
+    //no stl in debug mode for mgl
+    float *data = new float[vals.size()];
+    for (int i = 0; i < vals.size(); ++i)
+      data[i] = vals[i];
+
+    mglData error_data(data, vals.size());
     graph.Plot(error_data);
+
+    delete[] data;
+
   }
 
   unsigned char *buf = new uchar[4 * width*height];
   graph.GetBGRN(buf, 4 * width*height);
 
   cv::Mat m(cv::Size(width, height), CV_8UC4, (void *)buf);
+
+  std::vector<cv::Mat> chans;
+  cv::split(m, chans);
+  chans.pop_back();
+  cv::merge(chans, m);
 
   tex = fromOcv(m);
 
@@ -505,13 +525,12 @@ void TTrackApp::drawPlotter(ttrk::SubWindow &window) {
   Surface8u rendered = text.render(true);
 
   tex = rendered;
-
-  gl::draw(tex);
-  
+    
   
 #endif
 
-  
+  window.BindAndClear();
+  drawImageContents(window, tex);
   window.UnBind();
 
 } 

@@ -119,7 +119,7 @@ void StereoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boo
 
   frame_ = frame;
 
-  if (curr_step == NUM_STEPS) {
+  if (curr_step == NUM_STEPS || first_run_) {
 
     cv::Mat front_intersection_image, back_intersection_image, front_normal_image;
     ProcessSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), cv::Mat(), front_intersection_image, back_intersection_image);

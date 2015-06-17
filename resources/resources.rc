@@ -25,6 +25,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 134			                GLSL			              "./../resources/comp_ls_back_depth_contour_frag.glsl"
 135			                GLSL			              "./../resources/comp_ls_back_depth_contour_vert.glsl"
 136                     IMAGE                   "./../resources/start.png"
+137                     IMAGE                   "./../resources/not_enabled.png"
 
 
 #ifdef APSTUDIO_INVOKED

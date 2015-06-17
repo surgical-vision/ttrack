@@ -511,6 +511,8 @@ void TTrackApp::drawPlotter(ttrk::SubWindow &window) {
   
   window.UnBind();
 
+  delete[] buf;
+
 #else
 
   static ci::gl::Texture help_frame(ci::loadImage(loadResource(ENABLED_WIN)));

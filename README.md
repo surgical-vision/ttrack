@@ -21,6 +21,7 @@ In all cases these are not strict minimum versions but merely the oldest version
 * [OpenCV v2.3.1](http://opencv.org/downloads.html) 
 * [Boost v1.48.0](http://www.boost.org/users/download/)
 * [Cinder v0.8.5](https://github.com/cinder/Cinder)
+* [MathGL v2.3.3](http://mathgl.sourceforge.net/doc_en/Main.html) - optional, for plotting data
 
 Install Guide
 -------------

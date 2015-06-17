@@ -1,9 +1,0 @@
-{
-    "root": {
-        "obj-file": "your_obj_file.obj",
-        "mtl-file": "your_material_file.mtl",
-        "tex-file": "your_texture_file.png",
-        "articulated": false,
-        "children": []
-    }
-}

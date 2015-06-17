@@ -52,17 +52,6 @@ StereoVideoHandler::StereoVideoHandler(const std::string &left_input_url,const s
   
 cv::Mat StereoVideoHandler::GetNewFrame(){
 
-  static bool first = true;
-  if (first){
-    for (size_t i = 0; i < 59; i++)
-    {
-      cv::Mat t;
-      right_cap_ >> t;
-      VideoHandler::GetNewFrame();
-    }  
-    first = false;
-  }
-
   //create one big frame to return the image data in
   cv::Mat right_frame;
   right_cap_ >> right_frame; 
@@ -75,20 +64,6 @@ cv::Mat StereoVideoHandler::GetNewFrame(){
   //load the right frame
   cv::Mat rhs = to_return(cv::Rect(right_frame.cols,0,right_frame.cols,right_frame.rows));
   right_frame.copyTo(rhs);
-
-  
-
-  if (rhs.size() == cv::Size(1920, 1080)){
-    cv::Mat resized;
-    cv::resize(to_return, resized, cv::Size(0, 0), 0.5, 0.5);
-    to_return = resized;
-  }
-
-  if (rhs.size() == cv::Size(854, 480)){
-    cv::Mat resized;
-    cv::resize(to_return, resized, cv::Size(720*2, 576));
-    to_return = resized;
-  }
 
   if(to_return.data == 0x0) { 
     done_ = true;

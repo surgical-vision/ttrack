@@ -1,0 +1,9 @@
+{
+    "root": {
+        "obj-file": "example.obj",
+        "mtl-file": "example.mtl",
+        "tex-file": "example.png",
+        "articulated": false,
+        "children": []
+    }
+}

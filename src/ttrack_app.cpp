@@ -88,9 +88,6 @@ void TTrackApp::SetupFromConfig(const std::string &path){
                starting_poses,
                number_of_labels);
   
-  int width = reader.get_element_as_type<int>("window-width");
-  int height = reader.get_element_as_type<int>("window-height");
-
   camera_.reset(new ttrk::StereoCamera(root_dir + "/" + reader.get_element("camera-config")));
   
   windows_[0].Init("Left Eye", toolbar_.GetRect().x2, 0, camera_->left_eye()->Width(), camera_->left_eye()->Height(), 625, 500, false);

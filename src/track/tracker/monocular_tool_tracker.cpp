@@ -16,7 +16,9 @@ MonocularToolTracker::MonocularToolTracker(const std::string &model_parameter_fi
 
 bool MonocularToolTracker::Init(){
 
-  for (auto i = 0; i < Model::GetCurrentModelCountInt(); ++i){
+  if (starting_pose_HACK.size() == 0) return false;
+
+  for (auto i = 0; i < starting_pose_HACK.size(); ++i){
 
     TemporalTrackedModel new_tracker;
     tracked_models_.push_back(new_tracker);
@@ -32,7 +34,6 @@ bool MonocularToolTracker::Init(){
   return true;
 
 }
-
 
 
 

@@ -23,8 +23,12 @@ void Tracker::RunStep(){
 
     localizer_->SetFrameCount(frame_count_);
     localizer_->TrackTargetInFrame(current_model_->model, frame_);
-       
+  
+    localizer_image_ = localizer_->GetProgressFrame();
+
   }
+
+  if (localizer_->IsFirstRun()) localizer_->DoneFirstStep();  
 
 }
 

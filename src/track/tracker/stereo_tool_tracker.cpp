@@ -9,9 +9,14 @@
 #include "../../../include/ttrack/track/tracker/stereo_tool_tracker.hpp"
 #include "../../../include/ttrack/track/localizer/levelsets/stereo_pwp3d.hpp"
 #include "../../../include/ttrack/track/localizer/levelsets/comp_ls.hpp"
+#include "../../../include/ttrack/track/localizer/levelsets/articulated_level_set.hpp"
 
 #include "../../../include/ttrack/track/model/articulated_model.hpp"
 #include "../../../include/ttrack/utils/helpers.hpp"
+
+#ifdef USE_CERES
+#include "../../../include/ttrack/track/localizer/levelsets/articulated_solver.hpp"
+#endif
 
 using namespace ttrk;
 
@@ -21,6 +26,12 @@ StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, co
     localizer_.reset(new StereoPWP3D(camera_));
   else if (localizer_type == LocalizerType::ComponentLS)
     localizer_.reset(new ComponentLevelSet(number_of_labels, camera_));
+  else if (localizer_type == LocalizerType::ArticulatedComponentLS)
+    localizer_.reset(new ArticulatedComponentLevelSet(11, number_of_labels, camera_));
+#ifdef USE_CERES
+  else if (localizer_type == LocalizerType::CeresLevelSetSolver)
+    localizer_.reset(new CeresLevelSetSolver(camera_));
+#endif
   else
     throw std::runtime_error("");	
 
@@ -28,9 +39,13 @@ StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, co
 
 
 
+
+
 bool StereoToolTracker::Init() {
 
-  for (auto i = 0; i < Model::GetCurrentModelCountInt(); ++i){
+  if (starting_pose_HACK.size() == 0) return false;
+
+  for (auto i = 0; i < starting_pose_HACK.size(); ++i){
 
     TemporalTrackedModel new_tracker;
     tracked_models_.push_back(new_tracker);
@@ -53,4 +68,3 @@ void StereoToolTracker::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){
   boost::shared_ptr<sv::StereoFrame> stereo_image = boost::dynamic_pointer_cast<sv::StereoFrame>(image);
 
 }
-

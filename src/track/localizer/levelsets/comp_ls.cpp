@@ -40,7 +40,7 @@ void ComponentLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> current_mode
 
   frame_ = frame;
 
-  if (curr_step == NUM_STEPS) {
+  if (curr_step == NUM_STEPS || first_run_) {
 
     cv::Mat front_intersection_image, back_intersection_image, front_normal_image;
     ProcessSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), front_intersection_image, back_intersection_image, front_normal_image);
@@ -333,9 +333,11 @@ void ComponentLevelSet::ProcessSDFAndIntersectionImage(const boost::shared_ptr<M
   //cv::Mat sdf_image;
   //distanceTransform(~component_contour_image, component_sdf_image, CV_DIST_L2, CV_DIST_MASK_PRECISE);
 
+
   for (size_t i = 0; i < components_.size(); i++){
     components_[i].sdf_image = cv::Mat(front_depth.size(), CV_32FC1);
     distanceTransform(~components_[i].contour_image, components_[i].sdf_image, CV_DIST_L2, CV_DIST_MASK_PRECISE);
+  
   }
 
   for (int r = 0; r < front_depth.rows; ++r){
@@ -347,6 +349,11 @@ void ComponentLevelSet::ProcessSDFAndIntersectionImage(const boost::shared_ptr<M
       }
     }
   }
+
+  //just do the first one
+  if (components_.size() > 0)
+    progress_frame_ = ComputePrettySDFImage(components_[0].sdf_image);
+
 }
 
 inline bool IsGreaterThanNeighbour(const cv::Mat &im, const int r, const int c){

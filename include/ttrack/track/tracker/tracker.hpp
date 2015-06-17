@@ -105,6 +105,14 @@ namespace ttrk{
     */
     static LocalizerType LocalizerTypeFromString(const std::string &str);
 
+    /**
+    * Get the localizer progress frame for passing to GUI.
+    * @return The frame showing localizer progress.
+    */
+    cv::Mat GetLocalizerProgressFrame() { return localizer_image_; }
+
+    bool IsFirstRun() { return localizer_->IsFirstRun(); }
+
   protected:
 
     /**
@@ -147,6 +155,8 @@ namespace ttrk{
     std::string results_dir_; /**< A directory to save the model results. */   
 
     int frame_count_; /**< Current frame number. */
+
+    cv::Mat localizer_image_; /**< Image from the localizer for visualizing progress in GUI. */
 
   };
 

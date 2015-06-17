@@ -11,6 +11,7 @@
 
 #include "ttrack.hpp"
 #include "utils/camera.hpp"
+#include "utils/sub_window.hpp"
 
 using namespace ci;
 using namespace ci::app;
@@ -25,6 +26,8 @@ using namespace ci::app;
 class TTrackApp : public AppBasic {
 
 public:
+
+  enum ExtraViewMode { EXTRA_VIEW_PLOTTER, EXTRA_VIEW_3D, EXTRA_VIEW_DETECTOR, EXTRA_VIEW_LOCALIZER };
 
   /**
   * Initialization code.
@@ -76,6 +79,13 @@ public:
   */
   virtual void resize();
 
+  void show3DScene() { show_extra_view_ = EXTRA_VIEW_3D; }
+  void showPlotter() { show_extra_view_ = EXTRA_VIEW_PLOTTER; }
+  void showDetectorOutput() { show_extra_view_ = EXTRA_VIEW_DETECTOR; }
+  void showLocalizerOutput() { show_extra_view_ = EXTRA_VIEW_LOCALIZER; }
+
+  void reset3DViewerPosition() { reset_3D_viewport_ = true; }
+
 protected:
 
   void drawImageOnCamera(const gl::Texture &image_data, ci::Vec3f &tl, ci::Vec3f &bl, ci::Vec3f &tr, ci::Vec3f &br);
@@ -83,9 +93,9 @@ protected:
 
   /**
   * Load the helper window.
-  * @param[in] framebuffer The framebuffer to draw the helper window in.
+  * @param[in] window The SubWindow to draw on.
   */
-  void drawHelpWindow(boost::shared_ptr<ci::gl::Fbo> framebuffer); 
+  void drawHelpWindow(ttrk::SubWindow &window); 
 
   /**
   * Save the results from all of the pose estimates for the current frame.
@@ -107,25 +117,25 @@ protected:
 
   /**
   * Draw the frame error plot.
-  * @param[in] framebuffer The framebuffer to draw in.
+  * @param[in] window The window to draw in.
   */
-  void drawPlotter(boost::shared_ptr<gl::Fbo> framebuffer);
+  void drawPlotter(ttrk::SubWindow &window);
 
   /**
   * Draw 3D scene view.
-  * @param[in] framebuffer The framebuffer to draw in.
+  * @param[in] window The SubWindow to draw on.
   * @param[in] camera_view The view that the camera sees, renders onto the camera wireframe model for realism.
   * @param[in] cam The camera we are drawing in the scene.
   */
-  void draw3D(boost::shared_ptr<gl::Fbo> framebuffer, const gl::Texture &camera_view, const boost::shared_ptr<ttrk::MonocularCamera> cam);
+  void draw3D(ttrk::SubWindow &window, const gl::Texture &camera_view, const boost::shared_ptr<ttrk::MonocularCamera> cam);
 
   /**
   * Draw the view of the tracked objects from one eye.
-  * @param[in] framebuffer The framebuffer to draw on.
+  * @param[in] window The SubWindow to draw on.
   * @param[in] background The background to draw behind the rendered objects.
   * @param[in] cam The camera view to draw from.
   */
-  void drawEye(boost::shared_ptr<gl::Fbo> framebuffer, gl::Texture &background, const boost::shared_ptr<ttrk::MonocularCamera> cam);
+  void drawEye(ttrk::SubWindow &window, gl::Texture &background, const boost::shared_ptr<ttrk::MonocularCamera> cam, bool draw_models = true);
 
   /**
   * Setup tracking from a configuration file.
@@ -135,87 +145,64 @@ protected:
   
   /**
   * Helper function to draw the model at some pose in front of the camera.
-  * @param[in] framebuffer The framebuffer to render to.
+  * @param[in] window The SubWindow to draw on.
   * @param[in] mesh The model to draw.
   * @param[in] cam The camera to draw in front of.
   */
-  void drawModelOnEye(boost::shared_ptr<gl::Fbo> framebuffer, const boost::shared_ptr<ttrk::Model> mesh, const boost::shared_ptr<ttrk::MonocularCamera> cam);
+  void drawModelOnEye(ttrk::SubWindow &window, const boost::shared_ptr<ttrk::Model> mesh, const boost::shared_ptr<ttrk::MonocularCamera> cam);
   
   /**
   * Render the background on the camera view.
   * @param[in] background The background texture.
+  * @param[in] target_size The size of framebuffer we're drawing on 
   */
-  void drawBackground(gl::Texture &background);
-  
+  void drawBackground(gl::Texture &background, const cv::Size target_size);
+  void drawImageContents(ttrk::SubWindow &window, gl::Texture &image);
+
+  /**
+  * Render the background on a subwindow.
+  * @param[in] window The SubWindow to draw on.
+  * @param[in] background The background texture.
+  */
+  void drawBackground(ttrk::SubWindow &window, ci::gl::Texture &background);
+
+  /**
+  * Draw the additional info window contents
+  */
+  void drawExtra();
+
+  void startTracking();
+
+  bool reset_3D_viewport_; /**< Reset the position of the camera in the 3D viewport window in case it gets lost */
+
+  ExtraViewMode show_extra_view_; /**< Type of contents for the extra view. */
+
   gl::GlslProg shader_; /**< The shader to do the rendering. */
    
   boost::shared_ptr<ttrk::StereoCamera> camera_; /**< The camera model we are using. */
+  
   std::vector<boost::shared_ptr<ttrk::Model> > models_to_draw_; /**< The set of models we are rendering/tracking. */
 
   bool force_new_frame_; /**< Force the gradient descent to stop converging and for a new frame to load. */
+
+  bool run_tracking_; /**< Switch on and off the tracking. */
 
   MayaCamUI	maya_cam_; /**< Maya cam for interactive viewing. */
 
   Vec2i	mouse_pos_; /**< Current estimate of mouse position. */
 
-  /**
-  * @struct SubWindow
-  * @brief Sub window regions to draw to in the main viewer.
-  * Allows the main window to be split up into different viewports.
-  */
-  struct SubWindow {
-    
-    /**
-    * Empty constructor.
-    */
-    SubWindow() { }
-
-    /**
-    * Create a window with dimensions.
-    * @param[in] start_x The x coordinate of the top left of the box in the main window reference frame.
-    * @param[in] start_y The y coordinate of the top left of the box in the main window reference frame.
-    * @param[in] width The height of the sub window in pixels.
-    * @param[in] height The width of the sub window in pixels.
-    */
-    SubWindow(int start_x, int start_y, int width, int height){
-      Init(start_x, start_y, width, height, width, height);
-    }
-
-    /**
-    * Create a window with dimensions.
-    * @param[in] start_x The x coordinate of the top left of the box in the main window reference frame.
-    * @param[in] start_y The y coordinate of the top left of the box in the main window reference frame.
-    * @param[in] width The height of the sub window in pixels.
-    * @param[in] height The width of the sub window in pixels.
-    */
-    SubWindow(int start_x, int start_y, int eye_width, int eye_height, int draw_width, int draw_height)  {
-      
-      Init(start_x, start_y, eye_width, eye_height, draw_width, draw_height);
-
-    }
-
-    void Init(int start_x, int start_y, int eye_width, int eye_height, int draw_width, int draw_height){
-      window_coords_ = ci::Rectf(start_x, start_y, start_x + draw_width, start_y + draw_height);
-      gl::Fbo::Format f;
-      f.enableMipmapping();
-      framebuffer_.reset(new gl::Fbo(eye_width, eye_height, f));
-      texture_ = gl::Texture(eye_width, eye_height);
-    }
-
-
-    ci::Rectf window_coords_; /**< The window coordinates within the main window reference frame. */
-    boost::shared_ptr<gl::Fbo> framebuffer_; /**< The framebuffer of size width, height which is rendered to when we draw to this subwindow. */
-    gl::Texture texture_; /**< The texture that is attached to this framebuffer. */
-
-  };
-
   size_t width_; /**< The width of the main window. */
   size_t height_; /**< The height of the main window. */
 
-  SubWindow toolbar_; /**< The toolbar subwindow. */
-  std::vector<SubWindow> windows_; /**< The main visualization sub windows. */
+  ttrk::SubWindow toolbar_; /**< The toolbar subwindow. */
+  std::vector<ttrk::SubWindow> windows_; /**< The main visualization sub windows. */
 
-  ci::params::InterfaceGlRef	menubar_; /**< The widgets draw in the toolbar subwindow. */
+  ci::gl::Texture left_eye_image_; /**< The toolbar subwindow. */
+  ci::gl::Texture right_eye_image_; /**< The toolbar subwindow. */
+  ci::gl::Texture left_detector_image_; /**< The toolbar subwindow. */
+  ci::gl::Texture right_detector_image_; /**< The current output of the right detector. */
+  ci::gl::Texture localizer_image_; /**< The toolbar subwindow. */
+
 
 };
 

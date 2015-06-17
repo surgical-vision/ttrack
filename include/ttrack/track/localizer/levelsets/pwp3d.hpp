@@ -173,6 +173,21 @@ namespace ttrk {
   protected:
 
     /**
+    * Get the error value for the current image.
+    * @param[in] contour_image The contour image from the tracking.
+    * @param[in] front_depth_image The front depth image from the renderer.
+    * @return The sdf image.
+    */
+    cv::Mat ComputeSDFImageAndSetProgressFrame(const cv::Mat contour_image, const cv::Mat &front_depth_image);
+
+    /**
+    * Render a single channel floating point sdf image as a heatmap.
+    * @param[in] sdf_image The sdf image from the tracking as single channel floating point.
+    * @return The pretty SDF image. 
+    */
+    cv::Mat ComputePrettySDFImage(const cv::Mat &sdf_image) const;
+
+    /**
     * Compute the areas of the foreground and background regions.
     * @param[in] sdf The signed distance function image.
     * @param[out] fg_area The foreground area.
@@ -189,8 +204,8 @@ namespace ttrk {
     ci::gl::GlslProg front_depth_;  /**< Shader to compute the front depth buffer. */
     ci::gl::GlslProg back_depth_and_contour_;  /**< Shader to compute the back depth buffer and contour. */
 
-    size_t NUM_STEPS;  /**< Number of step for the optimization. */
-    size_t curr_step; /**< Current step in the optimization. */
+    int NUM_STEPS;  /**< Number of step for the optimization. */
+    int curr_step; /**< Current step in the optimization. */
     
     int HEAVYSIDE_WIDTH;  /**< Width of the heaviside blurring function. */
 

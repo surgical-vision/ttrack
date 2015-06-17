@@ -35,6 +35,7 @@ set(
   ${INCDIR}/utils/plotter.hpp
   ${INCDIR}/utils/UI.hpp
   ${INCDIR}/utils/image.hpp
+  ${INCDIR}/utils/sub_window.hpp
   ${INCDIR}/track/model/pose.hpp 
   ${INCDIR}/track/model/articulated_model.hpp
   ${INCDIR}/track/model/dh_helpers.hpp
@@ -49,6 +50,8 @@ set(
   ${INCDIR}/track/localizer/levelsets/mono_pwp3d.hpp
   ${INCDIR}/track/localizer/levelsets/pwp3d.hpp 
   ${INCDIR}/track/localizer/levelsets/stereo_pwp3d.hpp 
+  ${INCDIR}/track/localizer/levelsets/articulated_level_set.hpp
+  ${INCDIR}/track/localizer/levelsets/articulated_component_level_set.hpp  
   ${INCDIR}/track/localizer/features/feature_localizer.hpp
   ${INCDIR}/track/localizer/features/register_points.hpp
   ${INCDIR}/track/localizer/features/lk_tracker.hpp
@@ -58,7 +61,6 @@ set(
 
 
 ## Store list of source files
-
 set( 
   SOURCES 
   ttrack.cpp 
@@ -75,6 +77,7 @@ set(
   utils/helpers.cpp 
   utils/nd_image.cpp 
   utils/plotter.cpp 
+  utils/sub_window.cpp
   track/tracker/tracker.cpp 
   track/tracker/monocular_tool_tracker.cpp 
   track/tracker/stereo_tool_tracker.cpp 
@@ -91,7 +94,8 @@ set(
   track/localizer/features/feature_localizer.cpp
   track/localizer/features/descriptor.cpp
   track/localizer/features/lk_tracker.cpp
-
+  track/localizer/levelsets/articulated_level_set.cpp
+  track/localizer/levelsets/articulated_component_level_set.cpp
   track/temporal/temporal.cpp
   
   )
@@ -103,7 +107,46 @@ set(
 # Project headers trump everything 
 list(APPEND LIB_INC_DIR  "${PROJECT_SOURCE_DIR}/include;${CMAKE_CURRENT_BINARY_DIR}/include" )
 
+#MathGL
+option(WITH_MATHGL2 "Use MathGL for graph plotting" OFF)
+if(WITH_MATHGL2)
+  find_package(MathGL2 REQUIRED)
+  if(MATHGL2_FOUND)
+    add_definitions(-DUSE_MATHGL)
+    set(USE_MATHGL 1)
+    message(STATUS "MathGL2 Found and Enabled")
+    
+    
+    list(APPEND USER_INC ${MATHGL2_INCLUDE_DIRS})
+   	list(APPEND LINK_LIBS ${MATHGL2_LIBRARIES})
+  endif()
+endif()
 
+#Cuda
+option(WITH_CUDA "Use CUDA optimized functions" OFF)
+if(WITH_CUDA)
+  find_package(CUDA REQUIRED QUIET)
+  if(CUDA_FOUND)
+    add_definitions(-DUSE_CUDA)
+  	set(USE_CUDA 1)
+	  set(CUDA_NVCC_FLAGS "-arch sm_20")
+
+	  add_definitions(-DCUDA_BUILD)
+	  message(STATUS "CUDA Found and Enabled")
+
+    string(FIND "${EXTERNAL_INC_DIRS}" "${CUDA_INCLUDE_DIRS}" HAS_INCLUDED REVERSE)
+    if(HAS_INCLUDED LESS 0 OR HAS_INCLUDED EQUAL 0)
+    		list(APPEND USER_INC ${CUDA_INCLUDE_DIRS})
+   	    list(APPEND LINK_LIBS ${CUDA_LIBRARIES})
+  	endif()
+  endif()
+endif()
+
+if(USE_CUDA)
+	list(APPEND HEADERS ${INCDIR}/track/localizer/levelsets/pwp3d_cuda.hpp)
+	#list(APPEND HEADERS ${INCDIR}/track/localizer/levelsets/pwp3d_cuda_inc.hpp) 
+	list(APPEND SOURCES track/localizer/levelsets/pwp3d.cu)
+endif()
 
 #Boost
 
@@ -130,7 +173,20 @@ find_package(Cinder REQUIRED)
 list(APPEND USER_INC "${CINDER_INCLUDE_DIRS}" )
 list(APPEND LINK_LIBS "${CINDER_LIBRARIES}" )
 
+option(WITH_CERES "Use Ceres based optimization" OFF)
+if(WITH_CERES)
+  add_definitions(-DUSE_CERES) 
+  #find_package(Eigen3 REQUIRED)
+  #list(APPEND USER_INC "${EIGEN3_INCLUDE_DIR}")
 
+  find_package(Ceres REQUIRED)
+  list(APPEND USER_INC "${CERES_INCLUDE_DIRS}")
+  list(APPEND LINK_LIBS "${CERES_LIBRARIES}")
+
+  list(APPEND HEADERS ${INCDIR}/track/localizer/levelsets/articulated_solver.hpp)
+  list(APPEND SOURCES track/localizer/levelsets/articulated_solver.cpp)
+
+endif()
 #######################################################
 ## Add Libraries / Include Directories / Link directories
 
@@ -138,7 +194,22 @@ include_directories( ${LIB_INC_DIR} )
 include_directories( ${USER_INC} )
 link_directories( ${USER_LIB} )
 
+if(USE_CUDA)
+if(_WIN_)
+cuda_add_executable(${BINARY_NAME} "../resources/Resources.rc" ${MAIN_FILE} ${SOURCES} ${HEADERS} )
+set_property(TARGET ${BINARY_NAME} PROPERTY WIN32_EXECUTABLE TRUE)
+else(_WIN_)
+cuda_add_executable(${BINARY_NAME} ${MAIN_FILE} ${SOURCES} ${HEADERS} )
+endif()
+else(USE_CUDA)
+if(_WIN_)
 add_executable(${BINARY_NAME} WIN32 "../resources/Resources.rc" ${MAIN_FILE} ${SOURCES} ${HEADERS} )
+else(_WIN_)
+add_executable(${BINARY_NAME} "../resources/Resources.rc" ${MAIN_FILE} ${SOURCES} ${HEADERS} )
+endif(_WIN_)
+endif()
+
+
 
 target_link_libraries(${BINARY_NAME} ${LINK_LIBS})
 

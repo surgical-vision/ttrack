@@ -10,7 +10,7 @@ void ArticulatedComponentLevelSet::TrackTargetInFrame(boost::shared_ptr<Model> c
 
   frame_ = frame;
 
-  if (curr_step == NUM_STEPS) {
+  if (curr_step == NUM_STEPS || first_run_) {
 
     cv::Mat front_intersection_image, back_intersection_image, front_normal_image, frame_idx_image;
     ProcessArticulatedSDFAndIntersectionImage(current_model, stereo_camera_->left_eye(), front_intersection_image, back_intersection_image, front_normal_image, frame_idx_image);

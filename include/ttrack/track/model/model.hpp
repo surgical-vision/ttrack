@@ -129,6 +129,11 @@ namespace ttrk{
     * @return The total number of models as a string.
     */
     static std::string GetCurrentModelCountStr() { std::stringstream ss; ss << total_model_count_; return ss.str(); }
+
+    /**
+    * Get the total number of models.
+    * @return The total number of models.
+`    */
     static size_t GetCurrentModelCountInt() { return total_model_count_; }
 
     /**
@@ -183,6 +188,7 @@ namespace ttrk{
 
     static size_t total_model_count_; /** Count of all created models so when we create a new one it gets it's own file. */
 
+    std::string save_file_; /**< The save file for the model pose. */
 
     
 

@@ -12,6 +12,7 @@
 #include "../../../../include/ttrack/utils/helpers.hpp"
 #include "../../../../include/ttrack/resources.hpp"
 #include "../../../../include/ttrack/constants.hpp"
+#include "../include/ttrack/utils/UI.hpp"
 
 using namespace ttrk;
 
@@ -30,6 +31,9 @@ PWP3D::PWP3D(const int width, const int height) {
   HEAVYSIDE_WIDTH = 3; //if this value is changed the Delta/Heavside approximations will be invalid!
 
   NUM_STEPS = 20;
+
+  auto &ui = ttrk::UIController::Instance();
+  ui.AddVar<int>("Gradient Descent Steps", &NUM_STEPS, 1, 50, 1);
 
   curr_step = NUM_STEPS; //so we report converged and ask for a new frame at the start
   
@@ -370,6 +374,48 @@ void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, c
 
 }
 
+cv::Mat PWP3D::ComputePrettySDFImage(const cv::Mat &sdf_image) const{
+
+  //stackoverflow - http://stackoverflow.com/a/13843342/980866
+  double min;
+  double max;
+  cv::minMaxIdx(sdf_image, &min, &max);
+  cv::Mat adjMap;
+  // expand your range to 0..255. Similar to histEq();
+  sdf_image.convertTo(adjMap, CV_8UC1, 255 / (max - min), -min);
+
+  cv::Mat falseColorsMap;
+  applyColorMap(adjMap, falseColorsMap, cv::COLORMAP_AUTUMN);
+
+  return falseColorsMap;
+
+}
+
+cv::Mat PWP3D::ComputeSDFImageAndSetProgressFrame(const cv::Mat contour_image, const cv::Mat &front_depth_image){
+
+  cv::Mat sdf_image;
+  distanceTransform(contour_image, sdf_image, CV_DIST_L2, CV_DIST_MASK_PRECISE);
+
+  //flip the sign of the distance image for outside pixels
+  for (int r = 0; r < sdf_image.rows; r++){
+    for (int c = 0; c < sdf_image.cols; c++){
+      if (front_depth_image.channels() == 4){
+        if (std::abs(front_depth_image.at<cv::Vec4f>(r, c)[0] - GL_FAR) < EPS)
+          sdf_image.at<float>(r, c) *= -1;
+      }
+      else{
+        if (std::abs(front_depth_image.at<cv::Vec3f>(r, c)[0] - GL_FAR) < EPS)
+          sdf_image.at<float>(r, c) *= -1;
+      }
+    }
+  }
+
+  progress_frame_ = ComputePrettySDFImage(sdf_image);
+
+  return sdf_image;
+
+}
+
 void PWP3D::ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &sdf_image, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image) {
 
   //find all the pixels which project to intersection points on the model
@@ -403,17 +449,8 @@ void PWP3D::ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, 
     }
   }
 
-
-  distanceTransform(contour, sdf_image, CV_DIST_L2, CV_DIST_MASK_PRECISE);
-
-  //flip the sign of the distance image for outside pixels
-  for(int r=0;r<sdf_image.rows;r++){
-    for(int c=0;c<sdf_image.cols;c++){
-      if (std::abs(front_depth.at<cv::Vec4f>(r, c)[0] - GL_FAR) < EPS)
-        sdf_image.at<float>(r,c) *= -1;
-    }
-  }
-  
+  sdf_image = ComputeSDFImageAndSetProgressFrame(contour, front_intersection_image);
+     
 }
 
 

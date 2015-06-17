@@ -19,7 +19,7 @@ namespace ttrk{
   * @enum LocalizerType
   * The type of frame-by-frame pose localizer to use in tracking.
   */
-  enum LocalizerType { PWP3DLocalizer, ArticulatedLevelSetLocalizer, ComponentLS };
+  enum LocalizerType { PWP3DLocalizer, ComponentLS };
 
  /**
  * @class Tracker

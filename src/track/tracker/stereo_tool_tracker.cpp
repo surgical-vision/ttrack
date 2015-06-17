@@ -14,10 +14,6 @@
 #include "../../../include/ttrack/track/model/articulated_model.hpp"
 #include "../../../include/ttrack/utils/helpers.hpp"
 
-#ifdef USE_CERES
-#include "../../../include/ttrack/track/localizer/levelsets/articulated_solver.hpp"
-#endif
-
 using namespace ttrk;
 
 StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, const std::string &calibration_file, const std::string &results_dir, const LocalizerType &localizer_type, const size_t number_of_labels) : SurgicalToolTracker(model_parameter_file, results_dir), camera_(new StereoCamera(calibration_file)){
@@ -26,12 +22,6 @@ StereoToolTracker::StereoToolTracker(const std::string &model_parameter_file, co
     localizer_.reset(new StereoPWP3D(camera_));
   else if (localizer_type == LocalizerType::ComponentLS)
     localizer_.reset(new ComponentLevelSet(number_of_labels, camera_));
-  else if (localizer_type == LocalizerType::ArticulatedComponentLS)
-    localizer_.reset(new ArticulatedComponentLevelSet(11, number_of_labels, camera_));
-#ifdef USE_CERES
-  else if (localizer_type == LocalizerType::CeresLevelSetSolver)
-    localizer_.reset(new CeresLevelSetSolver(camera_));
-#endif
   else
     throw std::runtime_error("");	
 

@@ -363,13 +363,9 @@ void TTrackApp::drawImageContents(ttrk::SubWindow &window, gl::Texture &image){
 void TTrackApp::drawHelpWindow(ttrk::SubWindow &window){
 
   static ci::gl::Texture help_frame(ci::loadImage(loadResource(HELPER_WIN)));
-
-  window.BindAndClear();
   
-  drawImageContents(window, help_frame);
+  drawBackground(window, help_frame);
   
-  window.UnBind();
-
   window.Draw();
    
 
@@ -413,9 +409,7 @@ void TTrackApp::draw(){
 
   auto &ttrack = ttrk::TTrack::Instance();
 
-  if (!run_tracking_) return;
-
-  if (ttrack.IsRunning()){
+  if (ttrack.IsRunning() && run_tracking_){
 
     drawEye(windows_[0], left_eye_image_, camera_->left_eye());
     drawEye(windows_[1], right_eye_image_, camera_->right_eye());
@@ -448,7 +442,7 @@ void TTrackApp::drawPlotter(ttrk::SubWindow &window) {
 
   gl::Texture tex(720, 576);
 
-#ifdef USE_MATHGL
+#ifndef USE_MATHGL
 
   mglGraph graph(0, width, height);
 
@@ -514,23 +508,23 @@ void TTrackApp::drawPlotter(ttrk::SubWindow &window) {
 
   tex = fromOcv(m);
 
+  window.BindAndClear();
+  
+  drawImageContents(window, tex);
+  
+  window.UnBind();
+
 #else
 
-  ci::TextLayout text;
+  static ci::gl::Texture help_frame(ci::loadImage(loadResource(ENABLED_WIN)));
 
-  text.setColor(Color(0.9f, 0.9f, 0.9f));
-  text.setFont(Font("Arial Black", 50));
-  text.addCenteredLine("MathGL not enabled!");
-  Surface8u rendered = text.render(true);
+  drawBackground(window, help_frame);
 
-  tex = rendered;
-    
+  window.Draw();
   
 #endif
 
-  window.BindAndClear();
-  drawImageContents(window, tex);
-  window.UnBind();
+
 
 } 
 

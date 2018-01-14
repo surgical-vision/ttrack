@@ -14,7 +14,7 @@ MonoPWP3D::MonoPWP3D(boost::shared_ptr<MonocularCamera> camera) : camera_(camera
 
 void MonoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame){
 
-  if (curr_step == NUM_STEPS) {
+  if (curr_step >= NUM_STEPS) {
     curr_step = 0;
   }
 
@@ -32,14 +32,9 @@ void MonoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost
 
   ProcessSDFAndIntersectionImage(current_model, camera_, sdf_image, front_intersection_image, back_intersection_image);
 
-  //setup point registration for first frame
-  if (!lk_tracker_){
-    lk_tracker_.reset(new LKTracker(camera_));
-  }
-
   //point_registration_->ComputeDescriptorsForPointTracking(stereo_frame->GetLeftImage(), front_intersection_image, front_normal_image, current_model->GetBasePose());
 
-  lk_tracker_->TrackLocalPoints(frame_->GetImage());
+  point_registration_->TrackLocalPoints(frame_->GetImage(), current_model);
 
   float fg_area, bg_area = 0;
   size_t contour_area = 0;
@@ -94,24 +89,6 @@ void MonoPWP3D::TrackTargetInFrame(boost::shared_ptr<Model> current_model, boost
       }
     }
   }
-
-  cv::Vec3f translation(jacobian(0), jacobian(1), jacobian(2));
-  const float max_translation = 0.04; //mm
-  float translation_mag = std::sqrt(translation.dot(translation));
-  translation = (max_translation / translation_mag) * translation;
-
-  cv::Vec4f rotation(jacobian(3), jacobian(4), jacobian(5), jacobian(6));
-  const float max_rotation = 0.002;
-  float rotation_mag = std::sqrt(rotation.dot(rotation));
-  rotation = (max_rotation / rotation_mag) * rotation;
-
-  for (int i = 0; i < 3; ++i)
-    jacs[i] = -translation[i];
-  for (int j = 0; j < 4; ++j){
-    jacs[3 + j] = -rotation[j];
-  }
-  current_model->UpdatePose(jacs);
-
 
 }
 

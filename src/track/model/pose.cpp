@@ -112,6 +112,21 @@ std::vector<ci::Vec3f> Pose::ComputeJacobian(const ci::Vec3f &point_) const {
   data[1] = ci::Vec3f(0.0f, 1.0f, 0.0f);
   data[2] = ci::Vec3f(0.0f, 0.0f, 1.0f);
 
+  ci::Vec3f r_point = rotation_ * point;
+  ci::Matrix33f Cx; Cx.setToNull();
+  Cx.at(0, 1) = -r_point[2]; Cx.at(0, 2) = r_point[1];
+  Cx.at(1, 0) = r_point[2]; Cx.at(1, 2) = -r_point[0];
+  Cx.at(2, 0) = -r_point[1]; Cx.at(2, 1) = r_point[0];
+ 
+  Cx = Cx.transposed(); 
+  
+  data[3] = ci::Vec3f(0, 0, 0);
+  data[4] = 2 * ci::Vec3f(Cx.at(0, 0), Cx.at(1, 0), Cx.at(2, 0));
+  data[5] = 2 * ci::Vec3f(Cx.at(0, 1), Cx.at(1, 1), Cx.at(2, 1));
+  data[6] = 2 * ci::Vec3f(Cx.at(0, 2), Cx.at(1, 2), Cx.at(2, 2));
+
+  //return data;
+
   //rotation dofs - Qw
   data[3] = ci::Vec3f(
     (2.0f * (float)rotation_.v[1] * point[2]) - (2.0f * (float)rotation_.v[2] * point[1]),
@@ -133,10 +148,10 @@ std::vector<ci::Vec3f> Pose::ComputeJacobian(const ci::Vec3f &point_) const {
     (2.0f * (float)rotation_.v[2] * point[1]) - (2.0f * (float)rotation_.w * point[0]) - (4.0f * (float)rotation_.v[1] * point[2])
     );                                                                                                                   
                                                                                                                          
-  // Qz                                                                                                                  
+  // Qz  ==> previously [1] was (2.0f * (float)rotation_.w * point[0]) - (4.0f * (float)rotation_.v[0] * point[1]) + (2.0f * (float)rotation_.v[1] * point[2]),                                                                                           
   data[6] = ci::Vec3f(                                                                                                   
     (2.0f * (float)rotation_.v[0] * point[2]) - (2.0f * (float)rotation_.w * point[1]) - (4.0f * (float)rotation_.v[2] * point[0]),
-    (2.0f * (float)rotation_.w * point[0]) - (4.0f * (float)rotation_.v[0] * point[1]) + (2.0f * (float)rotation_.v[1] * point[2]),
+    (2.0f * (float)rotation_.w * point[0]) - (4.0f * (float)rotation_.v[2] * point[1]) + (2.0f * (float)rotation_.v[1] * point[2]),
     (2.0f * (float)rotation_.v[0] * point[0]) + (2.0f * (float)rotation_.v[1] * point[1])
     );
   //translation dofs

@@ -2,9 +2,10 @@
 #define __CAMERA_HPP__
 
 #include <cinder/gl/Light.h>
-
-#include "../headers.hpp"
-#include "image.hpp"
+#include <opencv2/opencv.hpp>
+#include <string>
+#include <vector>
+#include <boost/shared_ptr.hpp>
 
 namespace ttrk{
 
@@ -135,6 +136,7 @@ namespace ttrk{
     * @return The camera matrix.
     */
     inline cv::Mat CameraMatrix() const;
+    inline cv::Mat DistortionParams() const { return distortion_params_; }
 
     friend class StereoCamera;
 

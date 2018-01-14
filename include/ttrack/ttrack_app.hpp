@@ -89,7 +89,7 @@ public:
 protected:
 
   void drawImageOnCamera(const gl::Texture &image_data, ci::Vec3f &tl, ci::Vec3f &bl, ci::Vec3f &tr, ci::Vec3f &br);
-  void drawCamera(const gl::Texture &image_data);
+  void drawCamera(const gl::Texture &left_image_data, const gl::Texture &right_image_data);
 
   /**
   * Load the helper window.
@@ -127,7 +127,7 @@ protected:
   * @param[in] camera_view The view that the camera sees, renders onto the camera wireframe model for realism.
   * @param[in] cam The camera we are drawing in the scene.
   */
-  void draw3D(ttrk::SubWindow &window, const gl::Texture &camera_view, const boost::shared_ptr<ttrk::MonocularCamera> cam);
+  void draw3D(ttrk::SubWindow &window, const gl::Texture &camera_view_left, const gl::Texture &camera_view_right, const boost::shared_ptr<ttrk::MonocularCamera> cam);
 
   /**
   * Draw the view of the tracked objects from one eye.
@@ -203,6 +203,7 @@ protected:
   ci::gl::Texture right_detector_image_; /**< The current output of the right detector. */
   ci::gl::Texture localizer_image_; /**< The toolbar subwindow. */
 
+  cv::Mat depth_map;
 
 };
 

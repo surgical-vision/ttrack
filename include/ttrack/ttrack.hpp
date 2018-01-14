@@ -114,7 +114,7 @@ namespace ttrk{
      * @param[in] starting_poses Hack in the starting poses for cases where we don't have strong auto initialization.
      * @param[in] number_of_labels The number of labels we are trying to classify. This includes the background label.
      */
-    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const std::string &left_media_file, const std::string &right_media_file, const std::vector< std::vector<float> > &starting_pose, const size_t number_of_labels);
+    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const std::string &left_media_file, const std::string &right_media_file, const std::vector< std::vector<float> > &starting_pose, const size_t number_of_labels, const size_t skip_frames);
     
     /**
     * Setup the tracking system with the files it needs to find, localize and track the objects for monocular inputs.
@@ -128,8 +128,8 @@ namespace ttrk{
     * @param[in] starting_poses Hack in the starting poses for cases where we don't have strong auto initialization.
     * @param[in] number_of_labels The number of labels we are trying to classify. This includes the background label.
     */
-    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const std::string &media_file, const  std::vector< std::vector<float> > &starting_pose, const size_t number_of_labels);
-
+    void SetUp(const std::string &model_parameter_file, const std::string &camera_calibration_file, const std::string &classifier_path, const std::string &results_dir, const LocalizerType &localizer_type, const ClassifierType classifier_type, const std::string &media_file, const  std::vector< std::vector<float> > &starting_pose, const size_t number_of_labels, const size_t skip_frames);
+    
     /**
     * Quick method to convert a string formulation of a classifier type (e.g. RF or SVM) to the ClassifierType.
     * @param[in] classifier_name The name of the classifier. SVM for Support Vector Machine, RF for Random Forest and NB for Naive Bayes.
@@ -166,13 +166,15 @@ namespace ttrk{
     * Get the current image from the detector.
     * @return The detector's current output.
     */
-    cv::Mat GetCurrentDetectorImage() { return detector_image_; }
+    cv::Mat &GetCurrentDetectorImage() { return Detect::global_detector_image; }
     
     /**
     * Get the current image from the localizer.
     * @return The localizer's current output.
     */
     cv::Mat GetCurrentLocalizerImage() { return localizer_image_; }
+
+    Tracker *GetTracker() { return tracker_.get(); } //HACK
 
   protected:
    
@@ -200,7 +202,7 @@ namespace ttrk{
      * Get a pointer to the classifier frame from the detection system.
      * @return The classified frame.
      */
-    boost::shared_ptr<sv::Frame> GetPtrToClassifiedFrame();
+    //boost::shared_ptr<sv::Frame> GetPtrToClassifiedFrame();
     
     /**
      * The main method of the class. Called by RunImages or RunVideo which do the
@@ -210,11 +212,10 @@ namespace ttrk{
     
     
     boost::scoped_ptr<Tracker> tracker_; /**< The class responsible for finding the instrument in the image. */
-    boost::scoped_ptr<Detect> detector_; /**< The class responsible for classifying the pixels in the image. */
+    //boost::scoped_ptr<Detect> detector_; /**< The class responsible for classifying the pixels in the image. */
     boost::scoped_ptr<Handler> handler_; /**< Pointer to either an ImageHandler or a VideoHandler which handles getting and saving frames with a simple interface */
     boost::shared_ptr<sv::Frame> frame_; /**< A pointer to the current frame that will be passed from the classifier to the tracker. */
     
-    cv::Mat detector_image_; /**< A copy of the detector's current output - for GUI/visualization purposes. */
     cv::Mat localizer_image_; /**< A copy of the localizer's current output - for GUI/visualization purposes. */
 
     std::string results_dir_; /**< A string containing the results directory for the data in use. */

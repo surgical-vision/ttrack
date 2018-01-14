@@ -9,15 +9,75 @@
 #include <utility>
 #include <boost/tuple/tuple.hpp>
 
-#include "../../headers.hpp"
 #define _USE_MATH_DEFINES
 #include <math.h>
 
 #include "pose.hpp"
 #include "../../utils/camera.hpp"
 #include "node.hpp"
+#include <ttrack/detect/detect.hpp>
 
 namespace ttrk{
+
+  struct TrackedPoint {
+    
+    TrackedPoint(const cv::Vec3f &mp, const cv::Vec2f &fp) : model_point(mp), frame_point(fp), found_image_point(fp), point_in_view(true), point_tracked_on_model(true) {}
+    const cv::Vec3f model_point;
+    cv::Vec2f frame_point;
+    cv::Vec2f found_image_point; /**< In FeatureLocalizer::TrackLocalPoints we update*/
+    unsigned char component_idx; /**< Only used for articulated tracking */
+
+    bool point_in_view;
+    bool point_tracked_on_model;
+
+    cv::Mat subwindow;
+    cv::Mat surface_at_point;
+
+    std::vector<cv::Mat> spatial_derivatives;
+    std::vector<double> temporal_derivatives;
+
+  };
+
+  struct ModelPointSet {
+
+    ModelPointSet() : is_initialised(false) {}
+
+    size_t NumberOfTrackedPoints(){
+      size_t r = 0;
+      for (auto &i : tracked_points_){
+        if (i.point_in_view && i.point_tracked_on_model)
+          r++;
+      }
+      return r;
+    }
+
+    std::vector<TrackedPoint> tracked_points_;
+    std::vector<cv::Point2f> points_test[2];
+    cv::Mat front_intersection_image_; //for masking
+    cv::Mat previous_intersection_image_; 
+    cv::Mat current_frame; //only for lk
+    cv::Mat previous_frame;
+    bool is_initialised;
+
+
+
+  };
+
+  struct ModelDebugInfo {
+
+    cv::Mat tracked_feature_points;
+    cv::VideoWriter tracked_feature_points_writer;
+
+  };
+
+  struct ICL_Tracked_Point {
+
+    ICL_Tracked_Point(const ci::Vec3f &p, const std::string &n, const size_t &fx) : point_in_model_coords(p), name(n), frame_idx(fx) { }
+    const ci::Vec3f point_in_model_coords;
+    const std::string name;
+    const size_t frame_idx;
+
+  };
 
   /**
   * @class Model
@@ -27,6 +87,14 @@ namespace ttrk{
   class Model {
 
   public:
+
+    boost::shared_ptr<MonocularCamera> cam;
+    std::vector<ICL_Tracked_Point> icl_data;
+    std::ofstream icl_output_file;
+    void WriteICLData(const cv::Mat &occlusion_image);
+
+    ModelPointSet mps;
+    ModelDebugInfo debug_info;
 
     /**
     * Construct the model from a configuration file.
@@ -45,11 +113,14 @@ namespace ttrk{
     * @id The id of the texture. Use zero for the default target.
     */
     virtual void RenderTexture(int id);
+    virtual void RenderTexture_HACKFORCLASPERS(int id);
 
     /**
     * Render the nodes that make up this model with a material rather than a texture.
     */
     virtual void RenderMaterial();
+
+    void RenderLines();
     
     /**
     * Get the principal axis of the Model. This may not be entirely meaningful for all shapes.
@@ -74,6 +145,8 @@ namespace ttrk{
     * @param[in] pose The new model pose.
     */
     Pose GetBasePose() const { return world_to_model_coordinates_; }
+
+    size_t GetNumberOfDofs();
 
     /**
     * Get the pose for a single component for the model (returns the base pose if the model is only one component). The index is 
@@ -144,6 +217,24 @@ namespace ttrk{
 
     virtual bool PerformPicking(const ci::Vec3f &ray, ci::Vec3f &intersection, ci::Vec3f &normal) const;
 
+    void RetrainModel(const cv::Mat &frame, const cv::Mat &sdf_based_mask, const cv::Mat &label_image){
+      detector_->RetrainClassifier(frame, sdf_based_mask, label_image);
+    }
+
+    bool NeedsModelRetrain();
+
+    void ClassifyFrame(boost::shared_ptr<sv::Frame> frame, cv::Mat &sdf_image) {
+
+      detector_->Run(frame, sdf_image);
+      detector_->ResetHandleToFrame();
+
+    }
+
+    void InitDetector(const ClassifierType &classifier_type, const size_t &num_classes);
+
+    bool clasper_1_dislodged;
+    bool clasper_2_dislodged;
+
   protected:
 
     /**
@@ -176,7 +267,10 @@ namespace ttrk{
     /**
     * Load nothing - only useful for the derived classes which need to delay loading
     */
-    Model() { total_model_count_++; }
+    Model() {
+      frame_count_ = 0;
+      total_model_count_++;
+    }
 
     Node::Ptr model_; /**< A tree representation of the model as a sequence of coordinate systems with some attached geometry. */
     
@@ -190,7 +284,9 @@ namespace ttrk{
 
     std::string save_file_; /**< The save file for the model pose. */
 
-    
+    boost::scoped_ptr<Detect> detector_; /**< The class responsible for classifying the pixels in the image. */
+
+    size_t frame_count_;
 
   };
 

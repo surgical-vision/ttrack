@@ -23,7 +23,7 @@ option(BUILD_SHARED_LIBS "Build Shared Library" ON)
 
 ################################################################################
 # Add local path for finding packages, set the local version first
-SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/CmakeModules")
+SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/CMakeModules")
 
 # Platform configuration vars
 include(${CMAKE_MODULE_PATH}/SetPlatformVars.cmake)

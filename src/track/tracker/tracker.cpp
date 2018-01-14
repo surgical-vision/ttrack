@@ -4,10 +4,12 @@
 #include "../../../include/ttrack/track/tracker/tracker.hpp"
 #include "../../../include/ttrack/utils/helpers.hpp"
 #include "../../../include/ttrack/utils/camera.hpp"
-
 using namespace ttrk;
 
-Tracker::Tracker(const std::string &model_parameter_file, const std::string &results_dir) : model_parameter_file_(model_parameter_file), results_dir_(results_dir), tracking_(false), frame_count_(-1) {}
+Tracker::Tracker(const std::string &model_parameter_file, const std::string &results_dir) : model_parameter_file_(model_parameter_file), results_dir_(results_dir), tracking_(false), frame_count_(-1) {
+
+
+}
 
 Tracker::~Tracker(){}
 
@@ -19,6 +21,8 @@ void Tracker::operator()(boost::shared_ptr<sv::Frame> image, const bool found){
 
 void Tracker::RunStep(){
 
+  ttrk::Localizer::ResetOcclusionImage();
+
   for (current_model_ = tracked_models_.begin(); current_model_ != tracked_models_.end(); current_model_++){
 
     localizer_->SetFrameCount(frame_count_);
@@ -27,6 +31,8 @@ void Tracker::RunStep(){
     localizer_image_ = localizer_->GetProgressFrame();
 
   }
+
+  localizer_->UpdateStepCount();
 
   if (localizer_->IsFirstRun()) localizer_->DoneFirstStep();  
 
@@ -44,7 +50,7 @@ void Tracker::Run(boost::shared_ptr<sv::Frame> image, const bool found){
     return;
   }
 
-  if (!tracking_){
+   if (!tracking_){
 
     //need this as init constructs new tracking models
     tracked_models_.clear(); //get rid of anything we were tracking before
@@ -61,6 +67,8 @@ void Tracker::Run(boost::shared_ptr<sv::Frame> image, const bool found){
     }
 
   }
+
+  localizer_->ResetStepCount();
 
   RunStep();
 

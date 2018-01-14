@@ -20,7 +20,7 @@ namespace sv {
     friend class StereoImage<PixelType,Channels>;
 
     inline explicit __InnerImage(cv::Mat frame);
-    __InnerImage() { frame_ = cv::Mat(0,0,CV_MAKETYPE(cv::DataDepth<PixelType>::value,Channels)); }
+    __InnerImage() { frame_ = cv::Mat::zeros(0,0,CV_MAKETYPE(cv::DataDepth<PixelType>::value,Channels)); }
     
     void Reset(const cv::Size size);
     cv::Size Size() const;
@@ -52,8 +52,8 @@ namespace sv {
     virtual PixelType *FrameData() { return image_data_.frame_.data; }
     virtual const PixelType *FrameData() const { return image_data_.frame_.data; }
 
-    virtual Pixel operator()(const int r, const int c) const = 0;
-    virtual PixelType operator()(const int r, const int c, const int chan) const = 0;  
+ /*   virtual Pixel operator()(const int r, const int c) const = 0;
+    virtual PixelType operator()(const int r, const int c, const int chan) const = 0;  */
        
     virtual cv::Mat GetImage() { return image_data_.frame_; } 
     virtual cv::Mat GetImage() const { return image_data_.frame_.clone(); }
@@ -123,8 +123,8 @@ namespace sv {
     explicit MonocularImage(cv::Mat frame);
     MonocularImage() { throw(std::runtime_error("Error, Monocular Default Constructor called!\n")); }
 
-    virtual Pixel operator()(const int r, const int c) const;
-    virtual PixelType operator()(const int r, const int c, const int chan) const;  
+    //virtual Pixel operator()(const int r, const int c) const;
+    //virtual PixelType operator()(const int r, const int c, const int chan) const;  
 
   protected:
 
@@ -141,8 +141,8 @@ namespace sv {
     explicit StereoImage(cv::Mat stereo_frame) ; 
     StereoImage() { throw(std::runtime_error("ERror, StereoImage Default constructor called!\n")); }
 
-    virtual Pixel operator()(const int r, const int c) const;
-    virtual PixelType operator()(const int r, const int c, const int chan) const;  
+    //virtual Pixel operator()(const int r, const int c) const;
+    //virtual PixelType operator()(const int r, const int c, const int chan) const;  
 
     cv::Mat GetDisparityMap();
     cv::Mat GetPointCloud();
@@ -178,7 +178,7 @@ namespace sv {
 
   template<typename PixelType, int Channels>
   inline void __InnerImage<PixelType,Channels>::Reset(const cv::Size size) { 
-    frame_ = cv::Mat(size,CV_MAKETYPE(cv::DataDepth<PixelType>::value,Channels) ); 
+    frame_ = cv::Mat::zeros(size,CV_MAKETYPE(cv::DataDepth<PixelType>::value,Channels) ); 
   }
 
   template<typename PixelType, int Channels>
@@ -205,22 +205,23 @@ namespace sv {
 
   }
 
-  template<typename PixelType, int Channels>
-  typename MonocularImage<PixelType,Channels>::Pixel MonocularImage<PixelType,Channels>::operator()(const int r, const int c) const {
+  //template<typename PixelType, int Channels>
+  //typename MonocularImage<PixelType,Channels>::Pixel MonocularImage<PixelType,Channels>::operator()(const int r, const int c) const {
 
-    cv::Vec<PixelType,Channels> src = image_data_.frame_.at<cv::Vec<PixelType,Channels> >(r,c);
-    Pixel dst;
-    memcpy(&dst, &src, sizeof(PixelType)*Channels);
-    return dst;
+  //  cv::Mat & xmp = image_data_.frame_;
+  //  cv::Vec<PixelType,Channels> src = xtmp.at<cv::Vec<PixelType,Channels> >(r,c);
+  //  Pixel dst;
+  //  memcpy(&dst, &src, sizeof(PixelType)*Channels);
+  //  return dst;
 
-  }
-  
-  template<typename PixelType, int Channels>
-  PixelType MonocularImage<PixelType,Channels>::operator()(const int r, const int c, const int chan) const {
+  //}
+  //
+  //template<typename PixelType, int Channels>
+  //PixelType MonocularImage<PixelType,Channels>::operator()(const int r, const int c, const int chan) const {
  
-    return (*this)(r,c).data_[chan];
-    
-  }
+  //  return (*this)(r,c).data_[chan];
+  //  
+  //}
 
   /************ StereoImage ************/
 
@@ -251,18 +252,18 @@ namespace sv {
     return point_cloud_data_.frame_;
   }
 
-  template<typename PixelType, int Channels>
-  typename StereoImage<PixelType,Channels>::Pixel StereoImage<PixelType,Channels>::operator()(const int r, const int c) const  {
-    Pixel px;
-    cv::Vec<PixelType,Channels> ret = image_data_.frame_(image_data_.frame_roi_).at<cv::Vec<PixelType, Channels> >(r,c);
-    memcpy(&px,&ret[0],Channels*sizeof(PixelType));
-    return px;
-  }
+  //template<typename PixelType, int Channels>
+  //typename StereoImage<PixelType,Channels>::Pixel StereoImage<PixelType,Channels>::operator()(const int r, const int c) const  {
+  //  Pixel px;
+  //  cv::Vec<PixelType,Channels> ret = image_data_.frame_(image_data_.frame_roi_).at<cv::Vec<PixelType, Channels> >(r,c);
+  //  memcpy(&px,&ret[0],Channels*sizeof(PixelType));
+  //  return px;
+  //}
 
-  template<typename PixelType, int Channels>
-  PixelType StereoImage<PixelType,Channels>::operator()(const int r, const int c, const int chan) const  {
-    return (*this)(r,c).data_[chan];
-  }
+  //template<typename PixelType, int Channels>
+  //PixelType StereoImage<PixelType,Channels>::operator()(const int r, const int c, const int chan) const  {
+  //  return (*this)(r,c).data_[chan];
+  //}
 
   /*
   template<typename PixelType, int Channels>

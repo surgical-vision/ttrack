@@ -16,7 +16,7 @@ void NDImage::SetUpImages(const cv::Mat &image){
   rows_ = image.rows;
   cols_ = image.cols;
 
-  images_new_ = cv::Mat(image.rows, image.cols, CV_32FC4);
+  images_new_ = cv::Mat(image.rows, image.cols, CV_MAKETYPE(CV_32F, num_channels));
   cv::Mat hue,sat;
   ConvertBGR2HS(image,hue,sat);
   images_.insert(NamedImage("hue", hue));
@@ -28,25 +28,48 @@ void NDImage::SetUpImages(const cv::Mat &image){
   ConvertBGR2O2(image,o2);
   images_.insert( NamedImage("o2",o2) );
 
+  cv::Mat image_float;
+  image.convertTo(image_float, CV_32F);
+  std::vector<cv::Mat> blue_green_red;
+  cv::split(image_float, blue_green_red);
+
+  images_.insert(NamedImage("blue", blue_green_red[0]));
+  images_.insert(NamedImage("green", blue_green_red[1]));
+  images_.insert(NamedImage("red", blue_green_red[2]));
+
   float *image_data = (float *)images_new_.data;
   float *hue_data = (float *)hue.data;
   float *sat_data = (float *)sat.data;
   float *o1_data = (float *)o1.data;
   float *o2_data = (float *)o2.data;
 
-  const int rows = image.rows;
+  std::vector<cv::Mat> all_images;
+  if (num_channels >= 4){
+    all_images.push_back(images_["hue"]);
+    all_images.push_back(images_["sat"]);
+    all_images.push_back(images_["o1"]);
+    all_images.push_back(images_["o2"]);
+  }
+  if (num_channels >= 7){
+    all_images.push_back(images_["blue"]);
+    all_images.push_back(images_["green"]);
+    all_images.push_back(images_["red"]);
+  }
+  cv::merge(all_images, images_new_);
+
+  /*const int rows = image.rows;
   const int cols = image.cols;
   
   for(int r=0;r<rows;r++){
     for(int c=0;c<cols;c++){
       const int index = r*cols + c;
-      const int index2 = index*4;
+      const int index2 = index*num_channels;
       image_data[index2] = hue_data[index];
       image_data[index2+1] = sat_data[index];
       image_data[index2+2] = o1_data[index];
       image_data[index2+3] = o2_data[index];
     }
-  }
+  }*/
 }
 
 void NDImage::ConvertBGR2HS(const cv::Mat &in,cv::Mat &hue, cv::Mat &sat){

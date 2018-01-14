@@ -10,6 +10,9 @@
 #include "../../../include/ttrack/track/localizer/levelsets/pwp3d.hpp"
 #include "../../../include/ttrack/constants.hpp"
 
+#include <cinder/app/App.h>
+
+
 using namespace ttrk;
 
 PointRegistration::PointRegistration(boost::shared_ptr<MonocularCamera> camera) : FeatureLocalizer(camera) {  }
@@ -37,10 +40,21 @@ void PointRegistration::ComputeRootSiftFeatureFromSiftFeatures(cv::Mat &sift_des
 
 }
 
+void deinterlace(cv::Mat& m)
+{
+  for (int i = 0; i<m.rows; ++i)
+    if (i % 2)
+      m.row(i - 1).copyTo(m.row(i));
+}
 
-void PointRegistration::TrackLocalPoints(cv::Mat &current_frame){
+void PointRegistration::TrackLocalPoints(cv::Mat &current_frame, const boost::shared_ptr<Model> current_model){
 
-  cv::cvtColor(current_frame, current_frame_gray_, CV_BGR2GRAY);
+  cv::cvtColor(current_frame, current_model->mps.current_frame, CV_BGR2GRAY);
+
+  cv::Mat current_frame_deinterlaced = current_frame.clone();
+
+  deinterlace(current_frame_deinterlaced);
+  deinterlace(current_model->mps.current_frame);
 
   //-- Step 1: Detect the keypoints using SIFT Detector
   
@@ -50,8 +64,8 @@ void PointRegistration::TrackLocalPoints(cv::Mat &current_frame){
   std::vector<cv::KeyPoint> keypoints_in_current_frame;
   std::vector<cv::KeyPoint> keypoints_in_previous_frame;
 
-  detector.detect(current_frame_gray_, keypoints_in_current_frame, CreateMask());
-  detector.detect(previous_frame_gray_, keypoints_in_previous_frame, CreateMask());
+  detector.detect(current_model->mps.current_frame, keypoints_in_current_frame, CreateMask(current_model));
+  detector.detect(current_model->mps.previous_frame, keypoints_in_previous_frame, CreateMask(current_model));
 
   //-- Step 2: Calculate descriptors (feature vectors)
   cv::SiftDescriptorExtractor extractor;
@@ -59,8 +73,11 @@ void PointRegistration::TrackLocalPoints(cv::Mat &current_frame){
   cv::Mat descriptors_in_current_frame;
   cv::Mat descriptors_in_previous_frame;
 
-  extractor.compute(current_frame_gray_, keypoints_in_current_frame, descriptors_in_current_frame);
-  extractor.compute(previous_frame_gray_, keypoints_in_previous_frame, descriptors_in_previous_frame);
+  extractor.compute(current_model->mps.current_frame, keypoints_in_current_frame, descriptors_in_current_frame);
+  extractor.compute(current_model->mps.previous_frame, keypoints_in_previous_frame, descriptors_in_previous_frame);
+
+  current_model->mps.tracked_points_.clear();
+  current_model->debug_info.tracked_feature_points = current_frame_deinterlaced.clone();
 
   /**
   * Implementing RootSift from Three things everyone should know to improve object retrieval, Arandjelovic & Zisserman, CVPR 2012
@@ -72,57 +89,85 @@ void PointRegistration::TrackLocalPoints(cv::Mat &current_frame){
   //-- Step 3: Matching descriptor vectors using FLANN matcher
   cv::BruteForceMatcher<cv::L2<float> > matcher;
   std::vector< cv::DMatch > matches;
-  matcher.match(descriptors_in_current_frame, descriptors_in_previous_frame, matches);
-
-  double max_dist = 0; double min_dist = 100;
-
-  //-- Quick calculation of max and min distances between keypoints
-  for (int i = 0; i < descriptors_in_current_frame.rows; i++)
-  {
-    double dist = matches[i].distance;
-    if (dist < min_dist) min_dist = dist;
-    if (dist > max_dist) max_dist = dist;
+  
+  if (descriptors_in_current_frame.empty() || descriptors_in_previous_frame.empty()){
+    ci::app::console() << "No matched points in this frame!\n";
   }
+  else{
 
-  tracked_points_.clear();
+    matcher.match(descriptors_in_current_frame, descriptors_in_previous_frame, matches);
 
-  cv::Mat test = current_frame.clone();
+    double max_dist = 0; double min_dist = 100;
 
-  for (int i = 0; i < descriptors_in_current_frame.rows; i++)
-  {
-    int c_idx = matches[i].queryIdx;
-    int p_idx = matches[i].trainIdx;
-
-    if (matches[i].distance <= std::max(2 * min_dist, 0.02) && l2_distance(cv::Vec2f(keypoints_in_current_frame[c_idx].pt), cv::Vec2f(keypoints_in_previous_frame[p_idx].pt)) < 20)
+    //-- Quick calculation of max and min distances between keypoints
+    for (int i = 0; i < descriptors_in_current_frame.rows; i++)
     {
-    
-      tracked_points_.push_back(TrackedPoint(pose_.InverseTransformPoint(front_intersection_image_.at<cv::Vec3f>(keypoints_in_previous_frame[p_idx].pt)), keypoints_in_previous_frame[p_idx].pt));
-      tracked_points_.back().found_image_point = keypoints_in_current_frame[c_idx].pt;
+      double dist = matches[i].distance;
+      if (dist < min_dist) min_dist = dist;
+      if (dist > max_dist) max_dist = dist;
+    }
 
-      
-      cv::circle(test, keypoints_in_previous_frame[p_idx].pt, 2, cv::Scalar(255, 0, 0));
-      cv::circle(test, keypoints_in_current_frame[c_idx].pt, 2, cv::Scalar(0, 255, 255));
 
+
+    for (int i = 0; i < descriptors_in_current_frame.rows; i++)
+    {
+      int c_idx = matches[i].queryIdx;
+      int p_idx = matches[i].trainIdx;
+
+      if (matches[i].distance <= std::max(2 * min_dist, 0.1) && l2_distance(cv::Vec2f(keypoints_in_current_frame[c_idx].pt), cv::Vec2f(keypoints_in_previous_frame[p_idx].pt)) < 40)
+      {
+
+        cv::Vec3f &point_on_model = current_model->mps.front_intersection_image_.at<cv::Vec3f>(keypoints_in_previous_frame[p_idx].pt);
+
+        if (Localizer::occlusion_image.at<float>(keypoints_in_previous_frame[p_idx].pt) < (current_model->mps.front_intersection_image_.at<cv::Vec3f>(keypoints_in_previous_frame[p_idx].pt)[2] - 0.1)) {
+          continue;
+        }
+
+
+        if (point_on_model[0] == GL_FAR || point_on_model[1] == GL_FAR || point_on_model[2] == GL_FAR){
+          continue;
+        }
+        else{
+
+          auto pt_in_world_coords = current_model->GetBasePose().InverseTransformPoint(point_on_model);
+
+          current_model->mps.tracked_points_.push_back(TrackedPoint(pt_in_world_coords, keypoints_in_previous_frame[p_idx].pt));
+
+          current_model->mps.tracked_points_.back().found_image_point = keypoints_in_current_frame[c_idx].pt;
+          current_model->mps.tracked_points_.back().point_tracked_on_model = true;
+
+          cv::circle(current_model->debug_info.tracked_feature_points, keypoints_in_previous_frame[p_idx].pt, 3, cv::Scalar(255, 0, 0));
+          cv::circle(current_model->debug_info.tracked_feature_points, keypoints_in_current_frame[c_idx].pt, 3, cv::Scalar(0, 0, 255));
+        }
+      }
     }
   }
-
   //static size_t FRAMENUM = 0;
   //std::stringstream ss; ss << "z:/dump/frames" << FRAMENUM << ".jpg";
   //cv::imwrite(ss.str(), test);
   //FRAMENUM++;
-  previous_frame_gray_ = current_frame_gray_.clone();
+  current_model->mps.previous_frame = current_model->mps.current_frame.clone();
 
 
 }
 
-void PointRegistration::InitializeTracker(cv::Mat &current_frame, const Pose &pose){
+void PointRegistration::InitializeTracker(cv::Mat &current_frame, const boost::shared_ptr<Model> current_model, const cv::Mat &component_idx_image){
+
+  throw std::runtime_error("");
+
+}
+
+void PointRegistration::InitializeTracker(cv::Mat &current_frame, const boost::shared_ptr<Model> current_model){
 
   cv::Mat gray;
-  cv::cvtColor(current_frame, gray, CV_BGR2GRAY);
+  if (current_frame.type() == CV_8UC3)
+    cv::cvtColor(current_frame, gray, CV_BGR2GRAY);
+  else if (current_frame.type() == CV_8UC1)
+    gray = current_frame.clone();
 
-  tracked_points_.clear();
+  current_model->mps.tracked_points_.clear();
 
-  pose_ = pose;
+  pose_ = current_model->GetBasePose();
 
   ////-- Step 1: Detect the keypoints using SURF Detector
   //int minHessian = 400;
@@ -156,6 +201,8 @@ void PointRegistration::InitializeTracker(cv::Mat &current_frame, const Pose &po
 
   //we recompute the points each time
 
-  previous_frame_gray_ = gray.clone();
+  current_model->mps.previous_frame = gray.clone();
+
+  current_model->mps.is_initialised = true;
 
 }

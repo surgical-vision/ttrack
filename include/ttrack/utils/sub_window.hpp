@@ -138,6 +138,7 @@ namespace ttrk {
     size_t Height() const { return window_coords_.getHeight(); }
 
     ci::gl::Texture GetContents() { return framebuffer_->getTexture(); }
+    ci::gl::Texture GetDepth() { return framebuffer_->getDepthTexture(); }
 
     static std::string output_directory; /**< The output directory where the subwindows all dump their content. */
 

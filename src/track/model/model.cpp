@@ -18,6 +18,34 @@ Model::Model(const std::string &model_parameter_file, const std::string &save_fi
 
   LoadFromFile(model_parameter_file);
   
+  frame_count_ = 0; 
+
+}
+
+void Model::WriteICLData(const cv::Mat &occlusion_image) {
+
+  for (auto &pt : icl_data){
+
+    cv::Vec3f ptv(pt.point_in_model_coords.x, pt.point_in_model_coords.y, pt.point_in_model_coords.z);
+    cv::Vec3f point_in_camera_coords = GetComponentPose(pt.frame_idx).TransformPoint(ptv);
+    
+    cv::Point in_frame_coords = cam->ProjectPointToPixel(cv::Point3f(point_in_camera_coords));
+
+    if (!cv::Rect(0, 0, occlusion_image.cols, occlusion_image.rows).contains(in_frame_coords)) continue;
+
+    float point_in_occlusion_image = occlusion_image.at<float>(in_frame_coords.y, in_frame_coords.x);
+
+    if (std::abs(point_in_occlusion_image - point_in_camera_coords[2]) < 3){
+      icl_output_file << pt.name << "\n";
+      icl_output_file << point_in_camera_coords << "\n";
+    }
+    else{
+      icl_output_file << pt.name << " not in view \n";
+    }
+
+  }
+
+  icl_output_file << std::endl;
 
 }
 
@@ -33,7 +61,11 @@ void Model::WritePoseToFile() {
   if (!ofs_.is_open())
     ofs_.open(save_file_);
   
-  if (!ofs_.is_open()) throw std::runtime_error("");
+  if (!ofs_.is_open()) {
+    ci::app::console() << "Model file is not open!" << std::endl;
+    throw std::runtime_error("");
+  }
+
 
   std::vector<float> current_pose;
   GetPose(current_pose);
@@ -41,7 +73,18 @@ void Model::WritePoseToFile() {
   for (auto &c : current_pose)
     ofs_ << c << " ";
 
-  ofs_ << std::endl;
+  //ci::Matrix44f m = world_to_model_coordinates_;
+  ////float a1 = 
+
+  //for (int r = 0; r < 4; ++r){
+  //  for (int c = 0; c < 4; ++c){
+  //    ofs_ << m.at(r, c);
+  //    if (c != 3) ofs_ << " ";
+  //  }
+  //  ofs_ << "\n";
+  //}
+
+  ofs_ << "\n" << std::endl;
 
 }
 
@@ -97,13 +140,38 @@ void Model::RenderMaterial(){
 
 }
 
+
+void Model::RenderLines(){
+
+  ci::gl::pushModelView();
+
+  //ci::gl::multModelView(world_to_model_coordinates_);
+
+  model_->RenderLines(world_to_model_coordinates_);
+
+  ci::gl::popModelView();
+
+}
+
+void Model::RenderTexture_HACKFORCLASPERS(int id){
+
+  ci::gl::pushModelView();
+
+  //ci::gl::multModelView(world_to_model_coordinates_);
+
+  model_->RenderTextureHack(id, world_to_model_coordinates_);
+
+  ci::gl::popModelView();
+
+}
+
 void Model::RenderTexture(int id){
 
   ci::gl::pushModelView();
 
-  ci::gl::multModelView(world_to_model_coordinates_);
-  
-  model_->RenderTexture(id);
+  //ci::gl::multModelView(world_to_model_coordinates_);
+
+  model_->RenderTextureHack_FORCLASPERS(id, world_to_model_coordinates_);
 
   ci::gl::popModelView();
 
@@ -123,6 +191,24 @@ void Model::UpdatePose(std::vector<float> &updates){
 
 }
 
+size_t Model::GetNumberOfDofs(){
+
+  auto all_children = model_->GetAllChildren();
+  return 7 + all_children.size() - 1;
+
+}
+
+bool Model::NeedsModelRetrain() {
+  if (frame_count_ == 0 || frame_count_ % 5 == 0) {
+    frame_count_++;
+    return true;
+  }
+  else{
+    frame_count_++;
+    return false;
+  }
+}
+
 void Model::SetPose(std::vector<float> &pose){
 
   world_to_model_coordinates_.SetPose(std::vector<float>(pose.begin(), pose.begin() + world_to_model_coordinates_.GetNumDofs()));
@@ -133,6 +219,12 @@ void Model::SetPose(std::vector<float> &pose){
 
 }
 
+void Model::InitDetector(const ClassifierType &classifier_type, const size_t &num_classes){
+
+  detector_.reset(new Detect("", classifier_type, num_classes));
+
+}
+
 void Model::GetPose(std::vector<float> &pose){
 
   pose = world_to_model_coordinates_.GetPose();
@@ -140,23 +232,27 @@ void Model::GetPose(std::vector<float> &pose){
 
 }
 
-std::vector<ci::Vec3f> Model::ComputeJacobian(const ci::Vec3f &point, const int target_frame_idx) const {
+std::vector<ci::Vec3f> Model::ComputeJacobian(const ci::Vec3f &point_in_camera_coords, const int target_frame_idx) const {
 
   //compute the jacobian for the base pose
-  std::vector<ci::Vec3f> r = world_to_model_coordinates_.ComputeJacobian(point);
+  std::vector<ci::Vec3f> r = world_to_model_coordinates_.ComputeJacobian(point_in_camera_coords);
 
   //pass this vector into the articualted nodes and get their jacobians too
   //preset the jacobian values for the articulated joints so that they can be accessed by index
-  for (int i = 0; i < 6; ++i){
-    r.push_back(ci::Vec3f(0.0f, 0.0f, 0.0f));
-  }
-  model_->ComputeJacobianForPoint(world_to_model_coordinates_, point, target_frame_idx, r);
+  //for (int i = 0; i < 6; ++i){
+  //  r.push_back(ci::Vec3f(0.0f, 0.0f, 0.0f));
+  //}
 
-  assert(r[7] == ci::Vec3f(0.0f, 0.0f, 0.0f));
-  assert(r[10] == ci::Vec3f(0.0f, 0.0f, 0.0f));
+  model_->ComputeJacobianForPoint(world_to_model_coordinates_, point_in_camera_coords, target_frame_idx, r);
 
-  r.erase(r.begin() + 7);
-  r.erase(r.begin() + 9);   
+  if (r.size() != 11) throw(std::runtime_error(""));
+
+  //hack for the da vinci model - remove this!
+  //assert(r[7] == ci::Vec3f(0.0f, 0.0f, 0.0f));
+  //assert(r[10] == ci::Vec3f(0.0f, 0.0f, 0.0f));
+
+  //r.erase(r.begin() + 7);
+  //r.erase(r.begin() + 9);   
 
   return r;
 

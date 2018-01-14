@@ -8,6 +8,10 @@
 #include <CinderOpenCV.h>
 #include <cinder/CinderMath.h>
 
+#ifdef USE_CUDA
+#include "../../../../include/ttrack/track/localizer/levelsets/pwp3d_cuda.hpp"
+#endif 
+
 #include "../../../../include/ttrack/track/localizer/levelsets/pwp3d.hpp"
 #include "../../../../include/ttrack/utils/helpers.hpp"
 #include "../../../../include/ttrack/resources.hpp"
@@ -15,6 +19,8 @@
 #include "../include/ttrack/utils/UI.hpp"
 
 using namespace ttrk;
+
+cv::Mat Localizer::occlusion_image;
 
 PWP3D::PWP3D(const int width, const int height) {
 
@@ -30,13 +36,21 @@ PWP3D::PWP3D(const int width, const int height) {
 
   HEAVYSIDE_WIDTH = 3; //if this value is changed the Delta/Heavside approximations will be invalid!
 
-  NUM_STEPS = 20;
-
   auto &ui = ttrk::UIController::Instance();
   ui.AddVar<int>("Gradient Descent Steps", &NUM_STEPS, 1, 50, 1);
+  ui.AddVar<int>("Frame Count", &frame_count_, 1, 5000, 0);
 
   curr_step = NUM_STEPS; //so we report converged and ask for a new frame at the start
-  
+
+#ifdef USE_CUDA
+  if (!ttrk::gpu::checkCudaFunctionality()){
+    throw std::runtime_error("Error, no CUDA devices found!");
+  }
+#endif
+
+  occlusion_image = cv::Mat::zeros(cv::Size(width, height), CV_32FC1);
+  use_level_sets_ = true;
+
 }
 
 PWP3D::~PWP3D(){
@@ -62,31 +76,95 @@ void PWP3D::LoadShaders(){
 
 }
 
-void PWP3D::ComputeAreas(const cv::Mat &sdf, float &fg_area, float &bg_area, size_t &contour_area){
+bool PWP3D::HasConverged() { 
 
-  fg_area = bg_area = 0;
-
-  for (auto r = 0; r < sdf.rows; ++r){
-    for (auto c = 0; c < sdf.rows; ++c){
-
-      if (sdf.at<float>(r, c) <= float(3) - 1e-1 && sdf.at<float>(r, c) >= -float(3) + 1e-1)
-        contour_area++;
-
-      const float sdf_v = sdf.at<float>(r, c);
-
-      //fg_area += sdf.at<float>(r, c);
-      //bg_area += (1.0f - sdf.at<float>(r, c));
-      fg_area += HeavisideFunction(sdf_v);
-      bg_area += (1.0f - HeavisideFunction(sdf_v));
-    }
+  for (int i = 0; i < region_scores.size(); ++i){
+    if (region_scores[i] > best_region_score)
+      best_region_score = region_scores[i];
   }
+
+  //if (region_scores.size() > 4){
+    //for (int i = region_scores.size() - 3; i < region_scores.size(); ++i){
+    //if (region_scores[i] == best_region_score) return false;
+    //}
+    //return true;
+  //}
+  //else 
+  //if (frame_count_ <= 1) 
+  //  return curr_step >= NUM_STEPS * 3; 
+  //else 
+  return curr_step >= NUM_STEPS; 
 
 }
 
+
+void PWP3D::ComputeScores(const cv::Mat &sdf_image, const cv::Mat &classification_image, float &current_score, float &best_score) const {
+
+  for (int r = 5; r < classification_image.rows - 5; ++r){
+    for (int c = 5; c < classification_image.cols - 5; ++c){
+
+      bool cont = true;
+      if (sdf_image.at<float>(r, c))
+        if (std::abs(sdf_image.at<float>(r, c)) < 6){
+          cont = false;
+          break;
+        }
+
+      if (cont) continue; //only count pixels 'near' the contour.
+
+
+      const cv::Vec<float, 5> re = classification_image.at < cv::Vec<float, 5> >(r, c);
+      float pixel_probability = re[0]; //
+      float neighbour_probability = re[1];
+
+      const float sdf_value = sdf_image.at<float>(r, c);
+
+      current_score += (pixel_probability * HeavisideFunction(sdf_value) + ((1 - HeavisideFunction(sdf_value)) * neighbour_probability));
+
+      if (sdf_value < 0){
+        best_score += (1 - HeavisideFunction(sdf_value));
+      }
+      else{
+        best_score += (HeavisideFunction(sdf_value));
+      }
+    }
+  }
+}
+
+
+void PWP3D::ComputeAreas(const cv::Mat &sdf, float &fg_area, float &bg_area, size_t &contour_area) const {
+
+    fg_area = bg_area = 0;
+
+    for (auto r = 0; r < sdf.rows; ++r){
+      for (auto c = 0; c < sdf.rows; ++c){
+
+        if (sdf.at<float>(r, c) <= float(3) - 1e-1 && sdf.at<float>(r, c) >= -float(3) + 1e-1)
+          contour_area++;
+
+        const float sdf_v = sdf.at<float>(r, c);
+
+        if (sdf_v > 0){
+          fg_area++;
+        }
+        else{
+          bg_area++;
+        }
+
+        //heaviside approx does not work outside contour
+        //fg_area += sdf.at<float>(r, c);
+        //bg_area += (1.0f - sdf.at<float>(r, c));
+        //fg_area += HeavisideFunction(sdf_v);
+        //bg_area += (1.0f - HeavisideFunction(sdf_v));
+      }
+    }
+
+  }
+
 void PWP3D::UpdateJacobian(const float region_agreement, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_point, const boost::shared_ptr<const Model> model, cv::Matx<float, 1, 7> &jacobian){
 
-  const float z_inv_sq_front = 1.0f / (front_intersection_point[2] * front_intersection_point[2]);
-  const float z_inv_sq_back = 1.0f / (back_intersection_point[2] * back_intersection_point[2]);
+  const float z_inv_sq_front = 1.0f / ((front_intersection_point[2] * front_intersection_point[2] + 1e-09));
+  const float z_inv_sq_back = 1.0f / ((back_intersection_point[2] * back_intersection_point[2]) + 1e-09);
 
   //compute the derivatives
   std::vector<ci::Vec3f> front_jacs = model->ComputeJacobian(front_intersection_point, 0);
@@ -95,8 +173,10 @@ void PWP3D::UpdateJacobian(const float region_agreement, const float sdf, const 
   //for each degree of freedom, compute the jacobian update
   for (size_t dof = 0; dof < model->GetBasePose().GetNumDofs(); ++dof){
 
-    if (dof >= 7)
+    if (dof >= 7){
+      ci::app::console() << "PWP tracker doesn't support more than 7 dof!" << std::endl;
       throw std::runtime_error("");
+    }
 
     const ci::Vec3f &dof_derivatives_front = front_jacs[dof];
     const ci::Vec3f &dof_derivatives_back = back_jacs[dof];
@@ -137,12 +217,18 @@ void PWP3D::UpdateJacobian(const float region_agreement, const float sdf, const 
 bool PWP3D::FindClosestIntersection(const float *sdf_im, const int r, const int c, const int height, const int width, int &closest_r, int &closest_c) const {
   
   const float &sdf_val = sdf_im[r * width + c];
-  const int ceil_sdf = (int)std::abs(ceil(sdf_val));
+  const int ceil_sdf = (int)ceil(std::abs(sdf_val));
+
+  const int max_idx = height * width;
 
   for (int w_c = c - ceil_sdf; w_c <= c + ceil_sdf; ++w_c){
     
     const int up_idx = (r + ceil_sdf)*width + w_c;
     const int down_idx = (r - ceil_sdf)*width + w_c;
+
+    if (up_idx < 0 || up_idx >= max_idx) continue;
+    if (down_idx < 0 || down_idx >= max_idx) continue;
+
     if (sdf_im[up_idx] >= 0.0){
       closest_r = r + ceil_sdf;
       closest_c = w_c;
@@ -159,6 +245,10 @@ bool PWP3D::FindClosestIntersection(const float *sdf_im, const int r, const int 
 
     const int left_idx = w_r*width + c - ceil_sdf;
     const int right_idx = w_r*width + c + ceil_sdf;
+
+    if (left_idx < 0 || left_idx >= max_idx) continue;
+    if (right_idx < 0 || right_idx >= max_idx) continue;
+
     if (sdf_im[left_idx] >= 0.0){
       closest_r = w_r;
       closest_c = c - ceil_sdf;
@@ -175,6 +265,14 @@ bool PWP3D::FindClosestIntersection(const float *sdf_im, const int r, const int 
 
 }
 
+float PWP3D::GetMaximumScore(const float sdf_value) const{
+
+  if (sdf_value >= 0){
+    return HeavisideFunction(sdf_value);
+  }
+
+}
+
 float PWP3D::GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf, const float fg_size, const float bg_size) const {
   
   const float heaviside_value = HeavisideFunction(sdf);
@@ -186,16 +284,16 @@ float PWP3D::GetRegionAgreement(const cv::Mat &classification_image, const int r
     pixel_probability = std::max(pixel_probability, re[i]);
   }
  
-  float Pf = pixel_probability;
-  float Pb = re[0];
+  float Pf = pixel_probability;// / fg_size;
+  float Pb = re[0];// / bg_size;
   
   if (SAFE_EQUALS<float>(Pf, 0) && SAFE_EQUALS<float>(Pb, 1)){
-    Pf += 0.05;
-    Pb -= 0.05;
+    Pf += 0.0005;
+    Pb -= 0.0005;
   }
   else if (SAFE_EQUALS<float>(Pf, 1) && SAFE_EQUALS<float>(Pb, 0)){
-    Pf -= 0.05;
-    Pb += 0.05;
+    Pf -= 0.0005;
+    Pb += 0.0005;
   }
 
   return (Pf - Pb) / (((heaviside_value*Pf) + ((1 - heaviside_value)*Pb)) + EPS);
@@ -204,12 +302,30 @@ float PWP3D::GetRegionAgreement(const cv::Mat &classification_image, const int r
 
 void PWP3D::ComputeLKJacobian(boost::shared_ptr<Model> current_model, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx){
 
-  std::vector<float> derivs = lk_tracker_->GetDerivativesForPoints(current_model->GetBasePose());
+  //cv::Mat jacobian_ = point_registration_->GetJacobianMatrix(current_model->GetBasePose());
+  //
+  //auto res = point_registration_->GetResiduals();
+  //cv::Mat residuals = cv::Mat::zeros(res.size(), 1, CV_32FC1);
+  //for (size_t i = 0; i < res.size(); ++i){
+  //  residuals.at<float>(i) = res[i];
+  //}
+
+  //cv::Mat update_step = (jacobian_.t() * jacobian_).inv() * jacobian_.t() * residuals;
+  //
+  //for (int i = 0; i < update_step.total(); ++i){
+  //  jacobian(i) = update_step.at<float>(i);
+  //}
+
+  //return;
+
+  if (!point_registration_) return;
+
+  std::vector<float> derivs = point_registration_->GetDerivativesForPoints(current_model, current_model->GetBasePose());
 
   cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
 
   for (int i = 0; i < derivs.size(); ++i){
-    points_jacobian(i) += 3 * derivs[i];
+    points_jacobian(i) += derivs[i];
   }
 
   jacobian += points_jacobian.t();
@@ -219,7 +335,9 @@ void PWP3D::ComputeLKJacobian(boost::shared_ptr<Model> current_model, cv::Matx<f
 
 void PWP3D::ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_model, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx){
 
-  std::vector<float> derivs = point_registration_->GetDerivativesForPoints(current_model->GetBasePose());
+  if (!point_registration_) return;
+
+  std::vector<float> derivs = point_registration_->GetDerivativesForPoints(current_model, current_model->GetBasePose());
 
   cv::Matx<float, 1, 7> points_jacobian = cv::Matx<float, 1, 7>::zeros();
 
@@ -230,24 +348,27 @@ void PWP3D::ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_mo
   jacobian += points_jacobian.t();
   hessian_approx += (points_jacobian.t() * points_jacobian);
 
-
 }
 
-std::vector<float> PWP3D::ScaleRigidJacobian(cv::Matx<float, 7, 1> &jacobian) const{
+std::vector<float> PWP3D::ScaleRigidJacobian(cv::Matx<float, 7, 1> &jacobian, bool extra_small_steps) const{
 
   std::vector<float> jacs(7, 0);
 
   cv::Vec3f translation(jacobian(0), jacobian(1), jacobian(2));
-  const float max_translation = 0.04; //mm
+  float max_translation = 0.18; // 0.08; //mm
+  if (extra_small_steps) max_translation = 0.04;
   
   float translation_mag = std::sqrt(translation.dot(translation));
-  if (translation_mag != 0.0)
+  if (translation_mag != 0.0){
     translation = (max_translation / translation_mag) * translation;
+    //translation[2] *= 10;
+  }
   else
     translation = cv::Vec3f(0, 0, 0);
 
   cv::Vec4f rotation(jacobian(3), jacobian(4), jacobian(5), jacobian(6));
-  const float max_rotation = 0.002;
+  float max_rotation = 0.008;// 0.004;
+  if (extra_small_steps) max_rotation = 0.002;
   
   float rotation_mag = std::sqrt(rotation.dot(rotation));
   if (rotation_mag != 0.0)
@@ -260,23 +381,22 @@ std::vector<float> PWP3D::ScaleRigidJacobian(cv::Matx<float, 7, 1> &jacobian) co
   for (int j = 0; j < 4; ++j){
     jacs[3 + j] = -rotation[j];
   }
-
-  //ci::app::console() << "jacobian = [";
-  //for (auto i : jacs){
-  //  ci::app::console() << i << ", ";
-  //}
-  //ci::app::console() << "]" << std::endl;
-
+  
   return jacs;
 
 }
 
 float PWP3D::GetErrorValue(const cv::Mat &classification_image, const int row_idx, const int col_idx, const float sdf_value, const int target_label, const float fg_size, const float bg_size) const{
 
-  const float P = classification_image.at<float>(row_idx, col_idx);
-  //assert(pixel_probability >= 0.0f && pixel_probability <= 1.0f);
-  const float Pf = P;// / fg_size;
-  const float Pb = (1 - P);// / bg_size;
+  cv::Vec<float, 5> re = classification_image.at < cv::Vec<float, 5> >(row_idx, col_idx);
+
+  float pixel_probability = re[1];
+  for (int i = 2; i < 5; ++i){
+    pixel_probability = std::max(pixel_probability, re[i]);
+  }
+
+  float Pf = pixel_probability;// / fg_size;
+  float Pb = re[0];// / bg_size;
 
   const float heaviside_value = HeavisideFunction(sdf_value);
 
@@ -362,16 +482,19 @@ void PWP3D::RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, c
   cv::flip(back_depth_flipped, back_depth, 0);
   cv::flip(mcontour, fmcontour, 0);
 
-  contour = cv::Mat(mcontour.size(), CV_8UC1);
+  contour = cv::Mat::zeros(mcontour.size(), CV_8UC1);
   float *src = (float *)fmcontour.data;
   unsigned char *dst = (unsigned char*)contour.data;
 
   for (int r = 0; r < mcontour.rows; ++r){
     for (int c = 0; c < mcontour.cols; ++c){
-      dst[r * mcontour.cols + c] = (unsigned char)src[(r * mcontour.cols + c)*4];
+      if ((unsigned char)src[(r * mcontour.cols + c) * 4] == 0)
+        dst[r * mcontour.cols + c] = 255;
     }
   }
 
+  int xxxx = 0;
+  
 }
 
 cv::Mat PWP3D::ComputePrettySDFImage(const cv::Mat &sdf_image) const{
@@ -382,10 +505,12 @@ cv::Mat PWP3D::ComputePrettySDFImage(const cv::Mat &sdf_image) const{
   cv::minMaxIdx(sdf_image, &min, &max);
   cv::Mat adjMap;
   // expand your range to 0..255. Similar to histEq();
-  sdf_image.convertTo(adjMap, CV_8UC1, 255 / (max - min), -min);
-
+  //sdf_image.convertTo(adjMap, CV_8UC1, 255 / (max - min), -min);
+  cv::normalize(sdf_image, adjMap, 0, 255, cv::NORM_MINMAX);
+  cv::Mat adjMap_;
+  adjMap.convertTo(adjMap_, CV_8UC1);
   cv::Mat falseColorsMap;
-  applyColorMap(adjMap, falseColorsMap, cv::COLORMAP_AUTUMN);
+  applyColorMap(adjMap_, falseColorsMap, cv::COLORMAP_JET);
 
   return falseColorsMap;
 
@@ -394,7 +519,11 @@ cv::Mat PWP3D::ComputePrettySDFImage(const cv::Mat &sdf_image) const{
 cv::Mat PWP3D::ComputeSDFImageAndSetProgressFrame(const cv::Mat contour_image, const cv::Mat &front_depth_image){
 
   cv::Mat sdf_image;
-  distanceTransform(contour_image, sdf_image, CV_DIST_L2, CV_DIST_MASK_PRECISE);
+#ifdef USE_CUDA
+  ttrk::gpu::distanceTransform(contour_image.clone(), sdf_image);
+#else
+  distanceTransform(~contour_image, sdf_image, CV_DIST_L2, CV_DIST_MASK_PRECISE);
+#endif    
 
   //flip the sign of the distance image for outside pixels
   for (int r = 0; r < sdf_image.rows; r++){
@@ -426,6 +555,8 @@ void PWP3D::ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, 
   cv::Mat front_depth, back_depth, contour;
   RenderModelForDepthAndContour(mesh, camera, front_depth, back_depth, contour );
   
+  Localizer::UpdateOcclusionImage(front_depth);
+
   cv::Mat unprojected_image_plane = camera->GetUnprojectedImagePlane(front_intersection_image.cols, front_intersection_image.rows);
 
   for (int r = 0; r < front_intersection_image.rows; r++){

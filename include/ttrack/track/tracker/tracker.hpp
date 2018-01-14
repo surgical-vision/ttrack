@@ -12,6 +12,7 @@
 #include "../localizer/localizer.hpp"
 #include "../model/model.hpp"
 #include "../temporal/temporal.hpp"
+#include <ttrack/detect/detect.hpp>
 
 namespace ttrk{
 
@@ -19,7 +20,8 @@ namespace ttrk{
   * @enum LocalizerType
   * The type of frame-by-frame pose localizer to use in tracking.
   */
-  enum LocalizerType { PWP3DLocalizer, ComponentLS };
+  enum LocalizerType { LevelSetForest, PWP3D_SIFT, PWP3D_LK, ComponentLS_SIFT, ComponentLS_LK, ArticulatedComponentLS_GradientDescent, ArticulatedComponentLS_WithSamping, CeresLevelSetSolver, PWP3D, ComponentLS, LK, ArticulatedComponentLS_GradientDescent_F2FLK };
+
 
  /**
  * @class Tracker
@@ -113,6 +115,20 @@ namespace ttrk{
 
     bool IsFirstRun() { return localizer_->IsFirstRun(); }
 
+    void SetLocalizerIterations(const size_t iterations) { localizer_->SetMaximumIterations(iterations); }
+
+    void SetPointRegistrationWeight(const float weight) { localizer_->SetPointRegistrationWeight(weight); }
+    void SetArticulatedPointRegistrationWeight(const float weight) { localizer_->SetArticulatedPointRegistrationWeight(weight); }
+
+    void SetupPointTracker(const bool use_rotations, const bool use_translations, const bool use_articulation, const bool use_global_roll_search_first, const bool use_global_roll_search_last){
+      localizer_->SetupPointTracker(use_rotations, use_translations, use_articulation, use_global_roll_search_first, use_global_roll_search_last);
+    }
+
+    void SetDetectorType(const ClassifierType &classifier_type, const size_t &number_of_labels) {
+      classifier_type_ = classifier_type;
+      number_of_labels_ = number_of_labels; 
+    }
+
   protected:
 
     /**
@@ -137,6 +153,9 @@ namespace ttrk{
       boost::shared_ptr<Model> model; /**< Model to track. */
       boost::shared_ptr<TemporalTracker> temporal_tracker; /**< Kalman filter etc for temporal tracking. */
     };
+
+    ClassifierType classifier_type_;
+    size_t number_of_labels_;
 
     std::vector< std::vector<float> > starting_pose_HACK; /**< WILL BE REMOVED ONCE INITIALIZERS ARE SORTED. */
 

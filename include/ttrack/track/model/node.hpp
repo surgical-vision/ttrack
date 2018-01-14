@@ -60,12 +60,7 @@ namespace ttrk {
     */
     virtual ci::Matrix44f GetRelativeTransformToRoot() const = 0;
     
-    /**
-    * Get the transform between the this node and one of its child nodes.
-    * @param[in] child_idx The index of the child node.
-    * @return The transform in a 4x4 float matrix.
-    */
-    virtual ci::Matrix44f GetRelativeTransformToChild(const int child_idx) const = 0;
+    void RenderLines(const ci::Matrix44f &base_frame_bose) const;
 
     /**
     * Add a child node to this node.
@@ -84,6 +79,8 @@ namespace ttrk {
     * @param[in] The id of the texture.
     */
     void RenderTexture(int id);
+    void RenderTextureHack(int id, ci::Matrix44f world_transform);
+    void RenderTextureHack_FORCLASPERS(int id, ci::Matrix44f world_transform);
 
     /**
     * Render a node element using the node's texture to color, will recursively call RenderTexture on all child nodes.
@@ -151,6 +148,18 @@ namespace ttrk {
     std::vector< Node::ConstPtr> GetChildren() const;
 
     /**
+    * Get the children of the current node.
+    * @return The children.
+    */
+    std::vector< Node::Ptr > GetAllChildren();
+
+    /**
+    * Get the children of the current node in const form.
+    * @return The const version of the children.
+    */
+    std::vector< Node::ConstPtr> GetAllChildren() const;
+
+    /**
     * Get a child of the current node by its index in the tree.
     * @param[in] target_idx The index of the child.
     * @return The child or nullptr if the child doesn't exist.
@@ -193,7 +202,7 @@ namespace ttrk {
     * @param[in] target_idx The index of the target node.
     * @return The relative transform from caller node to target node. Identity transform if not connected nodes. 
     */
-    virtual ci::Matrix44f GetRelativeTransformToNodeByIdx(const int target_idx) const = 0;
+    virtual ci::Matrix44f GetRelativeTransformFromNodeToNodeByIdx(const int start_idx, const int end_idx) const = 0;
 
     /**
     * Get the axis around which or along which the node transforms
@@ -228,7 +237,9 @@ namespace ttrk {
     std::vector< Node::Ptr > children_; /**< This node's children. */
 
     ci::TriMesh model_; /**< The 3D mesh that the model represents. */
+    ci::TriMesh model_hack_;
     ci::gl::VboMesh	vbo_; /**< VBO to store the model for faster drawing. */
+    ci::gl::VboMesh vbo_hack_;
     ci::gl::Texture texture_; /**< The texture for the model. */
 
     bool drawing_flag_; /**< Switch on to enable drawing of this component. */
@@ -291,11 +302,6 @@ namespace ttrk {
     void ComputeJacobianForClasperYaw(const ci::Matrix44f &world_transform, const ci::Vec3f &point, std::vector<ci::Vec3f> &jacobian) const;
     void ComputeJacobianForClasperRotate(const ci::Matrix44f &world_transform, const ci::Vec3f &point, const int target_frame_index, std::vector<ci::Vec3f> &jacobian) const;
     
-    /**
-    * Get the transform between the this node and one of its child nodes using the DH transforms.
-    * @return The transform in a 4x4 float matrix.
-    */
-    virtual ci::Matrix44f GetRelativeTransformToChild(const int child_idx) const;
 
     /**
     * Update the pose of the model using the jacobians (with whatever cost function modification).
@@ -332,13 +338,13 @@ namespace ttrk {
     * @param[in] target_idx The index of the target node.
     * @return The relative transform from caller node to target node. Identity transform if not connected nodes.
     */
-    virtual ci::Matrix44f GetRelativeTransformToNodeByIdx(const int target_idx) const;
+    virtual ci::Matrix44f GetRelativeTransformFromNodeToNodeByIdx(const int start_idx, const int end_idx) const;
 
     /**
     * Get the axis around which or along which the node transforms
     * @return The transformation axis.
     */
-    virtual ci::Vec3f GetAxis() const { return ci::Vec3f::zAxis(); }
+    virtual ci::Vec3f GetAxis() const { if (type_ == Alternative) return alt_axis_; else return ci::Vec3f::zAxis(); }
 
     /**
     * Get the derivative of the transform from parent to child w.r.t the transform parameter.

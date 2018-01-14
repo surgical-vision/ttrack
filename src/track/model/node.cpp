@@ -29,8 +29,15 @@ void Node::LoadMeshAndTexture(ci::JsonTree &tree, const std::string &root_dir){
 
   vbo_ = ci::gl::VboMesh(model_);
 
-}
+  if (tree.hasChild("obj-file-hack")){
+    obj_file = boost::filesystem::path(root_dir) / boost::filesystem::path(tree["obj-file-hack"].getValue<std::string>());
+    loader = ci::ObjLoader(ci::loadFile(obj_file.string()), ci::loadFile(mat_file.string()), true);
+    loader.load(&model_hack_, true, true, false);
+    vbo_hack_ = ci::gl::VboMesh(model_hack_);
+  }
 
+
+}
 
 void Node::RenderMaterial(){
 
@@ -56,11 +63,200 @@ void Node::RenderMaterial(){
 
 }
 
+
+void Node::RenderTextureHack_FORCLASPERS(int id, const ci::Matrix44f world_transform){
+
+  if (drawing_flag_){
+
+    ci::gl::pushModelView();
+
+    ci::gl::multModelView(this->GetWorldTransform(world_transform));
+
+    if (texture_){
+      if (id == 0)
+        texture_.enableAndBind();
+      else
+        texture_.bind(id);
+
+    }
+
+    if (model_hack_.getNumVertices() != 0)
+      ci::gl::draw(vbo_hack_);
+    else if (model_.getNumVertices() != 0)
+      ci::gl::draw(vbo_);
+    
+    if (texture_){
+      texture_.disable();
+      texture_.unbind(id);
+    }
+    else{
+      glDisable(GL_COLOR_MATERIAL);
+    }
+
+
+    ci::gl::popModelView();
+  }
+
+  for (size_t i = 0; i < children_.size(); ++i){
+    children_[i]->RenderTextureHack_FORCLASPERS(id, world_transform);
+  }
+
+}
+
+
+void Node::RenderLines(const ci::Matrix44f &world_transform) const {
+
+  if (drawing_flag_){
+
+    ci::gl::pushModelView();
+
+    ci::gl::multModelView(this->GetWorldTransform(world_transform));
+
+    ci::Vec3f end(0, 0, 0);
+    if (this->idx_ == 0)
+      end = ci::Vec3f(0, 0, -40);
+    else if (idx_ == 1)
+      end = ci::Vec3f(11, 0, 0);
+    else if (idx_ == 4){
+      end = ci::Vec3f(0, 0, 9.2);
+    }
+    else if (idx_ == 5){
+      end = ci::Vec3f(0, 0, 9.2);
+    }
+
+    ci::gl::drawLine(ci::Vec3f(0, 0, 0), end);
+
+    ci::gl::popModelView();
+  }
+
+  for (size_t i = 0; i < children_.size(); ++i){
+    children_[i]->RenderLines(world_transform);
+  }
+
+}
+
+void Node::RenderTextureHack(int id, const ci::Matrix44f world_transform){
+
+  if (drawing_flag_){
+
+    ci::gl::pushModelView();
+    
+    ci::gl::multModelView(this->GetWorldTransform(world_transform));
+
+    if (texture_){
+      if (id == 0)
+        texture_.enableAndBind();
+      else
+        texture_.bind(id);
+
+    }
+
+    if (model_.getNumVertices() != 0)
+      ci::gl::draw(vbo_);
+
+
+    if (texture_){
+      texture_.disable();
+      texture_.unbind(id);
+    }
+    else{
+      glDisable(GL_COLOR_MATERIAL);
+    }
+
+
+    ci::gl::popModelView();
+  }
+
+  for (size_t i = 0; i < children_.size(); ++i){
+    children_[i]->RenderTextureHack(id, world_transform);
+  }
+
+}
+
 void Node::RenderTexture(int id){
   
   if (drawing_flag_){
 
     ci::gl::pushModelView();
+
+    /*ci::Matrix44f correct_transform = GetRelativeTransformToRoot();
+
+
+    Node *par = parent_;
+    if (par != 0x0){
+
+      for (;;){
+        if (par->parent_ == 0x0) break;
+        par = par->parent_;
+      }
+
+      if (par->idx_ != 0) throw std::runtime_error("");
+
+      ci::Matrix44f pp1 = par->GetRelativeTransformToRoot();
+      ci::Matrix44f pp2 = GetRelativeTransformFromNodeToNodeByIdx(0, idx_);
+
+      if (pp1 != ci::Matrix44f()){
+        ci::app::console() << "pp1 != eye" << std::endl;
+        ci::app::console() << "pp1 = " << pp1 << "\n" << "eye = " << ci::Matrix44f() << std::endl;
+      }
+      else{
+        ci::app::console() << "pp1 == eye" << std::endl;
+      }
+
+      if (pp2 != correct_transform){
+        ci::app::console() << "pp2 != correct_transform" << std::endl;
+        ci::app::console() << "pp2 = " << pp2 << "\n" << "correct_transform = " << correct_transform << std::endl;
+      }
+      else{
+        ci::app::console() << "pp2 != correct_transform" << std::endl;
+      }
+
+
+      ci::Matrix44f m1 = GetRelativeTransformFromNodeToNodeByIdx(0,1);
+      Node *n1 = par->GetChildByIdx(1);
+      ci::Matrix44f m11 = n1->GetRelativeTransformToRoot();
+      if (m11 != m1){
+        ci::app::console() << "m1 != m11" << std::endl;
+        ci::app::console() << "m1 = " << m1 << "\n" << "m11 = " << m11 << std::endl;
+      }
+      else{
+        ci::app::console() << "m1 == m11" << std::endl;
+      }
+
+      ci::Matrix44f m2 = GetRelativeTransformFromNodeToNodeByIdx(0, 2);
+      Node *n2 = par->GetChildByIdx(2);
+      ci::Matrix44f m22 = n2->GetRelativeTransformToRoot();
+      if (m22 != m2){
+        ci::app::console() << "m2 != m22" << std::endl;
+        ci::app::console() << "m2 = " << m2 << "\n" << "m22 = " << m22 << std::endl;
+      }
+      else{
+        ci::app::console() << "m2 == m22" << std::endl;
+      }
+
+      ci::Matrix44f m3 = GetRelativeTransformFromNodeToNodeByIdx(0, 3);
+      Node *n3 = par->GetChildByIdx(3);
+      ci::Matrix44f m33 = n3->GetRelativeTransformToRoot();
+      if (m33 != m3){
+        ci::app::console() << "m3 != m33" << std::endl;
+        ci::app::console() << "m3 = " << m3 << "\n" << "m33 = " << m33 << std::endl;
+      }
+      else{
+        ci::app::console() << "m3 == m33" << std::endl;
+      }
+
+      ci::Matrix44f m4 = par->GetRelativeTransformFromNodeToNodeByIdx(0, 4);
+      Node *n4 = par->GetChildByIdx(4);
+      ci::Matrix44f m44 = n4->GetRelativeTransformToRoot();
+      if (m44 != m4){
+        ci::app::console() << "m4 != m44" << std::endl;
+        ci::app::console() << "m4 = " << m4 << "\n" << "m44 = " << m44 << std::endl;
+      }
+      else{
+        ci::app::console() << "m4 == m44" << std::endl;
+      }
+
+    }*/
 
     ci::gl::multModelView(GetRelativeTransformToRoot()); 
 
@@ -139,6 +335,30 @@ bool Node::PerformPicking(const ci::Matrix44f &mvm, const ci::Vec3f &ray, ci::Ve
 
 }
 
+
+std::vector< Node::Ptr > Node::GetAllChildren() {
+
+  std::vector<Node::Ptr> all_children = children_;
+  for (auto &child : children_){
+    auto &cc = child->GetAllChildren();
+    all_children.insert(all_children.end(), cc.begin(), cc.end());
+  }
+  return all_children;
+
+}
+
+std::vector< Node::ConstPtr > Node::GetAllChildren() const{
+  
+  std::vector<Node::ConstPtr> all_children;
+  for (auto &child : children_){
+    all_children.push_back(child);
+    auto &cc = child->GetAllChildren();
+    all_children.insert(all_children.end(), cc.begin(), cc.end());
+  }
+  return all_children;
+
+}
+
 std::vector<Node::ConstPtr> Node::GetChildren() const {
 
   std::vector<Node::ConstPtr> ret;
@@ -173,37 +393,60 @@ const Node *Node::GetChildByIdx(const std::size_t target_idx) const{
 
 }
 
-void Node::ComputeJacobianForPoint(const ci::Matrix44f &world_transform, const ci::Vec3f &point, const int target_frame_index, std::vector<ci::Vec3f> &jacobian) const {
+void Node::ComputeJacobianForPoint(const ci::Matrix44f &world_transform, const ci::Vec3f &point_in_camera_coords, const int target_frame_index, std::vector<ci::Vec3f> &jacobian) const {
+
+  int idx = idx_;
 
   //the node with null parent is the root node so it's pose is basically just the base pose.
-  if (parent_ != nullptr){
-
-    //derivative of transform k = 
-    //T_1 = transform from frame which point resides to parent of this frame (i.e. closest frame to point)
-    //z = rotation axis of point
-    //T_3 = transfrom from this frame to origin - with GetRelativeTransform
+  if (parent_ != nullptr && idx_ != 3){ //3 is the fixed node so there's no derivative for it.
 
     if (!NodeIsChild(target_frame_index)){// || !NodeIsTransformable() ){
 
       jacobian.push_back(ci::Vec3f(0.0f, 0.0f, 0.0f));
 
     }
+    //else if (idx_ == 2){
+    //  jacobian.push_back(ci::Vec3f(0.0f, 0.0f, 0.0f));
+    //}
     else{
 
-      ci::Matrix44f T_1 = GetRelativeTransformToChild(target_frame_index);
+      //ci::Vec3f point_in_target_frame_coords = (GetChildByIdx(target_frame_index)->GetWorldTransform(world_transform)).inverted() * point_in_camera_coords;
+      ci::Vec3f point_in_target_frame_coords = (GetWorldTransform(world_transform)).inverted() * point_in_camera_coords;
+      //get the transform from this node to the node where the target point lives
+      //ci::Matrix44f T_1 = world_transform * parent_->GetRelativeTransformToRoot();
 
-      //ci::Vec4f z(GetAxis(), 1);
+      ci::Matrix44f T_3;
+      if (idx_ == target_frame_index){
+        T_3.setToIdentity();
+      }
+      else{
+       T_3 = GetRelativeTransformFromNodeToNodeByIdx(idx_, target_frame_index);
+      }
 
+      //point_in_target_frame_coords = T_3.inverted() * point_in_target_frame_coords;
+
+
+      //parent to node transform is in T_3. does not need to be applied again.
+      ci::Vec3f z;
+      if (idx_ == 4){
+        z = ci::Vec3f(0, 1, 0);// , 1);
+      }
+      else if (idx_ == 5){
+        z = ci::Vec3f(0, -1, 0);// , 1); //this one is broken!
+      }
+      else{
+        z = ci::Vec3f(GetAxis());// , 1);
+      }
       
-      //ci::Vec4f z = GetRelativeTransformToRoot() * ci::Vec4f(GetAxis(), 1);
-
-      ci::Matrix44f T_3 = GetRelativeTransformToRoot() * world_transform;
-
-      ci::Vec4f z = GetTransformFromParent() * ci::Vec4f(GetAxis(), 1);
+      //ci::Vec4f end = T_3 * ci::Vec4f(point_in_target_frame_coords, 1);
       
-      ci::Vec4f end = T_3 * ci::Vec4f(point, 1);
+      ci::Vec3f end = z.cross(point_in_target_frame_coords);
       
-      ci::Vec4f jac = T_1 * (z.cross(end));
+      //ci::Matrix44f T_frame_to_world = GetChildByIdx(target_frame_index)->GetWorldTransform(world_transform);
+      ci::Matrix44f T_frame_to_world = GetChildByIdx(idx_)->GetWorldTransform(world_transform);
+
+      //ci::Vec4f jac = T_1 * (z.cross(end));
+      ci::Vec3f jac = T_frame_to_world.subMatrix33(0,0) * end;
 
       jacobian.push_back(ci::Vec3f(jac[0], jac[1], jac[2]));
 
@@ -212,7 +455,7 @@ void Node::ComputeJacobianForPoint(const ci::Matrix44f &world_transform, const c
   }
 
   for (size_t i = 0; i < children_.size(); ++i){
-    children_[i]->ComputeJacobianForPoint(world_transform, point, target_frame_index, jacobian);
+    children_[i]->ComputeJacobianForPoint(world_transform, point_in_camera_coords, target_frame_index, jacobian);
   }
 
 }
@@ -245,34 +488,37 @@ void DHNode::GetPose(std::vector<float> &pose) const {
 
 void DHNode::ComputeJacobianForPoint(const ci::Matrix44f &world_transform, const ci::Vec3f &point, const int target_frame_index, std::vector<ci::Vec3f> &jacobian) const {
 
-  if (target_frame_index == 0){
+  Node::ComputeJacobianForPoint(world_transform, point, target_frame_index, jacobian);
+  return;
 
-    jacobian[7 + idx_] = ci::Vec3f(0.0f,0.0f,0.0f);
+  //if (target_frame_index == 0){
 
-  }
+  //  jacobian[7 + idx_] = ci::Vec3f(0.0f,0.0f,0.0f);
 
-  else if (target_frame_index == 1){
+  //}
 
-    ComputeJacobianForHead(world_transform, point, jacobian);
+  //else if (target_frame_index == 1){
 
-  }
+  //  ComputeJacobianForHead(world_transform, point, jacobian);
 
-  else if (target_frame_index == 4 || target_frame_index == 5){
+  //}
 
-    ComputeJacobianForClasperYaw(world_transform, point, jacobian);
-    ComputeJacobianForClasperRotate(world_transform, point, target_frame_index, jacobian);
+  //else if (target_frame_index == 4 || target_frame_index == 5){
 
-  }
-  
-  else{
+  //  ComputeJacobianForClasperYaw(world_transform, point, jacobian);
+  //  ComputeJacobianForClasperRotate(world_transform, point, target_frame_index, jacobian);
 
-    jacobian[7 + idx_] = ci::Vec3f(0.0f, 0.0f, 0.0f);
+  //}
+  //
+  //else{
 
-  }
+  //  jacobian[7 + idx_] = ci::Vec3f(0.0f, 0.0f, 0.0f);
 
-  for (size_t i = 0; i < children_.size(); ++i){
-    children_[i]->ComputeJacobianForPoint(world_transform, point, target_frame_index, jacobian);
-  }
+  //}
+
+  //for (size_t i = 0; i < children_.size(); ++i){
+  //  children_[i]->ComputeJacobianForPoint(world_transform, point, target_frame_index, jacobian);
+  //}
 
 }
 
@@ -411,36 +657,56 @@ void DHNode::UpdatePose(std::vector<float>::iterator &updates){
 
 }
 
-ci::Matrix44f DHNode::GetRelativeTransformToNodeByIdx(const int target_idx) const{
-  
-  //for nodes that are parents of the target node just return identity
-  if (target_idx >= idx_){
-    return ci::Matrix44f();
+ci::Matrix44f DHNode::GetRelativeTransformFromNodeToNodeByIdx(const int start_idx, const int end_idx) const {
+
+  if (end_idx <= start_idx) {
+    ci::app::console() << "Error, start_idx should be less than end idx" << std::endl;
+    throw(std::runtime_error(""));
   }
-  //before we get to the target node, return the transform to the parent * recursive call up the chain to parent
+
+  const Node *root_node = 0x0;
+  if (parent_ == 0x0){
+    root_node = this;
+  }
   else{
-    if (parent_ != 0x0){
-      DHNode *p = dynamic_cast<DHNode *>(parent_);
-      return glhMultMatrixRight(GetTransformFromParent(), p->GetRelativeTransformToNodeByIdx(target_idx));
+    root_node = parent_;
+    for (;;){
+      if (root_node->GetParent() == 0x0){
+        break;
+      }
+      root_node = root_node->GetParent();
     }
-    else{
-      ci::Matrix44f m;
-      m.setToIdentity();
-      return m;
+
+    if (root_node->GetIdx() != 0){
+      ci::app::console() << "Error, root node index is not zero!" << std::endl;
+      throw std::runtime_error("");
     }
   }
-  
+
+  const Node *start_node = root_node->GetChildByIdx(start_idx);
+  const Node *end_node = root_node->GetChildByIdx(end_idx);
+
+  const ci::Matrix44f root_to_start = start_node->GetRelativeTransformToRoot();
+  const ci::Matrix44f root_to_end = end_node->GetRelativeTransformToRoot();
+
+  return root_to_start.inverted() * root_to_end;
+
+  //  //before we get to the target node, return the transform to the parent * recursive call up the chain to parent
+  //else{
+  //  if (parent_ != 0x0){
+  //    DHNode *p = dynamic_cast<DHNode *>(parent_);
+  //    return glhMultMatrixRight(GetTransformFromParent(), p->GetRelativeTransformToNodeByIdx(target_idx));
+  //  }
+  //  else{
+  //    ci::Matrix44f m;
+  //    m.setToIdentity();
+  //    return m;
+  //  }
+  //}
+
 
 }
 
-ci::Matrix44f DHNode::GetRelativeTransformToChild(const int child_idx) const {
-
-  if (child_idx == idx_)
-    return ci::Matrix44f();
-  else
-    return GetChildByIdx(child_idx)->GetRelativeTransformToNodeByIdx(idx_);
-
-}
 
 ci::Matrix44f DHNode::GetWorldTransform(const ci::Matrix44f &base_frame_transform) const {
   
@@ -557,6 +823,9 @@ void DHNode::createFixedTransform(const ci::Vec3f &axis, const float rads, ci::M
 
 void alternativeDerivativeTransform(const ci::Vec3f &axis, const float theta, ci::Matrix44f &deriv){
 
+  ci::app::console() << "SHould not call this function: alternativeDerivativeTransform()" << std::endl;
+  throw std::runtime_error("");
+
   deriv.setToIdentity();
 
   if (axis == ci::Vec3f(0, 1, 0)) {
@@ -577,6 +846,9 @@ void alternativeDerivativeTransform(const ci::Vec3f &axis, const float theta, ci
 }
 
 ci::Matrix44f DHNode::GetDerivativeTransfromFromParent() const {
+
+  ci::app::console() << "SHould not call this function: getDerivativeTransformFromParent()" << std::endl;
+  throw std::runtime_error("");
 
   ci::Matrix44f DH;
   DH.setToIdentity();

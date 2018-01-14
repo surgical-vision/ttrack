@@ -95,6 +95,9 @@ namespace ttrk {
     */
     friend std::ostream &operator<<(std::ostream &os, const Pose &pose);
 
+    void SetTranslation(const ci::Vec3f &t) { translation_ = t; }
+    void SetRotation(const ci::Quatf &r) { rotation_ = r; }
+  
   protected:
 
     ci::Vec3f translation_; /**< The translation vector. */

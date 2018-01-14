@@ -14,48 +14,70 @@
 
 using namespace ttrk;
 
+cv::Mat Detect::global_detector_image;
+
 Detect::Detect(const std::string &classifier_path, ClassifierType classifier_type, const size_t number_of_labels){
 
   //create a new classifier
   SetupClassifier(classifier_type, number_of_labels);
 
-  LoadClassifier(classifier_path);
+  //LoadClassifier(classifier_path);
 
-  if (classifier_->IsBinary() && number_of_labels != 2){
-    throw std::runtime_error("Error, incompatible classifier setup.\n");
-  }
+  //if (classifier_->IsBinary() && number_of_labels != 2){
+  //  throw std::runtime_error("Error, incompatible classifier setup.\n");
+  //}
 
   //currently i don't know a good way of checking if the opencv ML classifier has loaded
   //if(!Loaded()) throw(std::runtime_error("Error, could not construct classifier.\n"));
+
+  needs_retrain_ = true;
 
 }
 
 Detect::~Detect(){}
 
-void Detect::operator()(boost::shared_ptr<sv::Frame> image){
+void Detect::operator()(boost::shared_ptr<sv::Frame> image, const cv::Mat &sdf){
 
   SetHandleToFrame(image);
-  ClassifyFrame();
+  ClassifyFrame(sdf);
 
 }
 
-void Detect::Run(boost::shared_ptr<sv::Frame> image){
+void Detect::Run(boost::shared_ptr<sv::Frame> image, const cv::Mat &sdf){
 
     SetHandleToFrame(image);
-    ClassifyFrame();
+    ClassifyFrame(sdf);
 
 }
 
 
-void Detect::ClassifyFrame(){
+void Detect::ClassifyFrame(const cv::Mat &sdf){
 
   //double t = (double)cv::getTickCount();
 
-  found_ = classifier_->ClassifyFrame(frame_);
+  found_ = classifier_->ClassifyFrame(frame_, sdf);
 
   //t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
   //ci::app::console() << "Processing detect time = " << t << std::endl;
+  
+  cv::Mat m_channel = frame_->GetClassificationMap().clone();
+  std::vector<cv::Mat> channels;
+  for (size_t i = 0; i < frame_->NumClassificationChannels() && i < 3; ++i){
 
+    cv::Mat chan = sv::Frame::GetChannel(m_channel, i);
+    chan = 255 * chan;
+    chan.convertTo(chan, CV_8U);
+
+
+    channels.push_back(chan);
+
+  }
+
+  if (global_detector_image.empty()){
+    global_detector_image = cv::Mat::zeros(frame_->GetImage().size(), CV_8UC3);
+  }
+
+  cv::merge(channels, global_detector_image);
 }
 
 void Detect::SetHandleToFrame(boost::shared_ptr<sv::Frame> image){

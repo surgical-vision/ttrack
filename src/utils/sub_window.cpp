@@ -64,6 +64,13 @@ void SubWindow::WriteFrameToFile(){
 
   cv::Mat window = toOcv(framebuffer_->getTexture());
   cv::flip(window, window, 0);
+  if (window.channels() > 3){
+    std::vector<cv::Mat> splits;
+    cv::split(window, splits);
+    splits.pop_back();
+    cv::merge(splits, window);
+  }
+
   writer_.write(window);
 
 }
@@ -91,8 +98,6 @@ void SubWindow::Draw(ci::params::InterfaceGlRef params, ci::Vec2i tl, ci::Vec2i 
 void SubWindow::Draw(){
   
   ci::Rectf window_with_buffer = GetRectWithBuffer();
-
-  cv::Mat m = toOcv(framebuffer_->getTexture());
 
   auto vp = ci::gl::getViewport();
   ci::gl::setViewport(ci::Area(ci::Vec2i(0, 0), ci::Vec2i(ci::app::getWindowWidth(), ci::app::getWindowHeight())));
@@ -126,6 +131,12 @@ void SubWindow::InitSavingWindow(){
   std::replace(name.begin(), name.end(), ' ', '_');
   std::string filepath = save_dir + "/" + name + ".avi";
 
-  writer_.open(filepath, CV_FOURCC('D', 'I', 'B', ' '), 25, cv::Size(framebuffer_->getWidth(), framebuffer_->getHeight()));
+  //writer_.open(filepath, CV_FOURCC('D', 'I', 'B', ' '), 25, cv::Size(framebuffer_->getWidth(), framebuffer_->getHeight()));
+  writer_.open(filepath, CV_FOURCC('M', 'J', 'P', 'G'), 25, cv::Size(framebuffer_->getWidth(), framebuffer_->getHeight()));
+
+  if (!writer_.isOpened()){
+    throw std::runtime_error("");
+
+  }
 
 }

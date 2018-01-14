@@ -24,6 +24,7 @@
 #include "../include/ttrack/utils/config_reader.hpp"
 #include "../include/ttrack/utils/plotter.hpp"
 #include "../include/ttrack/utils/UI.hpp"
+#include "../include/ttrack/track/model/articulated_model.hpp"
 
 using namespace ci;
 using namespace ci::app;
@@ -41,8 +42,7 @@ void TTrackApp::SetupFromConfig(const std::string &path){
     boost::filesystem::create_directory(reader.get_element("output-dir"));
   }
 
-
-
+  //boost::filesystem::copy_file(path, reader.get_element("output-dir") + "/" + boost::filesystem::path(path).filename().string());
 
   auto &ttrack = ttrk::TTrack::Instance();
   std::vector< std::vector <float> > starting_poses;
@@ -51,7 +51,7 @@ void TTrackApp::SetupFromConfig(const std::string &path){
     std::stringstream ss;
     ss << "starting-pose-" << i;
     try{
-      starting_poses.push_back(ttrk::TTrack::PoseFromString(reader.get_element(ss.str()))); 
+      starting_poses.push_back(ttrk::TTrack::PoseFromString(reader.get_element(ss.str())));
     }
     catch (std::runtime_error &){
       break;
@@ -76,6 +76,13 @@ void TTrackApp::SetupFromConfig(const std::string &path){
     ++n;
   }
 
+  int skip_frames = 0;
+  try{
+    skip_frames = reader.get_element_as_type<int>("skip-frames");
+  }
+  catch (...){
+  }
+
   //throwing errors here? did you remember the zero at element 15 of start pose or alteranatively set the trackable dir to absolute in the cfg file
   ttrack.SetUp(reader.get_element("trackable"),
                root_dir + "/" + reader.get_element("camera-config"),
@@ -86,8 +93,84 @@ void TTrackApp::SetupFromConfig(const std::string &path){
                root_dir + "/" + reader.get_element("left-input-video"),
                root_dir + "/" + reader.get_element("right-input-video"),
                starting_poses,
-               number_of_labels);
-  
+               number_of_labels, skip_frames);
+ 
+
+  ttrk::Tracker *t = ttrack.GetTracker();
+  try{
+    t->SetLocalizerIterations(reader.get_element_as_type<int>("localizer-iterations"));
+  }
+  catch (...){
+
+  }
+  try{
+    float weight = reader.get_element_as_type<float>("point-weight");
+    if (weight > 2) {
+      ci::app::console() << "POINT WEIGHT TOO LARGE!" << std::endl;
+      throw std::exception("point weight too large");
+    }
+    t->SetPointRegistrationWeight(weight);
+  }
+  catch (std::runtime_error){
+
+  }
+
+  try{
+    float weight = reader.get_element_as_type<float>("articulated-point-weight");
+    if (weight > 2) {
+      ci::app::console() << "POINT WEIGHT TOO LARGE!" << std::endl;
+      throw std::exception("point weight too large");
+    }
+    t->SetArticulatedPointRegistrationWeight(weight);
+  }
+  catch (std::runtime_error){
+    t->SetArticulatedPointRegistrationWeight(0.5);
+  }
+
+  bool use_point_rotation = true, use_point_translation = true, use_point_articulation = true, use_global_roll_search_first = false, use_global_roll_search_last = true;
+
+  try{
+    use_point_articulation = reader.get_element_as_type<bool>("use-point-articulated-derivs");
+  }
+  catch (...){
+    
+  }
+  try{
+    use_point_translation = reader.get_element_as_type<bool>("use-point-translation-derivs");
+  }
+  catch (...){
+
+  }
+  try{
+    use_point_rotation = reader.get_element_as_type<bool>("use-point-rotation-derivs");
+  }
+  catch (...){
+
+  }
+  try{
+    use_global_roll_search_first = reader.get_element_as_type<bool>("use-global-roll-rotation-first");
+    if(use_global_roll_search_first)
+      use_global_roll_search_last = false;
+  }
+  catch (...){
+
+  }
+  try{
+    use_global_roll_search_last = reader.get_element_as_type<bool>("use-global-roll-rotation-last");
+    if(use_global_roll_search_last)
+      use_global_roll_search_first = false;
+  }
+  catch (...){
+
+  }
+
+  if (use_global_roll_search_first && use_global_roll_search_last) {
+    ci::app::console() << "Error, cannot use both roll search first and last!" << std::endl;
+    throw(std::runtime_error(""));
+  }
+
+  t->SetupPointTracker(use_point_rotation, use_point_translation, use_point_articulation, use_global_roll_search_first, use_global_roll_search_last);
+
   camera_.reset(new ttrk::StereoCamera(root_dir + "/" + reader.get_element("camera-config")));
   
   windows_[0].Init("Left Eye", toolbar_.GetRect().x2, 0, camera_->left_eye()->Width(), camera_->left_eye()->Height(), 625, 500, false);
@@ -96,14 +179,22 @@ void TTrackApp::SetupFromConfig(const std::string &path){
   windows_[2].Init("Left Classification", 0, toolbar_.GetRect().y2, camera_->left_eye()->Width(), camera_->left_eye()->Height(), toolbar_.GetRect().getWidth(), toolbar_.GetRect().getWidth(), false);
   windows_[3].Init("Right Classification", 0, toolbar_.GetRect().y2, camera_->left_eye()->Width(), camera_->left_eye()->Height(), toolbar_.GetRect().getWidth(), toolbar_.GetRect().getWidth(), false);
   windows_[4].Init("Localizer Output", 0, toolbar_.GetRect().y2, camera_->left_eye()->Width(), camera_->left_eye()->Height(), toolbar_.GetRect().getWidth(), toolbar_.GetRect().getWidth(), false);
-  windows_[5].Init("3D Viewer", 0, toolbar_.GetRect().y2, camera_->left_eye()->Width(), camera_->left_eye()->Height(), toolbar_.GetRect().getWidth(), toolbar_.GetRect().getWidth(), false);
+  windows_[5].Init("3D Viewer", 0, toolbar_.GetRect().y2, 2*camera_->left_eye()->Width(), 2*camera_->left_eye()->Height(), toolbar_.GetRect().getWidth(), toolbar_.GetRect().getWidth(), false);
   windows_[6].Init("Plotter", 0, toolbar_.GetRect().y2, camera_->left_eye()->Width(), camera_->left_eye()->Height(), toolbar_.GetRect().getWidth(), toolbar_.GetRect().getWidth(), false);
 
   ttrk::SubWindow::output_directory = output_dir_this_run;
 
-  show_extra_view_ = EXTRA_VIEW_3D;
+  show_extra_view_ = EXTRA_VIEW_3D;// EXTRA_VIEW_DETECTOR;
 
   resize();
+
+  if (!boost::filesystem::exists(output_dir_this_run)){
+    boost::filesystem::create_directory(output_dir_this_run);
+  }
+
+  boost::filesystem::copy_file(path, boost::filesystem::path(output_dir_this_run) / boost::filesystem::path("app.cfg"));
+  
+  windows_[5].InitSavingWindow();
 
 }
 
@@ -114,6 +205,10 @@ void TTrackApp::startTracking(){
 }
 
 void TTrackApp::setup(){
+
+  //ttrk::DenavitHartenbergArticulatedModel m("C:\\Users\\davinci\\data\\models\\large_needle_driver\\model-ttrk.json", "c:/tmp/");
+
+  //m.GetComponentPose(3);
 
   std::vector<std::string> cmd_line_args = getArgs();
 
@@ -166,11 +261,16 @@ void TTrackApp::setup(){
   reset_3D_viewport_ = true;
   run_tracking_ = false;
    
-  if (cmd_line_args.size() == 2){
+  if (cmd_line_args.size() > 1){
 
     try{
 
       SetupFromConfig(cmd_line_args[1]);
+      if (cmd_line_args.size() == 3 && cmd_line_args[2] == "--autostart"){
+        startTracking();
+        //ci::app::getWindow()->hide();
+      }
+
 
     }
     catch (std::runtime_error){
@@ -186,6 +286,7 @@ void TTrackApp::setup(){
 
   }
   
+  ci::app::setFrameRate(300);
   shader_ = gl::GlslProg(loadResource(RES_SHADER_VERT), loadResource(RES_SHADER_FRAG));
   
 }
@@ -207,10 +308,11 @@ void TTrackApp::update(){
   force_new_frame_ = false;
 
   boost::shared_ptr<const sv::StereoFrame> stereo_frame = boost::dynamic_pointer_cast<const sv::StereoFrame>(ttrack.GetPtrToCurrentFrame());
+ 
   left_eye_image_ = ci::fromOcv(stereo_frame->GetLeftImage());
   right_eye_image_ = ci::fromOcv(stereo_frame->GetRightImage());
 
-  cv::Mat d = ttrack.GetCurrentDetectorImage();
+  cv::Mat &d = ttrack.GetCurrentDetectorImage();
     
   if (!d.empty()){
    
@@ -292,7 +394,9 @@ void TTrackApp::drawEye(ttrk::SubWindow &window, ci::gl::Texture &background, co
 
   for (size_t i = 0; i < models_to_draw_.size() && draw_models; ++i){
 
-    models_to_draw_[i]->RenderTexture(0);
+    if (cam != camera_->left_eye()) continue;
+
+    models_to_draw_[i]->RenderTexture_HACKFORCLASPERS(0);
 
   }
 
@@ -313,6 +417,10 @@ void TTrackApp::saveResults(){
   auto &ttrack = ttrk::TTrack::Instance(); 
   ttrack.SaveFrame(toOcv(windows_[0].GetContents()), true);
   ttrack.SaveResults();
+
+  static cv::VideoWriter mask_writer(ttrk::SubWindow::output_directory + "/mask.avi", CV_FOURCC('M', 'J', 'P', 'G'), 25, depth_map.size(), false);
+
+  mask_writer.write(depth_map);
 
   for (auto &sub_win : windows_){
     if (sub_win.CanSave()){
@@ -360,9 +468,14 @@ void TTrackApp::drawImageContents(ttrk::SubWindow &window, gl::Texture &image){
 void TTrackApp::drawHelpWindow(ttrk::SubWindow &window){
 
   static ci::gl::Texture help_frame(ci::loadImage(loadResource(HELPER_WIN)));
+  help_frame.setDoNotDispose(false);
+
+  window.BindAndClear();
   
-  drawBackground(window, help_frame);
+  drawImageContents(window, help_frame);
   
+  window.UnBind();
+
   window.Draw();
    
 
@@ -381,7 +494,7 @@ void TTrackApp::drawExtra(){
   drawBackground(windows_[2], left_detector_image_);
   drawBackground(windows_[3], right_detector_image_);
   drawBackground(windows_[4], localizer_image_);
-  draw3D(windows_[5], left_eye_image_, camera_->left_eye());
+  draw3D(windows_[5], left_eye_image_, right_eye_image_, camera_->left_eye());
   drawPlotter(windows_[6]);
 
   if (show_extra_view_ == EXTRA_VIEW_PLOTTER)
@@ -395,6 +508,24 @@ void TTrackApp::drawExtra(){
 
   else if (show_extra_view_ == EXTRA_VIEW_LOCALIZER && localizer_image_)
     windows_[4].Draw();  
+
+}
+
+inline bool IsLocalMaximum(const cv::Mat &im, const int r, const int c){
+
+  const float v = im.at<float>(r, c);
+  if (v < im.at<float>(r - 1, c - 1)) return false;
+  if (v < im.at<float>(r - 1, c)) return false;
+  if (v < im.at<float>(r - 1, c + 1)) return false;
+
+  if (v < im.at<float>(r, c - 1)) return false;
+  if (v < im.at<float>(r, c + 1)) return false;
+
+  if (v < im.at<float>(r + 1, c - 1)) return false;
+  if (v < im.at<float>(r + 1, c )) return false;
+  if (v < im.at<float>(r + 1, c + 1)) return false;
+
+  return true;
 
 }
 
@@ -412,9 +543,47 @@ void TTrackApp::draw(){
     drawEye(windows_[1], right_eye_image_, camera_->right_eye());
     
     drawExtra();
-    
+
     if (ttrack.HasConverged()){
+      static size_t frame_count = 0;
+      ci::app::console() << "Saving results frame: " << frame_count << std::endl;
+      frame_count++;
+
+      depth_map = toOcv(windows_[0].GetDepth());
+      depth_map = depth_map != 1.0f;
+      cv::Mat flipped_depth_map;
+      cv::flip(depth_map, flipped_depth_map, 0);
+      depth_map = flipped_depth_map;
+
+      static ci::gl::Fbo buffer(left_eye_image_.getWidth(), left_eye_image_.getHeight());
+
+      buffer.bindFramebuffer();
+
+      ci::gl::pushMatrices();
+
+      ci::gl::clear(ci::Color(1,1,1), true);
+      camera_->left_eye()->SetupCameraForDrawing();
+
+      for (auto model : models_to_draw_){
+        model->RenderLines();
+      }
+
+      camera_->left_eye()->ShutDownCameraAfterDrawing();
+
+      buffer.unbindFramebuffer();
+
+      ci::gl::popMatrices();
+
+      depth_map = toOcv(buffer.getTexture());
+
+      std::vector<cv::Mat> splitter;
+      cv::split(depth_map, splitter);
+      splitter.pop_back();
+       
+      cv::flip(splitter[0], depth_map, 0);
+
       saveResults();
+
     }
 
   }
@@ -438,8 +607,9 @@ void TTrackApp::drawPlotter(ttrk::SubWindow &window) {
   const int height = window.BufferHeight();
 
   gl::Texture tex(720, 576);
+  tex.setDoNotDispose(false);
 
-#ifndef USE_MATHGL
+#ifdef USE_MATHGL
 
   mglGraph graph(0, width, height);
 
@@ -495,7 +665,7 @@ void TTrackApp::drawPlotter(ttrk::SubWindow &window) {
 
   unsigned char *buf = new uchar[4 * width*height];
   graph.GetBGRN(buf, 4 * width*height);
-
+  
   cv::Mat m(cv::Size(width, height), CV_8UC4, (void *)buf);
 
   std::vector<cv::Mat> chans;
@@ -506,30 +676,32 @@ void TTrackApp::drawPlotter(ttrk::SubWindow &window) {
   tex = fromOcv(m);
 
   window.BindAndClear();
-  
-  drawImageContents(window, tex);
-  
-  window.UnBind();
 
-  delete[] buf;
+  drawImageContents(window, tex);
+
+  window.UnBind();
+  delete [] buf;
 
 #else
 
   static ci::gl::Texture help_frame(ci::loadImage(loadResource(ENABLED_WIN)));
+  help_frame.setDoNotDispose(false);
 
   drawBackground(window, help_frame);
 
   window.Draw();
-  
+
 #endif
 
 
 
-} 
+}
 
-void TTrackApp::draw3D(ttrk::SubWindow &window, const gl::Texture &camera_view, const boost::shared_ptr<ttrk::MonocularCamera> cam) {
+void TTrackApp::draw3D(ttrk::SubWindow &window, const gl::Texture &camera_view_left, const gl::Texture &camera_view_right, const boost::shared_ptr<ttrk::MonocularCamera> cam) {
 
   window.BindAndClear();
+
+  ci::gl::clear(ci::Color(1.0, 1.0, 1.0));
 
   const int width = window.BufferWidth();
   const int height = window.BufferHeight();
@@ -537,13 +709,12 @@ void TTrackApp::draw3D(ttrk::SubWindow &window, const gl::Texture &camera_view, 
   auto &ttrack = ttrk::TTrack::Instance();
   if (!ttrack.IsRunning()) return;
 
-  ci::Vec3f test_start_pose(10, -5, 60);
-
   ci::CameraPersp maya;
   
   if (reset_3D_viewport_){
     CameraPersp cam;
-    cam.setEyePoint(Vec3f(77.7396, -69.9107, -150.47f));
+    //cam.setEyePoint(0.5*Vec3f(77.7396, -69.9107, -150.47f));
+    cam.setEyePoint(0.3*Vec3f(110, -109.9107, -150.47f));
     cam.setOrientation(ci::Quatf(ci::Vec3f(0.977709, -0.0406959, 0.205982), 2.75995));
     maya_cam_.setCurrentCam(cam);
     reset_3D_viewport_ = false;
@@ -558,7 +729,7 @@ void TTrackApp::draw3D(ttrk::SubWindow &window, const gl::Texture &camera_view, 
   ci::gl::enableDepthRead();
   ci::gl::enableDepthWrite();
   
-  drawCamera(camera_view);
+  drawCamera(camera_view_left, camera_view_right);
   
   cam->SetupLight();
 
@@ -566,19 +737,12 @@ void TTrackApp::draw3D(ttrk::SubWindow &window, const gl::Texture &camera_view, 
   shader_.uniform("tex0", 0);   
 
   for (size_t i = 0; i < models_to_draw_.size(); ++i){
-    //gl::pushModelView();
-    //gl::multModelView(maya_cam_.getCamera().getModelViewMatrix().inverted());
-    models_to_draw_[i]->RenderTexture(0);
-    //gl::popModelView();
+    models_to_draw_[i]->RenderTexture_HACKFORCLASPERS(0);
   }
 
   shader_.unbind();
 
   cam->ShutDownCameraAfterDrawing();
-
-  gl::popModelView();
-
-  //gl::popMatrices();
 
   gl::setViewport(viewport);
   gl::popMatrices();
@@ -616,48 +780,74 @@ void TTrackApp::drawImageOnCamera(const gl::Texture &image_data, ci::Vec3f &tl, 
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-void TTrackApp::drawCamera(const gl::Texture &image_data){
+void TTrackApp::drawCamera(const gl::Texture &left_image_data, const gl::Texture &right_image_data){
 
   ci::Vec3f vertex[8];
  
-  ci::Vec3f eye(0, 0, 0);
-  ci::Vec3f bottom_left(-5, -5, 20); 
-  ci::Vec3f bottom_right(5, -5, 20); 
-  ci::Vec3f top_left(-5, 5, 20);
-  ci::Vec3f top_right(5, 5, 20); 
+  ci::Vec3f left_cam_center(0, 0, 0);
+  ci::Vec3f left_cam_bottom_left(-5, -5, 20);
+  ci::Vec3f left_cam_bottom_right(5, -5, 20);
+  ci::Vec3f left_cam_top_left(-5, 5, 20);
+  ci::Vec3f left_cam_top_right(5, 5, 20);
 
-  if (image_data)
-    drawImageOnCamera(image_data, top_left, bottom_left, top_right, bottom_right);
+  ci::Vec3f left_to_right_translate(11, 0, 0);
+  ci::Vec3f right_cam_center = left_cam_center + left_to_right_translate;
+  ci::Vec3f right_cam_bottom_left = left_cam_bottom_left + left_to_right_translate;
+  ci::Vec3f right_cam_bottom_right = left_cam_bottom_right + left_to_right_translate;
+  ci::Vec3f right_cam_top_left = left_cam_top_left + left_to_right_translate;
+  ci::Vec3f right_cam_top_right = left_cam_top_right + left_to_right_translate;
 
+  if (left_image_data && right_image_data){
+    drawImageOnCamera(left_image_data, left_cam_bottom_left, left_cam_top_left, left_cam_bottom_right, left_cam_top_right);
+    drawImageOnCamera(right_image_data, right_cam_bottom_left, right_cam_top_left, right_cam_bottom_right, right_cam_top_right);
+  }
+
+  ci::Vec3f line_color[8];
+  for (int i = 0; i < 8; ++i){ line_color[i] = ci::Vec3f(0.0, 0.0, 0.0); }
+
+  glEnableClientState(GL_COLOR_ARRAY);
   glEnableClientState(GL_VERTEX_ARRAY);
   glVertexPointer(3, GL_FLOAT, 0, &vertex[0].x);
+  glColorPointer(8, GL_FLOAT, 0, &line_color[0].x);
 
-  vertex[0] = eye;
-  vertex[1] = bottom_left;
-  vertex[2] = eye;
-  vertex[3] = bottom_right;
-  vertex[4] = eye;
-  vertex[5] = top_left;
-  vertex[6] = eye;
-  vertex[7] = top_right;
+  vertex[0] = left_cam_center;
+  vertex[1] = left_cam_bottom_left;
+  vertex[2] = left_cam_center;
+  vertex[3] = left_cam_bottom_right;
+  vertex[4] = left_cam_center;
+  vertex[5] = left_cam_top_left;
+  vertex[6] = left_cam_center;
+  vertex[7] = left_cam_top_right;
+
+  glDrawArrays(GL_LINES, 0, 8);
+
+  vertex[0] = right_cam_center;
+  vertex[1] = right_cam_bottom_left;
+  vertex[2] = right_cam_center;
+  vertex[3] = right_cam_bottom_right;
+  vertex[4] = right_cam_center;
+  vertex[5] = right_cam_top_left;
+  vertex[6] = right_cam_center;
+  vertex[7] = right_cam_top_right;
+
   glDrawArrays(GL_LINES, 0, 8);
 
   glLineWidth(2.0f);
-  vertex[0] = bottom_left;
-  vertex[1] = bottom_right;
-  vertex[2] = top_right;
-  vertex[3] = top_left;
+  vertex[0] = left_cam_bottom_left;
+  vertex[1] = left_cam_bottom_right;
+  vertex[2] = left_cam_top_right;
+  vertex[3] = left_cam_top_left;
+  glDrawArrays(GL_LINE_LOOP, 0, 4);
+
+  vertex[0] = right_cam_bottom_left;
+  vertex[1] = right_cam_bottom_right;
+  vertex[2] = right_cam_top_right;
+  vertex[3] = right_cam_top_left;
   glDrawArrays(GL_LINE_LOOP, 0, 4);
 
   glLineWidth(1.0f);
   glDisableClientState(GL_VERTEX_ARRAY);
-
-  size_t MF = 6;
-  bottom_left *= MF;
-  bottom_right *= MF;
-  top_left *= MF;
-  top_right *= MF;
-
+  glDisableClientState(GL_COLOR_ARRAY);
 }
 
 void TTrackApp::drawGrid(float size, float step, float plane_position){

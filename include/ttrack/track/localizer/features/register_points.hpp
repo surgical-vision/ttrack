@@ -15,9 +15,10 @@ namespace ttrk {
 
     PointRegistration(boost::shared_ptr<MonocularCamera> camera);
 
-    virtual void TrackLocalPoints(cv::Mat &current_frame);
+    virtual void TrackLocalPoints(cv::Mat &current_frame, boost::shared_ptr<Model> current_model);
 
-    virtual void InitializeTracker(cv::Mat &current_frame, const Pose &pose);
+    virtual void InitializeTracker(cv::Mat &current_frame, const boost::shared_ptr<Model> current_model);
+    virtual void InitializeTracker(cv::Mat &current_frame, const boost::shared_ptr<Model> current_model, const cv::Mat &index_image);
 
     void UpdatePose(const Pose &pose) {
       pose_ = pose;

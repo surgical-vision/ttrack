@@ -255,6 +255,46 @@ namespace ttrk{
     return lowerbound + (x - lowerbound) % range_size;
   }
 
+
+
+  inline ci::Vec3f GetXYZEulersFromQuaternion(const ci::Quatf &quaternion) {
+
+    ci::Vec3f angles;
+    
+    angles[0] = atan2(2 * (quaternion.v.x*quaternion.w + quaternion.v.z*quaternion.v.y), (quaternion.w * quaternion.w - quaternion.v.x * quaternion.v.x - quaternion.v.y * quaternion.v.y + quaternion.v.z * quaternion.v.z));
+    angles[1] = asin(2 * (quaternion.v.y*quaternion.w - quaternion.v.x*quaternion.v.z));
+    angles[2] = atan2(2 * (quaternion.v.x*quaternion.v.y + quaternion.v.z*quaternion.w), (quaternion.w * quaternion.w + quaternion.v.x * quaternion.v.x - quaternion.v.y * quaternion.v.y - quaternion.v.z * quaternion.v.z));
+    
+    return angles;
+
+  }
+
+  inline ci::Vec3f GetXZYEulersFromQuaternion(const ci::Quatf &quaternion) {
+
+    ci::Vec3f angles;
+
+    angles[0] = atan2(2 * (quaternion.v.x*quaternion.v.z - quaternion.v.x*quaternion.v.y), (quaternion.w * quaternion.w + quaternion.v.x * quaternion.v.x - quaternion.v.y * quaternion.v.y - quaternion.v.z * quaternion.v.z));
+    angles[1] = asin(2 * (quaternion.w*quaternion.v.z - quaternion.v.y*quaternion.v.x));
+    angles[2] = atan2(2 * (quaternion.v.x*quaternion.w + quaternion.v.y*quaternion.v.z), (quaternion.w * quaternion.w - quaternion.v.x * quaternion.v.x + quaternion.v.y * quaternion.v.y - quaternion.v.z * quaternion.v.z));
+
+    return angles;
+  }
+
+  inline ci::Vec3f GetZYXEulersFromQuaternion(const ci::Quatf &quaternion) {
+
+    ci::Vec3f angles;
+
+    angles[0] = atan2(2 * (quaternion.v.z*quaternion.w - quaternion.v.x*quaternion.v.y), (quaternion.w * quaternion.w + quaternion.v.x * quaternion.v.x - quaternion.v.y * quaternion.v.y - quaternion.v.z * quaternion.v.z));
+    angles[1] = asin(2 * (quaternion.v.x*quaternion.v.z + quaternion.v.y*quaternion.w));
+    angles[2] = atan2(2 * (quaternion.v.x*quaternion.w - quaternion.v.y*quaternion.v.z), 
+      (quaternion.w * quaternion.w - quaternion.v.x * quaternion.v.x - quaternion.v.y * quaternion.v.y + quaternion.v.z * quaternion.v.z));
+
+    return angles;
+
+  }
+
+  inline cv::Vec2i toOpenCV(const ci::Vec2i &v) { return cv::Vec2i(v[0], v[1]); }
+
 }
 
 

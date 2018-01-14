@@ -5,6 +5,10 @@
 
 #include "pwp3d.hpp"
 
+#ifdef USE_CERES
+#define GLOG_NO_ABBREVIATED_SEVERITIES
+#include <ceres/ceres.h>
+#endif
 
 namespace ttrk {
  
@@ -28,28 +32,26 @@ namespace ttrk {
     */
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
     
- /*   virtual bool HasConverged() const { 
-      if (PWP3D::HasConverged()) {
-        auto *th = const_cast<StereoPWP3D *>(this);
-        th->clearup();
-        return true;
-      }
-      if (errors_.size() < 4) return false; 
-      const size_t size = errors_.size();
-      if (errors_[size - 1] > errors_[size - 3]) {
-        auto *th = const_cast<StereoPWP3D *>(this);
-        th->clearup();
-        return true;
-      }
-      return false;
-    }
-*/
+#ifdef USE_CERES 
+
+    void DoEyeCeres(double const *const *parameters, double *residuals, double **jacobians, bool IS_LEFT) const;
+
+    bool operator() (double const *const *parameters, double *residuals, double **jacobians) const;
+
+    bool operator() (double const* const* parameters, double* residuals) const;
+
+    void TrackTargetCeresOptimization(boost::shared_ptr<Model> current_model, boost::shared_ptr<sv::Frame> frame);
+
+    boost::shared_ptr<Model> current_model_;
+
+#endif
+    
   protected:   
     
     float DoRegionBasedAlignmentStepForLeftEye(boost::shared_ptr<Model> current_model);
     float DoRegionBasedAlignmentStepForRightEye(boost::shared_ptr<Model> current_model);
     float DoPointBasedAlignmentStepForLeftEye(boost::shared_ptr<Model> current_model);
-
+    float DoAlignmentStep(boost::shared_ptr<Model> current_model);
 
     void clearup(){
       errors_.clear();

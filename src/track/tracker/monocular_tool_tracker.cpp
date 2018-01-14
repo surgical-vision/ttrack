@@ -7,7 +7,7 @@ using namespace ttrk;
 
 MonocularToolTracker::MonocularToolTracker(const std::string &model_parameter_file, const std::string &calibration_filename, const std::string &results_dir, const LocalizerType &localizer_type, const size_t number_of_labels) :SurgicalToolTracker(model_parameter_file, results_dir), camera_(new MonocularCamera(calibration_filename)){
   
-  if (localizer_type == LocalizerType::PWP3DLocalizer)
+  if (localizer_type == LocalizerType::PWP3D_LK || localizer_type == LocalizerType::PWP3D_SIFT)
     localizer_.reset(new MonoPWP3D(camera_));
   else
     throw std::runtime_error("");
@@ -25,6 +25,9 @@ bool MonocularToolTracker::Init(){
 
     std::stringstream ss; ss << i;
     tracked_models_.back().model.reset(new DenavitHartenbergArticulatedModel(model_parameter_file_, results_dir_ + "/tracked_model" + ss.str() + ".txt"));
+    tracked_models_.back().model->InitDetector(classifier_type_, number_of_labels_);
+
+
     tracked_models_.back().temporal_tracker.reset(new KalmanFilterTracker);
 
     InitFromFile(tracked_models_.back().model, i);

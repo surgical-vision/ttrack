@@ -11,7 +11,6 @@
 #include "../../../utils/image.hpp"
 #include "../../model/pose.hpp"
 #include "../../../utils/plotter.hpp"
-#include "../features/register_points.hpp"
 #include "../features/lk_tracker.hpp"
 
 namespace ttrk {
@@ -88,7 +87,6 @@ namespace ttrk {
     */
     void UpdateJacobian(const float region_agreement, const float sdf, const float dsdf_dx, const float dsdf_dy, const float fx, const float fy, const cv::Vec3f &front_intersection_point, const cv::Vec3f &back_intersection_image, const boost::shared_ptr<const Model> model, cv::Matx<float, 1, 7> &jacobian);
 
-
     /**
     * Update the point registration jacobian, finding the updates to the pose parameters that minimize the point to point error.
     * @param[in] current_model The model to align.
@@ -96,6 +94,8 @@ namespace ttrk {
     * @param[in] hessian_approx The hessian approximation if using GN.
     */
     void ComputePointRegistrationJacobian(boost::shared_ptr<Model> current_model, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx);
+    
+    
     void ComputeLKJacobian(boost::shared_ptr<Model> current_model, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx);
 
     /**
@@ -116,7 +116,7 @@ namespace ttrk {
     * @param[in] jacobian The jacobian to be scaled.
     * @return The scaled jacobian.
     */
-    std::vector<float> ScaleRigidJacobian(cv::Matx<float, 7, 1> &jacobian) const;
+    std::vector<float> ScaleRigidJacobian(cv::Matx<float, 7, 1> &jacobian, bool small_step = false) const;
 
     /**
     * Compute a smoothed heaviside function output for a given value.
@@ -124,7 +124,9 @@ namespace ttrk {
     * @return The value scaled to between 0-1 with a smoothed logistic function manner.
     */
     float HeavisideFunction(const float x) const {
-      return 0.5f*(1.0f + x / float(HEAVYSIDE_WIDTH) + (1.0f / float(M_PI))*sin((float(M_PI)*x) / float(HEAVYSIDE_WIDTH)));
+      if (x > HEAVYSIDE_WIDTH) return 1.0f;
+      else if (x < -HEAVYSIDE_WIDTH) return 0.0f;
+      else return 0.5f*(1.0f + (x / float(HEAVYSIDE_WIDTH)) + (1.0f / float(M_PI))*sin((float(M_PI)*x) / float(HEAVYSIDE_WIDTH)));
       //return 0.5f + 0.5f*tanh(float(HEAVYSIDE_WIDTH)*x);
     }
 
@@ -135,8 +137,9 @@ namespace ttrk {
     * @return The output value.
     */
     float DeltaFunction(const float x) const {
-      return (1.0f / 2.0f / HEAVYSIDE_WIDTH*(1.0f + cos(float(M_PI)*x / HEAVYSIDE_WIDTH)));
-      //return (0.5 * HEAVYSIDE_WIDTH) / (cosh(HEAVYSIDE_WIDTH * x)*cosh(HEAVYSIDE_WIDTH*x));
+      if (std::abs(x) > HEAVYSIDE_WIDTH) return 0.0f;
+      else return (1.0f / (2.0f * HEAVYSIDE_WIDTH))*(1.0f + cos(float(M_PI)*x / HEAVYSIDE_WIDTH));
+      //return (1.0f / 2.0f / HEAVYSIDE_WIDTH*(1.0f + cos(float(M_PI)*x / HEAVYSIDE_WIDTH)));
     }
     
     /**
@@ -149,7 +152,7 @@ namespace ttrk {
     * Test for convergence (currently just uses number of steps).
     * @return Whether convergence has been reached.
     */
-    virtual bool HasConverged() const { return curr_step == NUM_STEPS; }
+    virtual bool HasConverged();
 
     /**
     * Accessor for the heaviside function.
@@ -169,6 +172,13 @@ namespace ttrk {
     * @return The error value.
     */
     float GetErrorValue(const cv::Mat &classification_image, const int row_idx, const int col_idx, const float sdf_value, const int target_label, const float fg_area, const float bg_area) const;
+
+    float GetMaximumScore(const float sdf_value) const;
+
+    void SetUseLevelSet(bool use_level_set){ use_level_sets_ = use_level_set; }
+
+    void ComputeScores(const cv::Mat &sdf_image, const cv::Mat &classification_image, float &current_score, float &best_score) const;
+
 
   protected:
 
@@ -194,7 +204,7 @@ namespace ttrk {
     * @param[out] bg_area The background area.
     * @param[out] contour_area The area of non-zero (or non-ludicrously-small) values from the signed distance function.
     */
-    void ComputeAreas(const cv::Mat &sdf, float &fg_area, float &bg_area, size_t &contour_area);
+    void ComputeAreas(const cv::Mat &sdf, float &fg_area, float &bg_area, size_t &contour_area) const;
 
     boost::shared_ptr<sv::Frame> frame_; /**< Just a reference to the current frame, probably not really useful, may be removed. */
     
@@ -204,15 +214,12 @@ namespace ttrk {
     ci::gl::GlslProg front_depth_;  /**< Shader to compute the front depth buffer. */
     ci::gl::GlslProg back_depth_and_contour_;  /**< Shader to compute the back depth buffer and contour. */
 
-    int NUM_STEPS;  /**< Number of step for the optimization. */
-    int curr_step; /**< Current step in the optimization. */
+    bool use_level_sets_; //hack to force only using feature localizer
     
     int HEAVYSIDE_WIDTH;  /**< Width of the heaviside blurring function. */
 
-    boost::shared_ptr<PointRegistration> point_registration_; /**< Computes the point registration error. */
-    
-    boost::shared_ptr<LKTracker> lk_tracker_;
-
+    std::vector<float> region_scores;
+    float best_region_score;
 
   };
 

@@ -3,6 +3,11 @@
 
 #include "stereo_pwp3d.hpp"
 
+#ifdef USE_CERES
+#define GLOG_NO_ABBREVIATED_SEVERITIES
+#include <ceres/ceres.h>
+#endif
+
 namespace ttrk {
 
   class ComponentLevelSet : public StereoPWP3D {
@@ -24,8 +29,7 @@ namespace ttrk {
     virtual void TrackTargetInFrame(boost::shared_ptr<Model> model, boost::shared_ptr<sv::Frame> frame);
 
 
-    virtual void ComputeJacobiansForEye(const cv::Mat &classification_image, boost::shared_ptr<Model> current_model, boost::shared_ptr<MonocularCamera> camera, cv::Matx<float, 7, 1> &jacobian, cv::Matx<float, 7, 7> &hessian_approx, float &error);
-
+    virtual void ComputeJacobiansForEye(const cv::Mat &classification_image, boost::shared_ptr<Model> current_model, boost::shared_ptr<MonocularCamera> camera, std::vector<cv::Matx<float, 7, 1> > &jacobians, std::vector<cv::Matx<float, 7, 7> > &hessian_approx, std::vector<float> &error);
     /**
     * Load the shaders we use to compute the projections and contours for the pose estimation.
     */
@@ -38,7 +42,7 @@ namespace ttrk {
     * @param[out] front_intersection_image A 32 bit 3 channel image of the first 3D point that a ray cast from a pixel inside the contour projects to on the model (in camera coordinates).
     * @param[out] front_intersection_image A 32 bit 3 channel image of the last 3D point that a ray cast from a pixel inside the contour projects to on the model (in camera coordinates).
     */
-    virtual void ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image, cv::Mat &front_normal_image);
+    virtual void ProcessSDFAndIntersectionImage(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_intersection_image, cv::Mat &back_intersection_image);
 
     /**
     * Render the mesh in the current pose getting the depth of the each pixel and the outer contour.
@@ -49,10 +53,12 @@ namespace ttrk {
     * @param[out] contour An 8 bit single channel image which is 0 at every point that is not on the outer contour of the projected mesh and 255 where it is.
     * @param[out] component_map An 8 bit single channel image which contains the contours from the internal color segmentation.
     */
-    void RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_depth, cv::Mat &back_depth, cv::Mat &front_normal_image);
+    void RenderModelForDepthAndContour(const boost::shared_ptr<Model> mesh, const boost::shared_ptr<MonocularCamera> camera, cv::Mat &front_depth, cv::Mat &back_depth);
 
-    float GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf_value, const size_t target_probability, const size_t neighbour_probability);
+    float GetRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf_value, const size_t target_probability, const size_t neighbour_probability) const;
+    float GetBinaryRegionAgreement(const cv::Mat &classification_image, const int r, const int c, const float sdf_value, const size_t target_probability, const size_t neighbour_probability) const;
 
+    void GetRegionProbability(const cv::Mat &classification_image, const int r, const int c, const size_t target_label, const size_t neighbour_label, float &pixel_probability, float &neighbour_probability) const;
 
     /**
     * Get the error value for the current image.
@@ -63,13 +69,29 @@ namespace ttrk {
     * @param[in] target_label The target label for multiclass classification.
     * @return The error value.
     */
-    float GetErrorValue(const cv::Mat &classification_image, const int row_idx, const int col_idx, const float sdf_value, const size_t target_probability, const size_t neighbour_probability) const;
-
+    float GetErrorValue(const cv::Mat &classification_image, const int row_idx, const int col_idx, const float sdf_value, const size_t target_probability, const size_t neighbour_probability, const size_t foreground_size = 1, const size_t background_size = 1) const;
+    
     virtual float DoAlignmentStep(boost::shared_ptr<Model> current_model, bool track_points);
+
+#ifdef USE_CERES 
+
+    void DoEyeCeres(double const *const *parameters, double *residuals, double **jacobians, const cv::Mat &classification_image, const boost::shared_ptr<MonocularCamera> camera) const;
+
+    bool operator() (double const *const *parameters, double *residuals, double **jacobians) const;
+
+    bool operator() (double const* const* parameters, double* residuals) const;
+
+    void TrackTargetCeresOptimization();
+
+    boost::shared_ptr<Model> current_model_;
+
+#endif
+
+    void ComputeScores(const cv::Mat &classification_image, float &current_score, float &best_score) const;
 
   protected:
 
-    unsigned char ComputeNearestNeighbourForPixel(int r, int c, float sdf_value, const int width, const int height);
+    unsigned char ComputeNearestNeighbourForPixel(int r, int c, float sdf_value, const int width, const int height) const;
 
     ci::gl::Fbo component_map_framebuffer_; /**< The framebuffer to render the component indexing image into. */
     cv::Mat component_map_; /**< The framebuffer is vertically flipped and stored in this. */

@@ -86,7 +86,7 @@ namespace ttrk{
     * @param[in] input_url The input video file.
     * @param[in] output_url The output video file.
     */
-    VideoHandler(const std::string &input_url, const std::string &output_url);
+    VideoHandler(const std::string &input_url, const std::string &output_url, const size_t skip_frames);
 
     /**
     * Destructor for the video handler.
@@ -117,11 +117,16 @@ namespace ttrk{
     */
     virtual int GetFrameHeight() { return (int)cap_.get(CV_CAP_PROP_FRAME_HEIGHT); }
 
+  protected:
+
+    size_t skip_frames_;
+
   private:
 
     cv::VideoCapture cap_; /**< The video capture interface. */
     cv::VideoWriter writer_; /**< The video output interface. */
-    
+
+
   };
 
   class StereoVideoHandler : public VideoHandler {
@@ -134,7 +139,7 @@ namespace ttrk{
     * @param[in] right_input_url The right eye input video file.
     * @param[in] output_url The output video file.
     */
-    StereoVideoHandler(const std::string &left_input_url,const std::string &right_input_url,const std::string &output_url);
+    StereoVideoHandler(const std::string &left_input_url,const std::string &right_input_url,const std::string &output_url, const size_t skip_frames);
 
     /**
     * Get a new frame from the video file.

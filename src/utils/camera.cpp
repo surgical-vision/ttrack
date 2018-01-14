@@ -209,60 +209,52 @@ StereoCamera::StereoCamera(const std::string &calibration_filename) {
 
   cv::FileStorage fs;  
 
-  try{
+  cv::Mat image_dims;
+  cv::Mat l_intrinsic, l_distortion;
+  cv::Mat r_intrinsic, r_distortion;
 
-    cv::Mat image_dims;
-    cv::Mat l_intrinsic, l_distortion;
-    cv::Mat r_intrinsic, r_distortion;
+  //fs.open(calibration_filename.c_str(), cv::FileStorage::READ);
+  fs.open(calibration_filename, cv::FileStorage::READ);
 
-    fs.open(calibration_filename.c_str(), cv::FileStorage::READ);
+  fs["Image_Dimensions"] >> image_dims;
+  int image_width = image_dims.at<int>(0);
+  int image_height = image_dims.at<int>(1);
 
-    fs["Image_Dimensions"] >> image_dims;
-    int image_width = image_dims.at<int>(0);
-    int image_height = image_dims.at<int>(1);
+  fs["Left_Camera_Matrix"] >> l_intrinsic;
+  fs["Left_Distortion_Coefficients"] >> l_distortion;
+  left_eye_.reset(new MonocularCamera(l_intrinsic, l_distortion, image_width, image_height));
 
-    fs["Left_Camera_Matrix"] >> l_intrinsic;
-    fs["Left_Distortion_Coefficients"] >> l_distortion;
-    left_eye_.reset(new MonocularCamera(l_intrinsic, l_distortion, image_width, image_height));
+  fs["Right_Camera_Matrix"] >> r_intrinsic;
+  fs["Right_Distortion_Coefficients"] >> r_distortion;
+  right_eye_.reset(new MonocularCamera(r_intrinsic, r_distortion, image_width, image_height));
 
-    fs["Right_Camera_Matrix"] >> r_intrinsic;
-    fs["Right_Distortion_Coefficients"] >> r_distortion;
-    right_eye_.reset(new MonocularCamera(r_intrinsic, r_distortion, image_width, image_height));
+  cv::Mat rotation(3, 3, CV_64FC1), translation(3, 1, CV_64FC1);
+  fs["Extrinsic_Camera_Rotation"] >> rotation;
 
-    cv::Mat rotation(3,3,CV_64FC1),translation(3,1,CV_64FC1);
-    fs["Extrinsic_Camera_Rotation"] >> rotation;
-   
-    fs["Extrinsic_Camera_Translation"] >> translation;
+  fs["Extrinsic_Camera_Translation"] >> translation;
 
-    rotation = rotation.inv();
-    translation = -1 * translation;
+  rotation = rotation.inv();
+  translation = -1 * translation;
 
-    for (int r = 0; r < 3; ++r){
-      for (int c = 0; c < 3; ++c){
-        right_eye_->rotation_.at(r, c) = rotation.at<double>(r, c);
-      }
+  for (int r = 0; r < 3; ++r){
+    for (int c = 0; c < 3; ++c){
+      right_eye_->rotation_.at(r, c) = rotation.at<double>(r, c);
     }
-
-    left_eye_->camera_center_ = ci::Vec3f(0, 0, 0);
-    left_eye_->look_at_ = ci::Vec3f(0, 0, 1);
-    left_eye_->world_up_ = ci::Vec3f(0, 0, -1);
-
-    right_eye_->camera_center_ = ci::Vec3f(translation.at<double>(0, 0), translation.at<double>(1, 0), translation.at<double>(2, 0));
-    right_eye_->look_at_ = right_eye_->rotation_ * left_eye_->look_at_;
-    right_eye_->world_up_ = right_eye_->rotation_ * left_eye_->world_up_;
-
-    left_eye_->light_.reset(new ci::gl::Light(ci::gl::Light::DIRECTIONAL,0));
-    left_eye_->light_->setPosition(left_eye_->camera_center_);
-    left_eye_->light_->lookAt(left_eye_->camera_center_, left_eye_->camera_center_ + left_eye_->look_at_);
-    
-    right_eye_->light_ = left_eye_->light_;
-
-  }catch(cv::Exception& e){
-
-    std::cerr << "Error while reading from camara calibration file.\n" << e.msg << "\n";
-    SAFE_EXIT();
-
   }
+
+  left_eye_->camera_center_ = ci::Vec3f(0, 0, 0);
+  left_eye_->look_at_ = ci::Vec3f(0, 0, 1);
+  left_eye_->world_up_ = ci::Vec3f(0, -1, 0);
+
+  right_eye_->camera_center_ = ci::Vec3f(translation.at<double>(0, 0), translation.at<double>(1, 0), translation.at<double>(2, 0));
+  right_eye_->look_at_ = right_eye_->rotation_ * left_eye_->look_at_;
+  right_eye_->world_up_ = right_eye_->rotation_ * left_eye_->world_up_;
+
+  left_eye_->light_.reset(new ci::gl::Light(ci::gl::Light::DIRECTIONAL, 0));
+  left_eye_->light_->setPosition(left_eye_->camera_center_);
+  left_eye_->light_->lookAt(left_eye_->camera_center_, left_eye_->camera_center_ + left_eye_->look_at_);
+
+  right_eye_->light_ = left_eye_->light_;
 
 }
 
